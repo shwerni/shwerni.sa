@@ -1,5 +1,4 @@
 // React & Next
-import Link from "next/link";
 import Image from "next/image";
 
 // components
@@ -50,9 +49,13 @@ const HeaderSheet = ({ user, path }: Props) => {
 
       {/* user */}
       <div className="flex items-center gap-3">
-        <Button variant="primary" className="hidden md:flex">
+        <LinkButton
+          variant="primary"
+          className="hidden md:flex"
+          href="/consultants"
+        >
           احجز موعدك الآن
-        </Button>
+        </LinkButton>
 
         {/* user nav */}
         {user && <UserNav user={user} />}
@@ -170,7 +173,11 @@ const HeaderSheet = ({ user, path }: Props) => {
                     <Label className="text-muted-foreground text-sm">
                       سجّل دخولك للاستفادة من كامل المزايا
                     </Label>
-                    <LinkButton href="/login" className="flex gap-2 w-10/12 mx-auto">
+                    <LinkButton
+                      href="/login"
+                      variant="outline"
+                      className="flex gap-2 w-10/12 mx-auto"
+                    >
                       <LogIn className="h-4 w-4" />
                       <span>تسجيل الدخول</span>
                     </LinkButton>

@@ -1,6 +1,6 @@
 // React & Next
-import Image from "next/image";
 import Link from "next/link";
+import Image from "next/image";
 
 // utils
 import { cn } from "@/lib/utils";
@@ -27,18 +27,15 @@ const Logo: React.FC<Props> = ({
   };
 
   return (
-    <Link href="/" className="block relative">
-      {/* <div className="relative w-full h-auto"> */}
-        <Image
-          src={"/layout/" + src[variant]}
-          alt="shwerni-logo"
-          width={width}
-          height={height}
-          className={cn(className)}
-          priority={true}
-          sizes="(max-width: 640px) 144px, 256px"
-        />
-      {/* </div> */}
+    <Link href="/" className="block relative" style={{ width, height }}>
+      <Image
+        src={"/layout/" + src[variant]}
+        alt="shwerni-logo"
+        fill
+        className={cn("object-contain", className)}
+        priority={true}
+        sizes={`${width}px`}
+      />
     </Link>
   );
 };
