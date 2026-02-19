@@ -27,7 +27,7 @@ const Logo: React.FC<Props> = ({
   };
 
   return (
-    <Link href="/" className="block relative" style={{ width, height }}>
+    <Link href="/" className="block relative" style={{ width, height: height / 2 }}>
       <Image
         src={"/layout/" + src[variant]}
         alt="shwerni-logo"

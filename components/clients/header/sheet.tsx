@@ -66,9 +66,9 @@ const HeaderSheet = ({ user, path }: Props) => {
         <Sheet>
           {/* trigger */}
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <Menu className="w-6 h-6 text-primary" />
-            </Button>
+            <div className="p-3">
+              <Menu className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+            </div>
           </SheetTrigger>
 
           {/* content */}
@@ -102,7 +102,7 @@ const HeaderSheet = ({ user, path }: Props) => {
                   {!isConsultant && (
                     <>
                       {/* main pages */}
-                      <div className="space-y-4 bg-gray-200 rounded-lg p-4 shadow">
+                      <div className="space-y-4 bg-gray-100 rounded-lg p-4 shadow">
                         <Label className="text-base font-semibold">
                           القائمة الرئيسية
                         </Label>
@@ -121,7 +121,7 @@ const HeaderSheet = ({ user, path }: Props) => {
                       </div>
 
                       {/* other pages */}
-                      <div className="space-y-4 bg-gray-200 rounded-lg p-4 shadow">
+                      <div className="space-y-4 bg-gray-100 rounded-lg p-4 shadow">
                         <Label className="text-base font-semibold">
                           خدمات إضافية
                         </Label>
