@@ -3,15 +3,15 @@
 import prisma from "@/lib/database/db";
 
 // packages
-import moment from "moment";
-import "moment/locale/ar";
 moment.locale("en");
+import "moment/locale/ar";
+import moment from "moment";
 
 // utils
 import { dateToString } from "@/utils/moment";
 
 // prisma types
-import { PaymentMethod } from "@/lib/generated/prisma/client";
+import { PaymentMethod } from "@/lib/generated/prisma/enums";
 
 // update payment pid
 export const updateMoyasarPid = async (oid: number, pid: string) => {

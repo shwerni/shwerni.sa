@@ -90,7 +90,6 @@ export async function Pay(
   //   // redirect on success to paid success page
   //   router.push(`/payment/paid?id=${zid}&status=paid`);
   // }
-  console.log(order);
 
   // validate
   if (!order || !order.payment) return { state: false, message: "حدث خطأ ما" };
