@@ -35,6 +35,7 @@ export const getAllDuesOwner = async (cid: number) => {
         },
       },
     });
+    
     // return
     return dues;
   } catch {
@@ -84,7 +85,7 @@ export const getDuesOwnenByMonth = async (range: string, cid: number) => {
 
     // return
     return dues;
-  } catch (error) {
+  } catch {
     return null;
   }
 };

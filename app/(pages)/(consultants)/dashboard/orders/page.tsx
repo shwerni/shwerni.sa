@@ -17,7 +17,7 @@ export default async function OwnersOrders() {
   // orders
   const orders = await getAllPaidOwnersOrdersByAuthor(author);
   // today time zone
-  const { date, time } = await timeZone();
+  const { date, time } = timeZone();
   // if not date
   if (!date) return <WrongPage />;
   // return
