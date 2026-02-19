@@ -1,0 +1,97 @@
+"use client";
+import * as React from "react";
+import { totalAfterTax } from "@/utils";
+
+interface Wallet {
+  credit: number;
+}
+
+interface Params {
+  baseCost: number;
+  tax: number;
+  wallet?: Wallet | null;
+  initialDiscount?: number | null;
+}
+
+export function usePaymentCalculation({
+  baseCost,
+  tax,
+  wallet,
+  initialDiscount = null,
+}: Params) {
+  /* =========================
+     Initial totals
+     ========================= */
+  const totalWTax = React.useMemo(
+    () => Number(totalAfterTax(baseCost, tax)),
+    [baseCost, tax]
+  );
+
+  /* =========================
+     Wallet
+     ========================= */
+  const isWallet = wallet?.credit != null && wallet.credit > 0;
+
+  const calcWallet = React.useCallback(
+    (ftotal: number) => {
+      if (!isWallet) return 0;
+      const diff = wallet!.credit - ftotal;
+      return diff >= 0 ? ftotal : wallet!.credit;
+    },
+    [wallet, isWallet]
+  );
+
+  /* =========================
+     States
+     ========================= */
+  const [useWallet, setUseWallet] = React.useState(false);
+  const [discount, setDiscount] = React.useState<number | null>(initialDiscount);
+  const [subTotal, setSubTotal] = React.useState<number>(totalWTax);
+  const [total, setTotal] = React.useState<number>(totalWTax);
+  const [withdrawPay, setWithdrawPay] = React.useState<number>(calcWallet(totalWTax));
+
+  /* =========================
+     Sync discount from props
+     ========================= */
+  React.useEffect(() => {
+    setDiscount(initialDiscount ?? null);
+  }, [initialDiscount]);
+
+  /* =========================
+     Calculations
+     ========================= */
+  const calcSubTotal = React.useCallback(() => {
+    if (discount) return totalWTax - (totalWTax * discount) / 100;
+    return totalWTax;
+  }, [discount, totalWTax]);
+
+  const calcTotal = React.useCallback(() => {
+    if (useWallet) return subTotal - withdrawPay;
+    return subTotal;
+  }, [subTotal, useWallet, withdrawPay]);
+
+  /* =========================
+     Sync totals when anything changes
+     ========================= */
+  React.useEffect(() => {
+    const nextSub = calcSubTotal();
+    setSubTotal(nextSub);
+    setWithdrawPay(calcWallet(nextSub));
+    setTotal(calcTotal());
+  }, [calcSubTotal, calcWallet, calcTotal]);
+
+  /* =========================
+     API
+     ========================= */
+  return {
+    totalWTax,
+    subTotal,
+    total,
+    withdrawPay,
+    discount,
+    setDiscount,
+    useWallet,
+    setUseWallet,
+    isWallet,
+  };
+}

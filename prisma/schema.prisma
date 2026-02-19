@@ -1,0 +1,859 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// enums
+enum UserRole {
+  ADMIN
+  USER
+  OWNER
+  GROUP
+  COORDINATOR
+  MANAGER
+  MARKETER
+  SERVICE
+  COLLABORATOR
+  DESIGNER
+}
+
+enum Weekday {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum ReviewState {
+  PUBLISHED
+  HOLD
+  HIDDEN
+}
+
+enum ConsultantState {
+  PUBLISHED
+  HOLD
+  HIDDEN
+}
+
+enum ApprovalState {
+  APPROVED
+  PENDING
+  FLAGGED
+  REJECTED
+}
+
+enum CenterState {
+  PUBLISHED
+  HOLD
+  HIDDEN
+}
+
+enum QuestionState {
+  PUBLISHED
+  HOLD
+  HIDDEN
+}
+
+enum BlogState {
+  PUBLISHED
+  HOLD
+  HIDDEN
+}
+
+enum ArticleState {
+  PUBLISHED
+  HOLD
+  HIDDEN
+}
+
+enum ProgramEnrollState {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ProgramState {
+  PUBLISHED
+  HOLD
+  HIDDEN
+}
+
+enum Categories {
+  FAMILY
+  PSYCHIC
+  LAW
+  PERSONAL
+  // MEDICINE
+}
+
+enum OrderType {
+  SCHEDULED
+  INSTANT
+}
+
+enum SessionType {
+  ONCE
+  MULTIPLE
+}
+
+enum PaymentMethod {
+  transaction
+  wallet
+  visaMoyasar
+  tabby
+}
+
+enum CouponState {
+  PUBLISHED
+  HIDDEN
+}
+
+enum CouponType {
+  GENERAL
+  PLATFORM
+  CONSULTANT
+  CENTER
+}
+
+enum CouponVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum OwnerType {
+  INDEPENDENT
+  Center
+}
+
+enum TimingType {
+  ONLINE
+  ONSITE
+}
+
+enum PaymentState {
+  NEW
+  PROCESSING
+  HOLD
+  PAID
+  REFUND
+  REFUSED
+  CANCELED
+}
+
+enum DiscountType {
+  PERCENT
+  FIXED
+}
+
+enum DiscountState {
+  PENDING
+  ACTIVE
+  EXPIRED
+}
+
+enum Relation {
+  SPOUSE
+  PARENT
+  SIBLING
+  CHILD
+  RELATIVE
+  FRIEND
+  COLLEAGUE
+  OTHER
+}
+
+enum GenderPreference {
+  MEN_ONLY
+  WOMEN_ONLY
+  BOTH
+}
+
+// models
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  phone         String?   @unique
+  email         String?   @unique
+  emailVerified DateTime? @map("email_verified")
+  phoneVerified DateTime? @map("phone_verified")
+  image         String?
+  password      String?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  role          UserRole  @default(USER)
+
+  // @relations
+  accounts         Account[]
+  Wallet           Wallet[]
+  Favorite         Favorite[]
+  Consultant       Consultant[]
+  Instant          Instant[]
+  FreeTimings      FreeTimings[]
+  ConsultantTiming ConsultantTiming[]
+  collaboration    Collaboration?
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model VerificationToken {
+  id     String   @id @default(cuid())
+  phone  String
+  token  String   @unique
+  otp    String
+  expire DateTime
+
+  @@unique([phone, token])
+  @@map("verification_tokens")
+}
+
+model Setting {
+  id        Int      @id @default(autoincrement())
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  category  String
+  subKey    String
+
+  @@unique([category, subKey])
+  @@map("settings")
+}
+
+model Image {
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+  key        String
+  url        String?
+  title      String?
+
+  @@map("images")
+}
+
+model File {
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+  key        String
+  url        String?
+  title      String?
+
+  @@map("files")
+}
+
+model Center {
+  id String @id @default(cuid())
+
+  @@map("centers")
+}
+
+model Consultant {
+  id           String           @id @default(cuid())
+  userId       String           @unique
+  type         OwnerType        @default(INDEPENDENT)
+  cid          Int              @unique @default(autoincrement())
+  status       Boolean
+  statusA      ConsultantState  @default(HIDDEN)
+  approved     ApprovalState    @default(PENDING)
+  gender       Gender           @default(MALE)
+  phone        String
+  name         String
+  title        String
+  about        String
+  education    String
+  neducation   String[]
+  experience   String
+  nexperiences String[]
+  nabout       String           @default("")
+  preference   GenderPreference @default(BOTH)
+  seniority    DateTime         @default(now())
+  cost30       Float
+  cost45       Float
+  cost60       Float
+  iban         String
+  bankName     String
+  category     Categories
+  image        String?
+  cv           String?
+  edu          String?
+  cert         String?
+  commission   Float?
+  rate         Float            @default(0)
+  adminNote    String?
+  info         String?
+  created_at   DateTime         @default(now())
+  updated_at   DateTime         @default(now()) @updatedAt
+
+  // @relations
+  user                     User                  @relation(fields: [userId], references: [id])
+  orders                   Order[]
+  articles                 Article[]
+  Coupon                   Coupon[]
+  reviews                  Review[]
+  favorites                Favorite[]
+  instants                 Instant[]
+  freeTimings              FreeTimings[]
+  freeSessions             FreeSession[]
+  ConsultantOathAcceptance ConsultantOath?
+  consultantTiming         ConsultantTiming[]
+  programs                 ProgramConsultant[]
+  DiscountConsultant       DiscountConsultant[]
+  specialties              ConsultantSpecialty[]
+  blogs                    Blog[]
+
+  @@map("consultants")
+}
+
+model ConsultantTiming {
+  id   Int        @id @default(autoincrement())
+  day  Weekday
+  time String
+  type TimingType @default(ONLINE)
+
+  // @relations
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  consultantId Int
+  consultant   Consultant @relation(fields: [consultantId], references: [cid])
+
+  @@unique([consultantId, day, time])
+  @@index([day, time])
+  @@index([consultantId, day])
+  @@map("consultant_timings")
+}
+
+model FreeTimings {
+  id         String    @id @default(cuid())
+  time       String?
+  activeWeek DateTime?
+  status     Boolean   @default(false)
+
+  // @relations
+  userId       String     @unique
+  user         User       @relation(fields: [userId], references: [id])
+  consultantId Int        @unique
+  consultant   Consultant @relation(fields: [consultantId], references: [cid])
+
+  @@map("free_timings")
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  oid            Int         @unique @default(autoincrement())
+  author         String
+  type           OrderType   @default(SCHEDULED)
+  name           String
+  phone          String
+  consultantId   Int
+  programId      Int?
+  collaboratorId String?
+  description    String?
+  answer         String?
+  gift           Boolean     @default(false)
+  session        SessionType @default(ONCE)
+  sessionCount   Int         @default(1)
+  due_at         DateTime    @default(now())
+  created_at     DateTime    @default(now())
+  info           String[]
+
+  // @relations
+  guest          Guest?
+  payment        Payment?
+  meeting        Meeting[]
+  program        Program?        @relation(fields: [programId], references: [prid])
+  consultant     Consultant      @relation(fields: [consultantId], references: [cid])
+  collaboration  Collaboration?  @relation(fields: [collaboratorId], references: [id])
+  reconciliation Reconciliation?
+
+  @@map("orders")
+}
+
+model Guest {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  createdAt DateTime @default(now())
+
+  // @relations
+  orderId Int   @unique
+  order   Order @relation(fields: [orderId], references: [oid])
+
+  @@map("guests")
+}
+
+model Favorite {
+  id String @id @default(cuid())
+
+  userId       String
+  consultantId Int
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consultant Consultant @relation(fields: [consultantId], references: [cid], onDelete: Cascade)
+
+  created_at DateTime @default(now())
+
+  @@unique([userId, consultantId])
+  @@index([consultantId])
+  @@map("favorites")
+}
+
+model Review {
+  id         String      @id @default(cuid())
+  author     String
+  verified   Boolean     @default(false)
+  name       String
+  comment    String
+  rate       Float
+  info       String[]
+  status     ReviewState
+  created_at DateTime    @default(now())
+
+  // @relations
+  consultantId Int
+  consultant   Consultant @relation(fields: [consultantId], references: [cid])
+
+  @@map("reviews")
+}
+
+model Question {
+  id          String        @id @default(cuid())
+  qid         Int           @unique @default(autoincrement())
+  created_at  DateTime      @default(now())
+  answered_at DateTime      @default(now())
+  anonymous   Boolean
+  title       String?
+  question    String
+  category    Categories?
+  answer      String?
+  cid         Int?
+  name        String?
+  author      String
+  status      QuestionState
+  likes       Int?          @default(0)
+
+  @@map("questions")
+}
+
+// later delete
+model Blog {
+  id         String     @id @default(cuid())
+  bid        Int        @unique @default(autoincrement())
+  status     BlogState
+  image      String
+  title      String
+  blog       String     @db.Text
+  category   Categories
+  likes      Int
+  created_at DateTime   @default(now())
+
+  // @relations
+  consultantId Int
+  consultant   Consultant @relation(fields: [consultantId], references: [cid])
+
+  @@map("blogs")
+}
+
+model Article {
+  id         String       @id @default(cuid())
+  aid        Int          @unique @default(autoincrement())
+  status     ArticleState
+  image      String
+  title      String
+  article    String       @db.Text
+  category   Categories
+  likes      String[]
+  created_at DateTime     @default(now())
+  read       Int          @default(0)
+
+  // @relations
+  consultantId Int?
+  consultant   Consultant?        @relation(fields: [consultantId], references: [cid])
+  specialties  ArticleSpecialty[]
+
+  @@map("articles")
+}
+
+model Wallet {
+  id           String   @id @default(cuid())
+  status       Boolean  @default(true)
+  credit       Int
+  info         String[]
+  transactions Int[]
+  oids         Int[]
+  created_at   DateTime @default(now())
+
+  // @relations
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("wallets")
+}
+
+model Coupon {
+  id         String           @id @default(cuid())
+  status     CouponState
+  code       String           @unique
+  discount   Float
+  visibility CouponVisibility @default(PUBLIC)
+  type       CouponType       @default(PLATFORM)
+  starts_at  DateTime?        @default(now())
+  expires_at DateTime?
+  users      String[]
+  limits     Int?
+  created_at DateTime         @default(now())
+
+  // @relations
+  consultantId Int? // optional field
+  consultant   Consultant? @relation(fields: [consultantId], references: [cid])
+
+  @@map("coupons")
+}
+
+model PreConsultation {
+  id           String    @id @default(cuid())
+  pid          Int       @unique @default(autoincrement())
+  author       String
+  name         String
+  phone        String
+  issue        String
+  advisor      String?
+  response     String?
+  responded_at DateTime?
+  created_at   DateTime  @default(now())
+
+  @@map("pre_consultations")
+}
+
+model Instant {
+  id         String   @id @default(cuid())
+  statusA    Boolean  @default(false)
+  status     Boolean  @default(false)
+  cost       Float?
+  created_at DateTime @default(now())
+  online_at  DateTime @default(now())
+
+  // @relations
+  consultantId Int        @unique
+  consultant   Consultant @relation(fields: [consultantId], references: [cid])
+  userId       String     @unique
+  user         User       @relation(fields: [userId], references: [id])
+
+  @@map("instants")
+}
+
+model FreeSession {
+  id           String   @id @default(cuid())
+  fid          Int      @unique @default(autoincrement())
+  author       String
+  name         String
+  phone        String
+  time         String
+  date         String
+  duration     String
+  ownerAttend  Boolean?
+  clientAttend Boolean?
+  clientATime  String?
+  ownerATime   String?
+  url          String?
+  info         String[]
+  created_at   DateTime @default(now())
+
+  // @relations
+  consultantId Int
+  consultant   Consultant @relation(fields: [consultantId], references: [cid])
+  Meeting      Meeting?
+
+  @@map("free_sessions")
+}
+
+model WaChat {
+  id         String    @id @default(cuid())
+  waid       String    @unique
+  name       String
+  phone      String    @unique
+  created_at DateTime  @default(now())
+  updated_at DateTime? @default(now()) @updatedAt
+
+  // @relations
+  messages Message[]
+
+  @@map("wa_chats")
+}
+
+model Message {
+  id      String   @id @default(cuid())
+  chatId  String
+  time    DateTime
+  content String
+  from    String
+
+  // @relations
+  chat WaChat @relation(fields: [chatId], references: [waid])
+
+  @@index([chatId])
+  @@index([time])
+  @@map("messages")
+}
+
+model Meeting {
+  id                   String  @id @default(cuid())
+  time                 String
+  done                 Boolean @default(false)
+  date                 String
+  duration             String
+  session              Int
+  clientAttendance     Boolean @default(false)
+  consultantAttendance Boolean @default(false)
+  clientJoinedAt       String?
+  consultantJoinedAt   String?
+  url                  String?
+
+  // @relations
+  freeSessionId String?      @unique
+  freeSession   FreeSession? @relation(fields: [freeSessionId], references: [id])
+  orderId       Int?
+  orders        Order?       @relation(fields: [orderId], references: [oid])
+
+  @@unique([orderId, session])
+  @@map("meetings")
+}
+
+model Payment {
+  id         String         @id @default(cuid())
+  pid        String?        @unique
+  commission Int
+  total      Float
+  tax        Float
+  payment    PaymentState
+  method     PaymentMethod?
+  paid       Float?
+  credit     Float?         @default(0)
+  wallet     Float?
+
+  // @relations
+  orderId    Int?        @unique
+  order      Order?      @relation(fields: [orderId], references: [oid])
+  usedCoupon UsedCoupon?
+
+  @@map("payments")
+}
+
+model UsedCoupon {
+  id       String     @id @default(cuid())
+  code     String
+  discount Float
+  type     CouponType
+  usedAt   DateTime   @default(now())
+
+  // @relations
+  paymentId String  @unique
+  payment   Payment @relation(fields: [paymentId], references: [id])
+
+  @@map("used_coupons")
+}
+
+model Program {
+  id          String       @id @default(uuid())
+  prid        Int          @unique @default(autoincrement())
+  title       String
+  summary     String
+  duration    Int          @default(60)
+  commission  Int          @default(70)
+  description String
+  image       String
+  category    Categories
+  price       Float
+  sessions    Int
+  features    String[]
+  mastered    String[]
+  rate        Float?
+  status      ProgramState @default(HOLD)
+  orders      Order[]
+  created_at  DateTime     @default(now())
+  updated_at  DateTime     @default(now()) @updatedAt
+
+  // @relations
+  ProgramConsultant ProgramConsultant[]
+
+  @@map("programs")
+}
+
+model ProgramConsultant {
+  id        String             @id @default(cuid())
+  active    Boolean            @default(false)
+  status    ProgramEnrollState @default(PENDING)
+  createdAt DateTime           @default(now())
+
+  // @relations
+  consultant   Consultant @relation(fields: [consultantId], references: [cid])
+  consultantId Int
+  program      Program    @relation(fields: [programId], references: [prid])
+  programId    Int
+
+  @@unique([consultantId, programId])
+  @@map("program_consultants")
+}
+
+model ConsultantOath {
+  consultantId Int      @id @unique
+  acceptedAt   DateTime @default(now())
+
+  // @relations
+  consultant Consultant @relation(fields: [consultantId], references: [cid])
+
+  @@map("consultant_oaths")
+}
+
+model Discount {
+  id          String       @id @default(uuid())
+  did         Int          @unique @default(autoincrement())
+  name        String
+  title       String
+  description String
+  image       String?
+  discount    Float
+  type        DiscountType
+  status      Boolean
+  visibility  Boolean
+  limit       Int?
+  users       String[]
+  startDate   DateTime
+  endDate     DateTime
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @default(now()) @updatedAt
+
+  // @relations
+  DiscountConsultant DiscountConsultant[]
+
+  @@map("discounts")
+}
+
+model DiscountConsultant {
+  id        String   @id @default(cuid())
+  status    Boolean
+  createdAt DateTime @default(now())
+
+  // @relations
+  consultant   Consultant @relation(fields: [consultantId], references: [cid])
+  consultantId Int
+  discount     Discount   @relation(fields: [discountId], references: [did])
+  discountId   Int
+
+  @@unique([consultantId, discountId])
+  @@map("discount_consultants")
+}
+
+model Collaboration {
+  id         String   @id @unique @default(cuid())
+  name       String
+  image      String
+  status     Boolean  @default(false)
+  commission Float?   @default(50)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // @ relations
+  userId String  @unique
+  user   User    @relation(fields: [userId], references: [id])
+  orders Order[]
+
+  @@map("collaborations")
+}
+
+model Specialty {
+  id        String     @id @default(cuid())
+  name      String
+  category  Categories
+  createdAt DateTime   @default(now())
+
+  // @ relations
+  consultants ConsultantSpecialty[]
+  articles    ArticleSpecialty[]
+
+  @@unique([name, category])
+  @@map("specialties")
+}
+
+model ConsultantSpecialty {
+  consultantId Int
+  specialtyId  String
+
+  // @ relations
+  consultant Consultant @relation(fields: [consultantId], references: [cid], onDelete: Cascade)
+  specialty  Specialty  @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+
+  @@id([consultantId, specialtyId])
+  @@index([consultantId])
+  @@index([specialtyId])
+  @@map("consultant_specialties")
+}
+
+model ArticleSpecialty {
+  articleId   String
+  specialtyId String
+
+  // Relations
+  article   Article   @relation(fields: [articleId], references: [id])
+  specialty Specialty @relation(fields: [specialtyId], references: [id])
+
+  @@id([articleId, specialtyId])
+  @@map("article_specialties")
+}
+
+model botUsage {
+  id        String   @id @default(cuid())
+  phone     String
+  date      DateTime
+  count     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([phone, date])
+  @@map("bot_usages")
+}
+
+model Reconciliation {
+  id String @id @default(cuid())
+
+  name        String
+  phone       String
+  description String   @db.Text
+  relation    Relation
+  gender      Gender
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  orderId String? @unique
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("reconciliations")
+}
