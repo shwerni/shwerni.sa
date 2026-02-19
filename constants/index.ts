@@ -138,6 +138,7 @@ export const zencrypt: string[] = [
 ];
 
 // zdencrypt
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const zdencrypt: any = {
   b: 0,
   z: 1,

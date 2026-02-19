@@ -57,7 +57,7 @@ export async function moyasarPayment(payment: Moyasar): Promise<boolean> {
   try {
     // payment state
     await CheckPaymentState(payment);
-  } catch (error) {
+  } catch {
     // notify me on error
     await telegramAdmin(
       `shwerni-error: payment with moyasar faild for order with pid= ${payment.invoice_id}`,
