@@ -26,6 +26,7 @@ import { Cost } from "@/types/data";
 // icons
 import { FaUserDoctor } from "react-icons/fa6";
 import { User, Clock, Calendar, ChevronRight } from "lucide-react";
+import CurrencyLabel from "@/components/clients/shared/currency-label";
 
 // props
 interface Props {
@@ -86,11 +87,11 @@ export default function StepPayment({ form, onBack }: Props) {
   const paymentSummary = [
     {
       label: "الاجمالي غير شامل الضريبة",
-      value: initialCost.toFixed(2) + " ⃁",
+      value: initialCost,
     },
     {
       label: "الاجمالي شامل الضريبة",
-      value: payment.subTotal.toFixed(2) + " ⃁",
+      value: payment.subTotal,
     },
     {
       label: "كود الخصم",
@@ -169,18 +170,26 @@ export default function StepPayment({ form, onBack }: Props) {
                       className="flex justify-between items-center w-full"
                     >
                       <h6 className="text-sm text-gray-700">{i.label}</h6>
-                      <h6 className="text-sm text-gray-700 font-semibold">
-                        {i.value}
-                      </h6>
+                      {typeof i.value === "string" ? (
+                        <h6>{i.value}</h6>
+                      ) : (
+                        <CurrencyLabel
+                          amount={i.value}
+                          size="xs"
+                          className="text-sm text-gray-700 font-semibold"
+                        />
+                      )}
                     </div>
                   ),
               )}
               <Separator className="w-10/12 mt-4 mb-2 mx-auto" />
               <div className="flex justify-between items-center w-full">
                 <h6 className="text-sm text-gray-700">الإجمالي</h6>
-                <h6 className="text-sm text-gray-700 font-semibold">
-                  {payment.totalWTax.toFixed(2)} ⃁
-                </h6>
+                <CurrencyLabel
+                  amount={payment.totalWTax}
+                  size="xs"
+                  className="text-sm text-gray-700 font-semibold"
+                />
               </div>
             </div>
           </div>
