@@ -157,23 +157,20 @@ const HeaderSheet = ({ user, path }: Props) => {
               {/* footer */}
               <SheetFooter className="border-t border-border pt-4">
                 {user ? (
-                  <Link
+                  <LinkButton
                     href="/logout"
-                    className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-md text-destructive hover:bg-destructive/10 transition"
+                    variant="destructive"
+                    className="flex gap-2 w-10/12 mx-auto"
                   >
                     <LogOut className="h-4 w-4" />
                     <span>تسجيل الخروج</span>
-                  </Link>
+                  </LinkButton>
                 ) : (
                   <div className="space-y-3 w-full">
                     <Label className="text-muted-foreground text-sm">
                       سجّل دخولك للاستفادة من كامل المزايا
                     </Label>
-                    <LinkButton
-                      href="/login"
-                      variant="destructive"
-                      className="gap-2 w-10/12"
-                    >
+                    <LinkButton href="/login" className="flex gap-2 w-10/12 mx-auto">
                       <LogIn className="h-4 w-4" />
                       <span>تسجيل الدخول</span>
                     </LinkButton>
