@@ -44,8 +44,10 @@ export const createMoyasarCheckout = async (oid: number, total: number) => {
   const response = await moayasar.post("", body);
   // if error response
   if (!response || !response.data.id) return null;
+
   // update order's pid (payment id)
   await updateMoyasarPid(oid, response.data.id);
+
   // redirect to the payment url
   return response.data.url;
 };

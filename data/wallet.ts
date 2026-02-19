@@ -16,7 +16,9 @@ import { dateTimeToString, dateToString } from "@/utils/moment";
 export const getWalletByAuthor = async (author: string) => {
   try {
     // get wallet
-    const wallet = await prisma.wallet.findUnique({ where: { userId: author } });
+    const wallet = await prisma.wallet.findUnique({
+      where: { userId: author },
+    });
     // return
     return wallet;
   } catch {
@@ -29,11 +31,13 @@ export const addWalletCredit = async (
   author: string,
   oid: number,
   total: number,
-  tax: number
+  tax: number,
 ) => {
   try {
     // get wallet
-    const wallet = await prisma.wallet.findUnique({ where: { userId: author } });
+    const wallet = await prisma.wallet.findUnique({
+      where: { userId: author },
+    });
     // final total
     const fTotal = Number(totalAfterTax(total, tax));
     // if not exist
@@ -48,11 +52,11 @@ export const addWalletCredit = async (
           transactions: [fTotal],
           info: [
             `رقم الطلب #${oid} | نوع العملية: استرداد مبلغ الي المحفظة | الاجمالي غير شامل الضريبة: ${total.toFixed(
-              2
+              2,
             )} ر.س | ضريبة: ${Number(
-              ((total * tax) / 100).toFixed(2)
+              ((total * tax) / 100).toFixed(2),
             )} ر.س | اجمالي: ${fTotal} ر.س | تاريخ الاسترداد: ${dateToString(
-              new Date()
+              new Date(),
             )}`,
           ],
         },
@@ -73,15 +77,13 @@ export const addWalletCredit = async (
         transactions: { push: [fTotal] },
         oids: newOids,
         info: {
-          push: [
-            `رقم الطلب #${oid} | نوع العملية: استرداد مبلغ الي المحفظة | الاجمالي غير شامل الضريبة: ${total.toFixed(
-              2
-            )} ر.س | ضريبة: ${((total * tax) / 100).toFixed(
-              2
-            )} ر.س | اجمالي: ${fTotal} ر.س | تاريخ الاسترداد: ${dateToString(
-              new Date()
-            )}`,
-          ],
+          push: `رقم الطلب #${oid} | نوع العملية: استرداد مبلغ الي المحفظة | الاجمالي غير شامل الضريبة: ${total.toFixed(
+            2,
+          )} ر.س | ضريبة: ${((total * tax) / 100).toFixed(
+            2,
+          )} ر.س | اجمالي: ${fTotal} ر.س | تاريخ الاسترداد: ${dateToString(
+            new Date(),
+          )}`,
         },
       },
     });
@@ -99,7 +101,7 @@ export const payAllByWallet = async (
   zid: string,
   total: number,
   tax: number,
-  pay: number
+  pay: number,
 ) => {
   try {
     // current wallet data
@@ -123,15 +125,12 @@ export const payAllByWallet = async (
         transactions: { push: -Number(pay.toFixed(2)) },
         oids: { push: Number(oid) },
         info: {
-          push: [
-            `رقم الطلب #${oid} | نوع العملية: سحب مبلغ من المحفظة | الاجمالي غير شامل الضريبة: ${total.toFixed(
-              2
-            )} ر.س | ضريبة: ${((total * tax) / 100).toFixed(
-              2
-            )} ر.س | اجمالي: ${(total + (total * tax) / 100).toFixed(
-              2
-            )} ر.س | تاريخ الاسترداد: ${dateToString(new Date())}`,
-          ],
+          push: `رقم الطلب #${oid} | نوع العملية: سحب مبلغ من المحفظة | الاجمالي غير شامل الضريبة: ${total.toFixed(
+            2,
+          )} ر.س | ضريبة: ${((total * tax) / 100).toFixed(2)} ر.س | اجمالي: ${(
+            total +
+            (total * tax) / 100
+          ).toFixed(2)} ر.س | تاريخ الاسترداد: ${dateToString(new Date())}`,
         },
       },
     });
@@ -148,11 +147,9 @@ export const payAllByWallet = async (
           },
         },
         info: {
-          push: [
-            `#${oid}'s info | paymentId: ${zid} | paymentMethod: ${
-              PaymentMethod.wallet
-            } | modified_at: ${dateTimeToString(new Date())}`,
-          ],
+          push: `#${oid}'s info | paymentId: ${zid} | paymentMethod: ${
+            PaymentMethod.wallet
+          } | modified_at: ${dateTimeToString(new Date())}`,
         },
       },
       include: {
@@ -192,7 +189,7 @@ export const requestUsingWallet = async (oid: number, pay: number) => {
           },
         },
         info: {
-          push: [`#${oid}'s info | partially wallet payemnt: ${pay}`],
+          push: `#${oid}'s info | partially wallet payemnt: ${pay}`,
         },
       },
     });
@@ -209,7 +206,7 @@ export const payPartiallyByWallet = async (
   oid: number,
   total: number,
   tax: number,
-  pay: number
+  pay: number,
 ) => {
   try {
     // current wallet data
@@ -230,15 +227,12 @@ export const payPartiallyByWallet = async (
         transactions: { push: -Number(pay.toFixed(2)) },
         oids: { push: Number(oid) },
         info: {
-          push: [
-            `رقم الطلب #${oid} | نوع العملية: سحب مبلغ من المحفظة | الاجمالي غير شامل الضريبة: ${total.toFixed(
-              2
-            )} ر.س | ضريبة: ${((total * tax) / 100).toFixed(
-              2
-            )} ر.س | اجمالي: ${(total + (total * tax) / 100).toFixed(
-              2
-            )} ر.س | تاريخ الاسترداد: ${dateTimeToString(new Date())}`,
-          ],
+          push: `رقم الطلب #${oid} | نوع العملية: سحب مبلغ من المحفظة | الاجمالي غير شامل الضريبة: ${total.toFixed(
+            2,
+          )} ر.س | ضريبة: ${((total * tax) / 100).toFixed(2)} ر.س | اجمالي: ${(
+            total +
+            (total * tax) / 100
+          ).toFixed(2)} ر.س | تاريخ الاسترداد: ${dateTimeToString(new Date())}`,
         },
       },
     });

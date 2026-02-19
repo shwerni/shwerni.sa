@@ -15,6 +15,9 @@ import { PaymentMethod } from "@/lib/generated/prisma/enums";
 
 // update payment pid
 export const updateMoyasarPid = async (oid: number, pid: string) => {
+  const info = `paymentMethod: ${
+    PaymentMethod.visaMoyasar
+  } | paymentId: ${pid} |  modified_at: ${dateToString(new Date())}`;
   try {
     // get order
     const order = await prisma.order.update({
@@ -27,11 +30,7 @@ export const updateMoyasarPid = async (oid: number, pid: string) => {
           },
         },
         info: {
-          push: [
-            `paymentMethod: ${
-              PaymentMethod.visaMoyasar
-            } | paymentId: ${pid} |  modified_at: ${dateToString(new Date())}`,
-          ],
+          push: info,
         },
       },
     });
@@ -75,11 +74,9 @@ export const updateTabbyPid = async (oid: number, pid: string) => {
           },
         },
         info: {
-          push: [
-            `paymentMethod: ${
-              PaymentMethod.tabby
-            } | paymentId: ${pid} |  modified_at: ${dateToString(new Date())}`,
-          ],
+          push: `paymentMethod: ${
+            PaymentMethod.tabby
+          } | paymentId: ${pid} |  modified_at: ${dateToString(new Date())}`,
         },
       },
     });

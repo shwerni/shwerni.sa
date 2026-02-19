@@ -729,11 +729,9 @@ export const updateOrderStatus = async (pid: string, status: PaymentState) => {
         order: {
           update: {
             info: {
-              push: [
-                `order's payment status changed to ${status} | modified_at: ${dateTimeToString(
-                  new Date(),
-                )}`,
-              ],
+              push: `order's payment status changed to ${status} | modified_at: ${dateTimeToString(
+                new Date(),
+              )}`,
             },
           },
         },
@@ -806,11 +804,9 @@ export const orderStatusPaid = async (pid: string) => {
               order: {
                 update: {
                   info: {
-                    push: [
-                      `order's payment status changed to ${
-                        PaymentState.HOLD
-                      } due to wallet withdraw issue | modified_at: ${dateTimeToString()}`,
-                    ],
+                    push: `order's payment status changed to ${
+                      PaymentState.HOLD
+                    } due to wallet withdraw issue | modified_at: ${dateTimeToString()}`,
                   },
                 },
               },
@@ -828,11 +824,9 @@ export const orderStatusPaid = async (pid: string) => {
           order: {
             update: {
               info: {
-                push: [
-                  `order's payment status changed to ${
-                    PaymentState.PAID
-                  } | modified_at: ${dateTimeToString(new Date())}`,
-                ],
+                push: `order's payment status changed to ${
+                  PaymentState.PAID
+                } | modified_at: ${dateTimeToString(new Date())}`,
               },
             },
           },
@@ -913,11 +907,9 @@ export const orderStatusRefund = async (pid: string) => {
           order: {
             update: {
               info: {
-                push: [
-                  `order's payment status changed to ${
-                    PaymentState.REFUND
-                  } | modified_at: ${dateTimeToString(new Date())}`,
-                ],
+                push: `order's payment status changed to ${
+                  PaymentState.REFUND
+                } | modified_at: ${dateTimeToString(new Date())}`,
               },
             },
           },

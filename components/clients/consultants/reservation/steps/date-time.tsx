@@ -158,15 +158,15 @@ export default function StepDateTime({ form, onNext }: Props) {
   }
 
   return (
-    <div className="flex flex-col lg:grid grid-cols-3 gap-y-4">
+    <div className="flex flex-col gap-4 lg:grid grid-cols-3 lg:gap-2">
       {/* calendar */}
       <Controller
         name="date"
         control={control}
         render={({ field }) => (
-          <Field className="col-span-2">
+          <Field className="col-span-2 relative">
             <Calendar
-              className="col-span-2 w-full max-w-lg mx-auto data-[selected-single=true]:bg-white!"
+              className="relative col-span-2 w-full max-w-lg mx-auto data-[selected-single=true]:bg-white!"
               buttonVariant="ghost"
               classNames={{
                 disabled: cn(classNames.disabled, "text-gray-500 line-through"),

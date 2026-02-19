@@ -23,7 +23,7 @@ export const reviewsExistByAuthor = async (author: string, cid: number) => {
     });
     // return
     return Boolean(review);
-  } catch (error) {
+  } catch  {
     return false;
   }
 };
