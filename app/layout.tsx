@@ -8,23 +8,28 @@ import { GoogleAnalytics, GoogleTagManager } from "@next/third-parties/google";
 // top loader
 import NextTopLoader from "nextjs-toploader";
 
-// auth
-import { auth } from "@/auth";
-import { SessionProvider } from "next-auth/react";
+// upload thing
+import { extractRouterConfig } from "uploadthing/server";
+import { ourFileRouter } from "@/app/api/uploadthing/core";
+import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 
 // nuqs
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 // components
 import { Toaster } from "@/components/ui/sonner";
+import ReCaptchaWrapper from "@/components/wrappers/recaptcha";
+
+// scripts
+import MetaPixel from "@/app/_components/layout/scripts/ads/metaPixel";
+import SnapPixel from "@/app/_components/layout/scripts/ads/snapPixel";
+import TwitterPixel from "@/app/_components/layout/scripts/ads/twitterPixel";
 
 // css
 import "@/app/globals.css";
 
 // constants
 import { defaultMetaApi } from "@/constants";
-import { GoogleReCaptchaProvider } from "react-google-recaptcha-v3";
-import ReCaptchaWrapper from "@/components/wrappers/recaptcha";
 
 // font
 const font = IBM_Plex_Sans_Arabic({
@@ -57,13 +62,15 @@ export default async function RootLayout({
       // suppressHydrationWarning
     >
       {/* google analytic */}
-      {/* <GoogleAnalytics gaId="G-DRN37CDE50" /> */}
+      <GoogleAnalytics gaId="G-DRN37CDE50" />
       {/* google ads mangaer */}
-      {/* <GoogleTagManager gtmId="GTM-5TGBGMNN" /> */}
+      <GoogleTagManager gtmId="GTM-5TGBGMNN" />
       {/* main app */}
       <body className={font.className}>
         <ReCaptchaWrapper>
           <main className="max-w-[1750px] mx-auto">
+            {/* uplaod thing */}
+            <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
             {/* top loader animation */}
             <NextTopLoader />
             {/* nuqs adaptar */}
@@ -76,6 +83,12 @@ export default async function RootLayout({
           <Toaster richColors expand={true} />
         </ReCaptchaWrapper>
       </body>
+      {/* meta pixel ads */}
+      <MetaPixel />
+      {/* twitter ads */}
+      <TwitterPixel />
+      {/* snap pixel ads */}
+      <SnapPixel />
     </html>
   );
 }
