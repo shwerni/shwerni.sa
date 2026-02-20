@@ -5,6 +5,7 @@ import React from "react";
 // packages
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 // components
 import {
@@ -25,6 +26,7 @@ import { calculatePayment } from "@/utils/admin/payments";
 
 // handlers
 import { Pay } from "@/handlers/admin/order/payment";
+import { runRecaptcha } from "@/handlers/admin/recaptcha";
 
 // prisma types
 import { Weekday } from "@/lib/generated/prisma/enums";
@@ -35,8 +37,6 @@ import { Cost, FinanceConfig } from "@/types/data";
 
 // schema
 import { ReservationFormType, reservationSchema } from "@/schemas/index";
-import { runRecaptcha } from "@/handlers/admin/recaptcha";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 // props
 interface Props {

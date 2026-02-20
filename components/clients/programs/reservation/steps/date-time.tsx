@@ -194,7 +194,17 @@ export default function StepDateTime({ form, onNext, onBack }: Props) {
                 mode="single"
                 selected={selectedDate}
                 onSelect={(date) => {
-                  field.onChange(date);
+                  field.onChange(
+                    date
+                      ? new Date(
+                          Date.UTC(
+                            date.getFullYear(),
+                            date.getMonth(),
+                            date.getDate(),
+                          ),
+                        )
+                      : date,
+                  );
                   // @ts-expect-error - this is a hack to reset time when date changes
                   form.setValue("time", undefined);
                   // get this day times

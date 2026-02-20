@@ -176,7 +176,8 @@ export function timeLabel(time: string) {
  * dateToString(new Date(2026, 1, 11)) // "2026-02-11"
  */
 export const dateToString = (date: Date): string => {
-  return format(date, "yyyy-MM-dd");
+  // return format(date, "yyyy-MM-dd");
+  return date.toISOString().split("T")[0];
 };
 
 /**
@@ -224,7 +225,7 @@ export const attendanceTime = (
   time: string,
   date: string,
   mTime: string,
-  mDate: string
+  mDate: string,
 ): boolean => {
   // parse current time and meeting time
   const now = parse(`${date} ${time}`, "yyyy-MM-dd HH:mm", new Date());
