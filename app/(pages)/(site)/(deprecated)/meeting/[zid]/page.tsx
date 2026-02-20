@@ -5,6 +5,10 @@ import { permanentRedirect } from "next/navigation";
 // props
 type Props = {
   params: Promise<{ zid: string }>;
+  searchParams: Promise<{
+    session?: number;
+    participant?: string;
+  }>;
 };
 
 // meta data seo
@@ -14,8 +18,14 @@ export const metadata: Metadata = {
 };
 
 // return
-export default async function Page({ params }: Props) {
+export default async function Page({ params, searchParams }: Props) {
+  // zid
   const { zid } = await params;
 
-  permanentRedirect(`/meetings/${zid}`);
+  // session
+  const { session, participant } = await searchParams;
+
+  permanentRedirect(
+    `/meetings/${zid}?participant=${participant}&session=${session}`,
+  );
 }
