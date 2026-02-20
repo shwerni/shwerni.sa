@@ -2,9 +2,9 @@
 import Image from "next/image";
 
 // components
-import { Button } from "@/components/ui/button";
-import { IconLabel } from "@/components/shared/icon-label";
 import Section from "@/components/clients/shared/section";
+import { IconLabel } from "@/components/shared/icon-label";
+import { LinkButton } from "@/components/shared/link-button";
 
 // lib
 import { userServer } from "@/lib/auth/server";
@@ -27,10 +27,12 @@ const Join = async () => {
             كن جزءًا من منصة تصنع فارقًا في حياة الآخرين
           </h3>
           <div className="flex items-center justify-center gap-5">
-            <Button variant="primary">
-              <IconLabel label="إجراء" Icon={ArrowLeft} />
-            </Button>
-            <Button variant="transparent">احجز موعدك الشخصي</Button>
+            <LinkButton variant="primary" href="/register">
+              <IconLabel label="انضم إلينا" Icon={ArrowLeft} />
+            </LinkButton>
+            <LinkButton variant="transparent" href="/register">
+              إنشاء حساب
+            </LinkButton>
           </div>
         </div>
         <Image

@@ -46,7 +46,7 @@ const Hero = () => {
         </div>
 
         <h2 className="text-white text-3xl sm:text-4xl text-center sm:text-right font-semibold mb-4">
-          استشارات نفسية موثوقة متاحة لك في أي وقت وأي مكان
+          استشارات موثوقة متاحة لك في أي وقت وأي مكان
         </h2>
 
         <p className="text-white/90 text-center sm:text-right  mb-6">
