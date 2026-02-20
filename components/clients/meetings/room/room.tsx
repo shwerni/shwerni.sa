@@ -370,14 +370,13 @@ export default function Room({
       {/* unblock sound */}
       <Button
         onClick={async () => {
+          // unblock
           await hmsActions.unblockAudio();
           // hide unblock
           setUnblocked(true);
         }}
-        className={cn(
-          unblocked && "hidden",
-          "flex mt-4 text-xs bg-amber-500 mx-auto",
-        )}
+        className={cn(unblocked && "hidden!", "flex mt-4 text-xs mx-auto")}
+        variant="outline"
       >
         تواجه مشكلة في سماع الصوت اضغط هنا
       </Button>
