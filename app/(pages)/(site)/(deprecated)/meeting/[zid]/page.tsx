@@ -1,4 +1,3 @@
-"use server";
 // React & Next
 import { Metadata } from "next";
 import { permanentRedirect } from "next/navigation";
@@ -15,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 // return
-export default async function OwnerConultant({ params }: Props) {
+export default async function Page({ params }: Props) {
   const { zid } = await params;
 
   permanentRedirect(`/meetings/${zid}`);
