@@ -18,7 +18,7 @@ import { Toaster } from "@/components/ui/sonner";
 import ReCaptchaWrapper from "@/components/wrappers/recaptcha";
 
 // upload thing
-import UploadThingProvider from "@/components/wrappers/uploadthing";
+import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 
 // scripts
 import MetaPixel from "@/app/_components/layout/scripts/ads/metaPixel";
@@ -30,6 +30,7 @@ import "@/app/globals.css";
 
 // constants
 import { defaultMetaApi } from "@/constants";
+import { uploadThingRouterConfig } from "@/lib/upload/provider";
 
 // font
 const font = IBM_Plex_Sans_Arabic({
@@ -70,7 +71,7 @@ export default async function RootLayout({
         <ReCaptchaWrapper>
           <main className="max-w-[1750px] mx-auto">
             {/* uplaod thing */}
-            <UploadThingProvider />
+            <NextSSRPlugin routerConfig={uploadThingRouterConfig} />
             {/* top loader animation */}
             <NextTopLoader />
             {/* nuqs adaptar */}
