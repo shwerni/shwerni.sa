@@ -51,12 +51,12 @@ function PConsultant(props: {
         {/* about */}
         <div className="my-5">
           <h3>نظرة عامة</h3>
-          <p className="w-11/12">{consultant?.about}</p>
+          <p className="w-11/12">{consultant?.nabout}</p>
         </div>
         {/* education & experience */}
         {[
-          { label: "الخبرات", content: consultant?.experience },
-          { label: "التعليم", content: consultant?.education },
+          { label: "الخبرات", content: (consultant?.nexperiences).join(`\n`) },
+          { label: "التعليم", content: consultant?.neducation.join(`\n`) },
         ].map((i, index) => (
           <Accordion key={index} type="single" collapsible>
             <AccordionItem value="item-1">

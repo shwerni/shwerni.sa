@@ -162,8 +162,8 @@ export const aiAcceptOwners = async (
 // summarize consultant info
 export const aiConsultantSummary = async (
   about: string,
-  education: string,
-  experience: string,
+  education: string[],
+  experience: string[],
   gender: Gender
 ) => {
   try {
@@ -182,8 +182,8 @@ export const aiConsultantSummary = async (
     ## Consultant Details:
     - Gender: ${gender}
     - About: "${about}"
-    - Education: "${education}"
-    - Experience: "${experience}"
+    - Education: "${education.join(`.`)}"
+    - Experience: "${experience.join(`.`)}"
 
     ## Response Format (Strict JSON only, no extra text):
     { "summary": ["line1", "line2", "line3"] }

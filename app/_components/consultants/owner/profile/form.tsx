@@ -472,9 +472,9 @@ export default function CoProfileForm({ author, owner, phone }: Props) {
             cid={consultant.cid}
             name={consultant.name}
             image={consultant.image ?? ""}
-            about={consultant.about}
-            experience={consultant.experience}
-            education={consultant.education}
+            about={consultant.nabout}
+            experience={consultant.nexperiences}
+            education={consultant.neducation}
             gender={consultant.gender}
           />
         )}

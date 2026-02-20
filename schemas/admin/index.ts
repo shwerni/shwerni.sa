@@ -96,28 +96,6 @@ export const OwnerSchema = z.object({
   gender: z.nativeEnum(Gender, {
     required_error: "select gender",
   }),
-  // about
-  about: z.string().min(25, {
-    message: "minimum 25 characters",
-  }),
-  // education
-  education: z
-    .string()
-    .min(15, {
-      message: "minimum 15 characters",
-    })
-    .max(150, {
-      message: "maximum 150 characters",
-    }),
-  // experience
-  experience: z
-    .string()
-    .min(15, {
-      message: "minimum 15 characters",
-    })
-    .max(150, {
-      message: "maximum 150 characters",
-    }),
   // cost 30
   cost30: z.coerce.number().positive().safe().min(0, {
     message: "cost can't be zero",
@@ -132,6 +110,29 @@ export const OwnerSchema = z.object({
   }),
   // admi note
   adminNote: z.string(),
+  nabout: z.string().max(150, "النبذة القصيرة لا تتجاوز 150 حرف").optional(),
+
+  neducation: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(5, "يجب ان يتكون المؤهل من 5 احرف علي الاقل")
+        .max(50, "المؤهل لا يمكن أن يزيد عن 50 حرفًا"),
+    )
+    .min(1, "يجب إدخال مؤهل واحد على الأقل")
+    .max(3, "يمكنك إضافة حتى 3 مؤهلات فقط"),
+
+  nexperiences: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(5, "يجب ان تتكون الخبرة من 5 احرف علي الاقل")
+        .max(50, "الخبرة لا يمكن أن تزيد عن 50 حرفًا"),
+    )
+    .min(1, "يجب إدخال خبرة واحدة على الأقل")
+    .max(3, "يمكنك إضافة حتى 3 خبرات فقط"),
 });
 
 // edit user schema

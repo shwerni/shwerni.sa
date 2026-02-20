@@ -20,8 +20,8 @@ interface Props {
   image?: string;
   about: string;
   gender: Gender;
-  experience: string;
-  education: string;
+  experience: string[];
+  education: string[];
 }
 
 export default function ConsultantInfoCard({

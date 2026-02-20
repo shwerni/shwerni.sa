@@ -185,9 +185,6 @@ export default function EditOwnerForm({
       phone: owner?.phone ?? "",
       name: owner?.name ?? "",
       title: owner?.title ?? "",
-      about: owner?.about ?? "",
-      education: owner?.education ?? "",
-      experience: owner?.experience ?? "",
       cost30: Number(owner?.cost30) ?? "",
       cost45: Number(owner?.cost45) ?? "",
       cost60: Number(owner?.cost60) ?? "",
@@ -197,6 +194,10 @@ export default function EditOwnerForm({
       adminNote: owner?.adminNote ?? "",
     },
   });
+
+  // education field array
+  const neducation = form.watch("neducation");
+  const nexperiences = form.watch("nexperiences");
 
   // author item
   const AuthorItem = (author: Partial<User>, index: number) => {
@@ -242,6 +243,37 @@ export default function EditOwnerForm({
 
   // loading
   if (onLoad) return <SkeletonEditOrder />;
+
+  // education field array
+  const addEducation = () => {
+    if (neducation.length < 3) {
+      form.setValue("neducation", [...neducation, ""]);
+    }
+  };
+
+  const removeEducation = (index: number) => {
+    if (neducation.length > 1) {
+      form.setValue(
+        "neducation",
+        neducation.filter((_, i) => i !== index),
+      );
+    }
+  };
+
+  const addExperience = () => {
+    if (nexperiences.length < 3) {
+      form.setValue("nexperiences", [...nexperiences, ""]);
+    }
+  };
+
+  const removeExperience = (index: number) => {
+    if (nexperiences.length > 1) {
+      form.setValue(
+        "nexperiences",
+        nexperiences.filter((_, i) => i !== index),
+      );
+    }
+  };
 
   // return
   return (
@@ -732,13 +764,13 @@ export default function EditOwnerForm({
           {/* about textarea */}
           <FormField
             control={form.control}
-            name="about"
+            name="nabout"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>{isEn ? "about owner" : "عن المستشار"}</FormLabel>
                 <FormControl>
                   <RichEditor
-                    content={owner?.about ?? ""}
+                    content={owner?.nabout ?? ""}
                     onChange={field.onChange}
                     disabled={isSending}
                   />
@@ -752,53 +784,100 @@ export default function EditOwnerForm({
           {/* experience and education */}
           <div className="grid sm:grid-cols-2 grid-cols-1 justify-between gap-10">
             {/* experience*/}
-            <FormField
-              control={form.control}
-              name="experience"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    {isEn ? "owenr's experience" : "خبرة المستشار"}
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder={
-                        isEn ? "owenr's experience" : "خبرة المستشار"
-                      }
-                      className="resize-none"
-                      {...field}
-                      disabled={isSending}
-                      dir="rtl"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+            <div>
+              {nexperiences.map((_, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <FormField
+                    control={form.control}
+                    name={`nexperiences.${index}`}
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder={`الخبرة رقم ${index + 1}`}
+                            disabled={isSending}
+                          />
+                        </FormControl>
+                        {form.formState.errors.nexperiences?.[index]
+                          ?.message && (
+                          <p className="text-xs text-red-500 mt-1">
+                            {form.formState.errors.nexperiences[index]?.message}
+                          </p>
+                        )}
+                      </FormItem>
+                    )}
+                  />
+
+                  {nexperiences.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => removeExperience(index)}
+                    >
+                      − حذف الخبرة
+                    </Button>
+                  )}
+                </div>
+              ))}
+
+              {nexperiences.length < 3 && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={addExperience}
+                >
+                  + إضافة خبرة
+                </Button>
               )}
-            />
+            </div>
             {/* education */}
-            <FormField
-              control={form.control}
-              name="education"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    {isEn ? "owner's education" : "تعليم المستشار"}
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder={
-                        isEn ? "owner's education" : "تعليم المستشار"
-                      }
-                      className="resize-none"
-                      {...field}
-                      disabled={isSending}
-                      dir="rtl"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+            <div>
+              {neducation.map((_, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <FormField
+                    control={form.control}
+                    name={`neducation.${index}`}
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder={`المؤهل رقم ${index + 1}`}
+                            disabled={isSending}
+                          />
+                        </FormControl>
+                        {form.formState.errors.neducation?.[index]?.message && (
+                          <p className="text-xs text-red-500 mt-1">
+                            {form.formState.errors.neducation[index]?.message}
+                          </p>
+                        )}
+                      </FormItem>
+                    )}
+                  />
+
+                  {neducation.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => removeEducation(index)}
+                    >
+                      − حذف المؤهل
+                    </Button>
+                  )}
+                </div>
+              ))}
+
+              {neducation.length < 3 && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={addEducation}
+                >
+                  + إضافة مؤهل
+                </Button>
               )}
-            />
+            </div>
           </div>
           {/* separator */}
           <Separator className="w-3/4 mx-auto max-w-60" />

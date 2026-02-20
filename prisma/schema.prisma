@@ -288,10 +288,7 @@ model Consultant {
   phone        String
   name         String
   title        String
-  about        String
-  education    String
   neducation   String[]
-  experience   String
   nexperiences String[]
   nabout       String           @default("")
   preference   GenderPreference @default(BOTH)
@@ -328,7 +325,6 @@ model Consultant {
   programs                 ProgramConsultant[]
   DiscountConsultant       DiscountConsultant[]
   specialties              ConsultantSpecialty[]
-  blogs                    Blog[]
 
   @@map("consultants")
 }
@@ -461,25 +457,6 @@ model Question {
   likes       Int?          @default(0)
 
   @@map("questions")
-}
-
-// later delete
-model Blog {
-  id         String     @id @default(cuid())
-  bid        Int        @unique @default(autoincrement())
-  status     BlogState
-  image      String
-  title      String
-  blog       String     @db.Text
-  category   Categories
-  likes      Int
-  created_at DateTime   @default(now())
-
-  // @relations
-  consultantId Int
-  consultant   Consultant @relation(fields: [consultantId], references: [cid])
-
-  @@map("blogs")
 }
 
 model Article {
