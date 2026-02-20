@@ -52,7 +52,7 @@ export default function Togglevisibility({
   }, [state]);
 
   // consultant link
-  const link = `${mainRoute}consultant/${cid}`;
+  const link = `${mainRoute}consultants/${cid}`;
 
   // check state
   const status = () => {

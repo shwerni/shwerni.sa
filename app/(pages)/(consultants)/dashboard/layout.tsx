@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 
 // components
 import Header from "@/app/_components/consultants/header";
-import Footer from "@/app/_components/consultants/footer";
 import RoleError from "@/app/_components/layout/zErrors/auth/role";
 import ConsultantOath from "@/app/_components/consultants/owner/oath";
 import WrongPage from "@/app/_components/layout/zErrors/site/wrongPage";
@@ -19,6 +18,7 @@ import { UserRole } from "@/lib/generated/prisma/enums";
 import { getUserById } from "@/data/user";
 import { getAuthStateById } from "@/data/admin/tools/oath";
 import { getOwnerbyAuthor } from "@/data/consultant";
+import Footer from "@/components/clients/footer";
 
 // meta data seo
 export const metadata: Metadata = {
