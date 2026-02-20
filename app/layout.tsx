@@ -8,17 +8,17 @@ import { GoogleAnalytics, GoogleTagManager } from "@next/third-parties/google";
 // top loader
 import NextTopLoader from "nextjs-toploader";
 
-// upload thing
-import { extractRouterConfig } from "uploadthing/server";
-import { ourFileRouter } from "@/app/api/uploadthing/core";
-import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
-
 // nuqs
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 // components
 import { Toaster } from "@/components/ui/sonner";
+
+// google recaptcha
 import ReCaptchaWrapper from "@/components/wrappers/recaptcha";
+
+// upload thing
+import UploadThingProvider from "@/components/wrappers/uploadthing";
 
 // scripts
 import MetaPixel from "@/app/_components/layout/scripts/ads/metaPixel";
@@ -70,7 +70,7 @@ export default async function RootLayout({
         <ReCaptchaWrapper>
           <main className="max-w-[1750px] mx-auto">
             {/* uplaod thing */}
-            <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
+            <UploadThingProvider />
             {/* top loader animation */}
             <NextTopLoader />
             {/* nuqs adaptar */}
