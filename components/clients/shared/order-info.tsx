@@ -114,7 +114,7 @@ export function OrderInfoRow({
   accent?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2 py-2.5">
+    <div className="flex flex-wrap items-center justify-between gap-2 py-2.5">
       <div className="flex items-center gap-2.5 text-muted-foreground">
         <Icon className="h-4 w-4 shrink-0" />
         <span className="text-sm">{label}</span>

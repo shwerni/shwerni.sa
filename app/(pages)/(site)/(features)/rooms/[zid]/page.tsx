@@ -71,10 +71,7 @@ export default async function Page({ params, searchParams }: Props) {
 
   // time and date
   const { time, date } = timeZone();
-
-  // if not exist
-  if (!date || !time) return <Error404 />;
-
+  
   // user
   const author = await userServer();
 
@@ -84,26 +81,12 @@ export default async function Page({ params, searchParams }: Props) {
     : null;
 
   // new user
-  const user = author
-    ? consultant
-      ? {
-          id: author.id ?? null,
-          name: consultant.name ?? "عميل شاورني",
-          role: UserRole.OWNER,
-          image: consultant.image ?? null,
-        }
-      : {
-          id: author.id ?? null,
-          name: author.name ?? "عميل شاورني",
-          role: author.role,
-          image: author.image ?? null,
-        }
-    : {
-        id: null,
-        name: "عميل شاورني",
-        role: UserRole.USER,
-        image: null,
-      };
+  const user = {
+  id: author?.id ?? null,
+  name: consultant?.name ?? author?.name ?? "عميل شاورني",
+  role: author?.role ?? UserRole.USER,
+  image: consultant?.image ?? author?.image ?? null,
+};
 
   // return
   return (

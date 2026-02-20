@@ -16,6 +16,7 @@ import Room from "./room";
 import Section from "../../shared/section";
 import { toast } from "@/components/shared/toast";
 import { Separator } from "@/components/ui/separator";
+import { OrderInfoRow } from "../../shared/order-info";
 
 // prisma types
 import { UserRole } from "@/lib/generated/prisma/enums";
@@ -26,8 +27,9 @@ import { CreateHMSToken } from "@/lib/api/100ms";
 // types
 import { Lang } from "@/types/types";
 import { Reservation } from "@/types/admin";
-import OrderInfo, { OrderInfoRow } from "../../shared/order-info";
-import { Hash, User } from "lucide-react";
+
+// icon
+import { User } from "lucide-react";
 import { FaUserDoctor } from "react-icons/fa6";
 
 type RoomUser = {
@@ -101,7 +103,7 @@ export default function MeetingRoom({ order, user, duration, lang }: Props) {
               <h2 className="text-theme text-3xl font-bold">اجتماع</h2>
               <Separator className="w-11/12 max-w-32 h-1! bg-gray-400 mx-auto" />
             </div>
-            <div className="grid grid-cols-3 justify-items-center items-center justify-center gap-2">
+            <div className="grid grid-cols-3 justify-items-center items-center justify-center gap-2 w-10/12 max-w-lg">
               <OrderInfoRow label="الاسم" value={order.name} icon={User} />
               <span> | </span>
               <OrderInfoRow

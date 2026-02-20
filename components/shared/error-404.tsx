@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 
 const Error404 = () => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
+    <div className="flex flex-col items-center justify-center py-10">
       <div className="flex flex-col justify-center items-center gap-6">
         <Logo width={175} height={175} />
         <div className="relative w-48 sm:w-84 md:w-92 h-72">
