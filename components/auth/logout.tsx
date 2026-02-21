@@ -16,7 +16,7 @@ interface Props {
 
 const LogOut = ({ user }: Props) => {
   return (
-    <div className="flex flex-col justify-center items-center gap-8 min-h-screen">
+    <div className="flex flex-col justify-center items-center gap-8 min-h-screen px-5">
       {/* log in card */}
       <Card className="w-full max-w-md p-8 shadow-lg border-slate-200 text-center">
         <CardDescription className="hidden"/>

@@ -9,9 +9,7 @@ import { startOfDay } from "date-fns";
 // prisma types
 import {
   ApprovalState,
-  Consultant,
   ConsultantState,
-  Coupon,
   CouponState,
   CouponType,
   CouponVisibility,

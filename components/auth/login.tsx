@@ -10,7 +10,7 @@ const Login = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2">
       {/* right side */}
-      <div className="flex flex-col items-center justify-center min-h-screen space-y-10 md:space-y-14">
+      <div className="flex flex-col items-center justify-center min-h-screen space-y-10 md:space-y-14 px-5">
         {/* logo */}
         <Logo width={200} height={200} className="md:hidden" />
         <h2 className="text-[#094577] text-3xl md:text-4xl font-semibold">

@@ -16,10 +16,15 @@ import { createMeeting } from "@/lib/api/google";
 import { notificationNewFreeSession } from "@/lib/notifications";
 
 // utils
-import { dateTimeToString, getWeekStartSaturday } from "@/utils/moment";
+import {
+  dateTimeToString,
+  dateToString,
+  getWeekStartSaturday,
+} from "@/utils/moment";
 import prisma from "@/lib/database/db";
-import { ConsultantState } from "@/lib/generated/prisma/enums";
+import { ConsultantState, OrderType } from "@/lib/generated/prisma/enums";
 import { timeZone } from "@/lib/site/time";
+import { freeSessionSchema, freeSessionSchemaType } from "@/schemas";
 
 // get all free sessions
 export const getAllFreeSessions = async () => {
@@ -89,6 +94,7 @@ export const getFreeSessionByFid = async (fid: number) => {
         consultant: {
           select: {
             name: true,
+            phone: true,
           },
         },
       },
@@ -335,95 +341,76 @@ export const saveOwnerFreeSessionTimings = async (
 };
 
 // get owner free sessions time
-export const reserveFreeSession = async (
-  author: string,
-  cid: number,
-  consultant: string,
-  name: string,
-  phone: string,
-  cophone: string,
-  time: string,
-  date: string,
-  duration: string,
-) => {
+export const reserveFreeSession = async (formdata: freeSessionSchemaType) => {
   try {
+    // parse
+    const parsed = freeSessionSchema.safeParse(formdata);
+
     // validate
-    if (!time || !date) return { message: "حدث خطأ ما", state: false };
+    if (!parsed.success) return null;
 
-    // origin date
-    const originDate = moment(`${date} ${time}`, "YYYY-MM-DD HH:mm").toDate();
-
-    // range this day // not month
-    const start = startOfDay(originDate);
-    const end = endOfDay(originDate);
-
-    // sessions this month
-    const session = await prisma.freeSession.findMany({
-      where: {
-        created_at: {
-          gte: start,
-          lte: end,
-        },
-        consultantId: cid,
-      },
-      select: {
-        consultantId: true,
-      },
-    });
+    // data
+    const data = parsed.data;
 
     // this phone number or user
-    const user = await prisma.freeSession.findMany({
-      where: {
-        OR: [
-          { phone },
-          {
-            AND: [{ author: { not: "temp" } }, { author }],
-          },
-        ],
-      },
-      select: {
-        author: true,
-      },
-    });
+    // const user = await prisma.freeSession.findMany({
+    //   where: {
+    //     OR: [
+    //       { phone: data.phone },
+    //       {
+    //         AND: [{ author: { not: "temp" } }, { author: data.user }],
+    //       },
+    //     ],
+    //   },
+    //   select: {
+    //     author: true,
+    //   },
+    // });
 
     // check conflict
-    const check = checkMeetingTimeConflict(cid, date, time);
+    const check = await checkMeetingTimeConflict(
+      data.cid,
+      dateToString(data.date),
+      data.time,
+    );
 
     // validate
-    if (!check)
+    if (check)
       return {
         message: "هذا الموعد محجز بالفعل برجاء اختيار موعد اخر",
         state: false,
       };
 
     // validate
-    if (user.length)
-      return { message: "لقد استخدمت هذه الخدمة من قبل", state: false };
-
-    // check if no free session on this consultant
-    if (session.length !== 0)
-      return { message: "هذا المستشار مشغول بأستشارة اخره", state: false };
+    // if (user.length)
+    //   return { message: "لقد استخدمت هذه الخدمة من قبل", state: false };
 
     // get timings
     const newSession = await prisma.freeSession.create({
       data: {
-        author,
-        name,
-        phone,
-        consultantId: cid,
-        time,
-        date,
-        duration,
+        author: data.user,
+        name: data.name,
+        phone: data.phone,
+        consultantId: data.cid,
+        time: data.time,
+        date: dateToString(data.date),
+        duration: "30",
         info: [
           `new free session | modified_at: ${dateTimeToString(new Date())}`,
         ],
-        created_at: originDate,
       },
     });
 
-    if (newSession) {
+    const consultant = await prisma.consultant.findUnique({
+      where: { cid: data.cid },
+      select: {
+        phone: true,
+      },
+    });
+
+    if (newSession && consultant) {
       // send notification
-      notificationNewFreeSession(consultant, cophone, newSession);
+      notificationNewFreeSession(data.consultant, consultant.phone, newSession);
     }
     // return
     return { message: newSession.fid, state: true };

@@ -36,12 +36,14 @@ export function getDayName(dateStr: string): string {
 export function add25Minutes(date: Date = new Date()): {
   date: string;
   time: string;
+  iso: Date;
 } {
   const next = addMinutes(date, 25);
 
   return {
     date: format(next, "yyyy-MM-dd"),
     time: format(next, "HH:mm"),
+    iso: next,
   };
 }
 

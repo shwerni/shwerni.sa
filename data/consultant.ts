@@ -376,6 +376,61 @@ export const getConsultantReviews = async (cid: number) => {
 };
 
 // get consultant timings
+// export const getConsultantAvailableTimes = async (
+//   cid: number,
+//   date: string,
+//   weekday: Weekday,
+//   now?: string,
+// ) => {
+//   try {
+//     const rows = await prisma.$queryRaw<{ result: Record<string, string[]> }[]>`
+//       SELECT jsonb_object_agg(phase, times) AS result
+//       FROM (
+//         SELECT
+//           CASE
+//             WHEN ct."time" < '04:30' THEN 'late'
+//             WHEN ct."time" < '12:00' THEN 'day'
+//             WHEN ct."time" < '18:00' THEN 'noon'
+//             ELSE 'night'
+//           END AS phase,
+//           jsonb_agg(ct."time" ORDER BY ct."time"::time) AS times
+//         FROM "consultant_timings" ct
+//         WHERE
+//           ct."consultantId" = ${cid}
+//           AND ct."day" = ${weekday}::"Weekday"
+//           AND (
+//             ${now}::time IS NULL
+//             OR ct."time"::time > ${now}::time
+//           )
+//           AND NOT EXISTS (
+//             SELECT 1
+//             FROM "orders" o
+//             JOIN "payments" p ON p."orderId" = o.oid
+//             JOIN "meetings" m ON m."orderId" = o.oid
+//             WHERE
+//               o."consultantId" = ct."consultantId"
+//               AND m."time" = ct."time"
+//               AND m."date" = ${date}
+//               AND p."payment" IN (
+//                 ${PaymentState.PAID},
+//                 ${PaymentState.NEW},
+//                 ${PaymentState.PROCESSING}
+//               )
+//           )
+//         GROUP BY phase
+//       ) t
+//     `;
+
+//     return rows[0].result ?? {};
+//   } catch {
+//     return {
+//       late: [],
+//       day: [],
+//       noon: [],
+//       night: [],
+//     };
+//   }
+// };
 export const getConsultantAvailableTimes = async (
   cid: number,
   date: string,
@@ -402,6 +457,8 @@ export const getConsultantAvailableTimes = async (
             ${now}::time IS NULL
             OR ct."time"::time > ${now}::time
           )
+
+          -- 🔴 Exclude Paid / Reserved Meetings
           AND NOT EXISTS (
             SELECT 1
             FROM "orders" o
@@ -417,6 +474,17 @@ export const getConsultantAvailableTimes = async (
                 ${PaymentState.PROCESSING}
               )
           )
+
+          -- 🟢 Exclude Free Sessions (NEW ADDITION)
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "free_sessions" fs
+            WHERE
+              fs."consultantId" = ct."consultantId"
+              AND fs."time" = ct."time"
+              AND fs."date" = ${date}
+          )
+
         GROUP BY phase
       ) t
     `;

@@ -15,7 +15,7 @@ export default async function DiscountDetailsPage({ params }: Props) {
 
   // discount
   const discount = await getDiscountByDid(Number(did));
-
+  
   // cid
   const user = await userServer();
 

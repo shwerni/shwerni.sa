@@ -559,3 +559,37 @@ export const UserInfoSchema = z.object({
 });
 
 export type UserInfoSchemaType = z.infer<typeof UserInfoSchema>;
+
+// freesession
+export const freeSessionSchema = z.object({
+  // ui /ux data
+  order: z.string(),
+  user: z.string(),
+  cid: z.number(),
+  date: z.date(),
+  consultant: z.string(),
+  times: z
+    .object({
+      late: z.array(z.string()).optional(),
+      day: z.array(z.string()).optional(),
+      noon: z.array(z.string()).optional(),
+      night: z.array(z.string()).optional(),
+    })
+    .partial(),
+
+  time: z
+    .string({
+      required_error: "الوقت مطلوب",
+    })
+    .min(1, "الوقت مطلوب"),
+
+  // basic info
+  name: schemas.name,
+  phone: schemas.phone,
+
+  acceptTerms: z.literal(true, {
+    errorMap: () => ({ message: "يجب قبول الشروط والأحكام" }),
+  }),
+});
+
+export type freeSessionSchemaType = z.infer<typeof reservationSchema>;

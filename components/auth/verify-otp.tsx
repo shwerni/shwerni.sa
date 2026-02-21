@@ -106,7 +106,7 @@ const VerifyOtp: React.FC<Props> = ({ name, phone, otp }: Props) => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
+    <div className="flex items-center justify-center min-h-screen px-5">
       <Card className="w-full max-w-lg py-8 px-5">
         <div className="flex items-center justify-center">
           <Logo width={200} height={200} />
