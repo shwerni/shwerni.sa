@@ -42,7 +42,7 @@ export default async function Page({ searchParams }: Props) {
   const { date } = add25Minutes(iso);
 
   // check day
-  if (isSameDay(parseISO(date), parseISO("2026-02-23"))) return <Error404 />;
+  if (isSameDay(parseISO(date), parseISO("2026-02-24"))) return <Error404 />;
 
   return (
     <div>
