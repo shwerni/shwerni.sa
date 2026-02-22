@@ -163,7 +163,7 @@ export const subPages: Link[] = [
   },
   {
     label: "جلسة مجانية",
-    link: "/freesession",
+    link: "/freesessions",
     icon: Gift,
     status: true,
   },
