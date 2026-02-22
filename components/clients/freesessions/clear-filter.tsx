@@ -12,7 +12,7 @@ const ClearFilter = () => {
 
   // handle clear flters
   const clearFilters = () => {
-    router.push("/consultants");
+    router.push("/event"); // later
   };
 
   return (

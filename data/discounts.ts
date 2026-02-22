@@ -269,7 +269,6 @@ type ConsultantItem = {
 //       OFFSET ${(safePage - 1) * pageSize}
 //     `;
 
-    
 //     return {
 //       items,
 //       total,
@@ -313,11 +312,10 @@ export const getDiscountConsultants = async (
           )})`
         : Prisma.empty;
 
-    // 🔴 Exclude consultants that have meeting today
     const excludeTodayMeeting = Prisma.sql`
       AND NOT EXISTS (
         SELECT 1
-        FROM "meetings" m
+        FROM "free_sessions" m
         WHERE
           m."consultantId" = c."cid"
           AND m."date" = ${today}
