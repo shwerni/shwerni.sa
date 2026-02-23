@@ -8,6 +8,7 @@ import { sendWhatsappText } from "@/lib/api/whatsapp";
 // prisma data
 import { checkBotLimit } from "@/data/admin/bot";
 import { upsertWhatsappChat } from "@/data/whatsapp";
+import { telegramAdmin } from "@/lib/api/telegram/telegram";
 
 // handle webhook (whatsApp incoming messages)
 export async function POST(request: NextRequest) {
@@ -21,101 +22,91 @@ export async function POST(request: NextRequest) {
       const value = changes?.value;
       const messages = value?.messages;
 
-      if (messages && messages.length > 0) {
-        // const phoneId = value.metadata.phone_number_id;
-        const fromId = value.contacts?.[0]?.wa_id;
-        const from = messages[0].from;
-        const fromName = value.contacts?.[0]?.profile?.name;
-        const msg_body = messages[0];
+      // validate
+      if (messages && messages.length > 0)
+        return NextResponse.json(
+          { message: "No messages to process" },
+          { status: 404 },
+        );
 
-        // text message
-        let textMess = "";
+      // const phoneId = value.metadata.phone_number_id;
+      const fromId = value.contacts?.[0]?.wa_id;
+      const from = messages[0].from;
+      const fromName = value.contacts?.[0]?.profile?.name;
+      const msg_body = messages[0];
 
-        // normal text
-        if (msg_body.type === "text" && msg_body.text?.body) {
-          textMess = msg_body.text.body;
-        }
+      // text message
+      let textMess = "";
 
-        // button replies
-        else if (msg_body.type === "button" && msg_body.button?.text) {
-          textMess = msg_body.button.text;
-        }
-
-        // list replies
-        else if (
-          msg_body.type === "interactive" &&
-          msg_body.interactive?.list_reply
-        ) {
-          textMess = msg_body.interactive.list_reply.title;
-        }
-
-        // flow replies (survey / form)
-        else if (
-          msg_body.type === "interactive" &&
-          msg_body.interactive?.nfm_reply
-        ) {
-          const nfmReply = msg_body.interactive.nfm_reply;
-          let flowText = "";
-
-          try {
-            if (nfmReply.response_json) {
-              const flowData = JSON.parse(nfmReply.response_json);
-
-              flowText = Object.entries(flowData)
-                .map(([key, value]) => `${key}: ${value}`)
-                .join("\n");
-            } else if (nfmReply.body) {
-              flowText = nfmReply.body;
-            } else {
-              flowText = "Flow submitted with no response_json";
-            }
-          } catch (err) {
-            console.error("Error parsing nfm_reply:", err);
-            flowText =
-              nfmReply.response_json || nfmReply.body || "Unknown flow reply";
-          }
-
-          const flowName = nfmReply.name || "Unnamed Flow";
-          textMess = `📋 Flow: ${flowName}\n${flowText}`;
-        }
-
-        // return
-        if (!textMess) return NextResponse.json({}, { status: 200 });
-
-        // simple admin test
-        if (from === "201227502703") {
-          await sendWhatsappText(from, "بحب يا جنتي ❤️");
-        }
-
-        // check limit
-        if (from! == "201222166530") {
-          const allowed = await checkBotLimit(from);
-
-          if (!allowed) {
-            await sendWhatsappText(
-              from,
-              `❌ لقد وصلت إلى الحد الأقصى لعدد الرسائل اليوم. حاول مرة أخرى غدًا./nالدعم الفني: https://wa.me/966554117879`
-            );
-
-            return NextResponse.json({}, { status: 200 });
-          }
-        }
-
-        // customer bot
-        await handleBotResponse(fromId, from, fromName, textMess);
-
-        // store in database
-        await upsertWhatsappChat(fromId, from, fromName, textMess);
+      // normal text
+      if (msg_body.type === "text" && msg_body.text?.body) {
+        textMess = msg_body.text.body;
+        await replay(from, fromId, fromName, textMess);
       }
 
-      return NextResponse.json({}, { status: 200 });
-    } else {
-      return NextResponse.json({}, { status: 404 });
+      // button replies
+      else if (msg_body.type === "button" && msg_body.button?.text) {
+        textMess = msg_body.button.text;
+      }
+
+      // list replies
+      else if (
+        msg_body.type === "interactive" &&
+        msg_body.interactive?.list_reply
+      ) {
+        textMess = msg_body.interactive.list_reply.title;
+      }
+
+      // flow replies (survey / form)
+      else if (
+        (msg_body.type === "interactive" ||
+          msg_body.interactive?.type === "nfm_reply") &&
+        msg_body.interactive?.nfm_reply
+      ) {
+        const nfmReply = msg_body.interactive.nfm_reply;
+        telegramAdmin(nfmReply || "work flow empty");
+        let flowText = "";
+
+        if (nfmReply.response_json) {
+          const flowData = JSON.parse(nfmReply.response_json);
+
+          flowText = Object.entries(flowData)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join("\n");
+
+          telegramAdmin("flpd daata");
+          telegramAdmin(flowText);
+        } else if (nfmReply.body) {
+          flowText = nfmReply.body;
+          telegramAdmin("nfm body");
+          telegramAdmin(flowText);
+        } else {
+          flowText = "Flow submitted with no response_json";
+          telegramAdmin("nfm text");
+          telegramAdmin(flowText);
+        }
+        
+        const flowName = nfmReply.name || "Unnamed Flow";
+        textMess = `📋 Flow: ${flowName}\n${flowText}`;
+        telegramAdmin("name");
+        telegramAdmin(textMess);
+        telegramAdmin(flowName);
+      }
+
+      // return
+      if (!textMess) return NextResponse.json({}, { status: 200 });
+
+      // simple admin test
+      if (from === "201227502703") {
+        await sendWhatsappText(from, "بحب يا جنتي ❤️");
+      }
     }
-  } catch (error) {
+
+    return NextResponse.json({}, { status: 200 });
+  } catch {
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -137,7 +128,39 @@ export async function GET(request: NextRequest) {
 
   return new Response(null, { status: 400 });
 }
+// handle replay
+const replay = async (
+  from: string,
+  fromId: string,
+  fromName: string,
+  textMess: string,
+) => {
+  try {
+    // check limit
+    if (from! == "201222166530") {
+      const allowed = await checkBotLimit(from);
 
+      if (!allowed) {
+        await sendWhatsappText(
+          from,
+          `❌ لقد وصلت إلى الحد الأقصى لعدد الرسائل اليوم. حاول مرة أخرى غدًا./nالدعم الفني: https://wa.me/966554117879`,
+        );
+
+        return NextResponse.json({}, { status: 200 });
+      }
+    }
+
+    // customer bot
+    await handleBotResponse(fromId, from, fromName, textMess);
+
+    // store in database
+    await upsertWhatsappChat(fromId, from, fromName, textMess);
+
+    return true;
+  } catch {
+    return false;
+  }
+};
 // custom action for review flow
 // async function handleReviewFlow(fromId: string, flowData: Record<string, any>) {
 //   const rating = flowData["screen_0___0"] || "unknown";
