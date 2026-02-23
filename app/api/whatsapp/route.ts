@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       const messages = value?.messages;
 
       // validate
-      if (messages && messages.length > 0)
+      if (!messages && messages.length <= 0)
         return NextResponse.json(
           { message: "No messages to process" },
           { status: 404 },
@@ -162,25 +162,25 @@ const replay = async (
   }
 };
 // custom action for review flow
-// async function handleReviewFlow(fromId: string, flowData: Record<string, any>) {
-//   const rating = flowData["screen_0___0"] || "unknown";
-//   const feedback = flowData["screen_0__1"] || "";
+async function handleReviewFlow(fromId: string, flowData: Record<string, any>) {
+  const rating = flowData["screen_0___0"] || "unknown";
+  const feedback = flowData["screen_0__1"] || "";
 
-//   // Example: send to Telegram admin
-//   await telegramAdmin(`⭐ New Review Received:
-// From: ${fromId}
-// Rating: ${rating}
-// Feedback: ${feedback}`);
+  // Example: send to Telegram admin
+  await telegramAdmin(`⭐ New Review Received:
+From: ${fromId}
+Rating: ${rating}
+Feedback: ${feedback}`);
 
-//   // Example: you can store in your database here
-//   // await prisma.review.create({ data: { userId: fromId, rating, feedback } });
+  // Example: you can store in your database here
+  // await prisma.review.create({ data: { userId: fromId, rating, feedback } });
 
-//   // Optionally send confirmation to user
-//   await sendWhatsappText(
-//     fromId,
-//     "✅ شكراً لمشاركتك رأيك! تم تسجيل التقييم بنجاح ❤️"
-//   );
-// }
+  // Optionally send confirmation to user
+  await sendWhatsappText(
+    fromId,
+    "✅ شكراً لمشاركتك رأيك! تم تسجيل التقييم بنجاح ❤️",
+  );
+}
 
 // telegram
 // await telegramAdmin("whtasapp message received:");
