@@ -69,28 +69,18 @@ export async function POST(request: NextRequest) {
 
         if (nfmReply.response_json) {
           const flowData = JSON.parse(nfmReply.response_json);
-
           flowText = Object.entries(flowData)
             .map(([key, value]) => `${key}: ${value}`)
             .join("\n");
 
-          await telegramAdmin("flpd daata");
+          await telegramAdmin("final data");
           await telegramAdmin(flowText);
+          await handleReviewFlow(fromId, nfmReply.response_json);
         } else if (nfmReply.body) {
           flowText = nfmReply.body;
-          await telegramAdmin("nfm body");
-          await telegramAdmin(flowText);
         } else {
           flowText = "Flow submitted with no response_json";
-          await telegramAdmin("nfm text");
-          await telegramAdmin(flowText);
         }
-
-        const flowName = nfmReply.name || "Unnamed Flow";
-        textMess = `📋 Flow: ${flowName}\n${flowText}`;
-        await telegramAdmin("name");
-        await telegramAdmin(textMess);
-        await telegramAdmin(flowName);
       }
 
       // return
@@ -162,23 +152,37 @@ const replay = async (
   }
 };
 // custom action for review flow
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleReviewFlow(fromId: string, flowData: Record<string, any>) {
-  const rating = flowData["screen_0___0"] || "unknown";
+  const ratingRaw = flowData["screen_0___0"];
   const feedback = flowData["screen_0__1"] || "";
 
   // Example: send to Telegram admin
   await telegramAdmin(`⭐ New Review Received:
 From: ${fromId}
-Rating: ${rating}
+Rating: ${ratingRaw}
 Feedback: ${feedback}`);
 
+  let rating = null;
+
+  if (ratingRaw) {
+    const match = ratingRaw.match(/\((\d)\/5\)/);
+    if (match) {
+      rating = parseInt(match[1], 10);
+    }
+  }
+  await telegramAdmin(`${rating} rating` || "sssss rating");
+  await telegramAdmin(`⭐ New Review Received:
+From: ${fromId}
+Rating: ${ratingRaw}
+Feedback: ${feedback}`);
   // Example: you can store in your database here
   // await prisma.review.create({ data: { userId: fromId, rating, feedback } });
 
   // Optionally send confirmation to user
   await sendWhatsappText(
     fromId,
-    "✅ شكراً لمشاركتك رأيك! تم تسجيل التقييم بنجاح ❤️",
+    "✅ شكراً لمشاركتنا رأيك! تم تسجيل التقييم بنجاح ❤️",
   );
 }
 
