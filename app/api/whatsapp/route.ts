@@ -64,21 +64,13 @@ export async function POST(request: NextRequest) {
           msg_body.interactive?.type === "nfm_reply") &&
         msg_body.interactive?.nfm_reply
       ) {
-        let flowText = "";
         const nfmReply = msg_body.interactive.nfm_reply;
 
         if (nfmReply.response_json) {
           const flowData = JSON.parse(nfmReply.response_json);
-          flowText = Object.entries(flowData)
-            .map(([key, value]) => `${key}: ${value}`)
-            .join("\n");
           const flowToken = msg_body.interactive.nfm_reply.flow_token;
-          await telegramAdmin(flowData);
+          await telegramAdmin(String(flowData));
           await handleReviewFlow(from, flowData, flowToken);
-        } else if (nfmReply.body) {
-          flowText = nfmReply.body;
-        } else {
-          flowText = "Flow submitted with no response_json";
         }
       }
 
@@ -156,12 +148,13 @@ async function handleReviewFlow(
   flowData: Record<string, string>,
   oid: string,
 ) {
-  const rate = Number(flowData["rate"]);
-  const name = flowData["name"]?.trim() || "No comment provided";
-  const comment = flowData["comment"]?.trim() || "No comment provided";
-  await telegramAdmin(`${rate} ${name} ${comment}`);
+  const rate = Number(flowData["rate"]) || null;
+  const name = flowData["name"]?.trim() || null;
+  const comment = flowData["comment"]?.trim() || null;
+  await telegramAdmin(`${oid} ${rate} ${name} ${comment}`);
+
   // validate
-  if (!oid || !rate || !comment) return;
+  if (!oid || !rate || !name || !comment) return;
 
   // post review
   await acceptWhatsappReview(Number(oid), name, phone, rate, comment);
