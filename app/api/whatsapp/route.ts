@@ -69,8 +69,12 @@ export async function POST(request: NextRequest) {
         if (nfmReply.response_json) {
           const flowData = JSON.parse(nfmReply.response_json);
           const flowToken = msg_body.interactive.nfm_reply.flow_token;
-          await telegramAdmin(String(flowData));
           await handleReviewFlow(from, flowData, flowToken);
+          await telegramAdmin(
+            Object.entries(flowData)
+              .map(([key, value]) => `${key}: ${value}`)
+              .join("\n"),
+          );
         }
       }
 
