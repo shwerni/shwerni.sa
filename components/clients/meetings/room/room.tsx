@@ -376,7 +376,7 @@ export default function Room({
           setUnblocked(true);
         }}
         className={cn(unblocked && "hidden!", "flex mt-4 text-xs mx-auto")}
-        variant="outline"
+        variant="destructive"
       >
         تواجه مشكلة في سماع الصوت اضغط هنا
       </Button>

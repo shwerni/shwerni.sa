@@ -145,7 +145,7 @@ async function handleReviewFlow(
   flowData: Record<string, string>,
 ) {
   const rate = Number(flowData["rate"]) || null;
-  const name = flowData["name"]?.trim() || null;
+  const name = flowData["name"]?.trim().substring(0, 12) || null;
   const comment = flowData["comment"]?.trim() || null;
   const oid = flowData["flow_token"] || null;
 
