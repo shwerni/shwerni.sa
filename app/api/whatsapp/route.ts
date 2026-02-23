@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
 
           await telegramAdmin("final data");
           await telegramAdmin(flowText);
-          await handleReviewFlow(fromId, nfmReply.response_json);
+          await handleReviewFlow(fromId, flowData);
         } else if (nfmReply.body) {
           flowText = nfmReply.body;
         } else {
@@ -152,18 +152,15 @@ const replay = async (
   }
 };
 // custom action for review flow
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function handleReviewFlow(fromId: string, flowData: Record<string, any>) {
+async function handleReviewFlow(
+  fromId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  flowData: Record<string, any>,
+) {
   const ratingRaw = flowData["screen_0___0"];
-  const feedback = flowData["screen_0__1"] || "";
+  const feedback = flowData["screen_0__1"]?.trim() || "No comment provided";
 
-  // Example: send to Telegram admin
-  await telegramAdmin(`⭐ New Review Received:
-From: ${fromId}
-Rating: ${ratingRaw}
-Feedback: ${feedback}`);
-
-  let rating = null;
+  let rating: number | null = null;
 
   if (ratingRaw) {
     const match = ratingRaw.match(/\((\d)\/5\)/);
@@ -171,18 +168,26 @@ Feedback: ${feedback}`);
       rating = parseInt(match[1], 10);
     }
   }
-  await telegramAdmin(`${rating} rating` || "sssss rating");
-  await telegramAdmin(`⭐ New Review Received:
-From: ${fromId}
-Rating: ${ratingRaw}
-Feedback: ${feedback}`);
-  // Example: you can store in your database here
-  // await prisma.review.create({ data: { userId: fromId, rating, feedback } });
 
-  // Optionally send confirmation to user
+  // Pretty stars display
+  const stars = rating ? "⭐".repeat(rating) : "N/A";
+
+  // Send clean admin message
+  await telegramAdmin(`
+📊 *New Customer Review*
+━━━━━━━━━━━━━━━━━━
+👤 User: ${fromId}
+⭐ Rating: ${rating ?? "N/A"} / 5
+🌟 Stars: ${stars}
+💬 Feedback:
+"${feedback}"
+━━━━━━━━━━━━━━━━━━
+  `);
+
+  // Send confirmation to user
   await sendWhatsappText(
     fromId,
-    "✅ شكراً لمشاركتنا رأيك! تم تسجيل التقييم بنجاح ❤️",
+    "✨ شكراً لمشاركتنا رأيك!\n\nتم تسجيل تقييمك بنجاح 🙏💙\nرأيك يهمنا ويساعدنا نطوّر خدماتنا دائماً.",
   );
 }
 

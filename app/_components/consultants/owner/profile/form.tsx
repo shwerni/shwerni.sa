@@ -84,13 +84,12 @@ export default function CoProfileForm({ author, owner, phone }: Props) {
   const [cert, setCert] = React.useState<string>(
     owner && owner?.cert ? owner?.cert : "",
   );
-  // edu
-  const [ndate, setNDate] = React.useState<string>(
-    owner && owner?.seniority
-      ? dateToString(owner?.seniority)
-      : dateToString(new Date()),
-  );
 
+  // edu
+  const [years, setYears] = React.useState<number>(
+    owner?.seniority ? calculateYearsFromDate(new Date(owner.seniority)) : 1,
+  );
+  
   // image
   const [image, setImage] = React.useState<string>(
     owner && owner?.image ? owner?.image : "",
@@ -205,6 +204,34 @@ export default function CoProfileForm({ author, owner, phone }: Props) {
     }
   };
 
+  function calculateYearsFromDate(date: Date) {
+    const today = new Date();
+
+    let years = today.getFullYear() - date.getFullYear();
+
+    // Adjust if anniversary hasn't happened yet this year
+    const hasHadAnniversary =
+      today.getMonth() > date.getMonth() ||
+      (today.getMonth() === date.getMonth() &&
+        today.getDate() >= date.getDate());
+
+    if (!hasHadAnniversary) {
+      years -= 1;
+    }
+
+    return Math.max(0, Math.min(50, years));
+  }
+
+  function convertYearsToDate(years: number) {
+    const today = new Date();
+
+    return new Date(
+      today.getFullYear() - years,
+      today.getMonth(),
+      today.getDate(),
+    );
+  }
+
   // on submit
   function onSubmit(data: z.infer<typeof ConsultantSchema>) {
     // check uploads
@@ -222,6 +249,7 @@ export default function CoProfileForm({ author, owner, phone }: Props) {
       category === Categories.PSYCHIC ||
       owner?.created_at === undefined ||
       owner?.created_at > new Date("2025-08-01");
+
     // check certificate if category is law or PSYCHIC
     if (!cert && isMandatory) {
       // certificate  is mandatory
@@ -247,7 +275,7 @@ export default function CoProfileForm({ author, owner, phone }: Props) {
           data.nexperiences || [""],
           data.neducation || [""],
           data.preference || GenderPreference.BOTH,
-          ndate,
+          convertYearsToDate(years).toISOString(),
         ).then((response) => {
           // toast result
           if (response) ZToast(response);
@@ -671,14 +699,21 @@ export default function CoProfileForm({ author, owner, phone }: Props) {
             <div className="flex flex-col gap-2">
               <Label className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-theme" />
-                تاريخ بداية الخبرة
+                عدد سنوات الخبرة
               </Label>
 
-              <DatePicker
-                date={ndate}
-                setDate={setNDate}
-                disabled={isSending}
-                lang="ar"
+              <Input
+                type="number"
+                min={0}
+                max={50}
+                value={years}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  if (!Number.isNaN(value) && value >= 0 && value <= 50) {
+                    setYears(value);
+                  }
+                }}
+                className="max-w-40"
               />
             </div>
 

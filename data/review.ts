@@ -37,7 +37,7 @@ export const reviewIsReservedByAuthor = async (author: string, cid: number) => {
     });
     // return
     return Boolean(review);
-  } catch (error) {
+  } catch  {
     return false;
   }
 };
@@ -51,7 +51,7 @@ export const getreviewsByAuthor = async (cid: number) => {
     });
     // return
     return review;
-  } catch (error) {
+  } catch  {
     return null;
   }
 };
