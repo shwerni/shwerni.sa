@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
             .map(([key, value]) => `${key}: ${value}`)
             .join("\n");
           const flowToken = msg_body.interactive.nfm_reply.flow_token;
-
+          await telegramAdmin(flowData);
           await handleReviewFlow(from, flowData, flowToken);
         } else if (nfmReply.body) {
           flowText = nfmReply.body;
@@ -156,24 +156,15 @@ async function handleReviewFlow(
   flowData: Record<string, string>,
   oid: string,
 ) {
-  const ratingRaw = flowData["screen_0___0"];
-  const comment = flowData["screen_0__1"]?.trim() || "No comment provided";
-  // const name = flowData["screen_0__2"]?.trim() || "No comment provided";
-
-  let rating: number | null = null;
-
-  if (ratingRaw) {
-    const match = ratingRaw.match(/\((\d)\/5\)/);
-    if (match) {
-      rating = parseInt(match[1], 10);
-    }
-  }
-
+  const rate = Number(flowData["rate"]);
+  const name = flowData["name"]?.trim() || "No comment provided";
+  const comment = flowData["comment"]?.trim() || "No comment provided";
+  await telegramAdmin(`${rate} ${name} ${comment}`);
   // validate
-  if (!oid || !rating || !comment) return;
+  if (!oid || !rate || !comment) return;
 
   // post review
-  await acceptWhatsappReview(Number(oid), "name", phone, rating, comment);
+  await acceptWhatsappReview(Number(oid), name, phone, rate, comment);
 
   // Send confirmation to user
   await sendWhatsappText(
