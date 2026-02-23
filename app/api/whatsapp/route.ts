@@ -8,7 +8,6 @@ import { sendWhatsappText } from "@/lib/api/whatsapp";
 // prisma data
 import { checkBotLimit } from "@/data/admin/bot";
 import { upsertWhatsappChat } from "@/data/whatsapp";
-import { telegramAdmin } from "@/lib/api/telegram/telegram";
 import { acceptWhatsappReview } from "@/data/review";
 
 // handle webhook (whatsApp incoming messages)
@@ -35,7 +34,7 @@ export async function POST(request: NextRequest) {
       const from = messages[0].from;
       const fromName = value.contacts?.[0]?.profile?.name;
       const msg_body = messages[0];
-      await telegramAdmin(msg_body);
+
       // text message
       let textMess = "";
 
@@ -67,14 +66,8 @@ export async function POST(request: NextRequest) {
         const nfmReply = msg_body.interactive.nfm_reply;
 
         if (nfmReply.response_json) {
-          const flowData = JSON.parse(nfmReply.response_json);
-          const flowToken = msg_body.interactive.nfm_reply.flow_token;
-          await handleReviewFlow(from, flowData, flowToken);
-          await telegramAdmin(
-            Object.entries(flowData)
-              .map(([key, value]) => `${key}: ${value}`)
-              .join("\n"),
-          );
+          const flow = JSON.parse(nfmReply.response_json);
+          await handleReviewFlow(from, flow);
         }
       }
 
@@ -141,21 +134,20 @@ const replay = async (
     // store in database
     await upsertWhatsappChat(fromId, from, fromName, textMess);
 
-    return true;
+    return NextResponse.json({}, { status: 200 });
   } catch {
-    return false;
+    return NextResponse.json({}, { status: 404 });
   }
 };
 // custom action for review flow
 async function handleReviewFlow(
   phone: string,
   flowData: Record<string, string>,
-  oid: string,
 ) {
   const rate = Number(flowData["rate"]) || null;
   const name = flowData["name"]?.trim() || null;
   const comment = flowData["comment"]?.trim() || null;
-  await telegramAdmin(`${oid} ${rate} ${name} ${comment}`);
+  const oid = flowData["flow_token"] || null;
 
   // validate
   if (!oid || !rate || !name || !comment) return;
