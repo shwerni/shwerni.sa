@@ -9,6 +9,7 @@ import { sendWhatsappText } from "@/lib/api/whatsapp";
 import { checkBotLimit } from "@/data/admin/bot";
 import { upsertWhatsappChat } from "@/data/whatsapp";
 import { telegramAdmin } from "@/lib/api/telegram/telegram";
+import { acceptWhatsappReview } from "@/data/review";
 
 // handle webhook (whatsApp incoming messages)
 export async function POST(request: NextRequest) {
@@ -63,19 +64,17 @@ export async function POST(request: NextRequest) {
           msg_body.interactive?.type === "nfm_reply") &&
         msg_body.interactive?.nfm_reply
       ) {
-        const nfmReply = msg_body.interactive.nfm_reply;
-        await telegramAdmin(nfmReply || "work flow empty");
         let flowText = "";
+        const nfmReply = msg_body.interactive.nfm_reply;
 
         if (nfmReply.response_json) {
           const flowData = JSON.parse(nfmReply.response_json);
           flowText = Object.entries(flowData)
             .map(([key, value]) => `${key}: ${value}`)
             .join("\n");
+          const flowToken = msg_body.interactive.nfm_reply.flow_token;
 
-          await telegramAdmin("final data");
-          await telegramAdmin(flowText);
-          await handleReviewFlow(fromId, flowData);
+          await handleReviewFlow(from, flowData, flowToken);
         } else if (nfmReply.body) {
           flowText = nfmReply.body;
         } else {
@@ -153,12 +152,13 @@ const replay = async (
 };
 // custom action for review flow
 async function handleReviewFlow(
-  fromId: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  flowData: Record<string, any>,
+  phone: string,
+  flowData: Record<string, string>,
+  oid: string,
 ) {
   const ratingRaw = flowData["screen_0___0"];
-  const feedback = flowData["screen_0__1"]?.trim() || "No comment provided";
+  const comment = flowData["screen_0__1"]?.trim() || "No comment provided";
+  // const name = flowData["screen_0__2"]?.trim() || "No comment provided";
 
   let rating: number | null = null;
 
@@ -169,24 +169,15 @@ async function handleReviewFlow(
     }
   }
 
-  // Pretty stars display
-  const stars = rating ? "⭐".repeat(rating) : "N/A";
+  // validate
+  if (!oid || !rating || !comment) return;
 
-  // Send clean admin message
-  await telegramAdmin(`
-📊 *New Customer Review*
-━━━━━━━━━━━━━━━━━━
-👤 User: ${fromId}
-⭐ Rating: ${rating ?? "N/A"} / 5
-🌟 Stars: ${stars}
-💬 Feedback:
-"${feedback}"
-━━━━━━━━━━━━━━━━━━
-  `);
+  // post review
+  await acceptWhatsappReview(Number(oid), "name", phone, rating, comment);
 
   // Send confirmation to user
   await sendWhatsappText(
-    fromId,
+    phone,
     "✨ شكراً لمشاركتنا رأيك!\n\nتم تسجيل تقييمك بنجاح 🙏💙\nرأيك يهمنا ويساعدنا نطوّر خدماتنا دائماً.",
   );
 }

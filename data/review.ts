@@ -6,7 +6,11 @@ import prisma from "@/lib/database/db";
 import { subDays } from "date-fns";
 
 // prsima types
-import { PaymentState, Review, ReviewState } from "@/lib/generated/prisma/client";
+import {
+  PaymentState,
+  Review,
+  ReviewState,
+} from "@/lib/generated/prisma/client";
 
 // utils
 import { dateToString } from "@/utils/moment";
@@ -23,7 +27,7 @@ export const reviewsExistByAuthor = async (author: string, cid: number) => {
     });
     // return
     return Boolean(review);
-  } catch  {
+  } catch {
     return false;
   }
 };
@@ -37,7 +41,7 @@ export const reviewIsReservedByAuthor = async (author: string, cid: number) => {
     });
     // return
     return Boolean(review);
-  } catch  {
+  } catch {
     return false;
   }
 };
@@ -51,7 +55,7 @@ export const getreviewsByAuthor = async (cid: number) => {
     });
     // return
     return review;
-  } catch  {
+  } catch {
     return null;
   }
 };
@@ -84,7 +88,7 @@ export const postreview = async (
   author: string,
   name: string,
   comment: string,
-  rate: number
+  rate: number,
 ) => {
   try {
     // post new rate
@@ -113,7 +117,7 @@ export const acceptNewreview = async (
   author: string,
   name: string,
   comment: string,
-  rate: number
+  rate: number,
 ) => {
   try {
     // five day range
@@ -191,7 +195,7 @@ export const acceptNewreview = async (
         status: ReviewState.HOLD,
         info: [
           `comments: ${commentExist} | orders: ${orderExist} | freesession: ${servicesExist} | not qualified| modified: ${dateToString(
-            new Date()
+            new Date(),
           )}`,
         ],
       },
@@ -226,3 +230,77 @@ export async function getReviewsForConsultant(page: number = 1) {
     totalPages: Math.ceil(totalCount / limit),
   };
 }
+
+// accept review whatsapp
+export const acceptWhatsappReview = async (
+  oid: number,
+  name: string,
+  phone: string,
+  rate: number,
+  comment: string,
+) => {
+  try {
+    // get cid
+    const consultant = await prisma.order.findUnique({
+      where: { oid },
+      select: { consultantId: true },
+    });
+
+    // get user if exist
+    const user = await prisma.user.findUnique({
+      where: { phone },
+      select: { id: true },
+    });
+
+    // validate
+    if (!consultant) return false;
+
+    // if rate above 4
+    if (rate >= 4) {
+      // ai model
+      const accepted: { status: boolean; commnet: string | null } =
+        await aiAcceptReview(comment, true);
+
+      // post new rate
+      await prisma.review.create({
+        data: {
+          consultantId: consultant.consultantId,
+          author: user?.id || "temp",
+          name,
+          comment: accepted.commnet ? accepted.commnet : comment,
+          rate,
+          verified: accepted.status ? true : false,
+          status: accepted.status ? ReviewState.PUBLISHED : ReviewState.HOLD,
+          info: [
+            `order: #${oid} | ${
+              accepted.status ? "accepted by Ai" : "refused by Ai"
+            }(${String(accepted.status)}): ${dateToString(new Date())}`,
+          ],
+        },
+      });
+      // return
+      return true;
+    }
+
+    // post new rate
+    await prisma.review.create({
+      data: {
+        consultantId: consultant.consultantId,
+        author: user?.id || "temp",
+        name,
+        comment,
+        rate,
+        status: ReviewState.HOLD,
+        info: [
+          `order: #${oid} | not qualified| modified: ${dateToString(
+            new Date(),
+          )}`,
+        ],
+      },
+    });
+    // return
+    return true;
+  } catch {
+    return null;
+  }
+};
