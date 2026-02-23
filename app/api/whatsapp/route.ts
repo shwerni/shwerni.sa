@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       const from = messages[0].from;
       const fromName = value.contacts?.[0]?.profile?.name;
       const msg_body = messages[0];
-      telegramAdmin(msg_body);
+      await telegramAdmin(msg_body);
       // text message
       let textMess = "";
 
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
         msg_body.interactive?.nfm_reply
       ) {
         const nfmReply = msg_body.interactive.nfm_reply;
-        telegramAdmin(nfmReply || "work flow empty");
+        await telegramAdmin(nfmReply || "work flow empty");
         let flowText = "";
 
         if (nfmReply.response_json) {
@@ -74,23 +74,23 @@ export async function POST(request: NextRequest) {
             .map(([key, value]) => `${key}: ${value}`)
             .join("\n");
 
-          telegramAdmin("flpd daata");
-          telegramAdmin(flowText);
+          await telegramAdmin("flpd daata");
+          await telegramAdmin(flowText);
         } else if (nfmReply.body) {
           flowText = nfmReply.body;
-          telegramAdmin("nfm body");
-          telegramAdmin(flowText);
+          await telegramAdmin("nfm body");
+          await telegramAdmin(flowText);
         } else {
           flowText = "Flow submitted with no response_json";
-          telegramAdmin("nfm text");
-          telegramAdmin(flowText);
+          await telegramAdmin("nfm text");
+          await telegramAdmin(flowText);
         }
 
         const flowName = nfmReply.name || "Unnamed Flow";
         textMess = `📋 Flow: ${flowName}\n${flowText}`;
-        telegramAdmin("name");
-        telegramAdmin(textMess);
-        telegramAdmin(flowName);
+        await telegramAdmin("name");
+        await telegramAdmin(textMess);
+        await telegramAdmin(flowName);
       }
 
       // return

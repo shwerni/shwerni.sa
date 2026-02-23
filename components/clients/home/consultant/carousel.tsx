@@ -39,7 +39,7 @@ const ConsultantsCarousel = ({ consultants }: Props) => {
     >
       <CarouselContent>
         {consultants.map((i, index) => (
-          <CarouselItem key={index} className="max-w-[305px]">
+          <CarouselItem key={index} className="max-w-76.25">
             {/* conultant card data  */}
             <Link href={`/consultants/${i.cid}`}>
               <ConsultantCard
