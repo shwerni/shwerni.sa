@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       const from = messages[0].from;
       const fromName = value.contacts?.[0]?.profile?.name;
       const msg_body = messages[0];
-
+      telegramAdmin(msg_body);
       // text message
       let textMess = "";
 
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
           telegramAdmin("nfm text");
           telegramAdmin(flowText);
         }
-        
+
         const flowName = nfmReply.name || "Unnamed Flow";
         textMess = `📋 Flow: ${flowName}\n${flowText}`;
         telegramAdmin("name");
