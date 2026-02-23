@@ -21,7 +21,7 @@ export const participantAttendance = async (
   ownerAttend: boolean | null,
   clientAttend: boolean | null,
   time: string | null,
-  session?: number
+  session?: number,
 ) => {
   try {
     // review reminder
@@ -30,7 +30,7 @@ export const participantAttendance = async (
       (participant === "owner" && !ownerAttend && clientAttend)
     ) {
       // review reminder
-      reviewReminder(oid);
+      await reviewReminder(oid, session);
       // session selection (if program)
       await checkProgramNextSession(oid, session ?? 1);
     }
@@ -106,7 +106,7 @@ export const orderMeetingUrl = async (oid: number, session?: number) => {
 export const getMeetingsByCidAndRange = async (
   cid: number,
   start: string,
-  end: string
+  end: string,
 ) => {
   try {
     // get paid orders created in the specified month and year

@@ -1,6 +1,5 @@
 "use server";
 // prisma data
-import { getOwnersInfoCid } from "@/data/consultant";
 import {
   cancelOrderByOid,
   getReservationByOid,
@@ -9,6 +8,7 @@ import {
 
 // types
 import { PaymentState } from "@/lib/generated/prisma/client";
+import { notificationReviewReminder } from "@/lib/notifications";
 
 // days tabs owner
 export const cancelOrder = async (oid: number) => {
@@ -44,7 +44,7 @@ export const cancelOrder = async (oid: number) => {
 };
 
 // days tabs owner
-export const reviewReminder = async (oid: number) => {
+export const reviewReminder = async (oid: number, session?: number) => {
   try {
     // get order
     const order = await getReservationByOid(oid);
@@ -52,20 +52,18 @@ export const reviewReminder = async (oid: number) => {
     // if not exist
     if (!order || order.payment?.payment !== PaymentState.PAID) return;
 
-    // get owner
-    const owner = await getOwnersInfoCid(order.consultantId);
-
-    // if owner not exist
-    if (!owner) return;
-    // cancel order & send reminder
-    // await sendReviewReminder(
-    //   order.oid,
-    //   order.name,
-    //   order.phone,
-    //   String(order.cid),
-    //   owner.name ?? "",
-    //   owner.gender
-    // );
+    // meeting
+    const meeting =
+      (session ? order.meeting[session] : order.meeting[0]) ?? order.meeting[0];
+    // send reminder
+    await notificationReviewReminder(
+      order.oid,
+      order.phone,
+      // order.name,
+      order.consultant.name,
+      meeting.date,
+      meeting.time,
+    );
   } catch {
     // return
     return undefined;

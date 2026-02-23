@@ -29,6 +29,7 @@ import {
   wTemplateNewProgramOrderOwner,
   wTemplateProgramConfirm,
   wTemplateProgramSession,
+  wTemplateReview,
 } from "@/utils/templates/whatsapp/order/program";
 
 // types
@@ -424,4 +425,24 @@ export const notificationProgramSessionConfirm = async (
     // return
     return null;
   }
+};
+
+// review reminder
+export const notificationReviewReminder = async (
+  oid: number,
+  phone: string,
+  conusltant: string,
+  date: string,
+  time: string,
+) => {
+  // meeting label
+  const label = meetingLabel(time, date);
+
+  // send clinet
+  await sendWhatsappTemplate(
+    phone,
+    "review_reminder",
+    "ar",
+    wTemplateReview(oid, conusltant, label),
+  );
 };

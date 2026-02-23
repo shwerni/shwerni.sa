@@ -55,7 +55,7 @@ export const wTemplateNewOrderClient = (
   total: number,
   duration: string | number,
   label: string,
-  zid: string
+  zid: string,
 ) => {
   // test components
   const components = [
@@ -111,7 +111,7 @@ export const wTemplateNewOrderOwner = (
   name: string,
   duration: string | number,
   label: string,
-  zid: string
+  zid: string,
 ) => {
   // test components
   const components = [
@@ -161,7 +161,7 @@ export const wTemplatePreConsultationResponse = (
   id: string,
   name: string,
   advisor: string,
-  pid: number
+  pid: number,
 ) => {
   // test components
   const components = [
@@ -231,7 +231,7 @@ export const wTemplateNewOwner = (name: string, cid: string) => {
 export const wTemplateNewPreConsultation = (
   advisor: string,
   name: string,
-  pid: number
+  pid: number,
 ) => {
   // component
   const components = [
@@ -264,7 +264,7 @@ export const wTemplateNewFreeSessionOwner = (
   name: string,
   duration: string | number,
   label: string,
-  zid: string
+  zid: string,
 ) => {
   // test components
   const components = [
@@ -316,7 +316,7 @@ export const wTemplateNewFreeSessionClient = (
   coname: string,
   duration: string | number,
   label: string,
-  zid: string
+  zid: string,
 ) => {
   // test components
   const components = [
@@ -370,7 +370,7 @@ export const wTemplateNewGiftOrder = (
   duration: string,
   sessions: number,
   label: string,
-  zid: string
+  zid: string,
 ) => {
   // test components
   const components = [
@@ -429,7 +429,7 @@ export const wTemplateNewGiftOrderConfirm = (
   guest: string,
   name: string,
   coname: string,
-  total: number
+  total: number,
 ) => {
   // test components
   const components = [

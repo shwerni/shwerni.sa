@@ -22,7 +22,7 @@ export default async function Page({ params, searchParams }: Props) {
   // zid
   const { zid } = await params;
 
-  // session
+  // sessions
   const { session, participant } = await searchParams;
 
   permanentRedirect(

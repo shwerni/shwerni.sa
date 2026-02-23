@@ -15,8 +15,6 @@ import { Categories as CategoriesType } from "@/lib/generated/prisma/enums";
 import Law from "@/public/svg/icons/categories-law.svg";
 import Family from "@/public/svg/icons/categories-family.svg";
 import Psychic from "@/public/svg/icons/categories-psychic.svg";
-import Image from "next/image";
-import { LinkButton } from "@/components/shared/link-button";
 
 const Categories = () => {
   // link
@@ -29,29 +27,6 @@ const Categories = () => {
       {/* title */}
       <Title title="تلائم أهدافك وتحقق نتائجك" subTitle="مجالات واسعة" />
       {/* cards */}
-      {/* later */}
-      <div>
-        <div className="w-fit mx-auto">
-          <Image
-            src="/other/event/founding-day.png"
-            alt="icon"
-            width={250}
-            height={250}
-          />
-        </div>
-        <div className="flex items-center justify-center gap-10 w-11/12  max-w-md bg-[#d8c2ac] mx-auto py-3 px-5 rounded-md">
-          <div className="flex flex-col gap-2">
-            <h3 className="text-lg font-bold text-[#6b4e45]">يوم التأسيس</h3>
-            <p className="text-xs font-semibold text-gray-700">
-              يوم بدينا – عز وفخر 🇸🇦 عرض يوم التأسيس جلسة استشارية مجانية لمدة
-              30 دقيقة
-            </p>
-          </div>
-          <LinkButton className="bg-[#6b4e45]" href="/event">
-            احجز الآن
-          </LinkButton>
-        </div>
-      </div>
       {/* 1st group */}
       <DivMotion className="grid grid-cols-1 sm:grid-cols-5 gap-5 mx-5 :mx-3">
         <div className="sm:col-span-3">

@@ -6,7 +6,7 @@ export const wTemplateNewProgramOrderOwner = (
   name: string,
   session: number,
   label: string,
-  zid: string
+  zid: string,
 ) => {
   // test components
   const components = [
@@ -65,7 +65,7 @@ export const wTemplateProgramConfirm = (
   session: number,
   sessionCount: number,
   label: string,
-  zid: string
+  zid: string,
 ) => {
   // test components
   const components = [
@@ -146,7 +146,7 @@ export const wTemplateProgramSession = (
         {
           type: "text",
           text: String(oid),
-        }
+        },
       ],
     },
     {
@@ -157,6 +157,49 @@ export const wTemplateProgramSession = (
         {
           type: "text",
           text: `${czid}?session=${session}`,
+        },
+      ],
+    },
+  ];
+  //  return
+  return components;
+};
+
+// program confirm consultant/clinet
+export const wTemplateReview = (
+  oid: number,
+  consultant: string,
+  meeting: string,
+) => {
+  // test components
+  const components = [
+    {
+      type: "body",
+      parameters: [
+        {
+          type: "text",
+          text: consultant,
+        },
+        {
+          type: "text",
+          text: "#" + String(oid),
+        },
+        {
+          type: "text",
+          text: meeting,
+        },
+      ],
+    },
+    {
+      type: "button",
+      sub_type: "flow",
+      index: "0",
+      parameters: [
+        {
+          type: "action",
+          action: {
+            flow_token: String(oid),
+          },
         },
       ],
     },
