@@ -9,7 +9,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 // components
-import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -20,16 +19,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { ZToast } from "@/app/_components/layout/toasts";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import LoadingBtn from "@/app/_components/layout/loadingBtn";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Togglevisibility from "@/app/_components/consultants/owner/togglevisibility";
 
 // hooks
-import { UploadButton } from "@/lib/upload";
 
 // prisma data
 import { saveUploadedFile, saveUploadedImage } from "@/data/uploads";
@@ -61,9 +60,9 @@ import {
   Trash2,
 } from "lucide-react";
 import ConsultantInfoCard from "../marketingCard";
-import { DatePicker } from "@/app/_components/management/layout/datePicker";
-import { dateToString } from "@/utils/moment";
 import { Consultant } from "@/lib/generated/prisma/client";
+import { UploadButton } from "@/lib/upload";
+
 // props
 interface Props {
   author: string;
@@ -89,7 +88,7 @@ export default function CoProfileForm({ author, owner, phone }: Props) {
   const [years, setYears] = React.useState<number>(
     owner?.seniority ? calculateYearsFromDate(new Date(owner.seniority)) : 1,
   );
-  
+
   // image
   const [image, setImage] = React.useState<string>(
     owner && owner?.image ? owner?.image : "",
@@ -345,11 +344,16 @@ export default function CoProfileForm({ author, owner, phone }: Props) {
               onUploadBegin={() => setUImage(true)}
               onClientUploadComplete={async (res) => {
                 // set new iamge preview
-                setImage(res[0].url);
+                setImage(res[0].ufsUrl);
+                setImage(res[0].ufsUrl);
                 // end uploading loading state
                 setUImage(false);
                 // save image to db
-                await saveUploadedImage(res[0].key, author ?? "", res[0].url);
+                await saveUploadedImage(
+                  res[0].key,
+                  author ?? "",
+                  res[0].ufsUrl,
+                );
               }}
               onUploadError={(error: Error) => {
                 ZToast({ state: false, message: "حدث خطأ ما" });
@@ -381,11 +385,11 @@ export default function CoProfileForm({ author, owner, phone }: Props) {
               onUploadBegin={() => setUCv(true)}
               onClientUploadComplete={async (res) => {
                 // set new iamge preview
-                setCv(res[0].url);
+                setCv(res[0].ufsUrl);
                 // end uploading loading state
                 setUCv(false);
                 // save image to db
-                await saveUploadedFile(res[0].key, author ?? "", res[0].url);
+                await saveUploadedFile(res[0].key, author ?? "", res[0].ufsUrl);
               }}
               onUploadError={(error: Error) => {
                 ZToast({ state: false, message: "حدث خطأ ما" });
@@ -414,11 +418,11 @@ export default function CoProfileForm({ author, owner, phone }: Props) {
               onUploadBegin={() => setUEdu(true)}
               onClientUploadComplete={async (res) => {
                 // set new iamge preview
-                setEdu(res[0].url);
+                setEdu(res[0].ufsUrl);
                 // end uploading loading state
                 setUEdu(false);
                 // save image to db
-                await saveUploadedFile(res[0].key, author ?? "", res[0].url);
+                await saveUploadedFile(res[0].key, author ?? "", res[0].ufsUrl);
               }}
               onUploadError={(error: Error) => {
                 ZToast({ state: false, message: "حدث خطأ ما" });
@@ -447,13 +451,15 @@ export default function CoProfileForm({ author, owner, phone }: Props) {
               onUploadBegin={() => setUCert(true)}
               onClientUploadComplete={async (res) => {
                 // set new iamge preview
-                setCert(res[0].url);
+                setCert(res[0].ufsUrl);
                 // end uploading loading state
                 setUCert(false);
                 // save image to db
-                await saveUploadedFile(res[0].key, author ?? "", res[0].url);
+                await saveUploadedFile(res[0].key, author ?? "", res[0].ufsUrl);
               }}
-              onUploadError={(error: Error) => {
+              onUploadError={(error) => {
+                console.log(error);
+
                 ZToast({ state: false, message: "حدث خطأ ما" });
                 setUCert(false);
               }}

@@ -2,6 +2,7 @@
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
+/* @import "uploadthing/tw/v4"; */
 
 @theme inline {
   --color-background: var(--background);

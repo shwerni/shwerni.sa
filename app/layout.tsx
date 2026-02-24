@@ -1,4 +1,6 @@
 // React & Next
+import { Suspense } from "react";
+import { connection } from "next/server";
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Arabic } from "next/font/google";
 
@@ -18,6 +20,7 @@ import { Toaster } from "@/components/ui/sonner";
 import ReCaptchaWrapper from "@/components/wrappers/recaptcha";
 
 // upload thing
+import { extractRouterConfig } from "uploadthing/server";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 
 // scripts
@@ -30,7 +33,7 @@ import "@/app/globals.css";
 
 // constants
 import { defaultMetaApi } from "@/constants";
-import { uploadThingRouterConfig } from "@/lib/upload/provider";
+import { ourFileRouter } from "@/app/api/uploadthing/core";
 
 // font
 const font = IBM_Plex_Sans_Arabic({
@@ -51,6 +54,11 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
+async function UTSSR() {
+  await connection();
+  return <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />;
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -69,9 +77,11 @@ export default async function RootLayout({
       {/* main app */}
       <body className={font.className}>
         <ReCaptchaWrapper>
-          <main className="max-w-[1750px] mx-auto">
+          <main className="max-w-437.5 mx-auto">
             {/* uplaod thing */}
-            <NextSSRPlugin routerConfig={uploadThingRouterConfig} />
+            <Suspense>
+              <UTSSR />
+            </Suspense>
             {/* top loader animation */}
             <NextTopLoader />
             {/* nuqs adaptar */}
