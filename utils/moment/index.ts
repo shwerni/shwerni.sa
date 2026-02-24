@@ -2,7 +2,7 @@
 moment.locale("en");
 import "moment/locale/ar";
 import moment from "moment-timezone";
-import { addDays, isWithinInterval } from "date-fns";
+import { addDays, isAfter, isBefore, isWithinInterval } from "date-fns";
 import { format, addMinutes, parse } from "date-fns";
 
 // lib
@@ -248,14 +248,13 @@ export const availableSoonFilter = (
     );
 };
 
-// meeting time is still or passed or now
 export const meetingTime = (
   time: string,
   date: string,
   mTime: string,
   mDate: string,
   before?: number,
-  after?: number,
+  after?: number
 ) => {
   // time zone now
   const nowT = moment(`${date} ${time}:00`, "YYYY-MM-DD HH:mm:ss");

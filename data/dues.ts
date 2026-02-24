@@ -21,7 +21,11 @@ export const getAllDuesOwner = async (cid: number) => {
         created_at: "desc",
       },
       include: {
-        meeting: true,
+        meeting: {
+          include: {
+            participants: true,
+          },
+        },
         payment: {
           include: {
             usedCoupon: true,
@@ -35,7 +39,7 @@ export const getAllDuesOwner = async (cid: number) => {
         },
       },
     });
-    
+
     // return
     return dues;
   } catch {
@@ -73,7 +77,11 @@ export const getDuesOwnenByMonth = async (range: string, cid: number) => {
             usedCoupon: true,
           },
         },
-        meeting: true,
+        meeting: {
+          include: {
+            participants: true,
+          },
+        },
         consultant: {
           select: {
             name: true,

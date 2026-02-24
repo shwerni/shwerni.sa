@@ -9,7 +9,6 @@ import {
   selectPeers,
   selectIsConnectedToRoom,
 } from "@100mslive/react-sdk";
-import { v4 as uuidv4 } from "uuid";
 
 // components
 import Room from "./room";
@@ -29,8 +28,9 @@ import { Lang } from "@/types/types";
 import { Reservation } from "@/types/admin";
 
 // icon
-import { User } from "lucide-react";
+import { User, UserPlus } from "lucide-react";
 import { FaUserDoctor } from "react-icons/fa6";
+import { Button } from "@/components/ui/button";
 
 type RoomUser = {
   id: string | null;
@@ -38,17 +38,30 @@ type RoomUser = {
   role: UserRole;
   image: string | null;
 };
+
 // props
 interface Props {
-  order: Reservation;
   lang: Lang;
+  mid: string;
   user: RoomUser;
   duration: string;
+  order: Reservation;
+  participant: string;
 }
 
-export default function MeetingRoom({ order, user, duration, lang }: Props) {
-  // id
-  const id = user.id ?? `guest-${uuidv4()}`;
+export default function MeetingRoom({
+  order,
+  user,
+  mid,
+  duration,
+  lang,
+  participant,
+}: Props) {
+  // room name
+  const roomName = order.oid + mid;
+
+  // loading
+  const [loading, setLoading] = React.useState(false);
 
   // hms action hook
   const hmsActions = useHMSActions();
@@ -57,25 +70,59 @@ export default function MeetingRoom({ order, user, duration, lang }: Props) {
   const isConnected = useHMSStore(selectIsConnectedToRoom);
 
   // participants
-  const peers = useHMSStore(selectPeers);
+  const allPeers = useHMSStore(selectPeers);
+
+  const peers = React.useMemo(() => {
+  const map = new Map<string, (typeof allPeers)[0]>();
+  allPeers.forEach((peer) => {
+    if (!peer.metadata) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let metadataObj: any;
+    try {
+      metadataObj = JSON.parse(peer.metadata);
+    } catch {
+      return; // ignore invalid JSON
+    }
+
+    const userId = metadataObj.user?.id;
+    if (userId) map.set(userId, peer);
+  });
+  return Array.from(map.values());
+}, [allPeers]);
 
   // hanlde join room
-  const joinRoom = async () => {
+  const Join = async () => {
+    // loading
+    setLoading(true);
+
     try {
       // get token
-      const auth = await CreateHMSToken(order.id, order.oid, id);
+      const auth = await CreateHMSToken(mid, order.oid, roomName, participant);
 
       // join
-      if (auth)
-        await hmsActions.join({
-          userName: user.name ?? "مستخدم شاورني",
-          authToken: auth,
-          settings: {
-            isAudioMuted: false,
-            isVideoMuted: true,
-          },
-          metaData: JSON.stringify({ user }),
+      if (!auth) {
+        // toast
+        toast.info({
+          message: "حدث خطأ اثناء الانضمام الي الغرفة برجاء المحاولة مرة اخري",
         });
+        // return
+        return;
+      }
+
+      // join room
+      await hmsActions.join({
+        userName: user.name ?? "مستخدم شاورني",
+        authToken: auth,
+        settings: {
+          isAudioMuted: false,
+          isVideoMuted: true,
+        },
+        metaData: JSON.stringify({ user }),
+      });
+
+      // unblock sound
+      await hmsActions.unblockAudio();
 
       // return
       return true;
@@ -84,15 +131,11 @@ export default function MeetingRoom({ order, user, duration, lang }: Props) {
       toast.error({ message: "حدث خطأ ما, برجاء تحديث الصفحة" });
       // return
       return false;
+    } finally {
+      // loading
+      setLoading(false);
     }
   };
-
-  // on load
-  React.useEffect(() => {
-    // join room
-    joinRoom();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hmsActions]);
 
   return (
     <div className="">
@@ -114,12 +157,49 @@ export default function MeetingRoom({ order, user, duration, lang }: Props) {
             </div>
           </div>
           <Separator className="w-10/12 mx-auto" />
-          <Room
-            lang={lang}
-            participants={peers}
-            isConnected={isConnected ?? false}
-            duration={Number(duration)}
-          />
+          {
+            // render
+            !isConnected ? (
+              <div className="flex items-center justify-center px-4">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 max-w-sm w-full text-center space-y-6">
+                  {/* Icon */}
+                  <div className="flex justify-center">
+                    <UserPlus className="w-16 h-16 text-theme" />
+                  </div>
+
+                  {/* Heading */}
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    انضم للاجتماع
+                  </h2>
+
+                  {/* Subtext */}
+                  <p className="text-gray-600 dark:text-gray-300 text-sm">
+                    اضغط على الزر أدناه للدخول إلى غرفة الاجتماع. تأكد من السماح
+                    بالوصول إلى الصوت.
+                  </p>
+
+                  {/* Join Button */}
+                  <Button
+                    onClick={Join}
+                    variant="destructive"
+                    className="w-full flex items-center justify-center gap-2"
+                    loading={loading}
+                    disabled={loading}
+                  >
+                    <UserPlus className="w-5 h-5" />
+                    انضم الآن
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Room
+                lang={lang}
+                participants={peers}
+                isConnected={isConnected ?? false}
+                duration={Number(duration)}
+              />
+            )
+          }
         </div>
       </Section>
     </div>

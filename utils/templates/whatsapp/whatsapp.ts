@@ -56,6 +56,8 @@ export const wTemplateNewOrderClient = (
   duration: string | number,
   label: string,
   zid: string,
+  mid: string,
+  participant?: string,
 ) => {
   // test components
   const components = [
@@ -95,7 +97,7 @@ export const wTemplateNewOrderClient = (
       parameters: [
         {
           type: "text",
-          text: `${zid}?participant=client`,
+          text: `${zid}?mid=${mid}&participant=${participant}`,
         },
       ],
     },
@@ -112,6 +114,8 @@ export const wTemplateNewOrderOwner = (
   duration: string | number,
   label: string,
   zid: string,
+  mid: string,
+  participant?: string,
 ) => {
   // test components
   const components = [
@@ -147,7 +151,7 @@ export const wTemplateNewOrderOwner = (
       parameters: [
         {
           type: "text",
-          text: `${zid}?participant=owner`,
+          text: `${zid}?mid=${mid}&participant=${participant}`,
         },
       ],
     },

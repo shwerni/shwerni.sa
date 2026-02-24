@@ -49,9 +49,6 @@ export default async function Page({ params }: Props) {
   // if not exist
   if (!freesession) return <Error404 />;
 
-  // time and date
-  const { time, date } = timeZone();
-
   // user
   const author = await userServer();
 
@@ -88,12 +85,14 @@ export default async function Page({ params }: Props) {
 
   // return
   return (
-    <HMSLayout meeting={meeting} time={time} date={date}>
+    <HMSLayout meeting={meeting}>
       <MeetingRoom
         lang="ar"
         order={order}
         user={user}
         duration={meeting.duration}
+        participant=""
+        mid=""
       />
     </HMSLayout>
   );

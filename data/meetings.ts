@@ -14,57 +14,53 @@ import { reviewReminder } from "@/handlers/clients/reservation/order";
 // prisma types
 import { PaymentState } from "@/lib/generated/prisma/client";
 
+// lib
+import { timeZone } from "@/lib/site/time";
+
 // get reservation
 export const participantAttendance = async (
-  oid: number,
+  meetingId: string,
   participant: string,
-  ownerAttend: boolean | null,
-  clientAttend: boolean | null,
-  time: string | null,
-  session?: number,
 ) => {
   try {
+    // time
+    const { time } = timeZone();
+
+    // participant
+    const meeting = await prisma.participant.update({
+      where: { participant, meetingId, attended: false },
+      data: { attended: true, time },
+      select: {
+        meeting: {
+          select: { orderId: true, session: true },
+        },
+      },
+    });
+
+    // all participant
+    const participants = await prisma.participant.findMany({
+      where: {
+        meetingId,
+      },
+      select: {
+        attended: true,
+      },
+    });
+
     // review reminder
     if (
-      (participant === "client" && !clientAttend && ownerAttend) ||
-      (participant === "owner" && !ownerAttend && clientAttend)
+      participants.every((p) => p.attended === true) &&
+      meeting.meeting.orderId
     ) {
       // review reminder
-      await reviewReminder(oid, session);
+      await reviewReminder(meeting.meeting.orderId, meeting.meeting.session);
       // session selection (if program)
-      await checkProgramNextSession(oid, session ?? 1);
+      await checkProgramNextSession(
+        meeting.meeting.orderId,
+        meeting.meeting.session ?? 1,
+      );
     }
 
-    // client attendance
-    if (participant === "client" && !clientAttend) {
-      // attendance
-      const order = await prisma.meeting.update({
-        where: { orderId_session: { orderId: oid, session: session ?? 1 } },
-        data: {
-          clientAttendance: true,
-          clientJoinedAt: time,
-        },
-        select: { orderId: true },
-      });
-      // return
-      return Boolean(order);
-    }
-
-    // attendance
-    if (participant === "owner" && !ownerAttend) {
-      const order = await prisma.meeting.update({
-        where: { orderId_session: { orderId: oid, session: session ?? 1 } },
-        data: {
-          consultantAttendance: true,
-          consultantJoinedAt: time,
-        },
-        select: { orderId: true },
-      });
-      // return
-      return Boolean(order);
-    }
-
-    // if participant not exist or already signed
     return null;
   } catch {
     // return
@@ -125,7 +121,11 @@ export const getMeetingsByCidAndRange = async (
       },
       include: {
         payment: true,
-        meeting: true,
+        meeting: {
+          include: {
+            participants: true,
+          },
+        },
         consultant: {
           select: {
             name: true,

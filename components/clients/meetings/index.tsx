@@ -39,6 +39,7 @@ import {
 // props
 interface Props {
   zid: string;
+  mid: string;
   date: string;
   time: string;
   session: number;
@@ -49,6 +50,7 @@ interface Props {
 
 export default async function Meetings({
   zid,
+  mid,
   time,
   date,
   order,
@@ -57,7 +59,7 @@ export default async function Meetings({
   participant,
 }: Props) {
   // url
-  const url = "/rooms/" + zid;
+  const url = `/rooms/${zid}?mid=${mid}&session=${session}&participant=${participant}`;
 
   // meetings status
   const mStatus = meetingTime(time, date, meeting.time, meeting.date);
@@ -66,15 +68,7 @@ export default async function Meetings({
   const attendance = attendanceTime(time, date, meeting.time, meeting.date);
 
   // participant attendance
-  if (attendance)
-    participantAttendance(
-      order.oid,
-      participant ?? "",
-      meeting.consultantAttendance,
-      meeting.clientAttendance,
-      time,
-      Number(session),
-    );
+  if (attendance && participant) await participantAttendance(mid, participant);
 
   // validet
   if (!meeting) return <Error404 />;
@@ -190,7 +184,12 @@ export default async function Meetings({
         {url && mStatus === true && (
           <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto">
             <div className="flex flex-col items-center gap-1.5">
-              <LinkButton href={url} variant="primary" className="gap-2">
+              <LinkButton
+                href={url}
+                variant="primary"
+                className="gap-2"
+                target="_blank"
+              >
                 <ExternalLink />
                 الأنتقال الي الإجتماع
               </LinkButton>

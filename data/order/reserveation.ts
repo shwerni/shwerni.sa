@@ -26,6 +26,7 @@ import { aboveAndLowerTime, dateTimeToString } from "@/utils/moment";
 import { OrderType, PaymentState } from "@/lib/generated/prisma/enums";
 
 import { ReservationFormType, reservationSchema } from "@/schemas";
+import { createParticipants } from "../room";
 
 // reserve a new order (meeting) with owner
 export const reserveConsultant = async (
@@ -139,6 +140,9 @@ export const reserveConsultant = async (
       },
       include: {
         payment: true,
+        meeting: {
+          include: { participants: true },
+        },
         consultant: {
           select: {
             name: true,
@@ -147,6 +151,9 @@ export const reserveConsultant = async (
         },
       },
     });
+
+    // create participants
+    await createParticipants(order.meeting[0].id);
 
     // if instant
     if (data.type === OrderType.INSTANT) {
@@ -232,7 +239,11 @@ export const getReservationByOid = async (oid: number) => {
     const order = await prisma.order.findFirst({
       where: { oid },
       include: {
-        meeting: true,
+        meeting: {
+          include: {
+            participants: true,
+          },
+        },
         program: true,
         payment: {
           include: {
@@ -267,7 +278,11 @@ export const getReservationByPid = async (pid: string) => {
       where: { payment: { pid } },
       include: {
         payment: true,
-        meeting: true,
+        meeting: {
+          include: {
+            participants: true,
+          },
+        },
         consultant: {
           select: {
             phone: true,
@@ -426,7 +441,11 @@ export const getAllPaidOwnersOrdersByAuthor = async (author: string) => {
       },
       include: {
         payment: true,
-        meeting: true,
+        meeting: {
+          include: {
+            participants: true,
+          },
+        },
         consultant: {
           select: {
             phone: true,
@@ -561,7 +580,11 @@ export const getPaidOwnersOrdersByAuthorAndMonth = async (
       },
       include: {
         payment: true,
-        meeting: true,
+        meeting: {
+          include: {
+            participants: true,
+          },
+        },
         consultant: {
           select: {
             phone: true,
@@ -762,7 +785,11 @@ export const orderStatusPaid = async (pid: string) => {
       where: { oid: orderId.orderId },
       include: {
         payment: true,
-        meeting: true,
+        meeting: {
+          include: {
+            participants: true,
+          },
+        },
         program: true,
         guest: true,
         consultant: {
@@ -877,7 +904,9 @@ export const orderStatusRefund = async (pid: string) => {
       where: { oid: orderId.orderId },
       include: {
         payment: true,
-        meeting: true,
+        meeting: {
+          include: { participants: true },
+        },
         consultant: {
           select: {
             name: true,

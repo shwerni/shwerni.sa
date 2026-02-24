@@ -153,7 +153,9 @@ export const payAllByWallet = async (
         },
       },
       include: {
-        meeting: true,
+        meeting: {
+          include: { participants: true },
+        },
         payment: true,
         consultant: {
           select: {

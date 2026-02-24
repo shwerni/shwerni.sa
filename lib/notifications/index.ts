@@ -4,6 +4,7 @@ import {
   FreeSession,
   OrderType,
   SessionType,
+  UserRole,
 } from "@/lib/generated/prisma/client";
 
 // lib
@@ -79,7 +80,7 @@ export const notificationNewOrder = async (order: Reservation) => {
     const zid = zencryption(order.oid);
 
     // meeting label
-    const label = meetingLabel(meeting[0].time, meeting[0].date) || "";
+    const label = meetingLabel(meeting[0].time, meeting[0].date);
 
     // if program or single
     if (isProgram && program) {
@@ -133,6 +134,9 @@ export const notificationNewOrder = async (order: Reservation) => {
           meeting[0].duration,
           label,
           zid,
+          meeting[0].id,
+          meeting[0].participants.find((p) => p.role === UserRole.OWNER)
+            ?.participant,
         ),
       );
       // send to client
@@ -148,6 +152,9 @@ export const notificationNewOrder = async (order: Reservation) => {
           meeting[0].duration,
           label,
           zid,
+          meeting[0].id,
+          meeting[0].participants.find((p) => p.role === UserRole.USER)
+            ?.participant,
         ),
       );
       // return
@@ -168,6 +175,9 @@ export const notificationNewOrder = async (order: Reservation) => {
           meeting[0].duration,
           label,
           zid,
+          meeting[0].id,
+          meeting[0].participants.find((p) => p.role === UserRole.OWNER)
+            ?.participant,
         ),
       );
       // send to the client gifted to (the one will take the session)
@@ -216,6 +226,9 @@ export const notificationNewOrder = async (order: Reservation) => {
         meeting[0].duration,
         label,
         zid,
+        meeting[0].id,
+        meeting[0].participants.find((p) => p.role === UserRole.OWNER)
+          ?.participant,
       ),
     );
     // send to client
@@ -231,6 +244,9 @@ export const notificationNewOrder = async (order: Reservation) => {
         meeting[0].duration,
         label,
         zid,
+        meeting[0].id,
+        meeting[0].participants.find((p) => p.role === UserRole.USER)
+          ?.participant,
       ),
     );
 

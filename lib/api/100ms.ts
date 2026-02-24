@@ -1,22 +1,26 @@
 "use server";
+import { createRoom, getRoom } from "@/data/room";
 // packages
 import * as HMS from "@100mslive/server-sdk";
 
+// hms
+const hms = new HMS.SDK(process.env.MS100_KEY, process.env.MS100_SECRET);
+
 // 100ms credentials
-const accessKey = process.env.MS100_KEY;
-const secret = process.env.MS100_SECRET;
 const templateId = process.env.MS100_TEMPLATEID;
 
-// hms
-const hms = new HMS.SDK(accessKey, secret);
+export async function CreateHMSToken(
+  meetingId: string,
+  orderId: number,
+  roomName: string,
+  userId: string,
+  role: "speaker" | "listener" = "speaker",
+) {
+  console.log(userId);
 
-export async function CreateHMSToken(id: string, oid: number, author: string) {
   try {
-    // roomId
-    const roomName = oid + id;
-
     // check if room exist
-    const room = await retrieveRoomByName(roomName);
+    let room = await getRoom(roomName);
 
     // validate
     if (!room) {
@@ -27,22 +31,39 @@ export async function CreateHMSToken(id: string, oid: number, author: string) {
         template_id: templateId,
       });
 
-      // get auth token
-      const token = await hms.auth.getAuthToken({
-        roomId: newRoom.id,
-        userId: author,
-        role: "speaker",
-      });
-
-      // return token
-      return token.token;
+      // create room
+      room = await createRoom(newRoom.id, meetingId, orderId);
     }
+
+    // validate
+    if (!room) return;
+
+    // remove duplicates
+    try {
+      // peers
+      const peers = await hms.activeRooms.retrieveActivePeers(room?.roomId);
+
+      // duplicates peers
+      const duplicates = Object.values(peers)
+        .filter((p: HMS.ActiveRoom.Peer) => p.user_id === userId)
+        .map((p: HMS.ActiveRoom.Peer) => p.id);
+
+      // remove duplicates
+      if (duplicates.length > 0)
+        await Promise.all(
+          duplicates.map((peerId) =>
+            hms.activeRooms.removePeer(room.roomId, {
+              peer_id: peerId,
+            }),
+          ),
+        );
+    } catch {}
 
     // get auth token
     const token = await hms.auth.getAuthToken({
-      roomId: room,
-      userId: author,
-      role: "speaker",
+      roomId: room.roomId,
+      userId,
+      role,
     });
 
     // return token
@@ -53,14 +74,5 @@ export async function CreateHMSToken(id: string, oid: number, author: string) {
   }
 }
 
-async function retrieveRoomByName(name: string) {
-  try {
-    // check if room exist
-    const room = await hms.rooms.retrieveByName(name);
-
-    // exist
-    return room.id;
-  } catch {
-    return null;
-  }
-}
+// retrieve room
+// const room = await hms.rooms.retrieveByName(name);

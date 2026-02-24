@@ -12,6 +12,7 @@ import {
   Review,
   Guest,
   UsedCoupon,
+  Participant,
 } from "@/lib/generated/prisma/client";
 
 // category
@@ -105,7 +106,7 @@ export type Reservation = Order & {
     name: string;
     phone: string;
   };
-  meeting?: Meeting[];
+  meeting?: (Meeting & { participants: Participant[] })[];
   payment?: (Payment & { usedCoupon?: UsedCoupon | null }) | null;
   program?: Program | null;
   guest?: Guest | null;

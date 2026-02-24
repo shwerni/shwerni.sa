@@ -29,6 +29,7 @@ type Props = {
   searchParams: Promise<{
     session?: number;
     participant?: string;
+    mid?: string;
   }>;
 };
 
@@ -38,7 +39,7 @@ export default async function Page({ params, searchParams }: Props) {
   const { zid } = await params;
 
   // session
-  const { session, participant } = await searchParams;
+  const { session, participant, mid } = await searchParams;
 
   // get zdencrypt oid
   const oid = zdencryption(String(zid));
@@ -78,6 +79,7 @@ export default async function Page({ params, searchParams }: Props) {
     <Meetings
       zid={zid}
       order={order}
+      mid={mid || meeting.id}
       time={time}
       date={date}
       meeting={meeting}

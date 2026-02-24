@@ -127,7 +127,6 @@ export default function Room({
 
   // states
   const isMicOn = useHMSStore(selectIsLocalAudioEnabled);
-  const [unblocked, setUnblocked] = React.useState(false);
   const [isDeafened, setIsDeafened] = React.useState(false);
   const { allDevices, selectedDeviceIDs, updateDevice } = useDevices();
 
@@ -368,18 +367,7 @@ export default function Room({
         </div>
       </div>
       {/* unblock sound */}
-      <Button
-        onClick={async () => {
-          // unblock
-          await hmsActions.unblockAudio();
-          // hide unblock
-          setUnblocked(true);
-        }}
-        className={cn(unblocked && "hidden!", "flex mt-4 text-xs mx-auto")}
-        variant="destructive"
-      >
-        تواجه مشكلة في سماع الصوت اضغط هنا
-      </Button>
+
       {/* main Content */}
       <div className="flex-1 container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 mb-6">

@@ -181,6 +181,12 @@ enum GenderPreference {
   BOTH
 }
 
+enum RoomType {
+  ORDER
+  INTERNAL
+  DIRECT
+}
+
 // models
 model User {
   id            String    @id @default(cuid())
@@ -615,10 +621,12 @@ model Meeting {
   url                  String?
 
   // @relations
-  freeSessionId String?      @unique
-  freeSession   FreeSession? @relation(fields: [freeSessionId], references: [id])
+  freeSessionId String?       @unique
+  freeSession   FreeSession?  @relation(fields: [freeSessionId], references: [id])
   orderId       Int?
-  orders        Order?       @relation(fields: [orderId], references: [oid])
+  orders        Order?        @relation(fields: [orderId], references: [oid])
+  participants  Participant[]
+  rooms         Room[]
 
   @@unique([orderId, session])
   @@map("meetings")
@@ -833,4 +841,45 @@ model Reconciliation {
   order   Order?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("reconciliations")
+}
+
+model Room {
+  id String @id @default(cuid())
+
+  // 100ms identifiers
+  roomId   String   @unique
+  roomName String   @unique
+  type     RoomType @default(ORDER)
+
+  duration Int @default(60)
+
+  password  Int?
+  orderId   Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // @relation
+  meetingId String
+  meeting   Meeting @relation(fields: [meetingId], references: [id])
+
+  @@index([orderId])
+  @@map("rooms")
+}
+
+model Participant {
+  id String @id @default(cuid())
+
+  role        UserRole
+  participant String   @unique
+  isActive    Boolean  @default(true)
+  attended    Boolean  @default(false)
+  time        String?
+  createdAt   DateTime @default(now())
+
+  // @ relation
+  meetingId String
+  meeting   Meeting @relation(fields: [meetingId], references: [id])
+
+  @@index([participant])
+  @@map("participants")
 }

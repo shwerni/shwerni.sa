@@ -7,7 +7,7 @@ import MeetingRoom from "@/components/clients/meetings/room";
 import HMSLayout from "@/components/clients/meetings/room/laytout";
 
 // prisma types
-import { PaymentState, SessionType, UserRole } from "@/lib/generated/prisma/client";
+import { PaymentState, UserRole } from "@/lib/generated/prisma/client";
 
 // prisma data
 import { getOwnersInfoByAuthor } from "@/data/consultant";
@@ -18,7 +18,6 @@ import { userServer } from "@/lib/auth/server";
 
 // utils
 import { zdencryption } from "@/utils/admin/encryption";
-import { timeZone } from "@/lib/site/time";
 
 // meta data seo
 export const metadata: Metadata = {
@@ -31,6 +30,8 @@ type Props = {
   params: Promise<{ zid: string }>;
   searchParams: Promise<{
     session?: number;
+    participant?: string;
+    mid?: string;
   }>;
 };
 
@@ -40,13 +41,13 @@ export default async function Page({ params, searchParams }: Props) {
   const { zid } = await params;
 
   // session
-  const { session } = await searchParams;
+  const { session, participant, mid } = await searchParams;
 
   // get zdencrypt oid
   const oid = zdencryption(String(zid));
 
   // validate
-  if (!oid) return <Error404 />;
+  if (!oid || !participant) return <Error404 />;
 
   // get consultant
   const order = await getReservationByOid(oid);
@@ -55,47 +56,39 @@ export default async function Page({ params, searchParams }: Props) {
   if (!order || order.payment?.payment !== PaymentState.PAID)
     return <Error404 />;
 
-  // check order program
-  const isProgram = order.session === SessionType.MULTIPLE;
-
-  // program
-  if (isProgram && !session) return <Error404 />;
-
-  // meeting
-  const meeting = isProgram
-    ? order.meeting[Number(session) - 1]
-    : order.meeting[0];
+  // meeting // later remove meeting validation
+  const meeting = order.meeting[Number(session) - 1];
 
   // validate
   if (!meeting) return <Error404 />;
 
-  // time and date
-  const { time, date } = timeZone();
-  
   // user
   const author = await userServer();
 
   // check if consultant
-  const consultant = author?.id
-    ? await getOwnersInfoByAuthor(author?.id)
-    : null;
+  const consultant =
+    author?.role === UserRole.OWNER
+      ? await getOwnersInfoByAuthor(author?.id)
+      : null;
 
   // new user
   const user = {
-  id: author?.id ?? null,
-  name: consultant?.name ?? author?.name ?? "عميل شاورني",
-  role: author?.role ?? UserRole.USER,
-  image: consultant?.image ?? author?.image ?? null,
-};
+    id: author?.id ?? null,
+    name: consultant?.name ?? author?.name ?? "عميل شاورني",
+    role: author?.role ?? UserRole.USER,
+    image: consultant?.image ?? author?.image ?? null,
+  };
 
   // return
   return (
-    <HMSLayout meeting={meeting} time={time} date={date}>
+    <HMSLayout meeting={meeting}>
       <MeetingRoom
+        mid={mid || ""}
         lang="ar"
         order={order}
         user={user}
         duration={meeting.duration}
+        participant={participant}
       />
     </HMSLayout>
   );

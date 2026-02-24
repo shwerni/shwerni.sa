@@ -12,6 +12,9 @@ import Section from "@/components/clients/shared/section";
 // prisma types
 import { Meeting } from "@/lib/generated/prisma/client";
 
+// lib
+import { timeZone } from "@/lib/site/time";
+
 // utils
 import { meetingLabel, meetingTime } from "@/utils/moment";
 
@@ -20,18 +23,14 @@ import { AlertTriangle } from "lucide-react";
 
 // props
 interface HMSLayoutProps {
-  children: React.ReactNode;
   meeting: Meeting;
-  date: string;
-  time: string;
+  children: React.ReactNode;
 }
 
-export default function HMSLayout({
-  children,
-  meeting,
-  time,
-  date,
-}: HMSLayoutProps) {
+export default function HMSLayout({ children, meeting }: HMSLayoutProps) {
+  // time and date
+  const { time, date } = timeZone();
+
   // after limit
   const after = Number(meeting.duration) + 15;
 

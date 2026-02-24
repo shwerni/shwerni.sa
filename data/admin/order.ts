@@ -22,8 +22,7 @@ import {
 import { addWalletCredit } from "../wallet";
 
 // prisma types
-import {  PaymentMethod, PaymentState } from "@/lib/generated/prisma/enums";
-
+import { PaymentMethod, PaymentState } from "@/lib/generated/prisma/enums";
 
 // auth types
 import { User } from "next-auth";
@@ -79,7 +78,7 @@ export const updateOrderAdmin = async (
   oid: number,
   data: z.infer<typeof OrderSchema>,
   due: Date,
-  owner: Partial<Consultant> | undefined
+  owner: Partial<Consultant> | undefined,
 ) => {
   // new data
   const validatedFields = OrderSchema.safeParse(data);
@@ -113,14 +112,18 @@ export const updateOrderAdmin = async (
               data.tax,
               data.commission,
               owner.name,
-              owner.cid
+              owner.cid,
             ),
           ],
         },
       },
       include: {
         payment: true,
-        meeting: true,
+        meeting: {
+          include: {
+            participants: true,
+          },
+        },
         guest: true,
         program: true,
         consultant: {
@@ -146,7 +149,7 @@ export const updateOrderAdmin = async (
         order.author,
         order.oid,
         order.payment!.total,
-        order.payment!.tax
+        order.payment!.tax,
       );
     }
 
@@ -165,7 +168,7 @@ export const createOrderAdmin = async (
   date: string,
   time: string,
   owner: Partial<Consultant> | undefined,
-  done: boolean
+  done: boolean,
 ) => {
   // new data
   const validatedFields = OrderSchema.safeParse(data);
@@ -212,13 +215,17 @@ export const createOrderAdmin = async (
             data.tax,
             data.commission,
             owner.name,
-            owner.cid
+            owner.cid,
           ),
         ],
       },
       include: {
         payment: true,
-        meeting: true,
+        meeting: {
+          include: {
+            participants: true,
+          },
+        },
         program: true,
         consultant: {
           select: {
@@ -244,7 +251,7 @@ export const createOrderAdmin = async (
         order.author,
         order.oid,
         order.payment!.total,
-        order.payment!.tax
+        order.payment!.tax,
       );
     }
 
@@ -272,7 +279,7 @@ export const deleteOrderAdmin = async (oid: number) => {
 // bulk status
 export const bulkStatusOrderAdmin = async (
   oids: number[],
-  payment: PaymentState
+  payment: PaymentState,
 ) => {
   try {
     // date & time
@@ -312,6 +319,7 @@ export async function getOrdersForManagments(page: number, search: string) {
   const skip = (page - 1) * limit;
 
   // base where
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let where: any = {};
 
   // search

@@ -8,6 +8,7 @@ type Props = {
   searchParams: Promise<{
     session?: number;
     participant?: string;
+    mid?: string;
   }>;
 };
 
@@ -23,9 +24,9 @@ export default async function Page({ params, searchParams }: Props) {
   const { zid } = await params;
 
   // sessions
-  const { session, participant } = await searchParams;
+  const { session, participant, mid } = await searchParams;
 
   permanentRedirect(
-    `/meetings/${zid}?participant=${participant}&session=${session}`,
+    `/meetings/${zid}?mid=${mid}&participant=${participant}&session=${session}`,
   );
 }

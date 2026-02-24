@@ -59,12 +59,12 @@ export default async function PaymentSuccess({ searchParams }: Props) {
 
   // wrong page
   if (!order) return <Error404 />;
-  
+
   // zid
   const zid = zencryption(order.oid);
 
   // meeting url
-  const url = `${mainRoute}/meetings/${zid}?participant=client&session=1`;
+  const url = `${mainRoute}/meetings/${zid}?mid=${order.meeting[0].id}participant=client&session=1`;
 
   // payment
   const payment = order.payment;
@@ -75,7 +75,7 @@ export default async function PaymentSuccess({ searchParams }: Props) {
   // redirect if INSTANT order
   if (order.type === OrderType.INSTANT) {
     redirect(
-      `${mainRoute}meetings/${zencryption(order.oid)}?participant=client&session=1`,
+      `${mainRoute}meetings/${zencryption(order.oid)}?mid=${order.meeting[0].id}participant=client&session=1`,
     );
   }
 

@@ -24,6 +24,7 @@ import {
   ProgramReservationFormType,
   programReservationSchema,
 } from "@/schemas";
+import { createParticipants } from "../room";
 
 // reserve a program order (meeting) with owner
 export const reserveProgram = async (
@@ -82,6 +83,9 @@ export const reserveProgram = async (
       },
       include: {
         payment: true,
+        meeting: {
+          include: { participants: true },
+        },
         consultant: {
           select: {
             name: true,
@@ -90,6 +94,9 @@ export const reserveProgram = async (
         },
       },
     });
+
+    // create participants
+    await createParticipants(order.meeting[0].id);
 
     // cancel order if not paid in 15 min job schedule
     cancelSchedule(order.oid);

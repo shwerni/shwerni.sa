@@ -164,44 +164,42 @@ export default function StepDateTime({ form, onNext }: Props) {
         name="date"
         control={control}
         render={({ field }) => (
-          <Field>
-            <Calendar
-              className="col-span-2 w-full max-w-lg pb-10 mx-auto data-[selected-single=true]:bg-white!"
-              buttonVariant="ghost"
-              classNames={{
-                disabled: cn(classNames.disabled, "text-gray-500 line-through"),
-                day_button: cn(
-                  classNames.day_button,
-                  "font-semibold data-[selected-single=true]:!bg-theme data-[selected-single=true]:!text-white rounded-full rounded-l-full! rounded-r-full!",
-                ),
-              }}
-              locale={ar}
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date) => {
-                field.onChange(
-                  date
-                    ? new Date(
-                        Date.UTC(
-                          date.getFullYear(),
-                          date.getMonth(),
-                          date.getDate(),
-                        ),
-                      )
-                    : date,
-                );
-                // @ts-expect-error - this is a hack to reset time when date changes
-                form.setValue("time", undefined);
-                // get this day times
-                fetchTimes(date);
-              }}
-              disabled={(date) =>
-                date < startOfDay(iso) ||
-                date > addDays(iso, 10) ||
-                unavailable.includes(dateToWeekDay(date))
-              }
-            />
-          </Field>
+          <Calendar
+            className="col-span-2 w-full max-w-lg pb-10 mx-auto data-[selected-single=true]:bg-white!"
+            buttonVariant="ghost"
+            classNames={{
+              disabled: cn(classNames.disabled, "text-gray-500 line-through"),
+              day_button: cn(
+                classNames.day_button,
+                "font-semibold data-[selected-single=true]:!bg-theme data-[selected-single=true]:!text-white rounded-full rounded-l-full! rounded-r-full!",
+              ),
+            }}
+            locale={ar}
+            mode="single"
+            selected={selectedDate}
+            onSelect={(date) => {
+              field.onChange(
+                date
+                  ? new Date(
+                      Date.UTC(
+                        date.getFullYear(),
+                        date.getMonth(),
+                        date.getDate(),
+                      ),
+                    )
+                  : date,
+              );
+              // @ts-expect-error - this is a hack to reset time when date changes
+              form.setValue("time", undefined);
+              // get this day times
+              fetchTimes(date);
+            }}
+            disabled={(date) =>
+              date < startOfDay(iso) ||
+              date > addDays(iso, 10) ||
+              unavailable.includes(dateToWeekDay(date))
+            }
+          />
         )}
       />
 
