@@ -22,7 +22,7 @@ import {
 import { Reservation } from "@/types/admin";
 
 // prisma types
-import { Meeting } from "@/lib/generated/prisma/client";
+import { Meeting, Participant, UserRole } from "@/lib/generated/prisma/client";
 
 // icons
 import {
@@ -38,28 +38,24 @@ import {
 
 // props
 interface Props {
-  zid: string;
   mid: string;
   date: string;
   time: string;
-  session: number;
-  meeting: Meeting;
+  meeting: Meeting & { participants: Participant[] };
   order: Reservation;
-  participant?: string;
+  participant: string;
 }
 
 export default async function Meetings({
-  zid,
   mid,
   time,
   date,
   order,
   meeting,
-  session,
   participant,
 }: Props) {
   // url
-  const url = `/rooms/${zid}?mid=${mid}&session=${session || 1}&participant=${participant}`;
+  const url = `/rooms/${mid}?participant=${participant}`;
 
   // meetings status
   const mStatus = meetingTime(time, date, meeting.time, meeting.date);
@@ -76,8 +72,8 @@ export default async function Meetings({
   // label
   const label = meetingFullLabel(meeting.date, meeting.time);
 
-  // valid participant
-  const validParticipant = participant === "client" || participant === "owner";
+  // participants
+  const participants = meeting.participants;
 
   // return
   return (
@@ -207,9 +203,7 @@ export default async function Meetings({
         )}
 
         {/* attendance */}
-        {(meeting.clientAttendance ||
-          meeting.consultantAttendance ||
-          validParticipant) && (
+        {meeting.participants.find((p) => p.attended) && (
           <div className="w-10/12 max-w-md mx-auto pt-4">
             <div className="flex items-center gap-1.5 mb-3">
               <Users className="w-4 h-4 text-primary" />
@@ -217,39 +211,40 @@ export default async function Meetings({
             </div>
 
             <ul className="space-y-2">
-              {/* client attendance */}
-              {(meeting.clientAttendance || participant === "client") && (
-                <li className="flex items-start gap-2 text-xs bg-accent/50 rounded-md p-2.5">
-                  <UserCheck className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                  {meeting.clientJoinedAt ? (
-                    <span>
-                      لقد حضر العميل {order.name} في تمام الساعة{" "}
-                      <span className="font-semibold">
-                        {timeLabel(meeting.clientJoinedAt)}
-                      </span>
-                    </span>
-                  ) : (
-                    <span>تم تسجيل حضورك</span>
-                  )}
-                </li>
-              )}
+              {meeting.participants
+                .filter((p) => {
+                  const attended = p.attended === true;
 
-              {/* consultant attendance */}
-              {(meeting.consultantAttendance || participant === "owner") && (
-                <li className="flex items-start gap-2 text-xs bg-accent/50 rounded-md p-2.5">
-                  <UserCheck className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                  {meeting.consultantJoinedAt ? (
+                  const registered =
+                    !p.attended &&
+                    mStatus &&
+                    participants.some((p) => p.participant === participant);
+
+                  return attended || registered;
+                })
+                .map((p) => (
+                  <li
+                    key={p.id}
+                    className="flex items-start gap-2 text-xs bg-accent/50 rounded-md p-2.5"
+                  >
+                    <UserCheck className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+
                     <span>
-                      لقد حضر المستشار {order.consultant.name} في تمام الساعة{" "}
-                      <span className="font-semibold">
-                        {timeLabel(meeting.consultantJoinedAt)}
-                      </span>
+                      {p.attended && p.time ? (
+                        <>
+                          {p.role === UserRole.OWNER
+                            ? `لقد حضر المستشار ${order.consultant.name} في تمام الساعة `
+                            : `لقد حضر العميل ${order.name} في تمام الساعة `}
+                          <span className="font-semibold">
+                            {timeLabel(p.time)}
+                          </span>
+                        </>
+                      ) : (
+                        <span>تم تسجيل حضورك</span>
+                      )}
                     </span>
-                  ) : (
-                    <span>تم تسجيل حضورك</span>
-                  )}
-                </li>
-              )}
+                  </li>
+                ))}
             </ul>
           </div>
         )}

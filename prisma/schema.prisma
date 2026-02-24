@@ -608,7 +608,8 @@ model Message {
 }
 
 model Meeting {
-  id                   String  @id @default(cuid())
+  id                   String  @id @unique @default(cuid())
+  mid                  String  @unique @default(nanoid(10))
   time                 String
   done                 Boolean @default(false)
   date                 String
@@ -860,7 +861,7 @@ model Room {
 
   // @relation
   meetingId String
-  meeting   Meeting @relation(fields: [meetingId], references: [id])
+  meeting   Meeting @relation(fields: [meetingId], references: [mid])
 
   @@index([orderId])
   @@map("rooms")
@@ -878,7 +879,7 @@ model Participant {
 
   // @ relation
   meetingId String
-  meeting   Meeting @relation(fields: [meetingId], references: [id])
+  meeting   Meeting @relation(fields: [meetingId], references: [mid])
 
   @@index([participant])
   @@map("participants")

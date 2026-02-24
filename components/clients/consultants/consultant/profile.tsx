@@ -59,7 +59,7 @@ const ConsultantProfile: React.FC<Props> = ({
       icon: Medal,
     },
     {
-      label: "المراجعات",
+      label: "التقييمات",
       value: consultant.reviews,
       icon: StarsIcon,
     },

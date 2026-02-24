@@ -10,14 +10,11 @@ import Section from "@/components/clients/shared/section";
 import { LinkButton } from "@/components/shared/link-button";
 import OrderTable from "@/components/clients/shared/order-table";
 
-// utils
-import { zencryption } from "@/utils/admin/encryption";
-
 // prisma data
 import { getReservationByPid } from "@/data/order/reserveation";
 
 // prisma types
-import { OrderType } from "@/lib/generated/prisma/enums";
+import { OrderType, UserRole } from "@/lib/generated/prisma/enums";
 
 // constant
 import { mainRoute } from "@/constants/links";
@@ -60,11 +57,11 @@ export default async function PaymentSuccess({ searchParams }: Props) {
   // wrong page
   if (!order) return <Error404 />;
 
-  // zid
-  const zid = zencryption(order.oid);
+  // mid
+  const mid = order.meeting[0].id;
 
   // meeting url
-  const url = `${mainRoute}/meetings/${zid}?mid=${order.meeting[0].id}participant=client&session=1`;
+  const url = `${mainRoute}/meetings/${order.meeting[0].mid}?participant=${order.meeting[0].participants?.find((u) => u.role === UserRole.USER)?.participant}`;
 
   // payment
   const payment = order.payment;
@@ -73,11 +70,7 @@ export default async function PaymentSuccess({ searchParams }: Props) {
   if (!payment || !payment.id) return <Error404 />;
 
   // redirect if INSTANT order
-  if (order.type === OrderType.INSTANT) {
-    redirect(
-      `${mainRoute}meetings/${zencryption(order.oid)}?mid=${order.meeting[0].id}participant=client&session=1`,
-    );
-  }
+  if (order.type === OrderType.INSTANT) redirect(url);
 
   // validate success for other types
   const success =
@@ -114,7 +107,7 @@ export default async function PaymentSuccess({ searchParams }: Props) {
           <Video className="h-4 w-4 shrink-0 text-theme" />
           <Link href={url} className="flex-1 inline-flex justify-center">
             <span className="truncate text-xs font-mono text-gray-800">
-              {mainRoute}/meetings/{zid}
+              {mainRoute}/meetings/{mid}
             </span>
           </Link>
         </div>

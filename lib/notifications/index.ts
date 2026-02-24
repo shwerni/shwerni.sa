@@ -133,7 +133,6 @@ export const notificationNewOrder = async (order: Reservation) => {
           order.name,
           meeting[0].duration,
           label,
-          zid,
           meeting[0].id,
           meeting[0].participants.find((p) => p.role === UserRole.OWNER)
             ?.participant,
@@ -151,7 +150,6 @@ export const notificationNewOrder = async (order: Reservation) => {
           payment.total,
           meeting[0].duration,
           label,
-          zid,
           meeting[0].id,
           meeting[0].participants.find((p) => p.role === UserRole.USER)
             ?.participant,
@@ -174,7 +172,6 @@ export const notificationNewOrder = async (order: Reservation) => {
           order.name,
           meeting[0].duration,
           label,
-          zid,
           meeting[0].id,
           meeting[0].participants.find((p) => p.role === UserRole.OWNER)
             ?.participant,
@@ -225,7 +222,6 @@ export const notificationNewOrder = async (order: Reservation) => {
         order.name,
         meeting[0].duration,
         label,
-        zid,
         meeting[0].id,
         meeting[0].participants.find((p) => p.role === UserRole.OWNER)
           ?.participant,
@@ -243,7 +239,6 @@ export const notificationNewOrder = async (order: Reservation) => {
         payment.total,
         meeting[0].duration,
         label,
-        zid,
         meeting[0].id,
         meeting[0].participants.find((p) => p.role === UserRole.USER)
           ?.participant,

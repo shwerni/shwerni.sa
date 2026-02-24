@@ -64,7 +64,7 @@ const ConsultantCard = ({ consultant }: Props) => {
 
             {consultant.review_count && consultant.review_count > 0 ? (
               <h6 className="text-xs font-medium text-gray-500">
-                {consultant.review_count} مرجعات
+                {consultant.review_count} تقييمات
               </h6>
             ) : (
               ""

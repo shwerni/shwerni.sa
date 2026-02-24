@@ -220,8 +220,8 @@ export default function Room({
 
   return (
     <div className="flex flex-col">
-      {/* warning count down */}
-      <RoomEndingCountdown duration={duration + 5} />
+      {/* warning count down // later */}
+      {/* <RoomEndingCountdown duration={duration + 5} /> */}
 
       {/* Header */}
       <div className="border-b bg-gray-50 backdrop-blur-sm">
@@ -514,7 +514,7 @@ function ParticipantCard({
 
           <div className="text-center space-y-1">
             <div className="flex items-center gap-1 justify-center">
-              <p className="font-medium text-sm truncate max-w-[120px]">
+              <p className="font-medium text-sm truncate max-w-30">
                 {participant.name}
               </p>
             </div>

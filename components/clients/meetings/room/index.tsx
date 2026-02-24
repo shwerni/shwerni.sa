@@ -73,23 +73,23 @@ export default function MeetingRoom({
   const allPeers = useHMSStore(selectPeers);
 
   const peers = React.useMemo(() => {
-  const map = new Map<string, (typeof allPeers)[0]>();
-  allPeers.forEach((peer) => {
-    if (!peer.metadata) return;
+    const map = new Map<string, (typeof allPeers)[0]>();
+    allPeers.forEach((peer) => {
+      if (!peer.metadata) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let metadataObj: any;
-    try {
-      metadataObj = JSON.parse(peer.metadata);
-    } catch {
-      return; // ignore invalid JSON
-    }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let metadataObj: any;
+      try {
+        metadataObj = JSON.parse(peer.metadata);
+      } catch {
+        return;
+      }
 
-    const userId = metadataObj.user?.id;
-    if (userId) map.set(userId, peer);
-  });
-  return Array.from(map.values());
-}, [allPeers]);
+      const userId = metadataObj.user?.id;
+      if (userId) map.set(userId, peer);
+    });
+    return Array.from(map.values());
+  }, [allPeers]);
 
   // hanlde join room
   const Join = async () => {

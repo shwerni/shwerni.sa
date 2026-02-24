@@ -142,11 +142,20 @@ export const getMeetingsByCidAndRange = async (
   }
 };
 
-export const getMeeting = async (id: string) => {
+export const getMeeting = async (mid: string) => {
   try {
-    const meeting = await prisma.meeting.findMany({
+    const meeting = await prisma.meeting.findUnique({
       where: {
-        id,
+        mid,
+      },
+      include: {
+        participants: true,
+        orders: {
+          include: {
+            payment: true,
+            consultant: { select: { name: true, phone: true, image: true } },
+          },
+        },
       },
     });
 
