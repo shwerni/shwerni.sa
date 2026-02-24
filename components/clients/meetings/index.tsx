@@ -59,7 +59,7 @@ export default async function Meetings({
   participant,
 }: Props) {
   // url
-  const url = `/rooms/${zid}?mid=${mid}&session=${session}&participant=${participant}`;
+  const url = `/rooms/${zid}?mid=${mid}&session=${session || 1}&participant=${participant}`;
 
   // meetings status
   const mStatus = meetingTime(time, date, meeting.time, meeting.date);

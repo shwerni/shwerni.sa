@@ -141,3 +141,17 @@ export const getMeetingsByCidAndRange = async (
     return null;
   }
 };
+
+export const getMeeting = async (id: string) => {
+  try {
+    const meeting = await prisma.meeting.findMany({
+      where: {
+        id,
+      },
+    });
+
+    return meeting;
+  } catch {
+    return null;
+  }
+};

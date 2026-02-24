@@ -51,13 +51,14 @@ export default async function Page({ params, searchParams }: Props) {
 
   // get consultant
   const order = await getReservationByOid(oid);
+  // const meeting = await getMeeting(mid);
 
   // if not exist
   if (!order || order.payment?.payment !== PaymentState.PAID)
     return <Error404 />;
 
   // meeting // later remove meeting validation
-  const meeting = order.meeting[Number(session) - 1];
+  const meeting = order.meeting[(Number(session) || 1) - 1];
 
   // validate
   if (!meeting) return <Error404 />;
