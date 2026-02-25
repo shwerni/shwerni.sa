@@ -4,11 +4,9 @@ import { permanentRedirect } from "next/navigation";
 
 // props
 type Props = {
-  params: Promise<{ zid: string }>;
+  params: Promise<{ mid: string }>;
   searchParams: Promise<{
-    session?: number;
     participant?: string;
-    mid?: string;
   }>;
 };
 
@@ -21,12 +19,10 @@ export const metadata: Metadata = {
 // return
 export default async function Page({ params, searchParams }: Props) {
   // zid
-  const { zid } = await params;
+  const { mid } = await params;
 
   // sessions
-  const { session, participant, mid } = await searchParams;
+  const { participant } = await searchParams;
 
-  permanentRedirect(
-    `/meetings/${zid}?mid=${mid}&participant=${participant}&session=${session}`,
-  );
+  permanentRedirect(`/meetings/${mid}?participant=${participant}`);
 }

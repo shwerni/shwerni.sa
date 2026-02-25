@@ -153,7 +153,7 @@ export const reserveConsultant = async (
     });
 
     // create participants
-    await createParticipants(order.meeting[0].id);
+    await createParticipants(order.meeting[0].mid);
 
     // if instant
     if (data.type === OrderType.INSTANT) {

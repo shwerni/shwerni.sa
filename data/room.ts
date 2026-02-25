@@ -52,8 +52,8 @@ export const createParticipants = async (mid: string) => {
   try {
     // get order
     const meeting = await prisma.meeting.findUnique({
-      where: { id: mid },
-      select: { id: true, orderId: true, session: true },
+      where: { mid },
+      select: { mid: true, orderId: true, session: true },
     });
 
     // validate
@@ -64,7 +64,7 @@ export const createParticipants = async (mid: string) => {
       data: {
         participant: randomId(),
         role: UserRole.USER,
-        meetingId: meeting.id,
+        meetingId: meeting.mid,
       },
     });
 
@@ -72,7 +72,7 @@ export const createParticipants = async (mid: string) => {
       data: {
         participant: randomId(),
         role: UserRole.OWNER,
-        meetingId: meeting.id,
+        meetingId: meeting.mid,
       },
     });
 
