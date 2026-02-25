@@ -203,7 +203,9 @@ export default async function Meetings({
         )}
 
         {/* attendance */}
-        {meeting.participants.find((p) => p.attended) && (
+        {participants.some(
+          (p) => p.attended || (p.participant === participant && mStatus),
+        ) && (
           <div className="w-10/12 max-w-md mx-auto pt-4">
             <div className="flex items-center gap-1.5 mb-3">
               <Users className="w-4 h-4 text-primary" />
@@ -211,17 +213,11 @@ export default async function Meetings({
             </div>
 
             <ul className="space-y-2">
-              {meeting.participants
-                .filter((p) => {
-                  const attended = p.attended === true;
-
-                  const registered =
-                    !p.attended &&
-                    mStatus &&
-                    participants.some((p) => p.participant === participant);
-
-                  return attended || registered;
-                })
+              {participants
+                .filter(
+                  (p) =>
+                    p.attended || (p.participant === participant && mStatus),
+                )
                 .map((p) => (
                   <li
                     key={p.id}
