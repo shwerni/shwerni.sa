@@ -82,7 +82,7 @@ const ConsultantCoupons = async ({ cid }: Props) => {
 const getCoupons = async (cid: number) => {
   // coupons
   "use cache";
-  cacheLife("hours");
+  cacheLife("days");
   return await getConsultantCoupons(cid);
 };
 

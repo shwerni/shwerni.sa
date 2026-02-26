@@ -57,7 +57,7 @@ export default Consultants;
 
 const getConsultants = async () => {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
 
   // get consultants
   return await getPuslishedConsultantsForHome();

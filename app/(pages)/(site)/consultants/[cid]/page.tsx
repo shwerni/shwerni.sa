@@ -31,7 +31,7 @@ import { cacheLife } from "next/cache";
 // cache meta data
 const getConsultantMetaData = async (cid: number) => {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   // get consultant
   const consultant = await getConsultantInfo(cid);
   // return

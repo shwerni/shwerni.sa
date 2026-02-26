@@ -45,7 +45,7 @@ export default Reviews;
 
 const getReviews = async () => {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
 
   // reviews
   return await getReviewsForHome();

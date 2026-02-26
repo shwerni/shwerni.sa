@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import RoomDuration from "./duration";
-import RoomEndingCountdown from "./countdown";
+// import RoomEndingCountdown from "./countdown";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -113,7 +113,7 @@ const roles: Record<UserRole, RoleTranslations> = {
 export default function Room({
   participants,
   isConnected,
-  duration,
+  // duration,
   lang,
 }: Props) {
   // lang

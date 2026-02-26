@@ -1,11 +1,11 @@
 // components
 import Section from "../shared/section";
 import OrderTable from "../shared/order-table";
+import OrderTitle from "../shared/order-title";
+import { Button } from "@/components/ui/button";
 import Error404 from "@/components/shared/error-404";
-import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import CopyButton from "@/components/shared/copy-button";
-import { LinkButton } from "@/components/shared/link-button";
 
 // prisma data
 import { participantAttendance } from "@/data/meetings";
@@ -75,6 +75,9 @@ export default async function Meetings({
   // participants
   const participants = meeting.participants;
 
+  // participant role
+  const role = participants.find((p) => p.participant === participant)?.role;
+
   // return
   return (
     <Section className="space-y-10">
@@ -89,21 +92,7 @@ export default async function Meetings({
         </div>
 
         {/* meeting owner & user */}
-        <div className="flex flex-row justify-center items-center gap-2 mx-auto my-3">
-          <div className="flex items-center gap-1.5">
-            <UserCheck className="w-3.5 h-3.5 text-muted-foreground" />
-            <h5 className="text-xs font-semibold text-foreground">
-              {order.name}
-            </h5>
-          </div>
-          <Separator className="h-5 w-px bg-border" orientation="vertical" />
-          <div className="flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-muted-foreground" />
-            <h5 className="text-xs font-semibold text-foreground">
-              المستشار {order.consultant.name}
-            </h5>
-          </div>
-        </div>
+        <OrderTitle client={order.name} consultant={order.consultant.name} />
 
         {/* order table */}
         <div className="my-4">
@@ -114,10 +103,9 @@ export default async function Meetings({
       {/* meetings status */}
       <div className="space-y-4">
         {/* welcome participant */}
-        <p className="text-center text-sm text-muted-foreground">
-          مرحبا بك
-          {participant === "client" && ", " + order.name}
-          {participant === "owner" && ", مستشار " + order.consultant.name}
+        <p className="text-center text-sm text-gray-700 font-medium">
+          مرحبا بك ,{role === UserRole.USER && order.name}
+          {role === UserRole.OWNER && "مستشار " + order.consultant.name}
         </p>
 
         {/* meeting status card */}
@@ -180,15 +168,12 @@ export default async function Meetings({
         {url && mStatus === true && (
           <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto">
             <div className="flex flex-col items-center gap-1.5">
-              <LinkButton
-                href={url}
-                variant="primary"
-                className="gap-2"
-                target="_blank"
-              >
-                <ExternalLink />
-                الأنتقال الي الإجتماع
-              </LinkButton>
+              <a href={url} target="_blank" rel="noopener noreferrer">
+                <Button variant="primary" className="gap-2">
+                  <ExternalLink />
+                  الأنتقال الي الإجتماع
+                </Button>
+              </a>
               <p className="text-[10px] text-muted-foreground text-center">
                 التحويل التلقائي للإجتماع
               </p>
@@ -201,6 +186,64 @@ export default async function Meetings({
             </div>
           </div>
         )}
+        {/* whatsapp warning */}
+        <div className="flex flex-col items-start gap-2 text-amber-600 text-sm mt-4 w-10/12 max-w-sm mx-auto p-3 border border-amber-200 rounded-md bg-amber-50">
+          <div className="flex items-center gap-2">
+            <CircleAlert className="w-4 h-4" />
+            <span className="text-sm font-semibold">
+              يفضل فتح الرابط في المتصفح الخارجي
+            </span>
+          </div>
+          <ol className="list-decimal list-inside text-xs mt-1 space-y-1">
+            <li className="text-xs font-medium">
+              اختر
+              <span className="font-bold">
+                {" نسخ الرابط المباشر لغرفة الإجتماع"}
+              </span>
+            </li>
+
+            <li className="text-xs font-medium">
+              افتح متصفح الإنترنت الأساسي في هاتفك (متصفح خارج واتساب).
+            </li>
+            <li className="text-xs font-medium">
+              الصق الرابط في شريط العنوان واضغط للانتقال إلى الاجتماع.
+            </li>
+          </ol>
+          <div className="w-full mt-2 pt-3 border-t border-amber-200/60">
+            <p className="text-xs font-bold text-amber-800 mb-2">
+              أمثلة على المتصفح الخارجي:
+            </p>
+            <div className="flex flex-col gap-2 text-[11px] font-medium text-amber-800">
+              <span className="bg-amber-100/50 px-2 py-1.5 rounded-md border border-amber-200 flex items-center gap-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="https://api.iconify.design/logos:safari.svg"
+                  alt="Safari"
+                  className="w-5 h-5"
+                />{" "}
+                Safari (سفاري)
+              </span>
+              <span className="bg-amber-100/50 px-2 py-1.5 rounded-md border border-amber-200 flex items-center gap-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="https://api.iconify.design/logos:chrome.svg"
+                  alt="Chrome"
+                  className="w-5 h-5"
+                />{" "}
+                Google Chrome (جوجل كروم)
+              </span>
+              <span className="bg-amber-100/50 px-2 py-1.5 rounded-md border border-amber-200 flex items-center gap-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="https://api.iconify.design/flat-color-icons:globe.svg"
+                  alt="Internet"
+                  className="w-5 h-5"
+                />{" "}
+                Samsung Internet (سامسونج إنترنت)
+              </span>
+            </div>
+          </div>
+        </div>
 
         {/* attendance */}
         {participants.some(

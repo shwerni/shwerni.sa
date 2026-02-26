@@ -15,7 +15,7 @@ import { cacheLife } from "next/cache";
 const Page: React.FC = async () => {
   // programs
   "use cache";
-  cacheLife("seconds");
+  cacheLife("weeks");
   const programs = (await getAllPublishedPrograms()) ?? [];
   
   // tax

@@ -1,6 +1,7 @@
 // components
 import { Separator } from "@/components/ui/separator";
 import { PaymentMethod } from "@/lib/generated/prisma/enums";
+import { cn } from "@/lib/utils";
 
 // types
 import { Reservation } from "@/types/admin";
@@ -107,14 +108,21 @@ export function OrderInfoRow({
   label,
   value,
   accent,
+  className,
 }: {
   icon: React.ElementType;
   label: string;
   value: string;
   accent?: boolean;
+  className?: string;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+    <div
+      className={cn(
+        className,
+        "flex flex-wrap items-center justify-between gap-2 py-2.5",
+      )}
+    >
       <div className="flex items-center gap-2.5 text-muted-foreground">
         <Icon className="h-4 w-4 shrink-0" />
         <span className="text-sm">{label}</span>

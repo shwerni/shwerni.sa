@@ -17,7 +17,7 @@ import { mainRoute } from "@/constants/links";
 // cache meta data
 const getProgramMetaData = async (prid: number) => {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("weeks");
   // get consultant
   const consultant = await getProgramInfo(prid);
   // return

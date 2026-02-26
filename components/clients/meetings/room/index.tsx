@@ -31,6 +31,7 @@ import { Reservation } from "@/types/admin";
 import { User, UserPlus } from "lucide-react";
 import { FaUserDoctor } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
+import OrderTitle from "../../shared/order-title";
 
 type RoomUser = {
   id: string | null;
@@ -146,15 +147,11 @@ export default function MeetingRoom({
               <h2 className="text-theme text-3xl font-bold">اجتماع</h2>
               <Separator className="w-11/12 max-w-32 h-1! bg-gray-400 mx-auto" />
             </div>
-            <div className="grid grid-cols-3 justify-items-center items-center justify-center gap-2 w-10/12 max-w-lg">
-              <OrderInfoRow label="الاسم" value={order.name} icon={User} />
-              <span> | </span>
-              <OrderInfoRow
-                label="المستشار"
-                value={order.consultant.name}
-                icon={FaUserDoctor}
-              />
-            </div>
+            {/* order title */}
+            <OrderTitle
+              client={order.name}
+              consultant={order.consultant.name}
+            />
           </div>
           <Separator className="w-10/12 mx-auto" />
           {

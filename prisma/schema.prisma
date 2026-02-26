@@ -187,6 +187,12 @@ enum RoomType {
   DIRECT
 }
 
+enum OnlineStatus {
+  ONLINE
+  BUSY
+  OFFLINE
+}
+
 // models
 model User {
   id            String    @id @default(cuid())
@@ -283,38 +289,40 @@ model Center {
 }
 
 model Consultant {
-  id           String           @id @default(cuid())
-  userId       String           @unique
-  type         OwnerType        @default(INDEPENDENT)
-  cid          Int              @unique @default(autoincrement())
-  status       Boolean
-  statusA      ConsultantState  @default(HIDDEN)
-  approved     ApprovalState    @default(PENDING)
-  gender       Gender           @default(MALE)
-  phone        String
-  name         String
-  title        String
-  neducation   String[]
-  nexperiences String[]
-  nabout       String           @default("")
-  preference   GenderPreference @default(BOTH)
-  seniority    DateTime         @default(now())
-  cost30       Float
-  cost45       Float
-  cost60       Float
-  iban         String
-  bankName     String
-  category     Categories
-  image        String?
-  cv           String?
-  edu          String?
-  cert         String?
-  commission   Float?
-  rate         Float            @default(0)
-  adminNote    String?
-  info         String?
-  created_at   DateTime         @default(now())
-  updated_at   DateTime         @default(now()) @updatedAt
+  id            String           @id @default(cuid())
+  userId        String           @unique
+  type          OwnerType        @default(INDEPENDENT)
+  cid           Int              @unique @default(autoincrement())
+  status        Boolean
+  statusA       ConsultantState  @default(HIDDEN)
+  approved      ApprovalState    @default(PENDING)
+  gender        Gender           @default(MALE)
+  phone         String
+  name          String
+  title         String
+  neducation    String[]
+  nexperiences  String[]
+  nabout        String           @default("")
+  preference    GenderPreference @default(BOTH)
+  seniority     DateTime         @default(now())
+  cost30        Float
+  cost45        Float
+  cost60        Float
+  iban          String
+  bankName      String
+  category      Categories
+  image         String?
+  cv            String?
+  edu           String?
+  cert          String?
+  commission    Float?
+  rate          Float            @default(0)
+  adminNote     String?
+  info          String?
+  created_at    DateTime         @default(now())
+  updated_at    DateTime         @default(now()) @updatedAt
+  online_at   DateTime?
+  online_status OnlineStatus     @default(OFFLINE)
 
   // @relations
   user                     User                  @relation(fields: [userId], references: [id])
@@ -536,6 +544,7 @@ model PreConsultation {
   @@map("pre_consultations")
 }
 
+// remove // later
 model Instant {
   id         String   @id @default(cuid())
   statusA    Boolean  @default(false)

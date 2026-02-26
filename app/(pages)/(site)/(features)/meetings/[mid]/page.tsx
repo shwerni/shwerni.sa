@@ -44,16 +44,13 @@ export default async function Page({ params, searchParams }: Props) {
 
   // validate
   if (!meeting) return <Error404 />;
-
+  
   // validate
   if (meeting?.orders?.payment?.payment !== PaymentState.PAID)
     return <Error404 />;
 
   // time and date
   const { date, time } = timeZone();
-
-  // if not exist
-  if (!date || !time) return <Error404 />;
 
   // return
   return (

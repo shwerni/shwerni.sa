@@ -67,7 +67,7 @@ export function Zmenu(props: { user: string | null | undefined }) {
             {/* logout */}
             <SheetClose asChild>
               <Link
-                href="/auth/signout"
+                href="/logout"
                 className="flex flex-row justify-between p-3"
               >
                 <LogOut />
