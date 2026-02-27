@@ -43,20 +43,21 @@ import {
 } from "@/components/ui/field";
 import PhoneInput from "@/components/shared/phone-input";
 import { Textarea } from "@/components/ui/textarea";
+import { OnlineConsultantPayload } from "@/data/online";
 
 // props
 interface Props {
-  data:
-    | { owner: Consultant; instant: Instant | undefined }[]
-    | undefined
-    | null;
+  consultants: OnlineConsultantPayload[];
   user?: User;
-  time: string;
-  date: string;
+  loading: boolean;
 }
 
 // return
-export default function ReservationInstant({ data, user, date, time }: Props) {
+export default function ReservationInstant({
+  consultants,
+  user,
+  loading,
+}: Props) {
   // reCaptcha-v3
   const { executeRecaptcha } = useGoogleReCaptcha();
 
@@ -207,41 +208,14 @@ export default function ReservationInstant({ data, user, date, time }: Props) {
           />
         </FieldGroup>
         {/* Loading animation */}
-        <LoadingAnimation />
+        {<LoadingAnimation />}
         {/* reservation confirm */}
         <div className="space-y-2">
-          {data && data.length !== 0 ? (
+          {consultants?.length !== 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mx-3 py-5">
-              {data.map(({ owner, instant }, index: number) => (
+              {consultants.map((consultant, index: number) => (
                 <div key={index} onClick={() => form.handleSubmit(() => {})()}>
-                  {instant?.cost !== null &&
-                  instant?.cost !== undefined &&
-                  owner?.name ? (
-                    <ReservationConfirm
-                      lock={form.formState.isValid}
-                      owner={instant.statusA ? "شاورني" : owner.name}
-                      cid={owner.cid}
-                      label={meetingLabel(time, date)}
-                      total={instant.cost}
-                      duration="30"
-                      onConfirm={async () => {
-                        if (instant?.cost) {
-                          return await requestReserve(owner.cid, instant.cost);
-                        } else {
-                          toast.info({
-                            message: "حدث خطأ: تكلفة غير متاحة",
-                          });
-                          return null;
-                        }
-                      }}
-                    >
-                      {instant.statusA ? (
-                        <ConsultantCard consultant={owner} official />
-                      ) : (
-                        <ConsultantCard consultant={owner} />
-                      )}
-                    </ReservationConfirm>
-                  ) : null}
+                  <ConsultantCard consultant={consultant} />
                 </div>
               ))}
             </div>
