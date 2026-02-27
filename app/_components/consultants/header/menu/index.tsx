@@ -39,7 +39,7 @@ export function Zmenu(props: { user: string | null | undefined }) {
       {/* nav content */}
       <SheetContent
         dir="rtl"
-        className="flex flex-col border-none max-w-[250px]! sm:max-w-[350px]!"
+        className="flex flex-col border-none max-w-62.5! sm:max-w-87.5!"
       >
         <SheetHeader className="text-right!">
           <SheetTitle>لوحة التحكم</SheetTitle>

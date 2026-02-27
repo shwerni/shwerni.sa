@@ -25,8 +25,9 @@ import { getMeetingsByCidAndRange } from "@/data/meetings";
 import { userServer } from "@/lib/auth/server";
 import { timeZone } from "@/lib/site/time";
 import { ConsultantState } from "@/lib/generated/prisma/enums";
+import InstantDashboard from "@/components/consultant/instant";
 
-const Instant: React.FC = async () => {
+const Page: React.FC = async () => {
   // user
   const user = await userServer();
 
@@ -39,37 +40,11 @@ const Instant: React.FC = async () => {
   // if user not exist
   if (!owner) return <WrongPage />;
 
-  // get time
-  const { time, date } = timeZone();
-
-  // if user not exist
-  if (!time || !date) return <WrongPage />;
-
-  // next day
-  const nextDay = moment(date).add(1, "day").format("YYYY-MM-DD");
-
-  // get instant profile
-  const instant = await getInstantOwnerByAuthor(user.id);
-
-  // get orders
-  const orders = await getMeetingsByCidAndRange(owner.cid, date, nextDay);
-
-  // supabase
-  const supabaseConfig = getSupabaseConfig();
-
   return owner.statusA === ConsultantState.PUBLISHED ? (
-    <InstantOwners
-      cid={owner.cid}
-      date={date}
-      time={time}
-      orders={orders}
-      instant={instant}
-      author={user?.id}
-      supabaseConfig={supabaseConfig}
-    />
+    <InstantDashboard userId={user?.id} />
   ) : (
     <OwnerIsDisabled owner={owner} />
   );
 };
 
-export default Instant;
+export default Page;

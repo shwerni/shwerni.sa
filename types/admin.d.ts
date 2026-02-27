@@ -110,6 +110,7 @@ export type Reservation = Order & {
   payment?: (Payment & { usedCoupon?: UsedCoupon | null }) | null;
   program?: Program | null;
   guest?: Guest | null;
+  reconciliation?: Reconciliation | null;
 };
 
 // reviews

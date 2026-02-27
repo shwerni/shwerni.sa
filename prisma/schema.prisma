@@ -321,7 +321,7 @@ model Consultant {
   info          String?
   created_at    DateTime         @default(now())
   updated_at    DateTime         @default(now()) @updatedAt
-  online_at   DateTime?
+  online_at     DateTime?
   online_status OnlineStatus     @default(OFFLINE)
 
   // @relations
@@ -636,7 +636,7 @@ model Meeting {
   orderId       Int?
   orders        Order?        @relation(fields: [orderId], references: [oid])
   participants  Participant[]
-  rooms         Room[]
+  rooms         Room?
 
   @@unique([orderId, session])
   @@map("meetings")
@@ -869,7 +869,7 @@ model Room {
   updatedAt DateTime @updatedAt
 
   // @relation
-  meetingId String
+  meetingId String  @unique
   meeting   Meeting @relation(fields: [meetingId], references: [mid])
 
   @@index([orderId])
@@ -880,7 +880,7 @@ model Participant {
   id String @id @default(cuid())
 
   role        UserRole
-  participant String   @unique
+  participant String
   isActive    Boolean  @default(true)
   attended    Boolean  @default(false)
   time        String?
@@ -890,6 +890,7 @@ model Participant {
   meetingId String
   meeting   Meeting @relation(fields: [meetingId], references: [mid])
 
+  @@unique([meetingId, participant])
   @@index([participant])
   @@map("participants")
 }

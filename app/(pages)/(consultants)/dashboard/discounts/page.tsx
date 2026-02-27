@@ -18,7 +18,7 @@ import GlobalSkeleton from "@/components/shared/global-skeleton";
 
 export default async function DiscountsPage() {
   "use cache";
-  cacheLife("seconds");
+  cacheLife("hours");
   const discounts = await getActiveDiscounts();
 
   return (

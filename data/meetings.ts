@@ -28,7 +28,10 @@ export const participantAttendance = async (
 
     // participant
     const meeting = await prisma.participant.update({
-      where: { participant, meetingId, attended: false },
+      where: {
+        meetingId_participant: { meetingId, participant },
+        attended: false,
+      },
       data: { attended: true, time },
       select: {
         meeting: {
