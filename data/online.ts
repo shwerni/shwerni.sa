@@ -138,7 +138,14 @@ export async function handlePresenceWebhook(userId: string, isOnline: boolean) {
 
   const consultant = await prisma.consultant.findUnique({
     where: { userId },
-    select: { userId: true, name: true, image: true, gender: true, rate: true },
+    select: {
+      userId: true,
+      name: true,
+      image: true,
+      gender: true,
+      rate: true,
+      category: true,
+    },
   });
 
   const onlineCount = await prisma.consultant.count({

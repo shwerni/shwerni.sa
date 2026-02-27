@@ -40,26 +40,26 @@ const Page = async ({ params }: Props) => {
   const { date } = add25Minutes(iso);
 
   // check day
-  if (isSameDay(parseISO(date), parseISO("2026-02-24"))) return <Error404 />;
+  return <Error404 />;
 
   // if consultant refused, show 404 only
-  if (
-    !consultant ||
-    consultant.approved !== ApprovalState.APPROVED ||
-    consultant.statusA !== ConsultantState.PUBLISHED
-  )
-    return <Error404 />;
+  // if (
+  //   !consultant ||
+  //   consultant.approved !== ApprovalState.APPROVED ||
+  //   consultant.statusA !== ConsultantState.PUBLISHED
+  // )
+  //   return <Error404 />;
 
-  return (
-    <div className="space-y-4">
-      <Suspense fallback={<SkeletonConsultant />}>
-        <FressSessionConsultant cid={cidN} />
-      </Suspense>
-      <Suspense fallback={<CardSkeleton count={1} className="w-full" />}>
-        {consultant.status && <FreeSessionReserve cid={cidN} />}
-      </Suspense>
-    </div>
-  );
+  // return (
+  //   <div className="space-y-4">
+  //     <Suspense fallback={<SkeletonConsultant />}>
+  //       <FressSessionConsultant cid={cidN} />
+  //     </Suspense>
+  //     <Suspense fallback={<CardSkeleton count={1} className="w-full" />}>
+  //       {consultant.status && <FreeSessionReserve cid={cidN} />}
+  //     </Suspense>
+  //   </div>
+  // );
 };
 
 export default Page;

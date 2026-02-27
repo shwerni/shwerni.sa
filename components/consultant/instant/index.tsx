@@ -28,6 +28,7 @@ export default function InstantDashboard({ userId }: { userId: string }) {
     );
   }
 
+  return <></>;
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 space-y-8">
       <div className="text-center">
