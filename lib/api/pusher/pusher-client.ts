@@ -1,4 +1,3 @@
-// /lib/api/pusher/pusher-client.ts
 import Pusher from "pusher-js";
 
 export const createPusherClient = (userId: string) =>
@@ -6,6 +5,7 @@ export const createPusherClient = (userId: string) =>
     cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
     authEndpoint: "/api/pusher/auth",
     auth: {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       params: { userId },
     },
   });

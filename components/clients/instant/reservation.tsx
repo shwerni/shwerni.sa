@@ -1,6 +1,5 @@
 "use client";
 // React & Next
-import React from "react";
 import Link from "next/link";
 
 // packages
@@ -9,10 +8,19 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 // components
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import ConsultantCard from "./card";
+import LoadingAnimation from "./skeleton";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import ReservationConfirm from "@/components/clients/instant/confirmation";
-
-// auth types
+import { toast } from "@/components/shared/toast";
+import { Textarea } from "@/components/ui/textarea";
+import PhoneInput from "@/components/shared/phone-input";
 
 // schema
 import { ReservationFormType, reservationSchema } from "@/schemas";
@@ -20,44 +28,26 @@ import { ReservationFormType, reservationSchema } from "@/schemas";
 // lib
 import { verifyRecaptcha } from "@/lib/api/recaptcha";
 
-// utils
-import { meetingLabel } from "@/utils/moment";
-
-// handlers
+// types
+import { User } from "next-auth";
 
 // prisma types
-import { Consultant, Instant } from "@/lib/generated/prisma/client";
+import { Consultant } from "@/lib/generated/prisma/client";
 
 // icons
 import { CircleAlert, Clock2 } from "lucide-react";
-import LoadingAnimation from "./skeleton";
-import { toast } from "@/components/shared/toast";
-import ConsultantCard from "./card";
-import { User } from "next-auth";
-import { Input } from "@/components/ui/input";
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import PhoneInput from "@/components/shared/phone-input";
-import { Textarea } from "@/components/ui/textarea";
-import { OnlineConsultantPayload } from "@/data/online";
 
 // props
 interface Props {
-  consultants: OnlineConsultantPayload[];
   user?: User;
-  loading: boolean;
+  consultants: Pick<
+    Consultant,
+    "userId" | "name" | "rate" | "gender" | "image" | "category"
+  >[];
 }
 
 // return
-export default function ReservationInstant({
-  consultants,
-  user,
-  loading,
-}: Props) {
+export default function ReservationInstant({ consultants, user }: Props) {
   // reCaptcha-v3
   const { executeRecaptcha } = useGoogleReCaptcha();
 

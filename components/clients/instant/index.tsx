@@ -10,7 +10,6 @@ import { User } from "next-auth";
 
 // hooks
 import { useOnlineConsultants } from "@/hooks/useOnlineConsultants";
-import { Consultant } from "@/lib/generated/prisma/client";
 
 // props
 interface Props {
@@ -19,7 +18,7 @@ interface Props {
 
 const Instant: React.FC<Props> = ({ user }) => {
   // check online instant reservation state
-  // const { consultants, loading } = useOnlineConsultants();
+  const { consultants } = useOnlineConsultants();
 
   return (
     <div className="max-w-3xl space-y-5 mx-auto my-10" dir="rtl">
@@ -39,8 +38,7 @@ const Instant: React.FC<Props> = ({ user }) => {
       </div>
       {/* instant content */}
       <ReservationInstant
-        consultants={[] as Consultant[]}
-        loading={true}
+        consultants={consultants}
         user={user}
       />
     </div>

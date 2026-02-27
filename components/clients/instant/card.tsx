@@ -1,6 +1,3 @@
-// React
-import React from "react";
-
 // components
 import {
   Card,
@@ -14,11 +11,10 @@ import ConsultantImage from "@/components/clients/shared/consultant-image";
 
 // tpyes
 import { Consultant } from "@/lib/generated/prisma/client";
-import { OnlineConsultantPayload } from "@/data/online";
 
 // props
 interface Props {
-  consultant: OnlineConsultantPayload;
+  consultant: Pick<Consultant, "userId" | "name" | "rate" | "gender" | "image" | "category">;
   official?: boolean;
 }
 

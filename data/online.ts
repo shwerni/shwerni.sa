@@ -116,31 +116,40 @@ export async function getOnlineConsultantsList() {
   return await prisma.consultant.findMany({
     where: { online_status: OnlineStatus.ONLINE },
     select: {
-      id: true,
+      userId: true,
       name: true,
       image: true,
       gender: true,
-      category: true,
       rate: true,
+      category: true,
     },
   });
 }
 
 export async function handlePresenceWebhook(userId: string, isOnline: boolean) {
-  // Update the single row
   await prisma.consultant.update({
     where: { userId },
     data: {
       online_status: isOnline ? OnlineStatus.ONLINE : OnlineStatus.OFFLINE,
       online_at: isOnline ? new Date() : null,
     },
+    select: { userId: true },
   });
 
-  // Check if anyone is still online using a cheap COUNT
-  const isAnyOnline = await checkIsAnyConsultantOnline();
+  const consultant = await prisma.consultant.findUnique({
+    where: { userId },
+    select: { userId: true, name: true, image: true, gender: true, rate: true },
+  });
 
-  // Broadcast ONLY the tiny boolean payload to guests
+  const onlineCount = await prisma.consultant.count({
+    where: { online_status: OnlineStatus.ONLINE },
+  });
+
   await pusherServer.trigger("public-consultant-status", "status-changed", {
-    isOnline: isAnyOnline,
+    userId,
+    isOnline,
+    consultant,
+    anyOnline: onlineCount > 0,
+    onlineCount,
   });
 }

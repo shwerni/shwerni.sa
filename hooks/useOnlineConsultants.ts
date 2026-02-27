@@ -3,19 +3,23 @@ import { useEffect, useState, useCallback } from "react";
 import { createPusherClient } from "@/lib/api/pusher/pusher-client";
 import { getOnlineConsultantsList } from "@/data/online";
 
-// Uses the return type from our server action
 type ConsultantList = Awaited<ReturnType<typeof getOnlineConsultantsList>>;
+type ConsultantItem = ConsultantList[number];
+
+type StatusChangedPayload = {
+  userId: string;
+  isOnline: boolean;
+  consultant: ConsultantItem;
+  anyOnline: boolean;
+  onlineCount: number;
+};
 
 export function useOnlineConsultants() {
   const [consultants, setConsultants] = useState<ConsultantList>([]);
-  const [loading, setLoading] = useState<boolean>(true); // Starts true on initial mount
+  const [loading, setLoading] = useState<boolean>(true);
 
   const fetchList = useCallback(async (showSpinner = false) => {
-    // Only trigger a React state update if we explicitly ask for a spinner
-    if (showSpinner) {
-      setLoading(true);
-    }
-    
+    if (showSpinner) setLoading(true);
     try {
       const list = await getOnlineConsultantsList();
       setConsultants(list);
@@ -25,23 +29,27 @@ export function useOnlineConsultants() {
   }, []);
 
   useEffect(() => {
-    // 1. Initial fetch: loading is already true from useState, 
-    // so we pass 'false' to avoid the synchronous double-render error.
     fetchList(false);
 
     const pusher = createPusherClient("guest");
     const channel = pusher.subscribe("public-consultant-status");
 
-    // 2. Real-time background fetch: 
-    // Pass 'false' so the UI doesn't flash a spinner while someone joins/leaves.
-    // They will just smoothly pop into (or disappear from) the list.
-    channel.bind("status-changed", () => {
-      fetchList(false);
+    channel.bind("status-changed", (data: StatusChangedPayload) => {
+      setConsultants((prev) => {
+        if (data.isOnline) {
+          const exists = prev.some((c) => c.userId === data.userId);
+          return exists ? prev : [...prev, data.consultant];
+        } else {
+          return prev.filter((c) => c.userId !== data.userId);
+        }
+      });
     });
 
-    return () => pusher.unsubscribe("public-consultant-status");
+    return () => {
+      channel.unbind_all();
+      pusher.unsubscribe("public-consultant-status");
+    };
   }, [fetchList]);
 
-  // If a user clicks a manual "Refresh" button in your UI, it will show the spinner
   return { consultants, loading, refetch: () => fetchList(true) };
 }

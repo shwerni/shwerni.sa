@@ -4,25 +4,24 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // Loop through the events sent by Pusher
-    for (const event of body.events) {
-      if (event.channel === "presence-consultants") {
-        
-        if (event.name === "member_added") {
-          await handlePresenceWebhook(event.user_id, true);
-        } 
-        else if (event.name === "member_removed") {
-          await handlePresenceWebhook(event.user_id, false);
-        }
+    const presenceEvents = body.events.filter(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (e: any) =>
+        e.channel === "presence-consultants" &&
+        (e.name === "member_added" || e.name === "member_removed"),
+    );
 
-      }
-    }
+    if (presenceEvents.length === 0) return new Response("OK", { status: 200 });
 
-    // Acknowledge receipt to Pusher
+    await Promise.all(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      presenceEvents.map((event: any) =>
+        handlePresenceWebhook(event.user_id, event.name === "member_added"),
+      ),
+    );
+
     return new Response("OK", { status: 200 });
-    
-  } catch (error) {
-    console.error("Pusher Webhook Error:", error);
+  } catch {
     return new Response("Error", { status: 500 });
   }
 }
