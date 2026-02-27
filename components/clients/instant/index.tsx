@@ -2,64 +2,23 @@
 // React & Next
 import React from "react";
 
-// package
-import useSWR from "swr";
-
 // components
 import ReservationInstant from "@/components/clients/instant/reservation";
 
 // auth types
 import { User } from "next-auth";
 
-// prisma types
-import { Instant as InstantType } from "@/lib/generated/prisma/client";
-
-// prisma data
-import { getOwnerByCids } from "@/data/consultant";
+// hooks
+import { useOnlineConsultants } from "@/hooks/useOnlineConsultants";
 
 // props
 interface Props {
-  user: User | undefined;
-  time: string;
-  date: string;
+  user?: User;
 }
 
-const Instant: React.FC<Props> = ({ user, time, date }) => {
-  // fetch
-  const getConsultants = async () => {
-    const response = await fetch("/api/instant");
-    console.log("response");
-    console.log(response);
-    
-    const data: InstantType[] = await response.json();
-    console.log("data");
-    console.log(data);
-
-    if (!data.length) return null;
-
-    const owners = await getOwnerByCids(data.map((i) => i.consultantId));
-    console.log("owners");
-    console.log(owners);
-
-    if (!owners || !owners.length) return null;
-
-    return owners.map((owner) => ({
-      owner,
-      instant: data.find((inst) => inst.consultantId === owner.cid),
-    }));
-  };
-
-  // get avalible consultants
-  const { data } = useSWR("/api/instant", () => getConsultants(), {
-    refreshInterval: 15000,
-    errorRetryCount: 1,
-    errorRetryInterval: 10000,
-  });
-
-  React.useEffect(() => {
-    console.log("data");
-    console.log(data);
-  }, [data]);
+const Instant: React.FC<Props> = ({ user }) => {
+  // check online instant reservation state
+ // const { consultants, loading } = useOnlineConsultants();
 
   return (
     <div className="max-w-3xl space-y-5 mx-auto my-10" dir="rtl">
@@ -79,9 +38,8 @@ const Instant: React.FC<Props> = ({ user, time, date }) => {
       </div>
       {/* instant content */}
       <ReservationInstant
-        data={data ?? []}
-        date={date}
-        time={time}
+        consultants={[]}
+        loading={true}
         user={user}
       />
     </div>

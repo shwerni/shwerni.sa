@@ -14,10 +14,11 @@ import ConsultantImage from "@/components/clients/shared/consultant-image";
 
 // tpyes
 import { Consultant } from "@/lib/generated/prisma/client";
+import { OnlineConsultantPayload } from "@/data/online";
 
 // props
 interface Props {
-  consultant: Consultant;
+  consultant: OnlineConsultantPayload;
   official?: boolean;
 }
 
