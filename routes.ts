@@ -18,6 +18,7 @@ export const publicRoutes = [
   "/api/timezone",
   "/api/whatsapp",
   "/api/instant",
+  "/api/pusher/webhook",
   "/api/gatewaies/moyasar",
   "/api/gatewaies/tabby",
   "/api/uploadthing",

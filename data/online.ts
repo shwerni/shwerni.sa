@@ -130,9 +130,9 @@ export async function handlePresenceWebhook(userId: string, isOnline: boolean) {
   // Update the single row
   await prisma.consultant.update({
     where: { userId },
-    data: { 
-      online_status: isOnline ? "ONLINE" : "OFFLINE",
-      online_at: isOnline ? new Date() : null 
+    data: {
+      online_status: isOnline ? OnlineStatus.ONLINE : OnlineStatus.OFFLINE,
+      online_at: isOnline ? new Date() : null,
     },
   });
 
@@ -140,9 +140,7 @@ export async function handlePresenceWebhook(userId: string, isOnline: boolean) {
   const isAnyOnline = await checkIsAnyConsultantOnline();
 
   // Broadcast ONLY the tiny boolean payload to guests
-  await pusherServer.trigger(
-    "public-consultant-status",
-    "status-changed",
-    { isOnline: isAnyOnline }
-  );
+  await pusherServer.trigger("public-consultant-status", "status-changed", {
+    isOnline: isAnyOnline,
+  });
 }
