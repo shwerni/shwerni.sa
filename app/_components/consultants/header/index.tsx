@@ -27,13 +27,12 @@ export default async function Header() {
   // return
   return (
     <div
-      className="flex justify-between items-center w-full mx-auto my-7 px-3"
-      dir="ltr"
+      className="flex flex-row-reverse justify-between items-center w-full mx-auto my-7 px-3"
     >
       {/* main logo */}
       <Logo width={150} />
       {/* user avatar & menu */}
-      <div className="rflex gap-3">
+      <div className="flex flex-row-reverse items-center justify-center gap-3">
         {/* theme toggle */}
         <ThemeToggle />
         {/* user avatar */}

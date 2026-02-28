@@ -30,8 +30,9 @@ export const getAllDuesAdmin = async () => {
           select: {
             done: true,
             url: true,
-            consultantAttendance: true,
-            clientAttendance: true,
+          },
+          include: {
+            participants: true,
           },
         },
         payment: {
@@ -76,8 +77,9 @@ export const getAllDuesAdminByCid = async (cid: number) => {
           select: {
             url: true,
             done: true,
-            consultantAttendance: true,
-            clientAttendance: true,
+          },
+          include: {
+            participants: true,
           },
         },
         payment: {
@@ -133,8 +135,9 @@ export const getDuesAdminByMonth = async (range: string) => {
           select: {
             done: true,
             url: true,
-            consultantAttendance: true,
-            clientAttendance: true,
+          },
+          include: {
+            participants: true,
           },
         },
         payment: {
@@ -157,7 +160,7 @@ export const getDuesAdminByMonth = async (range: string) => {
 
     // return
     return dues;
-  } catch  {
+  } catch {
     return null;
   }
 };
@@ -192,8 +195,9 @@ export const getDuesAdminByMonthByCid = async (range: string, cid: number) => {
           select: {
             done: true,
             url: true,
-            consultantAttendance: true,
-            clientAttendance: true,
+          },
+          include: {
+            participants: true,
           },
         },
         payment: {
@@ -211,7 +215,7 @@ export const getDuesAdminByMonthByCid = async (range: string, cid: number) => {
 
     // return
     return dues;
-  } catch  {
+  } catch {
     return null;
   }
 };
@@ -276,7 +280,7 @@ export const getTotalDuesAdminByMonth = async (range: string) => {
 
         return acc;
       },
-      {}
+      {},
     );
 
     const groupedArray = Object.entries(groupedOrders).map(([cid, data]) => ({
@@ -331,9 +335,12 @@ export const getCompletedTotalDuesAdminByMonth = async (range: string) => {
         payment: { payment: PaymentState.PAID },
         meeting: {
           some: {
-            url: { not: null },
-            consultantAttendance: true,
-            clientAttendance: true,
+            done: true,
+            participants: {
+              every: {
+                attended: true,
+              },
+            },
           },
         },
         due_at: {
@@ -385,7 +392,7 @@ export const getCompletedTotalDuesAdminByMonth = async (range: string) => {
         acc[order.consultantId].finalTotal += finalTotal;
         return acc;
       },
-      {}
+      {},
     );
 
     // Convert grouped orders to an array
@@ -393,7 +400,7 @@ export const getCompletedTotalDuesAdminByMonth = async (range: string) => {
 
     // return
     return result;
-  } catch (error) {
+  } catch {
     return null;
   }
 };

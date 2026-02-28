@@ -1,5 +1,5 @@
-// force dynamic generation
-export const dynamic = "force-dynamic";
+// revlaidate each 7 days
+export const revalidate = 604800;
 
 // React & Next
 import type { MetadataRoute } from "next";

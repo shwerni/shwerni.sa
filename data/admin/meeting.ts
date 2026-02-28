@@ -9,8 +9,8 @@ import { MeetingSchema } from "@/schemas/admin";
 import { z } from "zod";
 
 // lib
-import { PaymentState } from "@/lib/generated/prisma/enums";
-import { Meeting } from "@/lib/generated/prisma/client";
+import { PaymentState, UserRole } from "@/lib/generated/prisma/enums";
+import { Meeting, Participant } from "@/lib/generated/prisma/client";
 
 // get all meetings
 export const getAllMeetings = async () => {
@@ -81,16 +81,34 @@ export const updateMeetingAdmin = async (
       data: {
         date,
         time: data?.time,
-        consultantAttendance: data?.consultantAttendance ?? false,
-        clientAttendance: data?.clientAttendance ?? false,
-        clientJoinedAt: data?.clientJoinedAt ?? "",
-        consultantJoinedAt: data?.consultantJoinedAt ?? "",
+        participants: {
+          updateMany: [
+            {
+              where: {
+                role: UserRole.USER,
+              },
+              data: {
+                time: data.clientJoinedAt,
+                attended: data?.clientAttendance,
+              },
+            },
+            {
+              where: {
+                role: UserRole.OWNER,
+              },
+              data: {
+                time: data.consultantJoinedAt,
+                attended: data?.consultantAttendance,
+              },
+            },
+          ],
+        },
         url: data?.url ?? "",
       },
     });
     // return
     return order;
-  } catch (error) {
+  } catch {
     // return
     return null;
   }
@@ -107,11 +125,11 @@ export const getPassedMeetingAdmin = async () => {
           },
         },
         done: false,
-        OR: [
-          { url: null },
-          { consultantAttendance: false },
-          { clientAttendance: false },
-        ],
+        participants: {
+          some: {
+            attended: false,
+          },
+        },
       },
       include: {
         orders: {
@@ -155,7 +173,7 @@ type MeetingsWithOrder = {
     consultant: { name: string };
     oid: number;
   };
-} & Meeting;
+} & Meeting & { participants: Participant[] };
 
 export async function getMeetingsForManagments(page: number, search: string) {
   try {
@@ -163,7 +181,7 @@ export async function getMeetingsForManagments(page: number, search: string) {
     const skip = (page - 1) * limit;
 
     // Base where clause
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, prefer-const
     let where: any = {};
 
     if (search?.trim()) {
@@ -200,6 +218,7 @@ export async function getMeetingsForManagments(page: number, search: string) {
         skip,
         take: limit,
         include: {
+          participants: true,
           orders: {
             select: {
               oid: true,
@@ -222,8 +241,7 @@ export async function getMeetingsForManagments(page: number, search: string) {
       meetings: meetings as MeetingsWithOrder[],
       totalCount,
     };
-  } catch (error) {
-    console.log(error);
+  } catch {
     // return
     return null;
   }

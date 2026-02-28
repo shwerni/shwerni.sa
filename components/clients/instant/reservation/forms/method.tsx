@@ -16,15 +16,13 @@ import {
 } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-// prisma types
-import { PaymentMethod } from "@/lib/generated/prisma/enums";
-
 // schema
-import { ReservationFormType } from "@/schemas";
+import { InstantFormType } from "@/schemas";
+import { PaymentMethod } from "@/lib/generated/prisma/enums";
 
 // props
 interface Props {
-  form: UseFormReturn<ReservationFormType>;
+  form: UseFormReturn<InstantFormType>;
 }
 
 const MethodForm = ({ form }: Props) => {

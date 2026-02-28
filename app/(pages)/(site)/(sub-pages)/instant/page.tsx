@@ -4,12 +4,6 @@ import { Metadata } from "next";
 // components
 import Instant from "@/components/clients/instant";
 
-// lib
-import { timeZone } from "@/lib/site/time";
-
-// hook
-import { userServer } from "@/lib/auth/server";
-
 // constants
 import { mainRoute } from "@/constants/links";
 
@@ -68,11 +62,8 @@ export const metadata: Metadata = {
 };
 
 const Page = async () => {
-  // user
-  const user = await userServer();
-
   // return
-  return <Instant user={user} />;
+  return <Instant />;
 };
 
 export default Page;

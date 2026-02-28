@@ -32,19 +32,14 @@ import { zMonths } from "@/constants";
 import { Boxes, ExternalLink } from "lucide-react";
 
 import { isEnglish, findUser } from "@/utils";
+import { Participant } from "@/lib/generated/prisma/client";
 
 // types
 interface Dues {
   oid: number;
   consultantId: number;
   due_at: Date | null;
-  meeting:
-    | {
-        url: string | null;
-        consultantAttendance: boolean | null;
-        clientAttendance: boolean | null;
-      }[]
-    | null;
+  meeting: { participants: Participant[] }[];
   payment: {
     total: number;
     commission: number;
@@ -132,7 +127,7 @@ export default function Dues({ role, dues, date, lang }: Props) {
           <div className="cflex">
             {/* order month selection */}
             <Select onValueChange={dateRange}>
-              <SelectTrigger className="w-[150px] sm:w-[200px] bg-zgrey-50">
+              <SelectTrigger className="w-37.5 sm:w-50 bg-zgrey-50">
                 <SelectValue placeholder={isEn ? "pick month" : "اختر شهر"} />
               </SelectTrigger>
               <SelectContent className="bg-zgrey-50">

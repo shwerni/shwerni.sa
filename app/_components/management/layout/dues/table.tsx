@@ -21,19 +21,14 @@ import { UserRole, CouponType } from "@/lib/generated/prisma/enums";
 import { findUser } from "@/utils";
 import { dateToString } from "@/utils/moment";
 import { calculateDues } from "@/utils/admin/dues";
+import { Participant } from "@/lib/generated/prisma/client";
 
 // types
 interface Dues {
   oid: number;
   consultantId: number;
   due_at: Date | null;
-  meeting:
-    | {
-        url: string | null;
-        consultantAttendance: boolean | null;
-        clientAttendance: boolean | null;
-      }[]
-    | null;
+  meeting: { participants: Participant[] }[];
   payment: {
     total: number;
     commission: number;
@@ -82,16 +77,12 @@ export default function DuesTable({ dues, role, isEn }: Props) {
                   <TableCell>
                     <span
                       className={`${
-                        meeting?.url &&
-                        meeting?.clientAttendance &&
-                        meeting?.consultantAttendance
+                        meeting.participants.every((i) => i.attended === true)
                           ? "bg-green-200"
                           : "bg-red-200"
                       } w-fit h-fit rounded-2xl px-2`}
                     >
-                      {meeting?.url &&
-                      meeting?.clientAttendance &&
-                      meeting?.consultantAttendance
+                      {meeting.participants.every((i) => i.attended === true)
                         ? isEn
                           ? "success"
                           : "تمت"

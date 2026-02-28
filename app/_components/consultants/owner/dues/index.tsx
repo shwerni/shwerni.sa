@@ -67,7 +67,7 @@ export default function DuesOwner({
   // commission
   const zCommission = owner.commission
     ? owner.commission
-    : defaultCommission ?? 60;
+    : (defaultCommission ?? 60);
 
   // orders
   const [orders, setOrders] = React.useState<Reservation[]>(dues);
@@ -96,7 +96,7 @@ export default function DuesOwner({
   // previous years
   const pYears = Array.from(
     { length: Number(cYear) - 2023 + 1 },
-    (_, index) => Number(cYear) - index
+    (_, index) => Number(cYear) - index,
   );
 
   // on selecting month
@@ -106,7 +106,7 @@ export default function DuesOwner({
     } else {
       startLoading(() => {
         getDuesOwnenByMonth(rdate, owner.cid).then((response) => {
-          if(response !== null) setOrders(response);
+          if (response !== null) setOrders(response);
         });
       });
     }
@@ -147,7 +147,7 @@ export default function DuesOwner({
           <div className="cflex">
             {/* order month selection */}
             <Select onValueChange={dateRange}>
-              <SelectTrigger className="w-[150px] sm:w-[200px] bg-zgrey-50">
+              <SelectTrigger className="w-32.5 sm:w-50 bg-zgrey-50">
                 <SelectValue placeholder="اختر شهر" />
               </SelectTrigger>
               <SelectContent className="bg-zgrey-50">
@@ -209,9 +209,9 @@ export default function DuesOwner({
                   const coupon =
                     payment.usedCoupon && payment.usedCoupon.discount
                       ? {
-                        discount: payment.usedCoupon.discount,
-                        type: payment.usedCoupon.type as CouponType,
-                      }
+                          discount: payment.usedCoupon.discount,
+                          type: payment.usedCoupon.type as CouponType,
+                        }
                       : undefined;
 
                   // Calculate dues
@@ -238,27 +238,31 @@ export default function DuesOwner({
                         </TableCell>
                         <TableCell>
                           <Badge
-                            className={`${meeting[0].done || (meeting[0].url &&
-                              meeting[0].clientAttendance &&
-                              meeting[0].consultantAttendance)
-                              ? "bg-green-200"
-                              : "bg-red-200"
-                              } text-zblack-200 font-semibold text-center`}
+                            className={`${
+                              meeting[0].done ||
+                              meeting[0].participants.every(
+                                (i) => i.attended === true,
+                              )
+                                ? "bg-green-200"
+                                : "bg-red-200"
+                            } text-zblack-200 font-semibold text-center`}
                           >
                             {/* later add meeting map */}
-                            {meeting[0].done || (meeting[0].url &&
-                              meeting[0].clientAttendance &&
-                              meeting[0].consultantAttendance)
+                            {meeting[0].done ||
+                            meeting[0].participants.every(
+                              (i) => i.attended === true,
+                            )
                               ? "تمت"
                               : "لم تمم"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-center font-medium">#{i.oid}</TableCell>
+                        <TableCell className="text-center font-medium">
+                          #{i.oid}
+                        </TableCell>
                       </TableRow>
                     </DuesDialog>
                   );
                 })}
-
               </TableBody>
             </Table>
           </ScrollArea>
@@ -272,26 +276,28 @@ export default function DuesOwner({
               <TableCell>{orders.length} طلبات</TableCell>
               <TableCell>
                 <Badge className="bg-zgrey-50 text-zblack-200 text-center font-semibold">
-                  {orders.reduce((a, c) => {
-                    if (!c.payment) return a;
+                  {orders
+                    .reduce((a, c) => {
+                      if (!c.payment) return a;
 
-                    const coupon =
-                      c.payment.usedCoupon && c.payment.usedCoupon.discount
-                        ? {
-                          discount: c.payment.usedCoupon.discount,
-                          type: c.payment.usedCoupon.type as CouponType,
-                        }
-                        : undefined;
+                      const coupon =
+                        c.payment.usedCoupon && c.payment.usedCoupon.discount
+                          ? {
+                              discount: c.payment.usedCoupon.discount,
+                              type: c.payment.usedCoupon.type as CouponType,
+                            }
+                          : undefined;
 
-                    const dues = calculateDues({
-                      total: c.payment.total,
-                      commission: c.payment.commission,
-                      coupon,
-                    });
+                      const dues = calculateDues({
+                        total: c.payment.total,
+                        commission: c.payment.commission,
+                        coupon,
+                      });
 
-                    return a + dues.consultantEarning;
-                  }, 0).toFixed(2)} sar
-
+                      return a + dues.consultantEarning;
+                    }, 0)
+                    .toFixed(2)}{" "}
+                  sar
                 </Badge>
               </TableCell>
             </TableRow>

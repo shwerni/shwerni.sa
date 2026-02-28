@@ -593,3 +593,65 @@ export const freeSessionSchema = z.object({
 });
 
 export type freeSessionSchemaType = z.infer<typeof reservationSchema>;
+
+// instant
+export const instantSchema = z
+  .object({
+    // ui /ux data
+    order: z.string(),
+    user: z.string(),
+    cid: z.number(),
+    cost: z.number(),
+    date: z.date(),
+    duration: z.number(),
+    consultant: z.string(),
+    time: z
+      .string({
+        required_error: "الوقت مطلوب",
+      })
+      .min(1, "الوقت مطلوب"),
+    finance: z.object({
+      tax: z.number().min(0),
+      commission: z.number().min(0),
+      payments: z.array(z.nativeEnum(PaymentMethod)),
+      couponEnabled: z.boolean(),
+    }),
+
+    // basic info
+    name: schemas.name,
+    phone: schemas.phone,
+    notes: z.string().max(200, {
+      message: "200 حرف كحد اقصي",
+    }),
+
+    // step 3
+    method: z.nativeEnum(PaymentMethod, {
+      required_error: "برجاء اختيار طريقة دفع",
+    }),
+    hasCoupon: z.boolean().default(false),
+    couponCode: z.string().optional(),
+    couponPercent: z.number().optional(),
+    acceptTerms: z.literal(true, {
+      errorMap: () => ({ message: "يجب قبول الشروط والأحكام" }),
+    }),
+  })
+  .superRefine((data, ctx) => {
+    // coupon validation
+    if (data.hasCoupon) {
+      if (!data.couponCode) {
+        ctx.addIssue({
+          path: ["couponCode"],
+          code: z.ZodIssueCode.custom,
+          message: "يجب إدخال كود الخصم",
+        });
+      } else if (data.couponCode.length !== 6) {
+        ctx.addIssue({
+          path: ["couponCode"],
+          code: z.ZodIssueCode.custom,
+          message: "يجب أن يكون كود الخصم مكوناً من 6 أحرف",
+        });
+      }
+    }
+  });
+
+export type InstantFormType = z.infer<typeof instantSchema>;

@@ -23,7 +23,7 @@ import { dateToString } from "@/utils/date";
 import { cancelSchedule } from "@/utils/schedule/orders";
 import { aboveAndLowerTime, dateTimeToString } from "@/utils/moment";
 
-import { OrderType, PaymentState } from "@/lib/generated/prisma/enums";
+import { PaymentState } from "@/lib/generated/prisma/enums";
 
 import { ReservationFormType, reservationSchema } from "@/schemas";
 import { createParticipants } from "../room";
@@ -154,14 +154,6 @@ export const reserveConsultant = async (
 
     // create participants
     await createParticipants(order.meeting[0].mid);
-
-    // if instant
-    if (data.type === OrderType.INSTANT) {
-      await prisma.instant.update({
-        where: { consultantId: data.cid },
-        data: { status: false, statusA: false },
-      });
-    }
 
     // cancel order if not paid in 15 min job schedule
     cancelSchedule(order.oid);
@@ -1030,7 +1022,7 @@ export const cancelOrderByOid = async (oid: number) => {
 export const UpdateConsultationAnswer = async (oid: number, answer: string) => {
   try {
     // answer initial state
-    const iAnswer = await prisma.order.findUnique({
+     await prisma.order.findUnique({
       where: { oid },
       select: {
         oid: true,

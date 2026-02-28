@@ -212,7 +212,6 @@ model User {
   Wallet           Wallet[]
   Favorite         Favorite[]
   Consultant       Consultant[]
-  Instant          Instant[]
   FreeTimings      FreeTimings[]
   ConsultantTiming ConsultantTiming[]
   collaboration    Collaboration?
@@ -331,7 +330,6 @@ model Consultant {
   Coupon                   Coupon[]
   reviews                  Review[]
   favorites                Favorite[]
-  instants                 Instant[]
   freeTimings              FreeTimings[]
   freeSessions             FreeSession[]
   ConsultantOathAcceptance ConsultantOath?
@@ -544,24 +542,6 @@ model PreConsultation {
   @@map("pre_consultations")
 }
 
-// remove // later
-model Instant {
-  id         String   @id @default(cuid())
-  statusA    Boolean  @default(false)
-  status     Boolean  @default(false)
-  cost       Float?
-  created_at DateTime @default(now())
-  online_at  DateTime @default(now())
-
-  // @relations
-  consultantId Int        @unique
-  consultant   Consultant @relation(fields: [consultantId], references: [cid])
-  userId       String     @unique
-  user         User       @relation(fields: [userId], references: [id])
-
-  @@map("instants")
-}
-
 model FreeSession {
   id           String   @id @default(cuid())
   fid          Int      @unique @default(autoincrement())
@@ -617,18 +597,14 @@ model Message {
 }
 
 model Meeting {
-  id                   String  @id @unique @default(cuid())
-  mid                  String  @unique @default(nanoid(10))
-  time                 String
-  done                 Boolean @default(false)
-  date                 String
-  duration             String
-  session              Int
-  clientAttendance     Boolean @default(false)
-  consultantAttendance Boolean @default(false)
-  clientJoinedAt       String?
-  consultantJoinedAt   String?
-  url                  String?
+  id       String  @id @unique @default(cuid())
+  mid      String  @unique @default(nanoid(10))
+  time     String
+  done     Boolean @default(false)
+  date     String
+  duration String
+  session  Int
+  url      String?
 
   // @relations
   freeSessionId String?       @unique

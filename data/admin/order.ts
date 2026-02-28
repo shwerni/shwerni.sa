@@ -9,7 +9,7 @@ import { z } from "zod";
 import { OrderSchema } from "@/schemas/admin";
 
 // utils
-import { orderInfoLabel } from "@/utils";
+import { orderInfoLabel, randomId } from "@/utils";
 import { dateTimeToString } from "@/utils/moment";
 
 // hooks
@@ -22,7 +22,11 @@ import {
 import { addWalletCredit } from "../wallet";
 
 // prisma types
-import { PaymentMethod, PaymentState } from "@/lib/generated/prisma/enums";
+import {
+  PaymentMethod,
+  PaymentState,
+  UserRole,
+} from "@/lib/generated/prisma/enums";
 
 // auth types
 import { User } from "next-auth";
@@ -155,7 +159,7 @@ export const updateOrderAdmin = async (
 
     // return
     return order;
-  } catch (error) {
+  } catch {
     // return
     return null;
   }
@@ -198,12 +202,25 @@ export const createOrderAdmin = async (
             duration: data.duration,
             date,
             time,
-            consultantAttendance: done,
-            clientAttendance: done,
-            clientJoinedAt: done ? "manual" : "",
-            consultantJoinedAt: done ? "manual" : "",
-            url: done ? "manual" : "",
             session: 1,
+            participants: {
+              create: [
+                {
+                  participant: done ? "user" : randomId(),
+                  attended: done,
+                  isActive: true,
+                  role: UserRole.USER,
+                  time: done ? time : null,
+                },
+                {
+                  participant: done ? "owner" : randomId(),
+                  attended: done,
+                  isActive: true,
+                  role: UserRole.OWNER,
+                  time: done ? time : null,
+                },
+              ],
+            },
           },
         },
         info: [
@@ -257,7 +274,7 @@ export const createOrderAdmin = async (
 
     // return
     return order;
-  } catch (error) {
+  } catch {
     // return
     return null;
   }

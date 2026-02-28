@@ -41,19 +41,14 @@ import { Lang } from "@/types/types";
 import { zMonths } from "@/constants";
 import { UserRole } from "@/lib/generated/prisma/enums";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { Participant } from "@/lib/generated/prisma/client";
 
 // types
 interface Dues {
   oid: number;
   name: string | null;
   due_at: Date | null;
-  meeting:
-    | {
-        url: string | null;
-        consultantAttendance: boolean | null;
-        clientAttendance: boolean | null;
-      }[]
-    | null;
+  meeting: { participants: Participant[] }[];
   payment: {
     total: number;
     commission: number;
@@ -150,7 +145,7 @@ export default function OwnerDues({
             <div className="flex justify-end">
               {/* order month selection */}
               <Select onValueChange={dateRange}>
-                <SelectTrigger className="w-[150px] sm:w-[200px] bg-zgrey-50">
+                <SelectTrigger className="w-37.5 sm:w-50 bg-zgrey-50">
                   <SelectValue placeholder={isEn ? "pick month" : "اختر شهر"} />
                 </SelectTrigger>
                 <SelectContent className="bg-zgrey-50">
@@ -225,16 +220,16 @@ export default function OwnerDues({
                           <TableCell>
                             <span
                               className={`${
-                                meeting?.url &&
-                                meeting?.clientAttendance &&
-                                meeting?.consultantAttendance
+                                meeting.participants.every(
+                                  (i) => i.attended === true,
+                                )
                                   ? "bg-green-200"
                                   : "bg-red-200"
                               } w-fit h-fit rounded-2xl px-2`}
                             >
-                              {meeting?.url &&
-                              meeting?.clientAttendance &&
-                              meeting?.consultantAttendance
+                              {meeting.participants.every(
+                                (i) => i.attended === true,
+                              )
                                 ? isEn
                                   ? "success"
                                   : "تمت"

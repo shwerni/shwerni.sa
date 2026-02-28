@@ -38,7 +38,7 @@ export function Zmenu(props: { user: string | null | undefined }) {
       </SheetTrigger>
       {/* nav content */}
       <SheetContent
-        dir="rtl"
+        side="right"
         className="flex flex-col border-none max-w-62.5! sm:max-w-87.5!"
       >
         <SheetHeader className="text-right!">
@@ -55,14 +55,16 @@ export function Zmenu(props: { user: string | null | undefined }) {
                       href={`/dashboard${i.link}`}
                       className={cn([
                         "flex flex-row justify-between items-center gap-2 p-3 rounded-lg",
-                        path === `/dashboard${i.link}` ? "dark:bg-slate-600 bg-white" : "",
+                        path === `/dashboard${i.link}`
+                          ? "dark:bg-slate-600 bg-white"
+                          : "",
                       ])}
                     >
                       {<i.icon />}
                       <h3 className="text-base text-left">{i.label}</h3>
                     </Link>
                   </SheetClose>
-                )
+                ),
             )}
             {/* logout */}
             <SheetClose asChild>

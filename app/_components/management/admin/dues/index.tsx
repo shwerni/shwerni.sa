@@ -41,6 +41,7 @@ import { Boxes, ExternalLink } from "lucide-react";
 
 // types
 import { CouponType } from "@/lib/generated/prisma/enums";
+import { Participant } from "@/lib/generated/prisma/client";
 
 interface Dues {
   oid: number;
@@ -48,9 +49,7 @@ interface Dues {
   due_at: Date | null;
   meeting: {
     done: boolean;
-    url: string | null;
-    consultantAttendance: boolean | null;
-    clientAttendance: boolean | null;
+    participants: Participant[];
   }[];
   payment: {
     total: number;
@@ -184,17 +183,17 @@ export default function DuesAdmin(props: { dues: Dues[]; date: string }) {
                         <span
                           className={`${
                             i.meeting[0].done ||
-                            (i.meeting[0].url &&
-                              i.meeting[0].clientAttendance &&
-                              i.meeting[0].consultantAttendance)
+                            i.meeting[0].participants.every(
+                              (i) => i.attended === true,
+                            )
                               ? "bg-green-200"
                               : "bg-red-200"
                           } w-fit h-fit rounded-2xl px-2`}
                         >
                           {i.meeting[0].done ||
-                          (i.meeting[0].url &&
-                            i.meeting[0].clientAttendance &&
-                            i.meeting[0].consultantAttendance)
+                          i.meeting[0].participants.every(
+                            (i) => i.attended === true,
+                          )
                             ? "success"
                             : "incomplete"}
                         </span>

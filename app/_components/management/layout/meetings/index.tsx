@@ -58,7 +58,7 @@ import { UserRole } from "@/lib/generated/prisma/enums";
 // icons
 import { Check, GripHorizontal } from "lucide-react";
 import PassedBtn from "./passedMeetings";
-import { Meeting } from "@/lib/generated/prisma/client";
+import { Meeting, Participant } from "@/lib/generated/prisma/client";
 
 // types
 type Meetings = {
@@ -70,7 +70,7 @@ type Meetings = {
       name: string;
     };
   };
-} & Meeting;
+} & Meeting & { participants: Participant[] };
 
 // props
 interface Props {
@@ -170,7 +170,7 @@ export function EmployeeMeetings({ time, date, lang, role }: Props) {
 
   React.useEffect(() => {
     fetchMeetings();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounced, page]);
 
   // columns
@@ -182,7 +182,7 @@ export function EmployeeMeetings({ time, date, lang, role }: Props) {
         const m = row.original;
         const isStill = isMeetingStill(date, time, m.date, m.time);
         const badge =
-          m.done || (m.url && m.consultantAttendance && m.clientAttendance) ? (
+          m.done || m.participants.every((i) => i.attended === true) ? (
             <Badge className="bg-green-200 text-black font-medium lowercase">
               تم
             </Badge>
@@ -212,15 +212,17 @@ export function EmployeeMeetings({ time, date, lang, role }: Props) {
                 <div className="flex justify-between">
                   <span>حضور المستشار</span>
                   <span>
-                    {m.consultantAttendance
-                      ? `at ${m.consultantJoinedAt}`
+                    {m.participants.find((i) => i.role === UserRole.OWNER)?.time
+                      ? `at ${m.participants.find((i) => i.role === UserRole.OWNER)?.time}`
                       : "لم يحضر"}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>حضور العميل</span>
                   <span>
-                    {m.clientAttendance ? `at ${m.clientJoinedAt}` : "لم يحضر"}
+                    {m.participants.find((i) => i.role === UserRole.USER)?.time
+                      ? `at ${m.participants.find((i) => i.role === UserRole.USER)?.time}`
+                      : "لم يحضر"}
                   </span>
                 </div>
               </div>
@@ -316,7 +318,7 @@ export function EmployeeMeetings({ time, date, lang, role }: Props) {
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>{labels.actions}</DropdownMenuLabel>
                 {/* update to done */}
-                {(!m.url || !m.consultantAttendance || !m.clientAttendance) && (
+                {m.participants.find((i) => i.attended == false) && (
                   <DropdownMenuItem
                     onClick={() => toggleDoneState(o.oid, m.session)}
                   >

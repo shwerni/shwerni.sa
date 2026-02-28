@@ -14,6 +14,7 @@ import {
 } from "@/lib/generated/prisma/enums";
 
 // types
+import { User } from "next-auth";
 import { CurrencyValue, Times } from "@/types/admin";
 
 // constatnts
@@ -29,10 +30,16 @@ import {
 } from "@/constants/admin";
 import { itimes } from "@/constants";
 import { timeZone } from "@/lib/site/time";
-import { User } from "next-auth";
 import { dateTimeToString } from "./moment";
 import { mainRoute } from "@/constants/links";
 import { zencryption } from "./admin/encryption";
+
+// packages
+import crypto from "crypto";
+
+// create random id
+export const randomId = (length: number = 10) =>
+  crypto.randomBytes(length / 2).toString("hex");
 
 // check langauge
 export const isEnglish = (lang?: Lang): boolean => lang === "en";

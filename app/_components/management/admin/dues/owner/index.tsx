@@ -38,18 +38,14 @@ import { calculateDues } from "@/utils/admin/dues";
 
 // constant
 import { zMonths } from "@/constants";
+import { Participant } from "@/lib/generated/prisma/client";
 
 // types
 interface Dues {
   oid: number;
   name: string;
   due_at: Date;
-  meeting: {
-    done: boolean;
-    clientAttendance: boolean | null;
-    consultantAttendance: boolean | null;
-    url: string | null;
-  }[];
+  meeting: { done: boolean; participants: Participant[] }[];
   payment: {
     commission: number;
     total: number;
@@ -125,7 +121,7 @@ export default function OwnerDuesAdmin(props: {
         <div className="flex justify-end">
           {/* order month selection */}
           <Select onValueChange={dateRange}>
-            <SelectTrigger className="w-[150px] sm:w-[200px] bg-zgrey-50">
+            <SelectTrigger className="w-32.5 sm:w-50 bg-zgrey-50">
               <SelectValue placeholder="pick month" />
             </SelectTrigger>
             <SelectContent className="bg-zgrey-50">
@@ -196,17 +192,17 @@ export default function OwnerDuesAdmin(props: {
                         <span
                           className={`${
                             i.meeting[0].done ||
-                            (i.meeting[0].url &&
-                              i.meeting[0].clientAttendance &&
-                              i.meeting[0].consultantAttendance)
+                            i.meeting[0].participants.every(
+                              (i) => i.attended === true,
+                            )
                               ? "bg-green-200"
                               : "bg-red-200"
                           } w-fit h-fit rounded-2xl px-2`}
                         >
                           {i.meeting[0].done ||
-                          (i.meeting[0].url &&
-                            i.meeting[0].clientAttendance &&
-                            i.meeting[0].consultantAttendance)
+                          i.meeting[0].participants.every(
+                            (i) => i.attended === true,
+                          )
                             ? "success"
                             : "incomplete"}
                         </span>

@@ -27,7 +27,7 @@ import { LoadingBtnEn } from "@/app/_components/layout/loadingBtn";
 import { updateMeetingAdmin } from "@/data/admin/meeting";
 
 // prisma types
-import { OrderType } from "@/lib/generated/prisma/enums";
+import { OrderType, UserRole } from "@/lib/generated/prisma/enums";
 
 // schema
 import { MeetingSchema } from "@/schemas/admin";
@@ -46,13 +46,13 @@ import {
 } from "@/components/ui/select";
 import { dateToString, timeToArabic } from "@/utils/moment";
 import CopyBtn from "@/app/_components/layout/copyBtn";
-import { Meeting } from "@/lib/generated/prisma/client";
+import { Meeting, Participant } from "@/lib/generated/prisma/client";
 
 // props
 interface Props {
   client: string;
   consultant: string;
-  meeting: Meeting;
+  meeting: Meeting & { participants: Participant[] };
   type: OrderType;
   lang?: "en" | "ar";
 }
@@ -129,10 +129,10 @@ export default function EditMeetingForm({
     defaultValues: {
       done: meeting?.done,
       time: meeting?.time ?? "",
-      consultantAttendance: meeting?.consultantAttendance ?? false,
-      clientAttendance: meeting?.clientAttendance ?? false,
-      clientJoinedAt: meeting?.clientJoinedAt ?? "",
-      consultantJoinedAt: meeting?.consultantJoinedAt ?? "",
+      consultantAttendance: meeting?.participants.find((i)=> i.role === UserRole.OWNER)?.attended ?? false,
+      clientAttendance: meeting?.participants.find((i)=> i.role === UserRole.USER)?.attended ?? false,
+      clientJoinedAt: meeting?.participants.find((i)=> i.role === UserRole.USER)?.time ?? "",
+      consultantJoinedAt: meeting?.participants.find((i)=> i.role === UserRole.OWNER)?.time ?? "",
       url: meeting?.url ?? "",
     },
   });

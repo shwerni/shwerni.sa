@@ -19,11 +19,16 @@ import { Reservation } from "@/types/admin";
 import { notificationNewOrder } from "@/lib/notifications";
 import { createTabbyCheckout } from "@/lib/api/gatewaies/tabby";
 import { createMoyasarCheckout } from "@/lib/api/gatewaies/moyasar";
-import { ProgramReservationFormType, ReservationFormType } from "@/schemas";
+import {
+  InstantFormType,
+  ProgramReservationFormType,
+  ReservationFormType,
+} from "@/schemas";
 import { reserveConsultant } from "@/data/order/reserveation";
 import { saveACoupon } from "@/data/coupon";
 import { redirect } from "next/navigation";
 import { reserveProgram } from "@/data/order/program";
+import { reserveInstant } from "@/data/online";
 
 // on payment success
 export const onPaymentSuccess = async (order: Reservation) => {
@@ -59,7 +64,7 @@ export const onPaymentHold = async (order: Order) => {
 };
 
 export async function Pay(
-  data: ReservationFormType | ProgramReservationFormType,
+  data: ReservationFormType | ProgramReservationFormType | InstantFormType,
   cost: number,
   total: number,
 ) {
@@ -67,13 +72,17 @@ export async function Pay(
   let order;
 
   // program or consultant
-  if (data?.order === "consultant") {
+  if (data?.order === "consultant")
     // create consultant order
     order = await reserveConsultant(data as ReservationFormType, cost);
-  } else {
+
+  if (data?.order === "program")
     // create program order
     order = await reserveProgram(data as ProgramReservationFormType, cost);
-  }
+
+  if (data?.order === "instant")
+    // create instant order
+    order = await reserveInstant(data as InstantFormType, cost);
 
   // todo
   // if user will pay full price with wallet credit

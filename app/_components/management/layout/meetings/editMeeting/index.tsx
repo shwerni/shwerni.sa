@@ -15,15 +15,15 @@ import { timeToArabic } from "@/utils/moment";
 
 // icons
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
-import { Meeting } from "@/lib/generated/prisma/client";
+import { Meeting, Participant } from "@/lib/generated/prisma/client";
 
 // props
 interface Props {
   role: UserRole;
   client: string;
   consultant: string;
-  meeting: Meeting;
-  meetings: Meeting[];
+  meeting: Meeting & { participants: Participant[] };
+  meetings: (Meeting & { participants: Participant[] })[];
   type: OrderType;
   lang?: "en" | "ar";
 }

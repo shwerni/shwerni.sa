@@ -2,11 +2,9 @@
 // prisma
 import prisma from "@/lib/database/db";
 
-// packages
-import crypto from "crypto";
-
 // prisma types
 import { UserRole } from "@/lib/generated/prisma/enums";
+import { randomId } from "@/utils";
 
 // get created room
 export const getRoom = async (roomName: string) => {
@@ -44,8 +42,7 @@ export const createRoom = async (
   }
 };
 
-// ramdom 10 string
-const randomId = () => crypto.randomBytes(5).toString("hex");
+
 
 // create order room participant
 export const createParticipants = async (mid: string) => {

@@ -1,24 +1,21 @@
-"use client";
 // React & Next
 import React from "react";
 
+// lib
+import { userServer } from "@/lib/auth/server";
+
+// data
+import { getFinanceConfig } from "@/data/admin/settings/finance";
+
 // components
-import ReservationInstant from "@/components/clients/instant/reservation";
+import InstantReservationForm from "./reservation/form";
 
-// auth types
-import { User } from "next-auth";
+const Instant: React.FC = async () => {
+  // user
+  const user = await userServer();
 
-// hooks
-import { useOnlineConsultants } from "@/hooks/useOnlineConsultants";
-
-// props
-interface Props {
-  user?: User;
-}
-
-const Instant: React.FC<Props> = ({ user }) => {
-  // check online instant reservation state
-  const { consultants } = useOnlineConsultants();
+  // get finance
+  const finance = await getFinanceConfig();
 
   return (
     <div className="max-w-3xl space-y-5 mx-auto my-10" dir="rtl">
@@ -37,10 +34,7 @@ const Instant: React.FC<Props> = ({ user }) => {
         </p>
       </div>
       {/* instant content */}
-      <ReservationInstant
-        consultants={consultants}
-        user={user}
-      />
+      <InstantReservationForm user={user} finance={finance} />
     </div>
   );
 };

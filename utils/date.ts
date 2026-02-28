@@ -15,6 +15,7 @@ import { addDays, addHours, parseISO, setMinutes } from "date-fns";
 
 // prisma types
 import { Weekday } from "@/lib/generated/prisma/enums";
+import { timeZone } from "@/lib/site/time";
 
 // date to label
 export function dateToLabel(date: number) {
@@ -33,12 +34,33 @@ export function getDayName(dateStr: string): string {
  * Adds 25 minutes to the provided date (or now)
  * @returns { date: 'yyyy-MM-dd', time: 'HH:mm' }
  */
-export function add25Minutes(date: Date = new Date()): {
+export function add25Minutes(date: Date = timeZone().iso): {
   date: string;
   time: string;
   iso: Date;
 } {
   const next = addMinutes(date, 25);
+
+  return {
+    date: format(next, "yyyy-MM-dd"),
+    time: format(next, "HH:mm"),
+    iso: next,
+  };
+}
+
+/**
+ * Adds n minutes to the provided date (or now)
+ * @returns { date: 'yyyy-MM-dd', time: 'HH:mm' }
+ */
+export function addNMinutes(
+  date: Date = timeZone().iso,
+  minutes: number = 5,
+): {
+  date: string;
+  time: string;
+  iso: Date;
+} {
+  const next = addMinutes(date, minutes);
 
   return {
     date: format(next, "yyyy-MM-dd"),
