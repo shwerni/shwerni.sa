@@ -2,7 +2,7 @@
 import { meetingUrl } from "@/utils";
 import { dateToString, meetingLabel } from "@/utils/moment";
 // prisma types
-import { SessionType } from "@/lib/generated/prisma/client";
+import { SessionType, UserRole } from "@/lib/generated/prisma/client";
 
 // types
 import { Reservation } from "@/types/admin";
@@ -18,6 +18,7 @@ const formatCommonFields = (data: Reservation) => ({
   total: data.payment?.total,
   method: data.payment?.method,
   session: data.session,
+  meeting: data.meeting,
 });
 
 export const adminTelegramNewOrder = (data: Reservation) => {
@@ -31,22 +32,40 @@ price: ${total}`;
 };
 
 export const serviceTelegramNewOrder = (data: Reservation) => {
-  const { orderNo, consultant, phone, name, time, date, createdAt } =
+  const { orderNo, consultant, phone, name, time, date, createdAt, meeting } =
     formatCommonFields(data);
 
+  // participants
+  const user = meeting?.[0].participants.find(
+    (i) => i.role === UserRole.USER,
+  )?.participant;
+  const owner = meeting?.[0].participants.find(
+    (i) => i.role === UserRole.OWNER,
+  )?.participant;
+
   // validate
-  if (!time || !date) return "";
+  if (!time || !date || !meeting || !user || !owner)
+    return `تم حجز و دفع استشارة جديدة علي المنصة
+  
+  رقم الطلب: ${orderNo}
+  المستشار: ${consultant.name}
+  رقم المستشار: ${consultant.phone}
+  رابط التواصل مع المستشار: https://wa.me/${consultant.phone}
+  اسم العميل: ${name}
+  رقم العميل: ${phone}
+  رابط الواتس اب: https://wa.me/${phone}`;
 
   return `تم حجز و دفع استشارة جديدة علي المنصة
   
   رقم الطلب: ${orderNo}
   المستشار: ${consultant.name}
   رقم المستشار: ${consultant.phone}
+  رابط التواصل مع المستشار: https://wa.me/${consultant.phone}
   اسم العميل: ${name}
   رقم العميل: ${phone}
   رابط الواتس اب: https://wa.me/${phone}
-  رابط الاجتماع للمستشار: ${meetingUrl(orderNo, true, 1)}
-  رابط الاجتماع للعميل: ${meetingUrl(orderNo, false, 1)}
+  رابط الاجتماع للمستشار: ${meetingUrl(meeting[0].mid, owner)}
+  رابط الاجتماع للعميل: ${meetingUrl(meeting[0].mid, user)}
   موعد الحجز: ${meetingLabel(time, date)}
   التاريخ الحجز: ${dateToString(createdAt)}`;
 };

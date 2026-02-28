@@ -158,7 +158,7 @@ export default function StepDateTime({ form, onNext }: Props) {
   }
 
   return (
-    <div className="flex flex-col lg:grid lg:grid-cols-3 lg:gap-x-2 space-y-3">
+    <div className="flex flex-col lg:grid lg:grid-cols-3 lg:gap-x-2 space-y-4">
       {/* calendar */}
       <Controller
         name="date"

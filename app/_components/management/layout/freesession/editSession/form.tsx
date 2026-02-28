@@ -103,8 +103,8 @@ export default function EditFreeSessionForm({ session, lang }: Props) {
       {/* URLs */}
       <div className="flex flex-col gap-2">
         {/* later free session seprate url */}
-        {Url(isEn ? "client url" : "رابط العميل", meetingUrl(session.fid, false, 1))}
-        {Url(isEn ? "owner url" : "رابط المستشار", meetingUrl(session.fid, true, 1))}
+        {Url(isEn ? "client url" : "رابط العميل", meetingUrl(String(session.fid), ""))}
+        {Url(isEn ? "owner url" : "رابط المستشار", meetingUrl(String(session.fid), ""))}
         {session.url && Url(isEn ? "google url" : "رابط مباشر", session.url)}
       </div>
 

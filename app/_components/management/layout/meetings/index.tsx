@@ -300,7 +300,11 @@ export function EmployeeMeetings({ time, date, lang, role }: Props) {
                 <DropdownMenuItem
                   onClick={() =>
                     navigator.clipboard.writeText(
-                      meetingUrl(o.oid, false, m.session),
+                      meetingUrl(
+                        m.mid,
+                        m.participants.find((i) => i.role === UserRole.USER)
+                          ?.participant || "",
+                      ),
                     )
                   }
                 >
@@ -309,7 +313,11 @@ export function EmployeeMeetings({ time, date, lang, role }: Props) {
                 <DropdownMenuItem
                   onClick={() =>
                     navigator.clipboard.writeText(
-                      meetingUrl(o.oid, true, m.session),
+                      meetingUrl(
+                        m.mid,
+                        m.participants.find((i) => i.role === UserRole.OWNER)
+                          ?.participant || "",
+                      ),
                     )
                   }
                 >

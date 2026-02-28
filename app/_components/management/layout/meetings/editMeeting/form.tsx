@@ -129,10 +129,17 @@ export default function EditMeetingForm({
     defaultValues: {
       done: meeting?.done,
       time: meeting?.time ?? "",
-      consultantAttendance: meeting?.participants.find((i)=> i.role === UserRole.OWNER)?.attended ?? false,
-      clientAttendance: meeting?.participants.find((i)=> i.role === UserRole.USER)?.attended ?? false,
-      clientJoinedAt: meeting?.participants.find((i)=> i.role === UserRole.USER)?.time ?? "",
-      consultantJoinedAt: meeting?.participants.find((i)=> i.role === UserRole.OWNER)?.time ?? "",
+      consultantAttendance:
+        meeting?.participants.find((i) => i.role === UserRole.OWNER)
+          ?.attended ?? false,
+      clientAttendance:
+        meeting?.participants.find((i) => i.role === UserRole.USER)?.attended ??
+        false,
+      clientJoinedAt:
+        meeting?.participants.find((i) => i.role === UserRole.USER)?.time ?? "",
+      consultantJoinedAt:
+        meeting?.participants.find((i) => i.role === UserRole.OWNER)?.time ??
+        "",
       url: meeting?.url ?? "",
     },
   });
@@ -163,12 +170,20 @@ export default function EditMeetingForm({
           {/* copy client url */}
           <MeetingUlrs
             label={isEn ? "client url" : "رابط العميل"}
-            value={meetingUrl(meeting?.orderId, false, meeting?.session ?? 1)}
+            value={meetingUrl(
+              meeting?.mid,
+              meeting.participants.find((i) => i.role === UserRole.USER)
+                ?.participant || "",
+            )}
           />
           {/* copy owner url */}
           <MeetingUlrs
             label={isEn ? "owner url" : "رابط المستشار"}
-            value={meetingUrl(meeting?.orderId, true, meeting?.session ?? 1)}
+            value={meetingUrl(
+              meeting?.mid,
+              meeting.participants.find((i) => i.role === UserRole.OWNER)
+                ?.participant || "",
+            )}
           />
           {/* copy google meet */}
           {meeting?.url && (

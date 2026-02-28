@@ -32,7 +32,6 @@ import { itimes } from "@/constants";
 import { timeZone } from "@/lib/site/time";
 import { dateTimeToString } from "./moment";
 import { mainRoute } from "@/constants/links";
-import { zencryption } from "./admin/encryption";
 
 // packages
 import crypto from "crypto";
@@ -164,15 +163,9 @@ export const orderInfoLabel = (
 };
 
 // meeting url
-export const meetingUrl = (
-  oid: number,
-  consultant: boolean | undefined,
-  session?: number,
-) => {
+export const meetingUrl = (mid: string, participant: string) => {
   // return
-  return `${mainRoute}/meetings/${zencryption(oid)}?participant=${
-    consultant ? "owner" : "client"
-  }&session=${session ?? 1}`;
+  return `${mainRoute}/meetings/${mid}?participant=${participant}`;
 };
 
 // payment method label

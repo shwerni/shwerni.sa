@@ -16,14 +16,13 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
-import CopyText from "@/app/_components/layout/copyText";
 import { OrderStatus } from "@/app/_components/layout/zStatus";
 import PayBtn from "@/app/_components/layout/orderCard/payButton";
 import OrderReason from "@/app/_components/layout/orderCard/brief";
 import RefundBtn from "@/app/_components/layout/orderCard/refundButton";
 
 // prisma types
-import { PaymentState } from "@/lib/generated/prisma/enums";
+import { PaymentState, UserRole } from "@/lib/generated/prisma/enums";
 
 // utils
 import { meetingUrl, totalAfterTax } from "@/utils";
@@ -35,6 +34,7 @@ import { Reservation } from "@/types/admin";
 
 // icons
 import { CircleCheck } from "lucide-react";
+import CopyButton from "@/components/shared/copy-button";
 
 // Props
 interface Props {
@@ -46,11 +46,11 @@ interface Props {
 // copy meeting url
 const CopyMeetingUrl = ({ url }: { url: string }) => {
   return (
-    <CopyText
-      text={url}
-      title="اضغط لنسخ الرابط"
-      style="pb-1 px-1 text-zblack-200 text-sm text-center text-nowrap font-medium border-b-2 border-zblue-200"
-      hide={true}
+    <CopyButton
+      value={url}
+      hideLabel
+      // label="اضغط لنسخ الرابط"
+      className="pb-1 px-1 text-xs text-center text-nowrap font-medium border-b-2 border-zblue-200"
     />
   );
 };
@@ -63,12 +63,17 @@ export default function OrderCard({ order, owner, time }: Props) {
   const payment = order.payment;
 
   // meeting url
-  const url = meetingUrl(order.oid, owner, 1);
+  const url = meetingUrl(
+    meeting?.[0].mid || "",
+    meeting?.[0].participants.find(
+      (i) => i.role === (owner ? UserRole.OWNER : UserRole.USER),
+    )?.participant || "",
+  );
 
   // return
   if (payment && meeting)
     return (
-      <Card className="mb-3 mx-auto max-w-[400px]" dir="rtl">
+      <Card className="mb-3 mx-auto max-w-100" dir="rtl">
         <Accordion type="single" collapsible>
           <AccordionItem value="item-1">
             {/* trigger */}
