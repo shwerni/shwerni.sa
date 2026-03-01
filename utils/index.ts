@@ -165,7 +165,7 @@ export const orderInfoLabel = (
 // meeting url
 export const meetingUrl = (mid: string, participant: string) => {
   // return
-  return `${mainRoute}/meetings/${mid}?participant=${participant}`;
+  return `${mainRoute}meetings/${mid}?participant=${participant}`;
 };
 
 // payment method label

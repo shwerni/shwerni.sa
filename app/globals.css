@@ -4,6 +4,10 @@
 @custom-variant dark (&:is(.dark *));
 /* @import "uploadthing/tw/v4"; */
 
+@theme {
+  --breakpoint-xs: 30rem;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

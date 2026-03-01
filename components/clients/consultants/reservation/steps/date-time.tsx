@@ -2,7 +2,6 @@
 import React from "react";
 
 // components
-import { Field } from "@/components/ui/field";
 import {
   Accordion,
   AccordionContent,
@@ -165,7 +164,7 @@ export default function StepDateTime({ form, onNext }: Props) {
         control={control}
         render={({ field }) => (
           <Calendar
-            className="col-span-2 w-full max-w-lg pb-10 mx-auto data-[selected-single=true]:bg-white!"
+            className="col-span-2 w-full h-90 xs:h-110 sm:h-120 max-w-lg pb-10 mx-auto data-[selected-single=true]:bg-white!"
             buttonVariant="ghost"
             classNames={{
               disabled: cn(classNames.disabled, "text-gray-500 line-through"),
