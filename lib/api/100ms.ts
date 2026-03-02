@@ -16,8 +16,6 @@ export async function CreateHMSToken(
   userId: string,
   role: "speaker" | "listener" = "speaker",
 ) {
-  console.log(userId);
-
   try {
     // check if room exist
     let room = await getRoom(roomName);
@@ -58,8 +56,7 @@ export async function CreateHMSToken(
           ),
         );
     } catch {
-      // return
-      return;
+      // 404 = no active session, room is empty, nothing to clean up
     }
 
     // get auth token
