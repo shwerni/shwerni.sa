@@ -115,7 +115,7 @@ const replay = async (
 ) => {
   try {
     // check limit
-    if (from! == "201222166530") {
+    if (from !== "201222166530") {
       const allowed = await checkBotLimit(from);
 
       if (!allowed) {
@@ -139,6 +139,7 @@ const replay = async (
     return NextResponse.json({}, { status: 404 });
   }
 };
+
 // custom action for review flow
 async function handleReviewFlow(
   phone: string,

@@ -13,9 +13,10 @@ import {
 // components
 import Room from "./room";
 import Section from "../../shared/section";
+import { Button } from "@/components/ui/button";
+import OrderTitle from "../../shared/order-title";
 import { toast } from "@/components/shared/toast";
 import { Separator } from "@/components/ui/separator";
-import { OrderInfoRow } from "../../shared/order-info";
 
 // prisma types
 import { UserRole } from "@/lib/generated/prisma/enums";
@@ -28,10 +29,7 @@ import { Lang } from "@/types/types";
 import { Reservation } from "@/types/admin";
 
 // icon
-import { User, UserPlus } from "lucide-react";
-import { FaUserDoctor } from "react-icons/fa6";
-import { Button } from "@/components/ui/button";
-import OrderTitle from "../../shared/order-title";
+import {UserPlus } from "lucide-react";
 
 type RoomUser = {
   id: string | null;

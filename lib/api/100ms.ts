@@ -57,7 +57,10 @@ export async function CreateHMSToken(
             }),
           ),
         );
-    } catch {}
+    } catch {
+      // return
+      return;
+    }
 
     // get auth token
     const token = await hms.auth.getAuthToken({

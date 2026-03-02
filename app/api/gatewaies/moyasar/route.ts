@@ -13,6 +13,12 @@ export async function POST(request: Request) {
   // moyasar webhook data
   const payment = data.payments[0];
 
+  // valudate
+  if (!payment) return NextResponse.json({
+      success: false,
+      message: "payment handler error: no payment data",
+    });
+
   // sending payment handler
   try {
     // moyasar payment handler

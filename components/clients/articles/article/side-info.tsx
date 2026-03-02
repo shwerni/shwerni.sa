@@ -6,6 +6,8 @@ import { FaStethoscope } from "react-icons/fa6";
 import { ClipboardCheck, User } from "lucide-react";
 
 const ArticleSideInfo = ({ side }: { side: { h3: string; p: string }[] }) => {
+  if (!side || side.length === 0) return null;
+
   return (
     <div className="flex flex-col items-center space-y-8">
       <CardColors

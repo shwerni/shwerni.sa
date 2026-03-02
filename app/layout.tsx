@@ -21,6 +21,7 @@ import ReCaptchaWrapper from "@/components/wrappers/recaptcha";
 
 // upload thing
 import { extractRouterConfig } from "uploadthing/server";
+import { ourFileRouter } from "@/app/api/uploadthing/core";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 
 // scripts
@@ -33,7 +34,6 @@ import "@/app/globals.css";
 
 // constants
 import { defaultMetaApi } from "@/constants";
-import { ourFileRouter } from "@/app/api/uploadthing/core";
 
 // font
 const font = IBM_Plex_Sans_Arabic({

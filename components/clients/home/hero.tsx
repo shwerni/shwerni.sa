@@ -18,6 +18,7 @@ const Hero = () => {
         fill
         className="hidden sm:block object-cover"
         priority
+        sizes="100vw"
       />
       {/* mobile background image */}
       <Image
@@ -25,7 +26,7 @@ const Hero = () => {
         alt="hero background"
         fill
         className="sm:hidden object-cover"
-        priority
+        sizes="100vw"
       />
 
       {/* overlay */}
@@ -39,6 +40,7 @@ const Hero = () => {
             alt="shwerni"
             width={25}
             height={25}
+            priority
           />
           <h5 className="text-white text-lg font-medium">
             قراراتك تبدأ من استشارة صحيحة

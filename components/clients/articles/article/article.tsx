@@ -133,7 +133,7 @@ const Article = ({ article, body, side }: Props) => {
         </div>
         {/* left side: desktop */}
         <div className="hidden md:block col-span-2">
-          <ArticleSideInfo side={side} />
+          {side.length > 0 && <ArticleSideInfo side={side} />}
         </div>
       </div>
       {/* footer */}
@@ -148,7 +148,7 @@ const Article = ({ article, body, side }: Props) => {
           <Newspaper className="w-4 text-[#094577]" />
           <h3 className="text-[#094577] font-semibold">معلومات قد تهمك</h3>
         </div>
-        <ArticleSideInfo side={side} />
+        {side.length > 0 && <ArticleSideInfo side={side} />}
       </div>
     </div>
   );

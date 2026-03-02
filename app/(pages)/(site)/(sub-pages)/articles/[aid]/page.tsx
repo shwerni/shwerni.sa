@@ -104,7 +104,7 @@ function extractArticleSideFast(
   selected.forEach((h3) => {
     const $h3 = $(h3);
     const title = $h3.text().trim();
-
+    if (!title) return;
     let text = "";
     let next = $h3.next();
 

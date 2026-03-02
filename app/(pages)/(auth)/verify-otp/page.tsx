@@ -2,7 +2,6 @@
 import { Metadata } from "next";
 
 // components
-import { toast } from "@/components/shared/toast";
 import VerifyOtp from "@/components/auth/verify-otp";
 import Error404 from "@/components/shared/error-404";
 
@@ -32,8 +31,7 @@ const Page = async ({ searchParams }: Props) => {
   const data = await checkToken(token);
 
   // toast
-  if (data.state == false)
-    toast.error({ title: "خطأ في التحقق", message: data.message || "" });
+  if (data.state == false) return <Error404 />;
 
   // validate
   if (!data.phone || !data.otp || !data.name) return <Error404 />;
