@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       const messages = value?.messages;
 
       // validate
-      if (!messages && messages.length <= 0)
+      if (!messages || messages?.length <= 0)
         return NextResponse.json(
           { message: "No messages to process" },
           { status: 404 },
