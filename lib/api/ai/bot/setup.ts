@@ -131,10 +131,10 @@ Do not add reassurance, apologies, or statements implying the issue is already h
 شاورني هي منصة وطنية سعودية معتمدة تقدم جلسات استشارية أسرية ونفسية عبر الإنترنت بسرية وخصوصية كاملة.
 
 🔗 Useful Public Links:
-- التسجيل: https://shwerni.sa/auth/register
-- تسجيل الدخول: https://shwerni.sa/auth/login
-- استعادة كلمة المرور: https://shwerni.sa/auth/forgetpassword
-- حجز موعد: https://shwerni.sa/available
+- التسجيل: https://shwerni.sa/register
+- تسجيل الدخول: https://shwerni.sa/login
+- استعادة كلمة المرور: https://shwerni.sa/verify-otp
+- حجز موعد: https://shwerni.sa/consultants
 - الدعم الفني: https://wa.me/966554117879
 
 👨‍🏫 Consultant (Owner) Dashboard
@@ -161,6 +161,7 @@ Subpages:
 /contact — تواصل معنا
 /privacy — سياسة الخصوصية
 
+Meetings are strictly audio-only (no video), hosted inside the platform itself.
 ---
 
 🎯 AVAILABLE ACTIONS

@@ -4,9 +4,6 @@ import { useTheme } from "next-themes";
 // components
 import PhoneInput from "react-phone-input-2";
 
-// css
-import "react-phone-input-2/lib/style.css";
-
 // constants
 import arPhone from "@/constants/phone/countries-phone.json";
 

@@ -31,6 +31,29 @@ export async function getCollaboratorById(id: string) {
     return null;
   }
 }
+// get collaborator
+export async function getCollaborator(id: string) {
+  try {
+    // get collaborator
+    const collaborator = await prisma.collaboration.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+        name: true,
+        image: true,
+        status: true,
+      },
+    });
+
+    // return
+    return collaborator;
+  } catch {
+    // return
+    return null;
+  }
+}
 
 // get collaborator
 export async function getCollaboratorByAuthor(userId: string) {
@@ -54,11 +77,12 @@ export async function getCollaboratorByAuthor(userId: string) {
 export async function getOrdersForCollaboration(
   collaboratorId: string,
   page: number,
-  search: string
+  search: string,
 ) {
   const limit = 10;
   const skip = (page - 1) * limit;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let where: any = { collaboratorId };
 
   // handle search
@@ -111,7 +135,7 @@ export async function getOrdersForCollaboration(
 // dues
 export const getTotalDuesCollaboratorByMonth = async (
   collaboratorId: string,
-  range: string
+  range: string,
 ) => {
   try {
     const pDate = moment(range, "MM-YYYY");
@@ -172,7 +196,7 @@ export const getTotalDuesCollaboratorByMonth = async (
 
         return acc;
       },
-      {}
+      {},
     );
 
     const groupedArray = Object.entries(groupedOrders).map(([cid, data]) => ({
@@ -214,7 +238,7 @@ export const getTotalDuesCollaboratorByMonth = async (
 export async function upsertCollaboration(
   userId: string,
   name: string,
-  image: string
+  image: string,
 ) {
   try {
     const collaboration = await prisma.collaboration.upsert({

@@ -4,19 +4,12 @@ import ConsultantProfile from "@/components/clients/consultants/consultant/profi
 
 // prisma data
 import { getConsultant } from "@/data/consultant";
-import { getCollaboratorById } from "@/data/admin/collaboration";
 
 // hooks
 import { userServer } from "@/lib/auth/server";
 import { getFavorite } from "@/data/favorites";
 
-const Consultant = async ({
-  cid,
-  collaboration,
-}: {
-  cid: number;
-  collaboration?: string;
-}) => {
+const Consultant = async ({ cid }: { cid: number; collaboration?: string }) => {
   // user
   const user = await userServer();
 
@@ -25,11 +18,6 @@ const Consultant = async ({
 
   // get favorite
   const favorite = user?.id ? await getFavorite(user?.id, cid) : false;
-  
-  // collaborator
-  const collaborator = collaboration
-    ? await getCollaboratorById(collaboration)
-    : null;
 
   // if not exist
   if (!consultant) return <Error404 />;
@@ -39,7 +27,6 @@ const Consultant = async ({
       user={user}
       favorite={favorite}
       consultant={consultant}
-      collaboration={collaborator}
     />
   );
 };

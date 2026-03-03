@@ -29,7 +29,7 @@ import { Lang } from "@/types/types";
 import { Reservation } from "@/types/admin";
 
 // icon
-import {UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 
 type RoomUser = {
   id: string | null;
@@ -125,7 +125,8 @@ export default function MeetingRoom({
 
       // return
       return true;
-    } catch {
+    } catch (error) {
+      console.log(error);
       // toast
       toast.error({ message: "حدث خطأ ما, برجاء تحديث الصفحة" });
       // return

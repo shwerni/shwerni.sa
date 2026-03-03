@@ -3,6 +3,7 @@ import Hero from "@/components/clients/home/hero";
 import Join from "@/components/clients/home/join";
 import Steps from "@/components/clients/home/steps";
 import Sticky from "@/components/clients/home/instant";
+import ChatButton from "@/components/clients/bot/button";
 import Benefits from "@/components/clients/home/benefits";
 import Categories from "@/components/clients/home/categories";
 import Reviews from "@/components/clients/home/reviews/reviews";
@@ -16,6 +17,8 @@ const Home = async () => {
     <>
       {/* instant sticky */}
       <Sticky />
+      {/* whatsapp btn */}
+      <ChatButton />
       {/* hero */}
       <Hero />
       {/* categories */}

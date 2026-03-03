@@ -2,9 +2,11 @@
 // prisma
 import prisma from "@/lib/database/db";
 
+// utils
+import { randomId } from "@/utils";
+
 // prisma types
 import { UserRole } from "@/lib/generated/prisma/enums";
-import { randomId } from "@/utils";
 
 // get created room
 export const getRoom = async (roomName: string) => {
@@ -41,8 +43,6 @@ export const createRoom = async (
     return null;
   }
 };
-
-
 
 // create order room participant
 export const createParticipants = async (mid: string) => {

@@ -13,7 +13,7 @@ const WhatsappBtn = () => {
         duration: 0.9,
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="fixed bottom-2 right-0 sm:bottom-3 sm:right-3 flex items-center justify-center w-24 z-50"
+      className="fixed bottom-2 left-0 sm:bottom-3 sm:left-3 flex items-center justify-center w-24 z-50"
     >
       <span className="absolute h-12 w-12 animate-ping rounded-full bg-green-200 duration-[3000] -z-1"></span>
       <a

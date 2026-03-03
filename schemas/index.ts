@@ -352,6 +352,7 @@ export const reservationSchema = z
     user: z.string(),
     cid: z.number(),
     consultant: z.string(),
+    collaboration: z.string().optional().nullable(),
     unavailable: z.array(z.nativeEnum(Weekday)),
     cost: z.object({
       30: z.number().positive(),

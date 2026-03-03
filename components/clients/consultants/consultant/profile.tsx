@@ -2,11 +2,7 @@
 import React from "react";
 
 // lib
-import {
-  Consultant,
-  Collaboration,
-  GenderPreference,
-} from "@/lib/generated/prisma/client";
+import { Consultant, GenderPreference } from "@/lib/generated/prisma/client";
 
 // types
 import { User } from "next-auth";
@@ -36,7 +32,6 @@ import FavoriteBtn from "@/components/shared/favorite-btn";
 interface Props {
   user?: User;
   favorite: boolean;
-  collaboration: Collaboration | null;
   // prettier-ignore
   consultant: 
   Consultant 
@@ -48,7 +43,6 @@ interface Props {
 const ConsultantProfile: React.FC<Props> = ({
   user,
   favorite,
-  collaboration,
   consultant,
 }: Props) => {
   // consultant summary

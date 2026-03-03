@@ -32,7 +32,6 @@ import { createParticipants } from "../room";
 export const reserveConsultant = async (
   formdata: ReservationFormType,
   total: number,
-  collaboration?: string,
 ) => {
   try {
     // parse
@@ -83,7 +82,8 @@ export const reserveConsultant = async (
 
     // collaboration info
     const collaborator = await prisma.collaboration.findUnique({
-      where: { id: collaboration ?? "" },
+      where: { id: data.collaboration ?? "" },
+      select: { id: true, status: true },
     });
 
     // create new reservation
@@ -1022,7 +1022,7 @@ export const cancelOrderByOid = async (oid: number) => {
 export const UpdateConsultationAnswer = async (oid: number, answer: string) => {
   try {
     // answer initial state
-     await prisma.order.findUnique({
+    await prisma.order.findUnique({
       where: { oid },
       select: {
         oid: true,

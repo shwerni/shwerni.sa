@@ -27,6 +27,7 @@ import {
 // constants
 import { mainRoute } from "@/constants/links";
 import { cacheLife } from "next/cache";
+import CollaborationBadge from "@/components/shared/collaboration-badge";
 
 // cache meta data
 const getConsultantMetaData = async (cid: number) => {
@@ -167,8 +168,20 @@ const Page = async ({ params, searchParams }: Props) => {
         </Suspense>
       </div>
       <Suspense fallback={<CardSkeleton count={1} className="w-full" />}>
-        {consultant.status && <ConsultantReserve cid={cidN}/>}
+        {consultant.status && <ConsultantReserve cid={cidN} collaboration={collaboration}/>}
       </Suspense>
+      {collaboration && (
+        <Suspense
+          fallback={
+            <CardSkeleton
+              count={1}
+              className="fixed bottom-6 left-6 z-50 bg-white/90 backdrop-blur-md border border-gray-200 shadow-lg rounded-2xl p-3 transition-all hover:scale-[1.03]"
+            />
+          }
+        >
+          <CollaborationBadge collaboration={collaboration} />
+        </Suspense>
+      )}
     </div>
   );
 };

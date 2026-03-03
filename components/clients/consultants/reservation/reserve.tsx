@@ -13,9 +13,10 @@ import { userServer } from "@/lib/auth/server";
 // props
 interface Props {
   cid: number;
+  collaboration?: string;
 }
 
-const ConsultantReserve = async ({ cid }: Props) => {
+const ConsultantReserve = async ({ cid, collaboration }: Props) => {
   // user
   const user = await userServer();
 
@@ -46,6 +47,7 @@ const ConsultantReserve = async ({ cid }: Props) => {
         consultant={info?.name}
         finance={finance}
         unavailable={[...unavailable]}
+        collaboration={collaboration}
       />
     </div>
   );

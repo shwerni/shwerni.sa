@@ -26,8 +26,12 @@ export default auth((req) => {
   const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
   // is dynamic Public routes ex: "/consultant/1"
   const isDynamicPublicRoute = DynamicpublicRoutes.some((route) =>
-    nextUrl.pathname.startsWith(route)
+    nextUrl.pathname.startsWith(route),
   );
+
+  // deprecated pages redirection
+  if (nextUrl.pathname === "/available")
+    return Response.redirect(new URL("/consultants", nextUrl));
 
   // auth logic
   // auth API route always allow ex: "/api/auth"

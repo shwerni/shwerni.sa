@@ -105,11 +105,15 @@ export async function generateMetadata({
 // props
 type Props = {
   params: Promise<{ cid: string }>;
+  searchParams: Promise<{
+    collaboration?: string;
+  }>;
 };
 
 // return
-export default async function OwnerConultant({ params }: Props) {
+export default async function OwnerConultant({ params, searchParams }: Props) {
   const { cid } = await params;
+  const { collaboration } = await searchParams;
 
-  permanentRedirect(`/consultants/${cid}`);
+  permanentRedirect(`/consultants/${cid}?collaboration=${collaboration}`);
 }

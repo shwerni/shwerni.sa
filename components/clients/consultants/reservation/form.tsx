@@ -46,6 +46,7 @@ interface Props {
   finance: FinanceConfig;
   user?: User;
   consultant: string;
+  collaboration?: string;
 }
 
 export default function ReservationForm({
@@ -55,6 +56,7 @@ export default function ReservationForm({
   finance,
   consultant,
   unavailable,
+  collaboration,
 }: Props) {
   // steps labels
   const steps = ["التاريخ والوقت", "بيانات الاستشارة", "التأكيد والدفع"];
@@ -74,6 +76,7 @@ export default function ReservationForm({
       order: "consultant",
       cid,
       consultant,
+      collaboration,
       cost,
       finance,
       unavailable,
