@@ -9,7 +9,6 @@ import { sendWhatsappText } from "@/lib/api/whatsapp";
 import { checkBotLimit } from "@/data/admin/bot";
 import { upsertWhatsappChat } from "@/data/whatsapp";
 import { acceptWhatsappReview } from "@/data/review";
-import { telegramAdmin } from "@/lib/api/telegram/telegram";
 
 // handle webhook (whatsApp incoming messages)
 export async function POST(request: NextRequest) {
@@ -83,7 +82,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({}, { status: 200 });
   } catch (error) {
-    telegramAdmin(String(error));
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 },
