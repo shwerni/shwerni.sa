@@ -9,7 +9,7 @@ import { getConsultant } from "@/data/consultant";
 import { userServer } from "@/lib/auth/server";
 import { getFavorite } from "@/data/favorites";
 
-const Consultant = async ({ cid }: { cid: number; collaboration?: string }) => {
+const Consultant = async ({ cid }: { cid: number; }) => {
   // user
   const user = await userServer();
 
