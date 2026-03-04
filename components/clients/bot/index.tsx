@@ -26,7 +26,6 @@ const linkifyOptions = {
   className: "text-blue-600 underline",
 };
 
-// types
 interface Message {
   id: number;
   text: string;
@@ -41,27 +40,70 @@ interface ChatProps {
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
 }
 
+// Extracted as a pure component — avoids re-rendering all messages on each keystroke
+const MessageBubble = React.memo(({ message }: { message: Message }) => (
+  <div
+    className={cn(
+      "flex animate-fade-in",
+      message.sender === "user" ? "justify-end" : "justify-start",
+    )}
+  >
+    <div
+      className={cn(
+        "max-w-[80%] p-3 rounded-lg",
+        message.sender === "user"
+          ? "bg-zblue-200 text-white"
+          : "bg-secondary text-gray-800",
+      )}
+    >
+      {message.loading ? (
+        <div className="flex gap-1">
+          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100" />
+          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200" />
+        </div>
+      ) : (
+        <p
+          dir="rtl"
+          className={cn(
+            "text-xs text-right font-medium leading-4 wrap-break-word",
+            message.sender === "user" ? "text-white" : "text-gray-800",
+          )}
+        >
+          <Linkify options={linkifyOptions}>{message.text}</Linkify>
+        </p>
+      )}
+
+      {!message.loading && (
+        <span className="text-xs opacity-70 mt-1 block">
+          {message.timestamp.toLocaleTimeString("ar-EG", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+      )}
+    </div>
+  </div>
+));
+MessageBubble.displayName = "MessageBubble";
+
 const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
   const endRef = useRef<HTMLDivElement | null>(null);
-
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
-    requestAnimationFrame(() => {
-      endRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "end",
-      });
+    // rAF keeps this off the main thread during render
+    const raf = requestAnimationFrame(() => {
+      endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     });
+    return () => cancelAnimationFrame(raf);
   }, [messages]);
 
-  const handleSend = async () => {
-    // time
-    const { iso } = timeZone();
-
+  const handleSend = React.useCallback(async () => {
     if (!input.trim() || isSending) return;
 
+    const { iso } = timeZone();
     setIsSending(true);
 
     const userMessage: Message = {
@@ -84,7 +126,6 @@ const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
 
     try {
       const reply = await SendChatBot(input);
-
       setMessages((prev) =>
         prev.map((m) =>
           m.loading
@@ -113,7 +154,18 @@ const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
     } finally {
       setIsSending(false);
     }
-  };
+  }, [input, isSending, setMessages]);
+
+  // Allow Enter to send (Shift+Enter for newline)
+  const handleKeyDown = React.useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    },
+    [handleSend],
+  );
 
   return (
     <div className="fixed bottom-24 right-6 w-[90vw] sm:w-96 h-125 bg-background rounded-lg shadow-2xl flex flex-col z-50 animate-scale-in">
@@ -129,57 +181,11 @@ const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4 h-60" >
+      <ScrollArea className="flex-1 p-4 h-60">
         <div className="space-y-4">
-          {messages.map((message, index) => (
-            <div
-              key={message.id}
-              className={cn(
-                "flex animate-fade-in",
-                message.sender === "user" ? "justify-end" : "justify-start",
-              )}
-              style={{ animationDelay: `${index * 0.05}s` }}
-            >
-              <div
-                className={cn(
-                  "max-w-[80%] p-3 rounded-lg",
-                  message.sender === "user"
-                    ? "bg-zblue-200 text-white"
-                    : "bg-secondary text-gray-800",
-                )}
-              >
-                {message.loading ? (
-                  <div className="flex gap-1">
-                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100" />
-                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200" />
-                  </div>
-                ) : (
-                  <p
-                    dir="rtl"
-                    className={cn(
-                      "text-xs text-right font-medium leading-4 wrap-break-word",
-                      message.sender === "user"
-                        ? "text-white"
-                        : "text-gray-800",
-                    )}
-                  >
-                    <Linkify options={linkifyOptions}>{message.text}</Linkify>
-                  </p>
-                )}
-
-                {!message.loading && (
-                  <span className="text-xs opacity-70 mt-1 block">
-                    {message.timestamp.toLocaleTimeString("ar-EG", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                )}
-              </div>
-            </div>
+          {messages.map((message) => (
+            <MessageBubble key={message.id} message={message} />
           ))}
-
           <div ref={endRef} />
         </div>
       </ScrollArea>
@@ -190,6 +196,7 @@ const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="اكتب رسالتك..."
             disabled={isSending}
             className={cn(

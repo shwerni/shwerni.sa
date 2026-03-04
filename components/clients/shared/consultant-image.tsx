@@ -15,6 +15,7 @@ interface Props {
   size?: "xs" | "sm" | "base" | "default" | "lg";
   variant?: "avatar" | "default";
   className?: string;
+  priority?: boolean;
 }
 
 const sizes = {
@@ -31,6 +32,7 @@ const ConsultantImage = ({
   image,
   size = "default",
   className,
+  priority = false,
 }: Props) => {
   const fallback =
     gender === Gender.MALE ? "/svg/man-avatar.svg" : "/svg/woman-avatar.svg";
@@ -52,7 +54,8 @@ const ConsultantImage = ({
         sizes="160px"
         className="object-cover"
         quality={100}
-        priority={false}
+        priority={priority}
+        loading={priority ? "eager" : "lazy"}
       />
     </div>
   );

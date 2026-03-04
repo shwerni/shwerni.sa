@@ -1,14 +1,8 @@
 "use client";
-
-// react & next
-import React from "react";
+// React & Next
 import Image from "next/image";
-
-// packages
-import * as motion from "motion/react-client";
-
+import React, { lazy, Suspense } from "react";
 // components
-import BotChat from ".";
 import { Button } from "@/components/ui/button";
 
 // lib
@@ -17,7 +11,8 @@ import { timeZone } from "@/lib/site/time";
 // icons
 import { X } from "lucide-react";
 
-// types
+const BotChat = lazy(() => import("."));
+
 interface Message {
   id: number;
   text: string;
@@ -27,11 +22,9 @@ interface Message {
 }
 
 const ChatButton = () => {
-  // timezone
   const { iso } = timeZone();
-
-  // states
   const [isOpen, setIsOpen] = React.useState(false);
+  const [hasMounted, setHasMounted] = React.useState(false);
   const [messages, setMessages] = React.useState<Message[]>([
     {
       id: 1,
@@ -41,56 +34,53 @@ const ChatButton = () => {
     },
   ]);
 
+  const handleToggle = () => {
+    if (!hasMounted) setHasMounted(true);
+    setIsOpen((prev) => !prev);
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 80 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{
-        duration: 0.9,
-        ease: [0.22, 1, 0.36, 1],
-      }}
-      className="fixed bottom-2 right-0 sm:bottom-3 sm:right-3 flex items-center justify-center w-24 z-50"
-    >
+    <div className="fixed bottom-2 right-0 sm:bottom-3 sm:right-3 z-50">
       <Button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-4 right-4 h-14 w-14 bg-zblue-200 p-0 rounded-full shadow-lg hover:scale-110 transition-transform duration-300 z-50 overflow-hidden flex items-center justify-center"
+        onClick={handleToggle}
+        aria-label={isOpen ? "إغلاق المحادثة" : "فتح المحادثة"}
+        variant="primary"
+        className="fixed bottom-4 right-4 h-14 w-14 p-0 rounded-full shadow-lg hover:scale-110 transition-transform duration-300 z-50 overflow-hidden flex items-center justify-center"
       >
         {isOpen ? (
           <X className="h-7 w-7 text-white" />
         ) : (
-          // "say hi" wave and bounce animation
-          <motion.div
-            animate={{
-              y: [0, -4, 0],
-              rotate: [0, 15, -10, 15, 0],
-            }}
-            transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              repeatDelay: 3, 
-              ease: "easeInOut",
-            }}
-            className="w-full h-full flex items-center justify-center"
-          >
+          <div className="w-full h-full flex items-center justify-center animate-bot-wave">
             <Image
               alt="bot"
               src="/svg/bot.svg"
-              width={512}
-              height={512}
+              width={48}
+              height={48}
               className="w-full h-full object-cover p-1"
+              priority={false}
             />
-          </motion.div>
+          </div>
         )}
       </Button>
 
-      {isOpen && (
-        <BotChat
-          onClose={() => setIsOpen(false)}
-          messages={messages}
-          setMessages={setMessages}
-        />
+      {hasMounted && (
+        <div
+          className={
+            isOpen
+              ? "pointer-events-auto opacity-100 translate-y-0 transition-all duration-200"
+              : "pointer-events-none opacity-0 translate-y-2 transition-all duration-150"
+          }
+        >
+          <Suspense fallback={null}>
+            <BotChat
+              onClose={() => setIsOpen(false)}
+              messages={messages}
+              setMessages={setMessages}
+            />
+          </Suspense>
+        </div>
       )}
-    </motion.div>
+    </div>
   );
 };
 

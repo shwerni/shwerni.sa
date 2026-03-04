@@ -10,78 +10,64 @@ import { checkBotLimit } from "@/data/admin/bot";
 import { upsertWhatsappChat } from "@/data/whatsapp";
 import { acceptWhatsappReview } from "@/data/review";
 
+// type
+interface WebhookMessage {
+  from: string;
+  type: string;
+  text?: { body: string };
+  button?: { text: string };
+  interactive?: {
+    type?: string;
+    list_reply?: { title: string };
+    nfm_reply?: { response_json: string; body: string; name: string };
+  };
+}
+
+// handle webhook verification
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const mode = searchParams.get("hub.mode");
+  const token = searchParams.get("hub.verify_token");
+  const challenge = searchParams.get("hub.challenge");
+
+  if (!mode || !token) return new Response(null, { status: 400 });
+
+  if (mode === "subscribe" && token === process.env.WHATSAPP_PASS)
+    return new Response(challenge ?? "", { status: 200 });
+
+  return new Response(null, { status: 403 });
+}
+
 // handle webhook (whatsApp incoming messages)
 export async function POST(request: NextRequest) {
   try {
     // body
     const body = await request.json();
 
-    if (body.object) {
-      const entry = body.entry?.[0];
-      const changes = entry?.changes?.[0];
-      const value = changes?.value;
-      const messages = value?.messages;
+    if (!body.object) return NextResponse.json({}, { status: 200 });
 
-      // validate
-      if (!messages || messages?.length <= 0)
-        return NextResponse.json(
-          { message: "No messages to process" },
-          { status: 404 },
-        );
+    // value
+    const value = body.entry?.[0]?.changes?.[0]?.value;
+    const messages = value?.messages;
 
-      // const phoneId = value.metadata.phone_number_id;
-      const fromId = value.contacts?.[0]?.wa_id;
-      const from = messages[0].from;
-      const fromName = value.contacts?.[0]?.profile?.name;
-      const msg_body = messages[0];
+    // validate
+    if (!messages?.length)
+      return NextResponse.json(
+        { message: "No messages to process" },
+        { status: 404 },
+      );
 
-      // text message
-      let textMess = "";
+    // data
+    const msg = messages[0];
+    const from: string = msg.from;
+    const fromId: string = value.contacts?.[0]?.wa_id ?? from;
+    const fromName: string = value.contacts?.[0]?.profile?.name ?? "مجهول";
 
-      // normal text
-      if (msg_body.type === "text" && msg_body.text?.body) {
-        textMess = msg_body.text.body;
-        await replay(from, fromId, fromName, textMess);
-      }
-
-      // button replies
-      else if (msg_body.type === "button" && msg_body.button?.text) {
-        textMess = msg_body.button.text;
-      }
-
-      // list replies
-      else if (
-        msg_body.type === "interactive" &&
-        msg_body.interactive?.list_reply
-      ) {
-        textMess = msg_body.interactive.list_reply.title;
-      }
-
-      // flow replies (survey / form)
-      else if (
-        (msg_body.type === "interactive" ||
-          msg_body.interactive?.type === "nfm_reply") &&
-        msg_body.interactive?.nfm_reply
-      ) {
-        const nfmReply = msg_body.interactive.nfm_reply;
-
-        if (nfmReply.response_json) {
-          const flow = JSON.parse(nfmReply.response_json);
-          await handleReviewFlow(from, flow);
-        }
-      }
-
-      // return
-      if (!textMess) return NextResponse.json({}, { status: 200 });
-
-      // simple admin test
-      if (from === "201227502703") {
-        await sendWhatsappText(from, "بحب يا جنتي ❤️");
-      }
-    }
+    // handle message route
+    await routeMessage(from, fromId, fromName, msg);
 
     return NextResponse.json({}, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 },
@@ -89,31 +75,53 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// handle webhook verification
-export async function GET(request: NextRequest) {
-  const url = new URL(request.url);
-  const mode = url.searchParams.get("hub.mode");
-  const token = url.searchParams.get("hub.verify_token");
-  const challenge = url.searchParams.get("hub.challenge");
-
-  if (mode && token) {
-    if (mode === "subscribe" && token === process.env.WHATSAPP_PASS) {
-      return new Response(challenge || "", { status: 200 });
-    } else {
-      return new Response(null, { status: 403 });
-    }
-  }
-
-  return new Response(null, { status: 400 });
-}
-// handle replay
-const replay = async (
+// handle message route
+async function routeMessage(
   from: string,
   fromId: string,
   fromName: string,
-  textMess: string,
-) => {
+  msg: WebhookMessage,
+) {
+  // Plain text → full bot flow
+  if (msg.type === "text" && msg.text?.body) {
+    await handleTextMessage(from, fromId, fromName, msg.text.body);
+    return;
+  }
+
+  // button reply → could extend later (analytics, quick-reply flows)
+  if (msg.type === "button" && msg.button?.text) {
+    // reserved for future handling
+    return;
+  }
+
+  // list reply
+  if (msg.type === "interactive" && msg.interactive?.list_reply) {
+    // reserved for future handling
+    return;
+  }
+
+  // flow / survey reply
+  if (msg.type === "interactive" && msg.interactive?.nfm_reply?.response_json) {
+    try {
+      const flow = JSON.parse(msg.interactive.nfm_reply.response_json);
+      // handle review flow
+      await handleReviewFlow(from, flow);
+    } catch {}
+    return;
+  }
+}
+
+// handle replay
+async function handleTextMessage(
+  from: string,
+  fromId: string,
+  fromName: string,
+  text: string,
+) {
   try {
+    // simple admin test
+    if (from === "201227502703") await sendWhatsappText(from, "بحب يا جنتي ❤️");
+
     // check limit
     if (from !== "201222166530") {
       const allowed = await checkBotLimit(from);
@@ -121,24 +129,23 @@ const replay = async (
       if (!allowed) {
         await sendWhatsappText(
           from,
-          `❌ لقد وصلت إلى الحد الأقصى لعدد الرسائل اليوم. حاول مرة أخرى غدًا./nالدعم الفني: https://wa.me/966554117879`,
+          `❌ لقد وصلت إلى الحد الأقصى لعدد الرسائل اليوم. حاول مرة أخرى غدًا.\nالدعم الفني: https://wa.me/966554117879`,
         );
 
-        return NextResponse.json({}, { status: 200 });
+        return;
       }
     }
 
-    // customer bot
-    await handleBotResponse(fromId, from, fromName, textMess);
-
-    // store in database
-    await upsertWhatsappChat(fromId, from, fromName, textMess);
-
-    return NextResponse.json({}, { status: 200 });
+    await Promise.all([
+      // customer bot replay
+      handleBotResponse(fromId, from, fromName, text),
+      // store in database
+      upsertWhatsappChat(fromId, from, fromName, text),
+    ]);
   } catch {
-    return NextResponse.json({}, { status: 404 });
+    return;
   }
-};
+}
 
 // custom action for review flow
 async function handleReviewFlow(
@@ -153,14 +160,15 @@ async function handleReviewFlow(
   // validate
   if (!oid || !rate || !name || !comment) return;
 
-  // post review
-  await acceptWhatsappReview(Number(oid), name, phone, rate, comment);
-
-  // Send confirmation to user
-  await sendWhatsappText(
-    phone,
-    "✨ شكراً لمشاركتنا رأيك!\n\nتم تسجيل تقييمك بنجاح 🙏💙\nرأيك يهمنا ويساعدنا نطوّر خدماتنا دائماً.",
-  );
+  await Promise.all([
+    // post review
+    acceptWhatsappReview(Number(oid), name, phone, rate, comment),
+    // send confirmation to user
+    sendWhatsappText(
+      phone,
+      "✨ شكراً لمشاركتنا رأيك!\n\nتم تسجيل تقييمك بنجاح 🙏💙\nرأيك يهمنا ويساعدنا نطوّر خدماتنا دائماً.",
+    ),
+  ]);
 }
 
 // telegram

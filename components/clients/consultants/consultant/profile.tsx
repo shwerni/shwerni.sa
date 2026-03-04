@@ -74,6 +74,7 @@ const ConsultantProfile: React.FC<Props> = ({
           image={consultant.image}
           gender={consultant.gender}
           size="lg"
+          priority={true}
         />
         {/* name & category & rate */}
         <div className="flex flex-col items-center sm:items-start gap-3 sm:gap-1.5">

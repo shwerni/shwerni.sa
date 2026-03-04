@@ -308,3 +308,16 @@ textarea::selection {
     height: 100%;
   }
 }
+
+/* bot animation */
+@keyframes bot-wave {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  20%       { transform: translateY(-4px) rotate(15deg); }
+  40%       { transform: translateY(0) rotate(-10deg); }
+  60%       { transform: translateY(-2px) rotate(15deg); }
+  80%       { transform: translateY(0) rotate(0deg); }
+}
+.animate-bot-wave {
+  animation: bot-wave 1.5s ease-in-out 2s infinite;
+  animation-play-state: running;
+}

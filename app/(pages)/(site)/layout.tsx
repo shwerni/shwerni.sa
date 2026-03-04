@@ -1,7 +1,7 @@
 // React & Next
 import Footer from "@/components/clients/footer";
 import Header from "@/components/clients/header/header";
-import WhatsappBtn from "@/components/clients/shared/whatsapp-btn";
+import ChatButton from "@/components/clients/bot/button";
 
 // lib
 import { userServer } from "@/lib/auth/server";
@@ -24,8 +24,8 @@ export default async function RootLayout({
       </div>
       {/* footer */}
       <Footer />
-      {/* whatsapp btn */}
-      <WhatsappBtn />
+      {/* ai bot btn */}
+      <ChatButton />
     </div>
   );
 }

@@ -308,7 +308,14 @@ export const getConsultantInfo = async (cid: number) => {
     // get current times
     const consultant = await prisma.consultant.findFirst({
       where: { cid },
-      select: { name: true, image: true, gender: true, approved: true },
+      select: {
+        name: true,
+        image: true,
+        gender: true,
+        approved: true,
+        statusA: true,
+        status: true,
+      },
     });
     // return
     return consultant || null;
