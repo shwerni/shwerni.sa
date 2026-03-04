@@ -5,7 +5,7 @@
 export const publicRoutes = [
   // pages
   "/",
-  "/contact",
+  "/contact-us",
   "/centers",
   "/event",
   "/coupons",
@@ -32,6 +32,7 @@ export const publicRoutes = [
 export const DynamicpublicRoutes = [
   // pages
   "/consultant",
+  "/consultants",
   "/available",
   "/centers",
   "/pay",

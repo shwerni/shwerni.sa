@@ -24,7 +24,7 @@ export default auth((req) => {
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);
   // is Public routes ex: "/" - home
   const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
-  // is dynamic Public routes ex: "/consultant/1"
+  // is dynamic Public routes ex: "/consultants/1"
   const isDynamicPublicRoute = DynamicpublicRoutes.some((route) =>
     nextUrl.pathname.startsWith(route),
   );

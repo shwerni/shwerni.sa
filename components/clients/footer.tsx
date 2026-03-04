@@ -2,10 +2,12 @@
 import Link from "next/link";
 import Image from "next/image";
 
+// components
+import Logo from "../shared/logo";
+
 // constant
 import { navLinks, subPages } from "@/constants/menu";
 import { paymentsFooter, contactUs, socialMedia } from "@/constants/data";
-import Logo from "../shared/logo";
 
 const Footer = () => {
   // links
@@ -85,7 +87,7 @@ const Footer = () => {
                 width={35}
                 height={35}
                 key={index}
-                className="w-[35px] h-[35px]"
+                className="w-8.75 h-8.75"
               />
             ))}
           </div>
@@ -117,14 +119,19 @@ const Footer = () => {
       <div className="flex flex-col justify-center items-center gap-5">
         <div className="flex items-center gap-5">
           {socialMedia.map((i, index) => (
-            <Link key={index} href={i.link}>
+            <a
+              key={index}
+              href={i.link}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <Image
                 src={"/svg/footer/" + i.icon}
                 alt={i.label}
                 width={20}
                 height={20}
               />
-            </Link>
+            </a>
           ))}
         </div>
         {/* copy rights */}
