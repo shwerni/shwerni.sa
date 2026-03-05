@@ -35,7 +35,7 @@ export const sendWhatsappTemplate = async (
     const response = await whatsapp.post("", body);
     //  return
     return response.data;
-  } catch {
+  } catch {    
     //  return
     return null;
   }

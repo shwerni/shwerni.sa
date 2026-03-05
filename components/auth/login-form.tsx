@@ -172,7 +172,7 @@ const LogInForm = () => {
               <Label className="text-xs text-gray-500">تذكرني</Label>
             </div>
             <Link
-              href="/forgetpassowrd"
+              href="/forget-password"
               className="text-gray-500 text-xs hover:underline"
             >
               هل نسيت كلمة المرور؟

@@ -59,11 +59,11 @@ export const DynamicpublicRoutes = [
  */
 export const authRoutes = [
   // auth
-  "/reset",
   "/login",
   "/register",
   "/verify-otp",
-  "/forgetpassword",
+  "/reset-password",
+  "/forget-password",
   // admin
   "/management-login",
 ];

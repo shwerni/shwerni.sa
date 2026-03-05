@@ -51,7 +51,7 @@ export const notificationSecurityOtp = async (
     );
     // return
     return true;
-  } catch {
+  } catch  {
     // return
     return null;
   }
