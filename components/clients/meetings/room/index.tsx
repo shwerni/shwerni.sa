@@ -46,6 +46,7 @@ interface Props {
   duration: string;
   order: Reservation;
   participant: string;
+  session?: boolean;
 }
 
 export default function MeetingRoom({
@@ -55,6 +56,7 @@ export default function MeetingRoom({
   duration,
   lang,
   participant,
+  session = false,
 }: Props) {
   // room name
   const roomName = order.oid + mid;
@@ -71,6 +73,7 @@ export default function MeetingRoom({
   // participants
   const allPeers = useHMSStore(selectPeers);
 
+  // peers
   const peers = React.useMemo(() => {
     const map = new Map<string, (typeof allPeers)[0]>();
     allPeers.forEach((peer) => {
@@ -97,7 +100,13 @@ export default function MeetingRoom({
 
     try {
       // get token
-      const auth = await CreateHMSToken(mid, order.oid, roomName, participant);
+      const auth = await CreateHMSToken(
+        mid,
+        order.oid,
+        roomName,
+        participant,
+        session,
+      );
 
       // join
       if (!auth) {

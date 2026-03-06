@@ -348,7 +348,7 @@ export default function Room({
       <Separator className="w-10/12 max-w-72 mx-auto" />
 
       {/* refresh hint */}
-      <div className="flex justify-center">
+      <div className="flex justify-center mt-6">
         <Button
           variant="outline"
           size="sm"

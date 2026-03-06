@@ -839,8 +839,8 @@ model Room {
   updatedAt DateTime @updatedAt
 
   // @relation
-  meetingId     String?      @unique
-  meeting       Meeting?     @relation(fields: [meetingId], references: [mid])
+  meetingId String?      @unique
+  meeting   Meeting?     @relation(fields: [meetingId], references: [mid])
   sessionId String?      @unique
   session   FreeSession? @relation(fields: [sessionId], references: [id])
 

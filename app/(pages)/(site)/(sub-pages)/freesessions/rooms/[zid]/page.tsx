@@ -98,6 +98,7 @@ export default async function Page({ params, searchParams }: Props) {
         duration={meeting.duration}
         participant={participant}
         mid={freesession.id}
+        session={true}
       />
     </HMSLayout>
   );

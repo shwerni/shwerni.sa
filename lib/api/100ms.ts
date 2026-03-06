@@ -14,6 +14,7 @@ export async function CreateHMSToken(
   orderId: number,
   roomName: string,
   userId: string,
+  session: boolean = false,
   role: "speaker" | "listener" = "speaker",
 ) {
   try {
@@ -30,7 +31,7 @@ export async function CreateHMSToken(
       });
 
       // create room
-      room = await createRoom(newRoom.id, meetingId, orderId);
+      room = await createRoom(newRoom.id, meetingId, orderId, session);
     }
 
     // validate
