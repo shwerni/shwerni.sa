@@ -11,6 +11,7 @@ export const publicRoutes = [
   "/coupons",
   "/terms",
   "/information",
+  "/freesessions",
   "/instant",
   "/event/eid",
   // apis

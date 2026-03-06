@@ -52,6 +52,7 @@ import {
   Users,
   Mic,
   Check,
+  RefreshCw,
 } from "lucide-react";
 
 // props
@@ -135,11 +136,11 @@ export default function Room({
 
   // toggle mute
   const handleMuteToggle = async () => {
+    // toggle sound
+    playRoomSound(isMicOn ? "toggle-close" : "toggle-open");
     try {
       // toggle state
       await hmsActions.setLocalAudioEnabled(!isMicOn);
-      // toggle sound
-      playRoomSound(isMicOn ? "toggle-close" : "toggle-open");
     } catch {
       // return
       return null;
@@ -158,28 +159,11 @@ export default function Room({
     playRoomSound(isDeafened ? "toggle-open" : "toggle-close");
   };
 
-  // handle output change
-  const handleAudioOutputChange = async (deviceId: string) => {
+  // handle audio input / output change
+  const handleDeviceChange = async (deviceId: string, type: DeviceType) => {
     try {
-      await updateDevice({
-        deviceId,
-        deviceType: DeviceType.audioOutput,
-      });
+      await updateDevice({ deviceId, deviceType: type });
     } catch {
-      // return
-      return null;
-    }
-  };
-
-  // handle output change
-  const handleAudioIntputChange = async (deviceId: string) => {
-    try {
-      await updateDevice({
-        deviceId,
-        deviceType: DeviceType.audioInput,
-      });
-    } catch {
-      // return
       return null;
     }
   };
@@ -240,127 +224,40 @@ export default function Room({
             </div>
             {/* devices */}
             <div className="flex justify-center items-center gap-2">
-              {/* change output audio settings */}
+              {/* Audio Output */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm">
                     <Volume2 className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="px-2 py-1.5 text-sm font-semibold">
-                    {isEn ? "Audio Output" : "مخرج الصوت"}
-                  </div>
-                  {allDevices?.audioOutput &&
-                  allDevices.audioOutput.length > 0 ? (
-                    <>
-                      {allDevices.audioOutput.map((device) => {
-                        const isSelected =
-                          selectedDeviceIDs?.audioOutput === device.deviceId;
-                        if (allDevices.audioOutput)
-                          return (
-                            <DropdownMenuItem
-                              key={device.deviceId}
-                              onClick={() =>
-                                handleAudioOutputChange(device.deviceId)
-                              }
-                              className={`cursor-pointer ${
-                                isSelected ? "bg-gray-100" : ""
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                {isSelected && <Check className="h-4 w-4" />}
-                                <span>
-                                  {device.label ||
-                                    (isEn
-                                      ? `Speaker ${
-                                          allDevices.audioOutput.indexOf(
-                                            device,
-                                          ) + 1
-                                        }`
-                                      : `سماعة ${
-                                          allDevices.audioOutput.indexOf(
-                                            device,
-                                          ) + 1
-                                        }`)}
-                                </span>
-                              </div>
-                            </DropdownMenuItem>
-                          );
-                      })}
-                    </>
-                  ) : (
-                    <DropdownMenuItem
-                      disabled
-                      className="text-muted-foreground"
-                    >
-                      {isEn
-                        ? "No audio devices found"
-                        : "لم يتم العثور على أجهزة صوت"}
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
+                <AudioDeviceMenu
+                  label={isEn ? "Audio Output" : "مخرج الصوت"}
+                  devices={allDevices?.audioOutput ?? []}
+                  selectedId={selectedDeviceIDs?.audioOutput}
+                  onSelect={(id) =>
+                    handleDeviceChange(id, DeviceType.audioOutput)
+                  }
+                  isEn={isEn}
+                />
               </DropdownMenu>
-              {/* change intput audio settings */}
+
+              {/* Audio Input */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm">
                     <Mic className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="px-2 py-1.5 text-sm font-semibold">
-                    {isEn ? "Audio intput" : "مدخل الصوت"}
-                  </div>
-                  {allDevices?.audioInput &&
-                  allDevices.audioInput.length > 0 ? (
-                    <>
-                      {allDevices.audioInput.map((device) => {
-                        const isSelected =
-                          selectedDeviceIDs?.audioInput === device.deviceId;
-                        if (allDevices.audioInput)
-                          return (
-                            <DropdownMenuItem
-                              key={device.deviceId}
-                              onClick={() =>
-                                handleAudioIntputChange(device.deviceId)
-                              }
-                              className={`cursor-pointer ${
-                                isSelected ? "bg-gray-100" : ""
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                {isSelected && <Check className="h-4 w-4" />}
-                                <span>
-                                  {device.label ||
-                                    (isEn
-                                      ? `Speaker ${
-                                          allDevices.audioInput.indexOf(
-                                            device,
-                                          ) + 1
-                                        }`
-                                      : `سماعة ${
-                                          allDevices.audioInput.indexOf(
-                                            device,
-                                          ) + 1
-                                        }`)}
-                                </span>
-                              </div>
-                            </DropdownMenuItem>
-                          );
-                      })}
-                    </>
-                  ) : (
-                    <DropdownMenuItem
-                      disabled
-                      className="text-muted-foreground"
-                    >
-                      {isEn
-                        ? "No audio devices found"
-                        : "لم يتم العثور على أجهزة صوت"}
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
+                <AudioDeviceMenu
+                  label={isEn ? "Audio Input" : "مدخل الصوت"}
+                  devices={allDevices?.audioInput ?? []}
+                  selectedId={selectedDeviceIDs?.audioInput}
+                  onSelect={(id) =>
+                    handleDeviceChange(id, DeviceType.audioInput)
+                  }
+                  isEn={isEn}
+                />
               </DropdownMenu>
             </div>
           </div>
@@ -445,6 +342,24 @@ export default function Room({
             </span>
           </div>
         </div>
+      </div>
+
+      {/* separator  */}
+      <Separator className="w-10/12 max-w-72 mx-auto" />
+
+      {/* refresh hint */}
+      <div className="flex justify-center">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.location.reload()}
+          className="gap-2 text-muted-foreground text-xs"
+        >
+          <RefreshCw className="h-3 w-3" />
+          {isEn
+            ? "Having sound issues? Refresh"
+            : "مشكلة في الصوت؟ أعد تحميل الصفحة"}
+        </Button>
       </div>
     </div>
   );
@@ -537,5 +452,47 @@ function ParticipantCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+function AudioDeviceMenu({
+  label,
+  devices,
+  selectedId,
+  onSelect,
+  isEn,
+}: {
+  label: string;
+  devices: MediaDeviceInfo[];
+  selectedId: string | undefined;
+  onSelect: (deviceId: string) => void;
+  isEn: boolean;
+}) {
+  return (
+    <DropdownMenuContent align="end" className="w-56">
+      <div className="px-2 py-1.5 text-sm font-semibold">{label}</div>
+      {devices.length > 0 ? (
+        devices.map((device, i) => {
+          const isSelected = selectedId === device.deviceId;
+          return (
+            <DropdownMenuItem
+              key={device.deviceId}
+              onClick={() => onSelect(device.deviceId)}
+              className={cn("cursor-pointer", isSelected && "bg-gray-100")}
+            >
+              <div className="flex items-center gap-2">
+                {isSelected && <Check className="h-4 w-4" />}
+                <span>
+                  {device.label || (isEn ? `Device ${i + 1}` : `جهاز ${i + 1}`)}
+                </span>
+              </div>
+            </DropdownMenuItem>
+          );
+        })
+      ) : (
+        <DropdownMenuItem disabled className="text-muted-foreground">
+          {isEn ? "No audio devices found" : "لم يتم العثور على أجهزة صوت"}
+        </DropdownMenuItem>
+      )}
+    </DropdownMenuContent>
   );
 }

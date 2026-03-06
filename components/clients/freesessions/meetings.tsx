@@ -33,17 +33,19 @@ interface Props {
   zid: string;
   date: string;
   time: string;
+  participant: string;
   freesession: FreeSession & { consultant: { name: string; phone: string } };
 }
 
 export default async function Meetings({
   zid,
   time,
+  participant,
   date,
   freesession,
 }: Props) {
   // url
-  const url = "/freesessions/rooms/" + zid;
+  const url = "/freesessions/rooms/" + zid + "?participant=" + participant;
 
   // meetings status
   const mStatus = meetingTime(time, date, freesession.time, freesession.date);

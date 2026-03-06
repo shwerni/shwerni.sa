@@ -125,8 +125,7 @@ export default function MeetingRoom({
 
       // return
       return true;
-    } catch (error) {
-      console.log(error);
+    } catch {
       // toast
       toast.error({ message: "حدث خطأ ما, برجاء تحديث الصفحة" });
       // return

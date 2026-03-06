@@ -26,15 +26,17 @@ export const createRoom = async (
   roomId: string,
   meetingId: string,
   orderId: number,
+  session: boolean = false,
 ) => {
   try {
     // room
     const room = await prisma.room.create({
       data: {
         roomId,
-        meetingId,
+
         roomName: orderId + meetingId,
         orderId,
+        ...(session ? { sessionId: meetingId } : { meetingId }),
       },
     });
 

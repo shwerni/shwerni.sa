@@ -558,7 +558,7 @@ model FreeSession {
   // @relations
   consultantId Int
   consultant   Consultant @relation(fields: [consultantId], references: [cid])
-  Meeting      Meeting?
+  room         Room?
 
   @@map("free_sessions")
 }
@@ -603,12 +603,10 @@ model Meeting {
   url      String?
 
   // @relations
-  freeSessionId String?       @unique
-  freeSession   FreeSession?  @relation(fields: [freeSessionId], references: [id])
-  orderId       Int?
-  orders        Order?        @relation(fields: [orderId], references: [oid])
-  participants  Participant[]
-  rooms         Room?
+  orderId      Int?
+  orders       Order?        @relation(fields: [orderId], references: [oid])
+  participants Participant[]
+  rooms        Room?
 
   @@unique([orderId, session])
   @@map("meetings")
@@ -841,8 +839,10 @@ model Room {
   updatedAt DateTime @updatedAt
 
   // @relation
-  meetingId String  @unique
-  meeting   Meeting @relation(fields: [meetingId], references: [mid])
+  meetingId     String?      @unique
+  meeting       Meeting?     @relation(fields: [meetingId], references: [mid])
+  sessionId String?      @unique
+  session   FreeSession? @relation(fields: [sessionId], references: [id])
 
   @@index([orderId])
   @@map("rooms")

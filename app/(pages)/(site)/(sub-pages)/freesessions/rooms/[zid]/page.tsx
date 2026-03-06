@@ -17,8 +17,9 @@ import { userServer } from "@/lib/auth/server";
 
 // utils
 import { zdencryption } from "@/utils/admin/encryption";
-import { timeZone } from "@/lib/site/time";
 import { getFreeSessionByFid } from "@/data/freesession";
+
+// types
 import { Reservation } from "@/types/admin";
 
 // meta data seo
@@ -30,12 +31,16 @@ export const metadata: Metadata = {
 // props
 type Props = {
   params: Promise<{ zid: string }>;
+  searchParams: Promise<{ participant: string }>;
 };
 
 // return
-export default async function Page({ params }: Props) {
+export default async function Page({ params, searchParams }: Props) {
   // zid
   const { zid } = await params;
+
+  // params
+  const { participant } = await searchParams;
 
   // get zdencrypt oid
   const fid = zdencryption(String(zid));
@@ -78,7 +83,7 @@ export default async function Page({ params }: Props) {
     oid: freesession.fid,
     name: freesession.name,
     consultant: {
-      name: freesession.name,
+      name: freesession.consultant.name,
     },
     duration: "30",
   } as unknown as Reservation;
@@ -91,8 +96,8 @@ export default async function Page({ params }: Props) {
         order={order}
         user={user}
         duration={meeting.duration}
-        participant=""
-        mid=""
+        participant={participant}
+        mid={freesession.id}
       />
     </HMSLayout>
   );

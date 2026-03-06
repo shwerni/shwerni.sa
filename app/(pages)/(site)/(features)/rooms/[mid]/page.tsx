@@ -57,6 +57,9 @@ export default async function Page({ params, searchParams }: Props) {
   const participantInfo = meeting.participants.find(
     (p) => participant === p.participant,
   );
+  
+  // validate
+  if (!participantInfo) return <Error404 />;
 
   // participant name
   const participantRole = participantInfo?.role ?? UserRole.USER;

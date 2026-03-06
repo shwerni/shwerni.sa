@@ -21,12 +21,16 @@ export const metadata: Metadata = {
 // props
 type Props = {
   params: Promise<{ zid: string }>;
+  searchParams: Promise<{ participant: string }>;
 };
 
 // return
-export default async function Page({ params }: Props) {
+export default async function Page({ params, searchParams }: Props) {
   // zid
   const { zid } = await params;
+
+  // params
+  const { participant } = await searchParams;
 
   // get zdencrypt oid
   const fid = zdencryption(String(zid));
@@ -45,6 +49,12 @@ export default async function Page({ params }: Props) {
 
   // return
   return (
-    <Meetings zid={zid} freesession={freesession} time={time} date={date} />
+    <Meetings
+      zid={zid}
+      freesession={freesession}
+      time={time}
+      date={date}
+      participant={participant}
+    />
   );
 }
