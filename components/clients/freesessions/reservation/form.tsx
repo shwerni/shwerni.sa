@@ -124,23 +124,21 @@ export default function ReservationForm({ cid, user, consultant }: Props) {
   }
 
   return (
-    <div className="bg-[#F1F8FE] px-4 sm:px-5">
-      <div className="max-w-4xl mx-auto">
-        <Stepper step={step} steps={steps} />
+    <div className="w-11/12 p-5 mx-4 bg-[#F9FAFB] border border-[#E5E7EB]">
+      <Stepper step={step} steps={steps} />
 
-        <div className="bg-white py-10 px-3 sm:px-6 rounded-lg shadow">
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            {/* date & time */}
-            {step === 0 && (
-              <StepDateTime form={form} onNext={() => handleNext(1)} />
-            )}
+      <div className="py-10 px-3 sm:px-6 rounded-lg">
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          {/* date & time */}
+          {step === 0 && (
+            <StepDateTime form={form} onNext={() => handleNext(1)} />
+          )}
 
-            {/* reserver info */}
-            {step === 1 && (
-              <StepDetails form={form} onBack={() => handleNext(0)} />
-            )}
-          </form>
-        </div>
+          {/* reserver info */}
+          {step === 1 && (
+            <StepDetails form={form} onBack={() => handleNext(0)} />
+          )}
+        </form>
       </div>
     </div>
   );

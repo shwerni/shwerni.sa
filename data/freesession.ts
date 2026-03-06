@@ -1,17 +1,12 @@
 "use server";
 // prisma db
-
-// packages
-import moment from "moment";
-import { endOfDay, startOfDay } from "date-fns";
+import prisma from "@/lib/database/db";
 
 // prisma data
-import {
-  alreadyReservedTimes,
-  checkMeetingTimeConflict,
-} from "./order/reserveation";
+import { checkMeetingTimeConflict } from "./order/reserveation";
 
 // lib
+import { timeZone } from "@/lib/site/time";
 import { createMeeting } from "@/lib/api/google";
 import { notificationNewFreeSession } from "@/lib/notifications";
 
@@ -21,10 +16,10 @@ import {
   dateToString,
   getWeekStartSaturday,
 } from "@/utils/moment";
-import prisma from "@/lib/database/db";
-import { ConsultantState, OrderType } from "@/lib/generated/prisma/enums";
-import { timeZone } from "@/lib/site/time";
+
+// schema
 import { freeSessionSchema, freeSessionSchemaType } from "@/schemas";
+import { Categories, Gender, Prisma } from "@/lib/generated/prisma/client";
 
 // get all free sessions
 export const getAllFreeSessions = async () => {
@@ -51,10 +46,10 @@ export const getAllFreeSessions = async () => {
 };
 
 // get all free sessions
-export const getOwnerFreeSessions = async (cid: number) => {
+export const getOwnerFreeTimings = async (cid: number) => {
   try {
     // get all
-    const sessions = await prisma.freeSession.findMany({
+    const sessions = await prisma.freeTimings.findUnique({
       where: { consultantId: cid },
     });
     // return
@@ -65,19 +60,15 @@ export const getOwnerFreeSessions = async (cid: number) => {
   }
 };
 
-// get owner free sessions time
-export const getOwnerFreeSessionTimings = async (cid: number) => {
+// get all free sessions
+export const getOwnerFreeSessions = async (cid: number) => {
   try {
-    // get timings
-    const timings = await prisma.freeTimings.findUnique({
+    // get all
+    const sessions = await prisma.freeSession.findMany({
       where: { consultantId: cid },
     });
-
-    // validate
-    if (!timings) return null;
-
     // return
-    return timings.time;
+    return sessions;
   } catch {
     // return
     return null;
@@ -98,21 +89,6 @@ export const getFreeSessionByFid = async (fid: number) => {
           },
         },
       },
-    });
-    // return
-    return timings;
-  } catch {
-    // return
-    return null;
-  }
-};
-
-// get owner free sessions time
-export const getFreeTimingsByAuthor = async (author: string) => {
-  try {
-    // get timings
-    const timings = await prisma.freeTimings.findUnique({
-      where: { userId: author },
     });
     // return
     return timings;
@@ -202,142 +178,6 @@ export const getFreeSessionOwners = async (date: string, time: string) => {
   //   // return
   //   return null;
   // }
-};
-
-// get all owners free sessions time
-export const getAllFreeSessionOwners = async (date: string, time: string) => {
-  try {
-    // origin date
-    const originDate = moment(`${date} ${time}`, "YYYY-MM-DD HH:mm").toDate();
-    // this week
-    const activeWeek = getWeekStartSaturday(originDate);
-    // range this day // not month
-    const start = startOfDay(originDate); // startOfMonth(originDate);
-    const end = endOfDay(originDate); // endOfMonth(originDate);
-    // get cids
-    // get cids
-    const timings = await prisma.freeTimings.findMany({
-      where: { activeWeek, status: true },
-      select: { consultantId: true, time: true },
-    });
-    if (!timings) return null;
-
-    const consultantIds = timings.map((i) => i.consultantId);
-
-    // sessions for this day
-    const sessions = await prisma.freeSession.findMany({
-      where: {
-        created_at: {
-          gte: start,
-          lte: end,
-        },
-        consultantId: {
-          in: consultantIds,
-        },
-      },
-      select: { consultantId: true },
-    });
-
-    // consultants
-    const owners = await prisma.consultant.findMany({
-      where: {
-        cid: { in: consultantIds },
-        status: true,
-        statusA: ConsultantState.PUBLISHED,
-      },
-    });
-    if (!owners) return null;
-
-    // final owner + times
-    const result = await Promise.all(
-      owners.map(async (o) => {
-        const timing = timings.find((t) => t.consultantId === o.cid);
-
-        // handle time (string or array if stored as JSON)
-        let times: string[] = [];
-        if (timing?.time) {
-          try {
-            // if stored as JSON array
-            times = JSON.parse(timing.time);
-          } catch {
-            // fallback: comma-separated string
-            times = timing.time.split(",").map((s) => s.trim());
-          }
-        }
-
-        // reserved times
-        const reservedTimes = (await alreadyReservedTimes(o.cid, date)) ?? [];
-
-        // check if session exists for today
-        const hasSessionToday = sessions.some((s) => s.consultantId === o.cid);
-
-        // mark reserved
-        const timesWithStatus = times.map((t) => {
-          const isPast = moment(t, "HH:mm").isBefore(moment(time, "HH:mm"));
-          const isReserved =
-            hasSessionToday ||
-            reservedTimes.some((rt) =>
-              moment(rt, "HH:mm").isSame(moment(t, "HH:mm")),
-            );
-          return {
-            value: t,
-            isPast,
-            reserved: isReserved,
-          };
-        });
-
-        return {
-          ...o,
-          times: timesWithStatus,
-        };
-      }),
-    );
-
-    // available owners
-    return result.filter((r) => r.times.length > 0);
-  } catch {
-    return null;
-  }
-};
-
-// get owner free sessions time
-export const saveOwnerFreeSessionTimings = async (
-  author: string,
-  cid: number,
-  time: string,
-) => {
-  try {
-    // get timings
-    const timings = await prisma.freeTimings.findUnique({
-      where: { consultantId: cid },
-      select: { consultantId: true },
-    });
-
-    // if timings not exist create
-    if (!timings) {
-      await prisma.freeTimings.create({
-        data: {
-          userId: author,
-          consultantId: cid,
-          time: time,
-        },
-      });
-      // return
-      return true;
-    }
-    // if exist update
-    await prisma.freeTimings.update({
-      where: { consultantId: cid },
-      data: {
-        time,
-      },
-    });
-    // return
-    return true;
-  } catch {
-    // return
-    return null;
-  }
 };
 
 // get owner free sessions time
@@ -488,29 +328,167 @@ export const freeSessionMeetingUrl = async (fid: number) => {
 };
 
 // freesession
-export const toggleFreesessionState = async (
-  author: string,
-  cid: number,
-  status: boolean,
-) => {
+export const toggleFreesessionState = async (cid: number, status: boolean) => {
   try {
     // time
     const { iso: originDate } = timeZone();
+    const currentWeekStart = getWeekStartSaturday(originDate);
 
     // update order
     await prisma.freeTimings.upsert({
-      where: { userId: author },
+      where: { consultantId: cid },
       create: {
-        userId: author,
         consultantId: cid,
-        activeWeek: getWeekStartSaturday(originDate),
+        activeWeek: currentWeekStart,
         status,
       },
-      update: { activeWeek: getWeekStartSaturday(originDate), status },
+      update: {
+        activeWeek: currentWeekStart,
+        status,
+      },
     });
 
     return true;
   } catch {
     return null;
+  }
+};
+
+type ConsultantItem = {
+  id: string;
+  cid: number;
+  image: string | null;
+  name: string;
+  title: string;
+  rate: number | null;
+  status: boolean;
+  statusA: string;
+  approved: string;
+  created_at: Date;
+  cost30: number;
+  cost60: number;
+  category: Categories;
+  gender: Gender;
+  review_count: number;
+  years: number;
+};
+// get consultant free sessions
+export const getFreeSessionConsultants = async (
+  page: number = 1,
+  search: string = "",
+  categories?: string[],
+  gender?: string[],
+) => {
+  try {
+    const pageSize = 9;
+
+    const { iso } = timeZone();
+    const currentWeekStart = getWeekStartSaturday(iso);
+    const past24h = new Date(iso.getTime() - 24 * 60 * 60 * 1000);
+
+    const searchWhere = search
+      ? Prisma.sql`AND LOWER(c.name) LIKE LOWER(${`%${search}%`})`
+      : Prisma.empty;
+
+    const categoryWhere =
+      Array.isArray(categories) && categories.length > 0
+        ? Prisma.sql`AND c."category" = ANY (${categories}::"Categories"[])`
+        : Prisma.empty;
+
+    const excludeBusy = Prisma.sql`
+  AND NOT EXISTS (
+    SELECT 1 FROM "free_sessions" fs
+    WHERE fs."consultantId" = c."cid"
+    AND fs."created_at" >= ${past24h}
+  )
+`;
+
+    const genderWhere =
+      Array.isArray(gender) && gender.length > 0
+        ? Prisma.sql`AND c."gender" IN (${Prisma.join(
+            gender.map((g) => Prisma.sql`${g}::"Gender"`),
+          )})`
+        : Prisma.empty;
+
+    // ---------- COUNT ----------
+    const result = await prisma.$queryRaw<{ count: bigint }[]>(
+      Prisma.sql`
+        SELECT COUNT(DISTINCT c.id)::bigint AS count
+        FROM "consultants" c
+        JOIN "free_timings" ft
+          ON ft."consultantId" = c."cid"
+        WHERE
+          c."status"   = true
+          AND c."statusA"  = 'PUBLISHED'::"ConsultantState"
+          AND c."approved" = 'APPROVED'::"ApprovalState"
+          AND ft."status"  = true
+          AND ft."activeWeek" = ${currentWeekStart}
+          ${searchWhere}
+          ${categoryWhere}
+          ${genderWhere}
+          ${excludeBusy}
+      `,
+    );
+
+    const total = Number(result[0]?.count ?? 0);
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+    const safePage = Math.min(Math.max(page, 1), pages);
+    const offset = (safePage - 1) * pageSize;
+
+    // ---------- ITEMS ----------
+    const items = await prisma.$queryRaw<ConsultantItem[]>(
+      Prisma.sql`
+        SELECT
+          c.id,
+          c.cid,
+          c.name,
+          c.title,
+          c.image,
+          c.created_at,
+          c.rate,
+          c."cost30",
+          c."cost60",
+          c."category"::text AS category,
+          c."gender"::text   AS gender,
+          COUNT(r.id)::int   AS review_count
+        FROM "consultants" c
+        JOIN "free_timings" ft
+          ON ft."consultantId" = c."cid"
+        LEFT JOIN "reviews" r
+          ON r."consultantId" = c."cid"
+        WHERE
+          c."status"   = true
+          AND c."statusA"  = 'PUBLISHED'::"ConsultantState"
+          AND c."approved" = 'APPROVED'::"ApprovalState"
+          AND ft."status"  = true
+          AND ft."activeWeek" = ${currentWeekStart}
+          ${searchWhere}
+          ${categoryWhere}
+          ${excludeBusy}
+          ${genderWhere}
+        GROUP BY
+          c.id, c.cid, c.name, c.title, c.image,
+          c.created_at, c.rate, c."cost30", c."cost60",
+          c."category", c."gender"
+        ORDER BY c."created_at" DESC
+        LIMIT ${pageSize}
+        OFFSET ${offset}
+      `,
+    );
+
+    return {
+      items,
+      total,
+      pages,
+      page: safePage,
+    };
+  } catch (error) {
+    console.log(error);
+    return {
+      items: [],
+      total: 0,
+      pages: 1,
+      page: 1,
+    };
   }
 };

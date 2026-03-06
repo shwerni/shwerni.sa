@@ -1,34 +1,22 @@
 "use client";
+// React & Next
 import React from "react";
 
 // components
 import { Switch } from "@/components/ui/switch";
-import { ZToast } from "@/app/_components/layout/toasts";
+import { toast } from "@/components/shared/toast";
 
 // prisma data
 import { toggleFreesessionState } from "@/data/freesession";
 
-// utils
-import { isActiveWeekValid } from "@/utils/moment";
-
 // props
 interface Props {
-  author: string;
   cid: number;
   initialStatus: boolean;
-  activeWeek: Date;
 }
 
-export const StatusToggle: React.FC<Props> = ({
-  author,
-  initialStatus,
-  activeWeek,
-  cid,
-}) => {
-  // Get Friday as start of the week (week starts on Friday)
-  const isActiveWeek = isActiveWeekValid(activeWeek);
-
-  const [status, setStatus] = React.useState(initialStatus && isActiveWeek);
+export const StatusToggle: React.FC<Props> = ({ initialStatus, cid }) => {
+  const [status, setStatus] = React.useState(initialStatus);
   const [pending, startTransition] = React.useTransition();
 
   const handleToggle = () => {
@@ -36,12 +24,12 @@ export const StatusToggle: React.FC<Props> = ({
     setStatus(newStatus);
 
     startTransition(async () => {
-      toggleFreesessionState(author, cid, newStatus).then((response) => {
+      toggleFreesessionState(cid, newStatus).then((response) => {
         if (!response) {
-          ZToast({ state: false, message: "فشل التحديث" });
+          toast.info({ message: "فشل التحديث" });
           setStatus(!newStatus);
         } else {
-          ZToast({ state: true, message: "تم التحديث بنجاح" });
+          toast.success({ message: "تم التحديث بنجاح" });
         }
       });
     });

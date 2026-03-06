@@ -212,7 +212,6 @@ model User {
   Wallet           Wallet[]
   Favorite         Favorite[]
   Consultant       Consultant[]
-  FreeTimings      FreeTimings[]
   ConsultantTiming ConsultantTiming[]
   collaboration    Collaboration?
 
@@ -361,13 +360,10 @@ model ConsultantTiming {
 
 model FreeTimings {
   id         String    @id @default(cuid())
-  time       String?
   activeWeek DateTime?
   status     Boolean   @default(false)
 
   // @relations
-  userId       String     @unique
-  user         User       @relation(fields: [userId], references: [id])
   consultantId Int        @unique
   consultant   Consultant @relation(fields: [consultantId], references: [cid])
 

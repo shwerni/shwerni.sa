@@ -23,7 +23,7 @@ interface Props {
 
 const ConsultantCard = ({ consultant }: Props) => {
   return (
-    <Link href={`/event/${consultant.cid}`}>
+    <Link href={`/freesessions/consultants/${consultant.cid}`}>
       <Card className="h-64 w-44 py-3 border-none rounded-lg px-0!">
         <CardHeader className="hidden">
           <CardTitle className="hidden" />

@@ -13,9 +13,6 @@ import { getConsultantStates } from "@/data/consultant";
 
 // prisma types
 import { ApprovalState, ConsultantState } from "@/lib/generated/prisma/client";
-import { isSameDay, parseISO } from "date-fns";
-import { add25Minutes } from "@/utils/date";
-import { timeZone } from "@/lib/site/time";
 
 // props
 type Props = {
@@ -33,33 +30,24 @@ const Page = async ({ params }: Props) => {
   // consultant
   const consultant = await getConsultantStates(cidN);
 
-  // time
-  const { iso } = timeZone();
-  
-  // time
-  const { date } = add25Minutes(iso);
-
-  // check day
-  return <Error404 />;
-
   // if consultant refused, show 404 only
-  // if (
-  //   !consultant ||
-  //   consultant.approved !== ApprovalState.APPROVED ||
-  //   consultant.statusA !== ConsultantState.PUBLISHED
-  // )
-  //   return <Error404 />;
+  if (
+    !consultant ||
+    consultant.approved !== ApprovalState.APPROVED ||
+    consultant.statusA !== ConsultantState.PUBLISHED
+  )
+    return <Error404 />;
 
-  // return (
-  //   <div className="space-y-4">
-  //     <Suspense fallback={<SkeletonConsultant />}>
-  //       <FressSessionConsultant cid={cidN} />
-  //     </Suspense>
-  //     <Suspense fallback={<CardSkeleton count={1} className="w-full" />}>
-  //       {consultant.status && <FreeSessionReserve cid={cidN} />}
-  //     </Suspense>
-  //   </div>
-  // );
+  return (
+    <div className="space-y-4">
+      <Suspense fallback={<SkeletonConsultant />}>
+        <FressSessionConsultant cid={cidN} />
+      </Suspense>
+      <Suspense fallback={<CardSkeleton count={1} className="w-full" />}>
+        {consultant.status && <FreeSessionReserve cid={cidN} />}
+      </Suspense>
+    </div>
+  );
 };
 
 export default Page;

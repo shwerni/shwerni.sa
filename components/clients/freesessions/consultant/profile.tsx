@@ -28,7 +28,7 @@ interface Props {
 
 const FreeSessionProfile: React.FC<Props> = ({ consultant }: Props) => {
   return (
-    <div className="flex flex-col gap-4 w-10/12 max-w-2xl mx-4 bg-[#F9FAFB] border border-[#E5E7EB] rounded-md py-3 px-2">
+    <div className="flex flex-col gap-4 w-11/12 p-5 mx-4 bg-[#F9FAFB] border border-[#E5E7EB] rounded-md">
       <div className="flex items-start gap-2">
         {/* consultant image */}
         <div className="relative">

@@ -73,6 +73,7 @@ export default function StepDetails({ form, onBack }: Props) {
                     id={field.name}
                     aria-invalid={fieldState.invalid}
                     placeholder="سليمان يوسف"
+                    className="bg-white"
                   />
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
@@ -97,6 +98,7 @@ export default function StepDetails({ form, onBack }: Props) {
                         id={field.name}
                         aria-invalid={fieldState.invalid}
                         placeholder="50000000"
+                        className="bg-white"
                       />
                     </div>
                     {fieldState.invalid && (
@@ -146,7 +148,7 @@ export default function StepDetails({ form, onBack }: Props) {
       />
 
       {/* navigation */}
-      <div className="flex items-center gap-5">
+      <div className="flex justify-between items-center sm:justify-start gap-5 w-full">
         <Button variant="ghost" type="button" onClick={onBack} size="sm">
           <ChevronRight />
           الخطوة السابقة

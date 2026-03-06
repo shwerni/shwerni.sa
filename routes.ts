@@ -45,7 +45,7 @@ export const DynamicpublicRoutes = [
   "/articles",
   "/brief",
   "/preconsultation",
-  "/freesession",
+  "/freesessions",
   "/programs",
   "/sessions",
   // apis

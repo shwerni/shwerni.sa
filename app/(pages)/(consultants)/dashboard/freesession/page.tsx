@@ -16,7 +16,7 @@ import { userServer } from "@/lib/auth/server";
 
 // db data
 import { getOwnerbyAuthor } from "@/data/consultant";
-import { getFreeTimingsByAuthor } from "@/data/freesession";
+import { getOwnerFreeTimings } from "@/data/freesession";
 
 export default async function Page() {
   // get user
@@ -35,7 +35,7 @@ export default async function Page() {
   if (!owner) return <OwnerIsDisabled owner={owner} />;
 
   // free timings
-  const freesession = await getFreeTimingsByAuthor(author);
+  const freesession = await getOwnerFreeTimings(owner.cid);
 
   // show timings
   return (

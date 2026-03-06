@@ -27,33 +27,31 @@ const UpcomingFreeSessions: React.FC<Props> = async ({ cid }) => {
   const sessions = await getOwnerFreeSessions(cid);
 
   return (
-    <div className="">
-      <Card className="w-fit">
-        <CardHeader>
-          <CardTitle className="text-base text-zblue-200">
-            الجلسات القادمة
-          </CardTitle>
-          <CardDescription></CardDescription>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base text-zblue-200">
+          الجلسات القادمة
+        </CardTitle>
+        <CardDescription />
+        <CardContent className="space-y-3">
           {sessions && sessions.length > 0 ? (
-            <CardContent className="space-y-3">
-              {sessions.map((i, index) => (
-                <div key={index} className="space-y-2 w-11/12 max-w-72">
-                  <h3>
-                    {i.name} | {i.fid}
-                  </h3>
-                  <h6>{meetingLabel(i.time, i.date)}</h6>
-                  <Separator className="w-10/12 max-w-40 mx-auto" />
-                </div>
-              ))}
-            </CardContent>
+            sessions.map((i, index) => (
+              <div key={index} className="space-y-2 w-72">
+                <h3>
+                  {i.name} | {i.fid}
+                </h3>
+                <h6>{meetingLabel(i.time, i.date)}</h6>
+                <Separator className="w-10/12 max-w-40 mx-auto" />
+              </div>
+            ))
           ) : (
             <h3 className="mx-auto text-center px-10 py-5">
               لا يوجد جلسات قادمة
             </h3>
           )}
-        </CardHeader>
-      </Card>
-    </div>
+        </CardContent>
+      </CardHeader>
+    </Card>
   );
 };
 

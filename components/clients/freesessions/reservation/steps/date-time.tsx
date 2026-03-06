@@ -26,12 +26,20 @@ import { ReservationFormType } from "@/schemas";
 import { timeOptions } from "@/utils";
 
 // icons
-import { ChevronLeft, Clock, Moon, Sun, Sunrise, Sunset } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Moon,
+  Sun,
+  Sunrise,
+  Sunset,
+} from "lucide-react";
 import { getConsultantAvailableTimes } from "@/data/consultant";
 import { dateToString } from "@/utils/moment";
 import { add25Minutes, dateToWeekDay } from "@/utils/date";
 import { parseISO } from "date-fns";
-import { timeZone } from "@/lib/site/time";
+import { LinkButton } from "@/components/shared/link-button";
 
 // props
 interface Props {
@@ -135,7 +143,7 @@ export default function StepDateTime({ form, onNext }: Props) {
   }, []);
 
   return (
-    <div className="flex flex-col lg:grid lg:grid-cols-3 lg:gap-x-2 space-y-3">
+    <div className="flex flex-col space-y-3 max-w-xl">
       {/* time slots */}
       <Controller
         name="time"
@@ -177,7 +185,7 @@ export default function StepDateTime({ form, onNext }: Props) {
                     className="border-none transition-colors duration-300"
                   >
                     {/* phase header */}
-                    <AccordionTrigger className="p-3 rounded-lg border hover:no-underline hover:bg-gray-100">
+                    <AccordionTrigger className="p-3 rounded-lg border hover:no-underline bg-white hover:bg-gray-100">
                       <div className="inline-flex justify-between items-center w-full">
                         <div className="inline-flex items-center gap-1.5">
                           <meta.Icon className={cn(meta.style, "w-5")} />
@@ -203,7 +211,7 @@ export default function StepDateTime({ form, onNext }: Props) {
                               type="button"
                               onClick={() => field.onChange(t)}
                               className={cn(
-                                "w-full text-right text-gray-800 text-sm font-medium px-3 py-2 rounded-lg border transition-colors",
+                                "w-full bg-white text-right text-gray-800 text-sm font-medium px-3 py-2 rounded-lg border transition-colors",
                                 field.value === t
                                   ? "bg-theme text-white border-theme hover:bg-theme/90"
                                   : "hover:bg-theme hover:text-white",
@@ -223,13 +231,23 @@ export default function StepDateTime({ form, onNext }: Props) {
         }}
       />
 
-      <Button variant="primary" type="button" onClick={onNext} size="sm">
-        <IconLabel
-          Icon={ChevronLeft}
-          label="الخطوة التالية"
-          className="text-sm"
-        />
-      </Button>
+      <div className="flex items-center justify-center sm:justify-start gap-5">
+        <LinkButton
+          href="/freesessions"
+          variant="secondary"
+          className="items-center"
+        >
+          <ChevronRight />
+          الخطوة السابقة
+        </LinkButton>
+        <Button variant="primary" type="button" onClick={onNext} size="sm">
+          <IconLabel
+            Icon={ChevronLeft}
+            label="الخطوة التالية"
+            className="text-sm"
+          />
+        </Button>
+      </div>
     </div>
   );
 }
