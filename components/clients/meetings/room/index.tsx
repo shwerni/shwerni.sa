@@ -60,7 +60,7 @@ export default function MeetingRoom({
 }: Props) {
   // room name
   const roomName = order.oid + mid;
-
+  
   // loading
   const [loading, setLoading] = React.useState(false);
 
@@ -86,7 +86,7 @@ export default function MeetingRoom({
       } catch {
         return;
       }
-
+      
       const userId = metadataObj.user?.id;
       if (userId) map.set(userId, peer);
     });

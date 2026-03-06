@@ -20,7 +20,7 @@ export async function CreateHMSToken(
   try {
     // check if room exist
     let room = await getRoom(roomName);
-
+    
     // validate
     if (!room) {
       // create room

@@ -64,7 +64,7 @@ export default async function Page({ params, searchParams }: Props) {
 
   // new user
   const user = {
-    id: author?.id ?? null,
+    id: author?.id ?? participant,
     name: consultant?.name ?? author?.name ?? "عميل شاورني",
     role: author?.role ?? UserRole.USER,
     image: consultant?.image ?? author?.image ?? null,
