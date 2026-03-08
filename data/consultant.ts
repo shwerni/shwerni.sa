@@ -315,6 +315,12 @@ export const getConsultantInfo = async (cid: number) => {
         approved: true,
         statusA: true,
         status: true,
+        DiscountConsultant: {
+          select: {
+            status: true,
+            discountId: true,
+          },
+        },
       },
     });
     // return

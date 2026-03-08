@@ -103,7 +103,7 @@ const LogInForm = () => {
     const log = await login(phoneNumber(data.phone), data.password);
 
     // state
-    if (!log?.state) {
+    if (log?.state === false) {
       // loading
       setLoading(false);
 

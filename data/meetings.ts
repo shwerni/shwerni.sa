@@ -77,11 +77,11 @@ export const orderMeetingUrl = async (oid: number, session?: number) => {
     // get order url
     const meeting = await prisma.meeting.findUnique({
       where: { orderId_session: { orderId: oid, session: session ?? 1 } },
-      select: { url: true, duration: true },
+      select: { rooms: { select: { url: true } }, duration: true },
     });
 
     // return
-    if (meeting?.url) return meeting.url;
+    if (meeting?.rooms?.url) return meeting.rooms.url;
 
     // create url if not exist
     const newUrl = await createMeeting(Number(meeting?.duration) + 5);
@@ -89,7 +89,7 @@ export const orderMeetingUrl = async (oid: number, session?: number) => {
     // update order
     await prisma.meeting.update({
       where: { orderId_session: { orderId: oid, session: session ?? 1 } },
-      data: { url: newUrl },
+      data: { rooms: { update: { url: newUrl } } },
       select: { orderId: true },
     });
 

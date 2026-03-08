@@ -60,7 +60,7 @@ export default function MeetingRoom({
 }: Props) {
   // room name
   const roomName = order.oid + mid;
-  
+
   // loading
   const [loading, setLoading] = React.useState(false);
 
@@ -86,7 +86,7 @@ export default function MeetingRoom({
       } catch {
         return;
       }
-      
+
       const userId = metadataObj.user?.id;
       if (userId) map.set(userId, peer);
     });
@@ -146,66 +146,64 @@ export default function MeetingRoom({
   };
 
   return (
-    <div className="">
-      <Section className=" max-w-3xl px-3 sm:px-5 mx-auto">
-        <div className="max-w-4xl space-y-8 mx-auto">
-          <div className="flex flex-col items-center justify-center gap-1">
-            <div className="w-full text-center space-y-3">
-              <h2 className="text-theme text-3xl font-bold">اجتماع</h2>
-              <Separator className="w-11/12 max-w-32 h-1! bg-gray-400 mx-auto" />
-            </div>
-            {/* order title */}
-            <OrderTitle
-              client={order.name}
-              consultant={order.consultant.name}
-            />
-          </div>
-          <Separator className="w-10/12 mx-auto" />
-          {
-            // render
-            !isConnected ? (
-              <div className="flex items-center justify-center px-4">
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 max-w-sm w-full text-center space-y-6">
-                  {/* Icon */}
-                  <div className="flex justify-center">
-                    <UserPlus className="w-16 h-16 text-theme" />
-                  </div>
-
-                  {/* Heading */}
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    انضم للاجتماع
-                  </h2>
-
-                  {/* Subtext */}
-                  <p className="text-gray-600 dark:text-gray-300 text-sm">
-                    اضغط على الزر أدناه للدخول إلى غرفة الاجتماع. تأكد من السماح
-                    بالوصول إلى الصوت.
-                  </p>
-
-                  {/* Join Button */}
-                  <Button
-                    onClick={Join}
-                    variant="destructive"
-                    className="w-full flex items-center justify-center gap-2"
-                    loading={loading}
-                    disabled={loading}
-                  >
-                    <UserPlus className="w-5 h-5" />
-                    انضم الآن
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <Room
-                lang={lang}
-                participants={peers}
-                isConnected={isConnected ?? false}
-                duration={Number(duration)}
-              />
-            )
-          }
+    <Section className="max-w-3xl px-3 sm:px-5 mt-5 mx-auto space-y-1">
+      <div className="flex flex-col items-center justify-center gap-1">
+        <div className="w-full text-center space-y-2">
+          <h2 className="text-theme text-xl md:text-2xl font-bold">
+            غرفة اجتماعات شاورني
+          </h2>
+          <Separator className="w-10/12 max-w-20 h-0.5! bg-gray-600 mx-auto" />
         </div>
-      </Section>
-    </div>
+        {/* order title */}
+        <OrderTitle
+          client={order.name}
+          consultant={order.consultant.name}
+          className="py-0! my-0!"
+        />
+      </div>
+      {
+        // render
+        !isConnected ? (
+          <div className="flex items-center justify-center px-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 max-w-sm w-full text-center space-y-6">
+              {/* Icon */}
+              <div className="flex justify-center">
+                <UserPlus className="w-16 h-16 text-theme" />
+              </div>
+
+              {/* Heading */}
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                انضم للاجتماع
+              </h2>
+
+              {/* Subtext */}
+              <p className="text-gray-600 dark:text-gray-300 text-sm">
+                اضغط على الزر أدناه للدخول إلى غرفة الاجتماع. تأكد من السماح
+                بالوصول إلى الصوت.
+              </p>
+
+              {/* Join Button */}
+              <Button
+                onClick={Join}
+                variant="destructive"
+                className="w-full flex items-center justify-center gap-2"
+                loading={loading}
+                disabled={loading}
+              >
+                <UserPlus className="w-5 h-5" />
+                انضم الآن
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Room
+            lang={lang}
+            participants={peers}
+            isConnected={isConnected ?? false}
+            duration={Number(duration)}
+          />
+        )
+      }
+    </Section>
   );
 }

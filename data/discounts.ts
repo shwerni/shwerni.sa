@@ -286,6 +286,7 @@ type ConsultantItem = {
 //   }
 // };
 export const getDiscountConsultants = async (
+  discount: number,
   page: number = 1,
   search: string = "",
   categories?: string[],
@@ -293,8 +294,6 @@ export const getDiscountConsultants = async (
 ) => {
   try {
     const pageSize = 9;
-
-    const today = new Date().toISOString().split("T")[0]; // yyyy-MM-dd
 
     const searchWhere = search
       ? Prisma.sql`AND LOWER(c.name) LIKE LOWER(${`%${search}%`})`
@@ -312,16 +311,6 @@ export const getDiscountConsultants = async (
           )})`
         : Prisma.empty;
 
-    const excludeTodayMeeting = Prisma.sql`
-      AND NOT EXISTS (
-        SELECT 1
-        FROM "free_sessions" m
-        WHERE
-          m."consultantId" = c."cid"
-          AND m."date" = ${today}
-      )
-    `;
-
     // ---------- COUNT ----------
     const result = await prisma.$queryRaw<{ count: bigint }[]>`
       SELECT COUNT(DISTINCT c.id)::bigint AS count
@@ -330,12 +319,13 @@ export const getDiscountConsultants = async (
         ON dc."consultantId" = c."cid"
       WHERE
         c."status" = true
-        AND dc."discountId" = 5
+        AND c."statusA"  = 'PUBLISHED'::"ConsultantState"
+        AND c."approved" = 'APPROVED'::"ApprovalState"
+        AND dc."discountId" = ${discount}
         AND dc."status" = true
         ${searchWhere}
         ${categoryWhere}
         ${genderWhere}
-        ${excludeTodayMeeting}
     `;
 
     const total = Number(result[0]?.count ?? 0);
@@ -358,6 +348,10 @@ export const getDiscountConsultants = async (
         c."cost60",
         c."category"::text AS category,
         c."gender"::text   AS gender,
+        GREATEST(
+        DATE_PART('year', AGE(NOW(), seniority)),
+          1
+        ) AS years,
         COUNT(r.id)::bigint AS review_count
       FROM "consultants" c
       JOIN "discount_consultants" dc
@@ -366,12 +360,13 @@ export const getDiscountConsultants = async (
         ON r."consultantId" = c."cid"
       WHERE
         c."status" = true
-        AND dc."discountId" = 5
+        AND c."statusA"  = 'PUBLISHED'::"ConsultantState"
+        AND c."approved" = 'APPROVED'::"ApprovalState"
+        AND dc."discountId" = ${discount}
         AND dc."status" = true
         ${searchWhere}
         ${categoryWhere}
         ${genderWhere}
-        ${excludeTodayMeeting}
       GROUP BY
         c.id,
         c.cid,

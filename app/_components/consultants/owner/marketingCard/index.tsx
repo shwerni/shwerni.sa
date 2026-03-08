@@ -111,7 +111,7 @@ export default function ConsultantInfoCard({
 
     // load SVG bullet icon
     const bulletIcon = new Image();
-    bulletIcon.src = "/svg/arrow-left1.svg";
+    bulletIcon.src = "/svg/icons/arrow-left.svg";
     await new Promise<void>((resolve) => (bulletIcon.onload = () => resolve()));
 
     const iconSize = 75;

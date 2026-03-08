@@ -1,4 +1,5 @@
 // componenets
+import DiscountBadge from "../../event/discounts/discount-badge";
 import Reservation from "@/components/clients/consultants/reservation/form";
 
 // prisma data
@@ -8,6 +9,8 @@ import {
   getUnavailableWeekdays,
 } from "@/data/consultant";
 import { getFinanceConfig } from "@/data/admin/settings/finance";
+
+// lib
 import { userServer } from "@/lib/auth/server";
 
 // props
@@ -38,8 +41,23 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
   // validate
   if (!cost || !finance || !info) return;
 
+  // discount // dynamic later
+  const isDiscount = info?.DiscountConsultant.some(
+    (i) => i.discountId === 3 && i.status,
+  );
+
+  // cost
+  if (isDiscount) cost[30] = 77.3;
+
   return (
     <div className="max-w-6xl mx-auto py-5">
+      {/* discount badge */}
+      {isDiscount && (
+        <div className="w-fit mx-auto">
+          <DiscountBadge />
+        </div>
+      )}
+      {/* reservation */}
       <Reservation
         cid={cid}
         cost={cost}

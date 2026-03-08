@@ -34,16 +34,16 @@ export const ConsultantSchema = z.object({
     required_error: "خلل في اختيار الفئة",
   }),
   // cost 30
-  cost30: z.coerce.number().positive().safe().min(109, {
-    message: "يجب أن تكون التكلفة 109 على الأقل",
+  cost30: z.coerce.number().positive().safe().min(119, {
+    message: "يجب أن تكون التكلفة 120 على الأقل",
   }),
   // cost 45
-  cost45: z.coerce.number().positive().safe().min(143, {
-    message: "يجب أن تكون التكلفة 143 على الأقل",
+  cost45: z.coerce.number().positive().safe().min(154, {
+    message: "يجب أن تكون التكلفة 155 على الأقل",
   }),
   // cost 60
-  cost60: z.coerce.number().positive().safe().min(164, {
-    message: "يجب أن تكون التكلفة 165 على الأقل",
+  cost60: z.coerce.number().positive().safe().min(174, {
+    message: "يجب أن تكون التكلفة 175 على الأقل",
   }),
   // bank name
   bankName: z

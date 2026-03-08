@@ -22,7 +22,9 @@ interface Props {
   role: UserRole;
   client: string;
   consultant: string;
-  meeting: Meeting & { participants: Participant[] };
+  meeting: Meeting & { participants: Participant[] } & {
+    rooms: { url: string };
+  };
   meetings: (Meeting & { participants: Participant[] })[];
   type: OrderType;
   lang?: "en" | "ar";

@@ -29,7 +29,6 @@ export const getAllDuesAdmin = async () => {
         meeting: {
           select: {
             done: true,
-            url: true,
           },
           include: {
             participants: true,
@@ -75,7 +74,6 @@ export const getAllDuesAdminByCid = async (cid: number) => {
         due_at: true,
         meeting: {
           select: {
-            url: true,
             done: true,
           },
           include: {
@@ -134,7 +132,6 @@ export const getDuesAdminByMonth = async (range: string) => {
         meeting: {
           select: {
             done: true,
-            url: true,
           },
           include: {
             participants: true,
@@ -194,7 +191,6 @@ export const getDuesAdminByMonthByCid = async (range: string, cid: number) => {
         meeting: {
           select: {
             done: true,
-            url: true,
           },
           include: {
             participants: true,

@@ -7,8 +7,6 @@ import { useRouter } from "next/navigation";
 import {
   HMSPeer,
   useHMSStore,
-  selectAudioTrackByID,
-  selectPeerAudioByID,
   selectIsLocalAudioEnabled,
   useHMSActions,
   useDevices,
@@ -20,24 +18,18 @@ import {
 // components
 import {
   DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import RoomDuration from "./duration";
 // import RoomEndingCountdown from "./countdown";
+import AudioDeviceMenu from "./audio-list";
+import ParticipantCard from "./participant-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Card, CardContent } from "@/components/ui/card";
 import SkeletonAudioRoom from "@/components/clients/meetings/room/skeleton";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-// prisma types
-import { UserRole } from "@/lib/generated/prisma/enums";
 
 // utils
-import { cn } from "@/lib/utils";
 import { isEnglish, playRoomSound } from "@/utils";
 
 // types
@@ -51,8 +43,10 @@ import {
   VolumeX,
   Users,
   Mic,
-  Check,
   RefreshCw,
+  WifiOff,
+  Loader2,
+  ShieldAlert,
 } from "lucide-react";
 
 // props
@@ -62,54 +56,6 @@ interface Props {
   duration: number;
   participants: HMSPeer[];
 }
-
-type RoleTranslations = {
-  en: string;
-  ar: string;
-};
-
-const roles: Record<UserRole, RoleTranslations> = {
-  [UserRole.ADMIN]: {
-    en: "admin",
-    ar: "admin",
-  },
-  [UserRole.USER]: {
-    en: "user",
-    ar: "عميل",
-  },
-  [UserRole.OWNER]: {
-    en: "consultant",
-    ar: "المستشار",
-  },
-  [UserRole.GROUP]: {
-    en: "group",
-    ar: "مجموعة",
-  },
-  [UserRole.COORDINATOR]: {
-    en: "coordinator",
-    ar: "منسق",
-  },
-  [UserRole.MANAGER]: {
-    en: "manager",
-    ar: "المالك",
-  },
-  [UserRole.MARKETER]: {
-    en: "marketer",
-    ar: "مسوق",
-  },
-  [UserRole.SERVICE]: {
-    en: "service",
-    ar: "خدمة",
-  },
-  [UserRole.COLLABORATOR]: {
-    en: "collaborator",
-    ar: "متاعون",
-  },
-  [UserRole.DESIGNER]: {
-    en: "designer",
-    ar: "مصمم",
-  },
-};
 
 export default function Room({
   participants,
@@ -131,21 +77,17 @@ export default function Room({
   const [isDeafened, setIsDeafened] = React.useState(false);
   const { allDevices, selectedDeviceIDs, updateDevice } = useDevices();
 
+  // conniction state
+  type ConnectionStatus = "connected" | "reconnecting" | "failed";
+  const [connectionStatus, setConnectionStatus] =
+    React.useState<ConnectionStatus>("connected");
+  // mic permission state
+  const [micPermission, setMicPermission] = React.useState<
+    "granted" | "denied" | "prompt" | "unknown"
+  >("unknown");
+
   // join or leave notifications sound
   const notification = useHMSNotifications();
-
-  // toggle mute
-  const handleMuteToggle = async () => {
-    // toggle sound
-    playRoomSound(isMicOn ? "toggle-close" : "toggle-open");
-    try {
-      // toggle state
-      await hmsActions.setLocalAudioEnabled(!isMicOn);
-    } catch {
-      // return
-      return null;
-    }
-  };
 
   // handle closing sound
   const handleDeafenToggle = async () => {
@@ -181,23 +123,87 @@ export default function Room({
     }
   };
 
+  // mic permission
+  const handleRequestMicPermission = async () => {
+    try {
+      await hmsActions.setLocalAudioEnabled(true);
+      setMicPermission("granted");
+      playRoomSound("toggle-open");
+    } catch (err: unknown) {
+      const name = (err as DOMException)?.name;
+      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+        setMicPermission("denied");
+      }
+    }
+  };
+
+  // toggle mute
+  const handleMuteToggle = async () => {
+    // re-query permission live on every tap so we always reflect the
+    if (navigator?.permissions) {
+      try {
+        const status = await navigator.permissions.query({
+          name: "microphone" as PermissionName,
+        });
+
+        if (status.state === "denied") {
+          // hard-blocked — no prompt is possible, show banner and stop
+          setMicPermission("denied");
+          return;
+        }
+
+        // "granted" or "prompt": clear any existing banner so it doesn't
+        // linger after the user has already fixed the permission
+        setMicPermission("granted");
+      } catch {
+        // permissions API unsupported — fall through, let HMS handle it
+      }
+    }
+
+    playRoomSound(isMicOn ? "toggle-close" : "toggle-open");
+    try {
+      // for "prompt" state, setLocalAudioEnabled internally calls
+      // getUserMedia which triggers the native browser permission dialog
+      await hmsActions.setLocalAudioEnabled(!isMicOn);
+    } catch (err: unknown) {
+      const name = (err as DOMException)?.name;
+      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+        // user denied the prompt — show the banner
+        setMicPermission("denied");
+      }
+    }
+  };
+
   React.useEffect(() => {
     if (!notification) return;
 
-    if (
-      notification.type === HMSNotificationTypes.PEER_JOINED &&
-      !notification.data.isLocal
-    ) {
-      playRoomSound("join");
-    }
+    switch (notification.type) {
+      case HMSNotificationTypes.PEER_JOINED:
+        if (!notification.data.isLocal) playRoomSound("join");
+        break;
 
-    if (
-      notification.type === HMSNotificationTypes.PEER_LEFT &&
-      !notification.data.isLocal
-    ) {
-      playRoomSound("leave");
+      case HMSNotificationTypes.PEER_LEFT:
+        if (!notification.data.isLocal) playRoomSound("leave");
+        break;
+
+      case HMSNotificationTypes.RECONNECTING:
+        setConnectionStatus("reconnecting");
+        break;
+
+      case HMSNotificationTypes.RECONNECTED:
+        setConnectionStatus("connected");
+
+        hmsActions.unblockAudio().catch(() => null);
+        break;
+
+      case HMSNotificationTypes.ERROR:
+        // @ts-expect-error: isFatal may not be typed in all SDK versions
+        if (notification.data?.isFatal) {
+          setConnectionStatus("failed");
+        }
+        break;
     }
-  }, [notification]);
+  }, [notification, hmsActions]);
 
   // loading
   if (!isConnected) return <SkeletonAudioRoom />;
@@ -207,7 +213,65 @@ export default function Room({
       {/* warning count down // later */}
       {/* <RoomEndingCountdown duration={duration + 5} /> */}
 
-      {/* Header */}
+      {/* connection status */}
+      {connectionStatus === "reconnecting" && (
+        <div className="flex items-center justify-center gap-2 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2 mb-3 text-yellow-700 text-sm font-medium">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>{isEn ? "Reconnecting…" : "جاري إعادة الاتصال…"}</span>
+        </div>
+      )}
+
+      {/* connection status */}
+      {connectionStatus === "failed" && (
+        <div className="flex items-center justify-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-2 mb-3 text-red-700 text-sm font-medium">
+          <WifiOff className="h-4 w-4" />
+          <span>
+            {isEn
+              ? "Connection lost. Please refresh."
+              : "انقطع الاتصال، برجاء تحديث الصفحة."}
+          </span>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => window.location.reload()}
+          >
+            {isEn ? "Refresh" : "تحديث"}
+          </Button>
+        </div>
+      )}
+
+      {/* mic permission */}
+      {micPermission === "denied" && (
+        <div className="flex flex-col items-center gap-1 max-w-md mx-auto bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 mb-2 text-orange-800 text-sm">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3">
+            <div className="flex items-center gap-2 font-medium">
+              <ShieldAlert className="h-4 w-4 shrink-0" />
+              <span>
+                {isEn
+                  ? "Microphone access is blocked"
+                  : "تم حظر الوصول إلى الميكروفون"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-orange-300 text-orange-800 hover:bg-orange-100"
+                onClick={handleRequestMicPermission}
+              >
+                <Mic className="h-3 w-3 mr-1" />
+                {isEn ? "Allow microphone" : "السماح بالميكروفون"}
+              </Button>
+            </div>
+          </div>
+          <span className="text-xs font-medium text-amber-600">
+            {isEn
+              ? "or enable it manually in browser settings"
+              : "أو فعله يدوياً من إعدادات المتصفح"}
+          </span>
+        </div>
+      )}
+      {/* header */}
       <div className="border-b bg-gray-50 backdrop-blur-sm">
         <div className="container mx-auto px-2 py-3">
           <div className="flex items-center justify-between">
@@ -263,11 +327,9 @@ export default function Room({
           </div>
         </div>
       </div>
-      {/* unblock sound */}
-
       {/* main Content */}
       <div className="flex-1 container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 mb-6">
           {participants.map((participant) => (
             <ParticipantCard
               key={participant.id}
@@ -277,7 +339,6 @@ export default function Room({
           ))}
         </div>
       </div>
-
       {/* controls */}
       <div className="border-t bg-gray-50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4 space-y-5">
@@ -329,7 +390,7 @@ export default function Room({
           {/* sound labels */}
           <div className="flex items-center justify-center mt-3 gap-6 text-sm text-muted-foreground">
             <span>
-              {isMicOn ? (isEn ? "Muted" : "مغلق") : isEn ? "Unmuted" : "مفتوح"}
+              {isMicOn ? (isEn ? "Unmuted" : "مفتوح") : isEn ? "Muted" : "مغلق"}
             </span>
             <span>
               {isDeafened
@@ -343,10 +404,8 @@ export default function Room({
           </div>
         </div>
       </div>
-
       {/* separator  */}
       <Separator className="w-10/12 max-w-72 mx-auto" />
-
       {/* refresh hint */}
       <div className="flex justify-center mt-6">
         <Button
@@ -362,137 +421,5 @@ export default function Room({
         </Button>
       </div>
     </div>
-  );
-}
-
-function ParticipantCard({
-  participant,
-  isEn,
-}: {
-  participant: HMSPeer;
-  isEn?: boolean;
-}) {
-  // participant states
-  const audioTrack = useHMSStore(
-    selectAudioTrackByID(participant.audioTrack || ""),
-  );
-  const isMicOn = !audioTrack?.enabled;
-
-  // translate role
-  const translateRole = (role: UserRole, isEn: boolean = false): string => {
-    return roles[role]?.[isEn ? "en" : "ar"] || role;
-  };
-
-  // check if speaking
-  const isSpeaking = useHMSStore(selectPeerAudioByID(participant.id)) > 0;
-
-  // metdata
-  const metadata = participant.metadata ? JSON.parse(participant.metadata) : {};
-
-  // role
-  const role = translateRole(metadata.user.role, isEn);
-
-  // image
-  const image = metadata.user.image ?? null;
-
-  return (
-    <Card
-      className={cn([
-        "relative bg-gray-100 backdrop-blur-md border border-slate-200/60 rounded-2xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1",
-        isSpeaking
-          ? "border-green-500 shadow-green-500/20"
-          : "border-transparent shadow-transparent",
-      ])}
-    >
-      <CardContent className="p-4">
-        <div className="flex flex-col items-center space-y-3">
-          <div className="relative">
-            <Avatar className="h-16 w-16">
-              <AvatarImage src={image} alt={participant.name} />
-              <AvatarFallback className="bg-white text-lg font-semibold">
-                {participant.name[0]}
-              </AvatarFallback>
-            </Avatar>
-
-            {/* speaking indicator */}
-            {isSpeaking && (
-              <div className="absolute -inset-1 rounded-full bg-green-500/20 animate-pulse" />
-            )}
-
-            {/* Mute indicator */}
-            {isMicOn && (
-              <div className="absolute -bottom-1 -right-1 bg-red-500 rounded-full p-1">
-                <MicOff className="h-3 w-3 text-white" />
-              </div>
-            )}
-          </div>
-
-          <div className="text-center space-y-1">
-            <div className="flex items-center gap-1 justify-center">
-              <p className="font-medium text-sm truncate max-w-30">
-                {participant.name}
-              </p>
-            </div>
-            {participant && (
-              <Badge className="bg-white text-slate-900 border-slate-300">
-                {String(role).toLowerCase()}
-              </Badge>
-            )}
-
-            <div className="flex items-center justify-center gap-1 h-4">
-              {isSpeaking && (
-                <div className="speaking-bars">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="bar" />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-function AudioDeviceMenu({
-  label,
-  devices,
-  selectedId,
-  onSelect,
-  isEn,
-}: {
-  label: string;
-  devices: MediaDeviceInfo[];
-  selectedId: string | undefined;
-  onSelect: (deviceId: string) => void;
-  isEn: boolean;
-}) {
-  return (
-    <DropdownMenuContent align="end" className="w-56">
-      <div className="px-2 py-1.5 text-sm font-semibold">{label}</div>
-      {devices.length > 0 ? (
-        devices.map((device, i) => {
-          const isSelected = selectedId === device.deviceId;
-          return (
-            <DropdownMenuItem
-              key={device.deviceId}
-              onClick={() => onSelect(device.deviceId)}
-              className={cn("cursor-pointer", isSelected && "bg-gray-100")}
-            >
-              <div className="flex items-center gap-2">
-                {isSelected && <Check className="h-4 w-4" />}
-                <span>
-                  {device.label || (isEn ? `Device ${i + 1}` : `جهاز ${i + 1}`)}
-                </span>
-              </div>
-            </DropdownMenuItem>
-          );
-        })
-      ) : (
-        <DropdownMenuItem disabled className="text-muted-foreground">
-          {isEn ? "No audio devices found" : "لم يتم العثور على أجهزة صوت"}
-        </DropdownMenuItem>
-      )}
-    </DropdownMenuContent>
   );
 }

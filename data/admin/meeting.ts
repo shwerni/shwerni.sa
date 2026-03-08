@@ -103,7 +103,11 @@ export const updateMeetingAdmin = async (
             },
           ],
         },
-        url: data?.url ?? "",
+        rooms: {
+          update: {
+            url: data?.url ?? "",
+          },
+        },
       },
     });
     // return
@@ -173,7 +177,7 @@ type MeetingsWithOrder = {
     consultant: { name: string };
     oid: number;
   };
-} & Meeting & { participants: Participant[] };
+} & Meeting & { participants: Participant[] } & { rooms: { url: string } };
 
 export async function getMeetingsForManagments(page: number, search: string) {
   try {
@@ -219,6 +223,7 @@ export async function getMeetingsForManagments(page: number, search: string) {
         take: limit,
         include: {
           participants: true,
+          rooms: { select: { url: true } },
           orders: {
             select: {
               oid: true,

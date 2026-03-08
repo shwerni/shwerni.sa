@@ -52,7 +52,7 @@ import { Meeting, Participant } from "@/lib/generated/prisma/client";
 interface Props {
   client: string;
   consultant: string;
-  meeting: Meeting & { participants: Participant[] };
+  meeting: Meeting & { participants: Participant[] } & {rooms: {url: string}};
   type: OrderType;
   lang?: "en" | "ar";
 }
@@ -140,7 +140,7 @@ export default function EditMeetingForm({
       consultantJoinedAt:
         meeting?.participants.find((i) => i.role === UserRole.OWNER)?.time ??
         "",
-      url: meeting?.url ?? "",
+      url: meeting?.rooms.url ?? "",
     },
   });
 
@@ -186,10 +186,10 @@ export default function EditMeetingForm({
             )}
           />
           {/* copy google meet */}
-          {meeting?.url && (
+          {meeting?.rooms.url && (
             <MeetingUlrs
-              label={isEn ? "google meet url" : "رابط مباشر"}
-              value={meeting.url}
+              label={isEn ? "direct meet url" : "رابط مباشر"}
+              value={meeting.rooms.url}
             />
           )}
         </div>

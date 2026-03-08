@@ -122,7 +122,8 @@ const Page = async ({ params, searchParams }: Props) => {
   if (
     !consultant ||
     consultant.approved !== ApprovalState.APPROVED ||
-    consultant.statusA !== ConsultantState.PUBLISHED
+    consultant.statusA !== ConsultantState.PUBLISHED ||
+    !consultant.status
   )
     return <Error404 />;
 

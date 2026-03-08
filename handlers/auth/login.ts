@@ -46,7 +46,7 @@ export const login = async (
       };
 
     // signin and redirect to reverify
-    redirect(`/auth/verify?token=${verificationToken.token}`);
+    redirect(`/verify-otp?token=${verificationToken.token}`);
   }
 
   try {

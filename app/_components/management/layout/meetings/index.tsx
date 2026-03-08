@@ -70,7 +70,7 @@ type Meetings = {
       name: string;
     };
   };
-} & Meeting & { participants: Participant[] };
+} & Meeting & { participants: Participant[] } & {rooms : {url: string}};
 
 // props
 interface Props {
@@ -207,7 +207,7 @@ export function EmployeeMeetings({ time, date, lang, role }: Props) {
               <div className="grid grid-rows-3 gap-2">
                 <div className="flex justify-between">
                   <span>URL</span>
-                  <span>{m.url ?? "لم يجهز بعد"}</span>
+                  <span>{m.rooms.url ?? "لم يجهز بعد"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>حضور المستشار</span>
@@ -290,9 +290,9 @@ export function EmployeeMeetings({ time, date, lang, role }: Props) {
                 >
                   اسم المستشار و العميل
                 </DropdownMenuItem>
-                {m.url && (
+                {m.rooms.url && (
                   <DropdownMenuItem
-                    onClick={() => navigator.clipboard.writeText(m.url!)}
+                    onClick={() => navigator.clipboard.writeText(m.rooms.url!)}
                   >
                     رابط جوجل
                   </DropdownMenuItem>

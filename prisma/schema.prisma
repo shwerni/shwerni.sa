@@ -600,7 +600,6 @@ model Meeting {
   date     String
   duration String
   session  Int
-  url      String?
 
   // @relations
   orderId      Int?
@@ -831,8 +830,9 @@ model Room {
   roomName String   @unique
   type     RoomType @default(ORDER)
 
-  duration Int @default(60)
-
+  duration Int     @default(60)
+  
+  url      String?
   password  Int?
   orderId   Int?
   createdAt DateTime @default(now())

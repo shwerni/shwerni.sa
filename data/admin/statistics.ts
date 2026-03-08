@@ -121,8 +121,12 @@ export const statisticsgetAllOrders = async () => {
     // Execute all queries in parallel
     const [orders, paid, refund] = await Promise.all([
       prisma.order.count(),
-      prisma.order.count({ where: { payment: { payment: PaymentState.PAID } } }),
-      prisma.order.count({ where: { payment: { payment: PaymentState.REFUND } } }),
+      prisma.order.count({
+        where: { payment: { payment: PaymentState.PAID } },
+      }),
+      prisma.order.count({
+        where: { payment: { payment: PaymentState.REFUND } },
+      }),
     ]);
 
     // return all orders counts
@@ -147,7 +151,11 @@ export const statisticsMeetings = async () => {
     select: {
       created_at: true,
       meeting: {
-        select: { url: true },
+        select: {
+          rooms: {
+            select: { url: true },
+          },
+        },
       },
     },
   });
@@ -165,7 +173,7 @@ export const statisticsMeetings = async () => {
     if (meetings.length === 0) {
       grouped[date].yet += 1;
     } else {
-      const hasUrl = meetings.some((m) => m.url); // at least one with URL
+      const hasUrl = meetings.some((m) => m.rooms?.url); // at least one with URL
       if (hasUrl) {
         grouped[date].done += 1;
       } else {
@@ -267,7 +275,7 @@ function monthYearStatistics(
     _count: {
       _all: number;
     };
-  }[]
+  }[],
 ) {
   // month & year
   const monthlyCounts: { [key: string]: number } = {};
