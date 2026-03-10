@@ -3,6 +3,7 @@ import { getOwnerCidByAuthor } from "@/data/consultant";
 import WrongPage from "@/app/_components/layout/zErrors/site/wrongPage";
 import { getDiscountByDid, getDiscountConsultant } from "@/data/discounts";
 import DiscountConsultant from "@/app/_components/consultants/owner/discount";
+import { connection } from "next/server";
 
 // props
 type Props = {
@@ -10,12 +11,15 @@ type Props = {
 };
 
 export default async function DiscountDetailsPage({ params }: Props) {
+  // connection() marks this route as dynamic
+  await connection();
+
   // did
   const { did } = await params;
 
   // discount
   const discount = await getDiscountByDid(Number(did));
-  
+
   // cid
   const user = await userServer();
 

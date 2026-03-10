@@ -16,6 +16,7 @@ import { cacheLife } from "next/cache";
 
 // prisma types
 import { mainRoute } from "@/constants/links";
+import { connection } from "next/server";
 
 // props
 interface Props {
@@ -68,6 +69,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function Page({ params }: Props) {
+  // connection() marks this route as dynamic.
+  await connection();
+
   // aid
   const { aid } = await params;
   const articleId = Number(aid);
