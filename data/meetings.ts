@@ -18,6 +18,7 @@ import { PaymentState, UserRole } from "@/lib/generated/prisma/client";
 import { timeZone } from "@/lib/site/time";
 import { getUserByPhone } from "./user";
 import { mainRoute } from "@/constants/links";
+import { telegramAdmin } from "@/lib/api/telegram/telegram";
 
 // get reservation
 export const participantAttendance = async (
@@ -188,13 +189,17 @@ export const getMeetingUrl = async (mid: string, phone: string) => {
       },
     });
 
+    await telegramAdmin(phone);
+    await telegramAdmin(meeting?.participants.map((i)=> i.participant)?.join(" ") || "");
+    await telegramAdmin(meeting?.participants.map((i)=> i.role)?.join(" ") || "");
+
     // get participant
     const participant = meeting?.participants.find(
       (i) => i.participant === role,
     );
 
     // return
-    return `${mainRoute}meetings/${meeting?.mid}?participant=${participant}`;
+    return `${mainRoute}meetings/${meeting?.mid}?participant=${participant?.participant}`;
   } catch {
     return null;
   }
