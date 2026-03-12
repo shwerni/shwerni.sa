@@ -11,14 +11,15 @@ import { createMeeting } from "@/lib/api/google";
 // hooks
 import { reviewReminder } from "@/handlers/clients/reservation/order";
 
+// prisma data
+import { getUserByPhone } from "./user";
+
 // prisma types
 import { PaymentState, UserRole } from "@/lib/generated/prisma/client";
 
 // lib
 import { timeZone } from "@/lib/site/time";
-import { getUserByPhone } from "./user";
 import { mainRoute } from "@/constants/links";
-import { telegramAdmin } from "@/lib/api/telegram/telegram";
 
 // get reservation
 export const participantAttendance = async (
@@ -156,6 +157,7 @@ export const getMeeting = async (mid: string) => {
       },
       include: {
         participants: true,
+        rooms: { select: { url: true } },
         orders: {
           include: {
             payment: true,
@@ -189,17 +191,14 @@ export const getMeetingUrl = async (mid: string, phone: string) => {
       },
     });
 
-    await telegramAdmin(phone);
-    await telegramAdmin(meeting?.participants.map((i)=> i.participant)?.join(" ") || "");
-    await telegramAdmin(meeting?.participants.map((i)=> i.role)?.join(" ") || "");
-
     // get participant
-    const participant = meeting?.participants.find(
-      (i) => i.participant === role,
-    );
+    const participant = meeting?.participants.find((i) => i.role === role);
 
     // return
-    return `${mainRoute}meetings/${meeting?.mid}?participant=${participant?.participant}`;
+    return {
+      orderId: meeting?.orderId,
+      url: `${mainRoute}meetings/${meeting?.mid}?participant=${participant?.participant}`,
+    };
   } catch {
     return null;
   }

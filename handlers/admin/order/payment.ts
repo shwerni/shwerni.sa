@@ -29,9 +29,15 @@ import { saveACoupon } from "@/data/coupon";
 import { redirect } from "next/navigation";
 import { reserveProgram } from "@/data/order/program";
 import { reserveInstant } from "@/data/online";
+import { create100msRoom } from "@/lib/api/100ms";
 
 // on payment success
 export const onPaymentSuccess = async (order: Reservation) => {
+  // validate
+  if (!order || !order?.meeting?.[0]) return;
+
+  // create room
+  await create100msRoom(order.meeting[0]);
   // send order notify
   await notificationNewOrder(order);
   // send telegram notify

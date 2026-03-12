@@ -56,7 +56,6 @@ export const wTemplateNewOrderClient = (
   duration: string | number,
   label: string,
   mid: string,
-  participant?: string,
 ) => {
   // test components
   const components = [
@@ -91,12 +90,12 @@ export const wTemplateNewOrderClient = (
     },
     {
       type: "button",
-      sub_type: "url",
+      sub_type: "quick_reply",
       index: 0,
       parameters: [
         {
-          type: "text",
-          text: `${mid}?participant=${participant}`,
+          type: "payload",
+          payload: `meeting-url:${mid}`,
         },
       ],
     },
@@ -113,7 +112,6 @@ export const wTemplateNewOrderOwner = (
   duration: string | number,
   label: string,
   mid: string,
-  participant?: string,
 ) => {
   // test components
   const components = [
@@ -144,12 +142,12 @@ export const wTemplateNewOrderOwner = (
     },
     {
       type: "button",
-      sub_type: "url",
+      sub_type: "quick_reply",
       index: 0,
       parameters: [
         {
-          type: "text",
-          text: `${mid}?participant=${participant}`,
+          type: "payload",
+          payload: `meeting-url:${mid}`,
         },
       ],
     },

@@ -602,8 +602,8 @@ model Meeting {
   session  Int
 
   // @relations
-  orderId      Int?
-  orders       Order?        @relation(fields: [orderId], references: [oid])
+  orderId      Int
+  orders       Order        @relation(fields: [orderId], references: [oid])
   participants Participant[]
   rooms        Room?
 

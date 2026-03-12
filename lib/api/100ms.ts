@@ -2,6 +2,7 @@
 import { createRoom, getRoom } from "@/data/room";
 // packages
 import * as HMS from "@100mslive/server-sdk";
+import { Meeting } from "../generated/prisma/client";
 
 // hms
 const hms = new HMS.SDK(process.env.MS100_KEY, process.env.MS100_SECRET);
@@ -13,32 +14,13 @@ const templateId = process.env.MS100_TEMPLATEID;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function CreateHMSToken(
-  meetingId: string,
-  orderId: number,
   roomName: string,
   userId: string,
-  session: boolean = false,
   role: "speaker" | "listener" = "speaker",
 ) {
   try {
     // check if room exist
-    let room = await getRoom(roomName);
-
-    // validate
-    if (!room) {
-      // create room
-      const newRoom = await hms.rooms.create({
-        name: roomName,
-        description: `Room for order #${roomName}`,
-        template_id: templateId,
-      });
-
-      // create room code
-      const url = await createRoomUrl(newRoom.id, role);
-
-      // create room
-      room = await createRoom(newRoom.id, meetingId, orderId, url, session);
-    }
+    const room = await getRoom(roomName);
 
     // validate
     if (!room) return;
@@ -94,6 +76,31 @@ async function createRoomUrl(roomId: string, role: string) {
     const code = codes.find((c) => c.role === role);
 
     return `https://shwerni-audioroom-1832.app.100ms.live/meeting/${code?.code}`;
+  } catch {
+    return null;
+  }
+}
+
+export async function create100msRoom(
+  meeting: Meeting,
+  role: "speaker" | "listener" = "speaker",
+) {
+  try {
+    // room name
+    const roomName = meeting.orderId + meeting.mid;
+
+    // create room
+    const newRoom = await hms.rooms.create({
+      name: roomName,
+      description: `Room for order #${roomName}`,
+      template_id: templateId,
+    });
+
+    // create room code
+    const url = await createRoomUrl(newRoom.id, role);
+
+    // create room
+    await createRoom(newRoom.id, meeting.mid, meeting.orderId, url);
   } catch {
     return null;
   }

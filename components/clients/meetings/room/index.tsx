@@ -56,7 +56,6 @@ export default function MeetingRoom({
   duration,
   lang,
   participant,
-  session = false,
 }: Props) {
   // room name
   const roomName = order.oid + mid;
@@ -100,13 +99,7 @@ export default function MeetingRoom({
 
     try {
       // get token
-      const auth = await CreateHMSToken(
-        mid,
-        order.oid,
-        roomName,
-        participant,
-        session,
-      );
+      const auth = await CreateHMSToken(roomName, participant);
 
       // join
       if (!auth) {

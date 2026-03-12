@@ -4,7 +4,6 @@ import {
   FreeSession,
   OrderType,
   SessionType,
-  UserRole,
 } from "@/lib/generated/prisma/client";
 
 // lib
@@ -51,7 +50,7 @@ export const notificationSecurityOtp = async (
     );
     // return
     return true;
-  } catch  {
+  } catch {
     // return
     return null;
   }
@@ -134,8 +133,6 @@ export const notificationNewOrder = async (order: Reservation) => {
           meeting[0].duration,
           label,
           meeting[0].mid,
-          meeting[0].participants.find((p) => p.role === UserRole.OWNER)
-            ?.participant ?? "",
         ),
       );
       // send to client
@@ -151,8 +148,6 @@ export const notificationNewOrder = async (order: Reservation) => {
           meeting[0].duration,
           label,
           meeting[0].mid,
-          meeting[0].participants.find((p) => p.role === UserRole.USER)
-            ?.participant,
         ),
       );
       // return
@@ -173,8 +168,6 @@ export const notificationNewOrder = async (order: Reservation) => {
           meeting[0].duration,
           label,
           meeting[0].mid,
-          meeting[0].participants.find((p) => p.role === UserRole.OWNER)
-            ?.participant,
         ),
       );
       // send to the client gifted to (the one will take the session)
@@ -223,8 +216,6 @@ export const notificationNewOrder = async (order: Reservation) => {
         meeting[0].duration,
         label,
         meeting[0].mid,
-        meeting[0].participants.find((p) => p.role === UserRole.OWNER)
-          ?.participant,
       ),
     );
     // send to client
@@ -240,8 +231,6 @@ export const notificationNewOrder = async (order: Reservation) => {
         meeting[0].duration,
         label,
         meeting[0].mid,
-        meeting[0].participants.find((p) => p.role === UserRole.USER)
-          ?.participant,
       ),
     );
 
