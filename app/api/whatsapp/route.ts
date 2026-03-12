@@ -84,6 +84,8 @@ async function routeMessage(
   fromName: string,
   msg: WebhookMessage,
 ) {
+  await telegramAdmin(JSON.stringify(msg));
+
   // Plain text → full bot flow
   if (msg.type === "text" && msg.text?.body) {
     await handleTextMessage(from, fromId, fromName, msg.text.body);
