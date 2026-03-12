@@ -9,6 +9,7 @@ import { sendWhatsappText } from "@/lib/api/whatsapp";
 import { checkBotLimit } from "@/data/admin/bot";
 import { upsertWhatsappChat } from "@/data/whatsapp";
 import { acceptWhatsappReview } from "@/data/review";
+import { telegramAdmin } from "@/lib/api/telegram/telegram";
 
 // type
 interface WebhookMessage {
@@ -18,6 +19,7 @@ interface WebhookMessage {
   button?: { text: string };
   interactive?: {
     type?: string;
+    button_reply?: { id: string; title: string; payload: string };
     list_reply?: { title: string };
     nfm_reply?: { response_json: string; body: string; name: string };
   };
@@ -96,7 +98,18 @@ async function routeMessage(
 
   // list reply
   if (msg.type === "interactive" && msg.interactive?.list_reply) {
+    await telegramAdmin(`there ${msg.interactive?.list_reply}`);
     // reserved for future handling
+    return;
+  }
+
+  // interactive button reply ← ADD THIS
+  if (msg.type === "interactive" && msg.interactive?.button_reply) {
+    const { id, title, payload } = msg.interactive.button_reply;
+    await telegramAdmin(`here ${msg.interactive.button_reply}`);
+    await telegramAdmin(`here ${id}, ${title}, ${payload}`);
+    // console.log("📲 button_reply received:", { id, title, from });
+    //  await handleButtonReply(from, fromName, id, title);
     return;
   }
 
@@ -171,36 +184,34 @@ async function handleReviewFlow(
   ]);
 }
 
-// telegram
-// await telegramAdmin("whtasapp message received:");
-// await telegramAdmin(
-//   typeof msg_body === "string"
-//     ? msg_body
-//     : typeof msg_body === "object"
-//     ? JSON.stringify(msg_body)
-//     : String(msg_body)
-// );
+// async function handleButtonReply(from: string, buttonId: string) {
+//   const [action, rawOrderId] = buttonId.split(":");
+//   const orderId = rawOrderId ? Number(rawOrderId) : null;
 
-// image  // later
-// {"from":"201222166530","id":"wamid.HBgMMjAxMjIyMTY2NTMwFQIAEhggQTVEQTIyMjYyMzJFQkZFMkUxRjZDQUYyNzQ3MTk5MzIA","timestamp":"1761201042","type":"image","image":{"mime_type":"image/jpeg","sha256":"Gvnh1d6dpMjvp0fax9btFgiZTuNb4i4uCPoWYX3J8Hw=","id":"1154040149480303"}}
-// https://graph.facebook.com/v21.0/1154040149480303?phone_number_id=586473104542070
+//   if (action === "meeting-url" && orderId) {
+//     try {
+//       // fetch order from db
+//       const order = await prisma.order.findUnique({
+//         where: { id: orderId },
+//       });
 
-// flow
-// {
-//     "context": {
-//         "from": "966553689116",
-//         "id": "wamid.HBgMMjAxMjIyMTY2NTMwFQIAERgSMjVBN0FBNEI3MjkxRjMwNzkwAA=="
-//     },
-//     "from": "201222166530",
-//     "id": "wamid.HBgMMjAxMjIyMTY2NTMwFQIAEhggQTVEQjgyRTk2MkM0OTU0NTNGNDU0MjY4NjRBRjI0RTcA",
-//     "timestamp": "1761200781",
-//     "type": "interactive",
-//     "interactive": {
-//         "type": "nfm_reply",
-//         "nfm_reply": {
-//             "response_json": "{\"screen_0___0\":\"1_\\u2605\\u2605\\u2605\\u2605\\u2606_\\u2022_\\u0645\\u0645\\u062a\\u0627\\u0632___________(4\\/5)\",\"screen_0__1\":\"\\u0627\\u0644\\u0645\\u0633\\u062a\\u0634\\u0627\\u0631 \\u0645\\u0645\\u062a\\u0627\\u0632 \\u0634\\u0643\\u0631\\u0627 \\u0644\\u0643\\u0645\",\"flow_token\":\"unused\"}",
-//             "body": "Sent",
-//             "name": "flow"
-//         }
+//       if (!order) {
+//         await sendWhatsappText(from, "❌ لم يتم العثور على الطلب.");
+//         return;
+//       }
+
+//       await sendWhatsappText(
+//         from,
+//         `✅ تم تأكيد طلبك رقم #${order.id} بنجاح!\nسيتم التواصل معك قريباً.`,
+//       );
+//     } catch {
+//       await sendWhatsappText(from, "❌ حدث خطأ، يرجى المحاولة لاحقاً.");
 //     }
+//     return;
+//   }
+
+//   if (action === "cancel-order" && orderId) {
+//     // handle cancel...
+//     return;
+//   }
 // }
