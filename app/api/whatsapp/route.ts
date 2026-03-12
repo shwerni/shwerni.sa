@@ -186,13 +186,16 @@ async function handleReviewFlow(
 async function handleButtonReply(from: string, action: string, data: string) {
   if (action === "meeting-url" && data) {
     // get meeting url
-    const url = await getMeetingUrl(data, from);
+    const meeting = await getMeetingUrl(data, from);
 
     // validate
-    if (!url) return;
+    if (!meeting) return;
 
     // send url
-    await sendWhatsappText(from, url);
+    await sendWhatsappText(
+      from,
+      `تفضل رابط الجلسة #${meeting.orderId} \nاحرص على الدخول في الوقت المحدد، نحن بانتظارك بكل ود 🌸⏰😊.\n${meeting.url}`,
+    );
 
     // return
     return;
