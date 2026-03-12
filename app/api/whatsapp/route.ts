@@ -6,20 +6,22 @@ import { handleBotResponse } from "@/lib/api/ai/bot";
 import { sendWhatsappText } from "@/lib/api/whatsapp";
 
 // prisma data
+import { getMeetingUrl } from "@/data/meetings";
 import { checkBotLimit } from "@/data/admin/bot";
 import { upsertWhatsappChat } from "@/data/whatsapp";
 import { acceptWhatsappReview } from "@/data/review";
-import { telegramAdmin } from "@/lib/api/telegram/telegram";
 
 // type
 interface WebhookMessage {
   from: string;
   type: string;
   text?: { body: string };
-  button?: { text: string };
+  button?: {
+    text: string;
+    payload: string;
+  };
   interactive?: {
     type?: string;
-    button_reply?: { id: string; title: string; payload: string };
     list_reply?: { title: string };
     nfm_reply?: { response_json: string; body: string; name: string };
   };
@@ -84,34 +86,29 @@ async function routeMessage(
   fromName: string,
   msg: WebhookMessage,
 ) {
-  await telegramAdmin(JSON.stringify(msg));
-
   // Plain text → full bot flow
   if (msg.type === "text" && msg.text?.body) {
     await handleTextMessage(from, fromId, fromName, msg.text.body);
     return;
   }
 
-  // button reply → could extend later (analytics, quick-reply flows)
+  // button reply → quick-reply flows
   if (msg.type === "button" && msg.button?.text) {
-    // reserved for future handling
+    // button replay
+    const { payload } = msg.button;
+    const [action, data] = payload.split(":");
+
+    // handle button replay
+    try {
+      await handleButtonReply(from, action, data);
+    } catch {}
+
     return;
   }
 
   // list reply
   if (msg.type === "interactive" && msg.interactive?.list_reply) {
-    await telegramAdmin(`there ${msg.interactive?.list_reply}`);
     // reserved for future handling
-    return;
-  }
-
-  // interactive button reply ← ADD THIS
-  if (msg.type === "interactive" && msg.interactive?.button_reply) {
-    const { id, title, payload } = msg.interactive.button_reply;
-    await telegramAdmin(`here ${msg.interactive.button_reply}`);
-    await telegramAdmin(`here ${id}, ${title}, ${payload}`);
-    // console.log("📲 button_reply received:", { id, title, from });
-    //  await handleButtonReply(from, fromName, id, title);
     return;
   }
 
@@ -186,34 +183,18 @@ async function handleReviewFlow(
   ]);
 }
 
-// async function handleButtonReply(from: string, buttonId: string) {
-//   const [action, rawOrderId] = buttonId.split(":");
-//   const orderId = rawOrderId ? Number(rawOrderId) : null;
+async function handleButtonReply(from: string, action: string, data: string) {
+  if (action === "meeting-url" && data) {
+    // get meeting url
+    const url = await getMeetingUrl(data, from);
 
-//   if (action === "meeting-url" && orderId) {
-//     try {
-//       // fetch order from db
-//       const order = await prisma.order.findUnique({
-//         where: { id: orderId },
-//       });
+    // validate
+    if (!url) return;
 
-//       if (!order) {
-//         await sendWhatsappText(from, "❌ لم يتم العثور على الطلب.");
-//         return;
-//       }
+    // send url
+    await sendWhatsappText(from, url);
 
-//       await sendWhatsappText(
-//         from,
-//         `✅ تم تأكيد طلبك رقم #${order.id} بنجاح!\nسيتم التواصل معك قريباً.`,
-//       );
-//     } catch {
-//       await sendWhatsappText(from, "❌ حدث خطأ، يرجى المحاولة لاحقاً.");
-//     }
-//     return;
-//   }
-
-//   if (action === "cancel-order" && orderId) {
-//     // handle cancel...
-//     return;
-//   }
-// }
+    // return
+    return;
+  }
+}

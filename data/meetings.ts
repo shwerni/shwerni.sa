@@ -12,10 +12,12 @@ import { createMeeting } from "@/lib/api/google";
 import { reviewReminder } from "@/handlers/clients/reservation/order";
 
 // prisma types
-import { PaymentState } from "@/lib/generated/prisma/client";
+import { PaymentState, UserRole } from "@/lib/generated/prisma/client";
 
 // lib
 import { timeZone } from "@/lib/site/time";
+import { getUserByPhone } from "./user";
+import { mainRoute } from "@/constants/links";
 
 // get reservation
 export const participantAttendance = async (
@@ -163,6 +165,36 @@ export const getMeeting = async (mid: string) => {
     });
 
     return meeting;
+  } catch {
+    return null;
+  }
+};
+
+export const getMeetingUrl = async (mid: string, phone: string) => {
+  try {
+    // check if consultant
+    const user = await getUserByPhone(phone);
+
+    // role
+    const role =
+      user && user.role === UserRole.OWNER ? UserRole.OWNER : UserRole.USER;
+
+    const meeting = await prisma.meeting.findUnique({
+      where: {
+        mid,
+      },
+      include: {
+        participants: true,
+      },
+    });
+
+    // get participant
+    const participant = meeting?.participants.find(
+      (i) => i.participant === role,
+    );
+
+    // return
+    return `${mainRoute}meetings/${meeting?.mid}?participant=${participant}`;
   } catch {
     return null;
   }
