@@ -224,16 +224,29 @@ export const getArticleTitleByBid = async (aid: number) => {
 };
 
 // get question by qid
-export const getArticleByAid = async (aid: number) => {
-  try {
-    const Article = await prisma.article.findUnique({
+export const getArticleByAid = async (aid: number, userId?: string) => {
+   try {
+    const article = await prisma.article.findUnique({
       where: { aid },
       include: {
         consultant: { select: { name: true } },
         specialties: { select: { specialty: true } },
+        _count: { select: { likes: true } },
+        likes: userId
+          ? { where: { userId }, select: { id: true }, take: 1 }
+          : false,
       },
     });
-    return Article;
+
+    if (!article) return null;
+
+    const { _count, likes, ...rest } = article;
+
+    return {
+      ...rest,
+      likes: _count.likes,
+      liked: userId ? likes.length > 0 : false,
+    };
   } catch {
     return null;
   }
@@ -265,3 +278,41 @@ export const getArticleMetaData = async (aid: number) => {
     return null;
   }
 };
+
+export async function toggleArticleLike(
+  aid: number,
+  userId: string
+): Promise<{ liked: boolean; count: number }> {
+  const article = await prisma.article.findUnique({
+    where: { aid },
+    select: { id: true },
+  });
+
+  if (!article) throw new Error("Article not found");
+
+  const existing = await prisma.articleLike.findUnique({
+    where: {
+      articleId_userId: {
+        articleId: article.id,
+        userId,
+      },
+    },
+  });
+
+  if (existing) {
+    await prisma.articleLike.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.articleLike.create({
+      data: { articleId: article.id, userId },
+    });
+  }
+
+  const count = await prisma.articleLike.count({
+    where: { articleId: article.id },
+  });
+
+  return {
+    liked: !existing,
+    count,
+  };
+}

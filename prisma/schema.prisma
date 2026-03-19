@@ -214,6 +214,7 @@ model User {
   Consultant       Consultant[]
   ConsultantTiming ConsultantTiming[]
   collaboration    Collaboration?
+  articleLikes     ArticleLike[]
 
   @@map("users")
 }
@@ -468,16 +469,16 @@ model Question {
 }
 
 model Article {
-  id         String       @id @default(cuid())
-  aid        Int          @unique @default(autoincrement())
+  id         String        @id @default(cuid())
+  aid        Int           @unique @default(autoincrement())
   status     ArticleState
   image      String
   title      String
-  article    String       @db.Text
+  article    String        @db.Text
   category   Categories
-  likes      String[]
-  created_at DateTime     @default(now())
-  read       Int          @default(0)
+  likes      ArticleLike[]
+  created_at DateTime      @default(now())
+  read       Int           @default(0)
 
   // @relations
   consultantId Int?
@@ -485,6 +486,21 @@ model Article {
   specialties  ArticleSpecialty[]
 
   @@map("articles")
+}
+
+model ArticleLike {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // @relations
+  articleId String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([articleId, userId])
+  @@map("article_likes")
 }
 
 model Wallet {
@@ -603,7 +619,7 @@ model Meeting {
 
   // @relations
   orderId      Int
-  orders       Order        @relation(fields: [orderId], references: [oid])
+  orders       Order         @relation(fields: [orderId], references: [oid])
   participants Participant[]
   rooms        Room?
 
@@ -830,9 +846,9 @@ model Room {
   roomName String   @unique
   type     RoomType @default(ORDER)
 
-  duration Int     @default(60)
-  
-  url      String?
+  duration Int @default(60)
+
+  url       String?
   password  Int?
   orderId   Int?
   createdAt DateTime @default(now())

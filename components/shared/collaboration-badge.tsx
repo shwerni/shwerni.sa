@@ -13,7 +13,7 @@ export default async function CollaborationBadge({ collaboration }: Props) {
   if (!collaborator) return;
 
   return (
-    <div className="fixed bottom-2 right-3 z-50 flex flex-col items-center gap-1 sm:gap-2 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-gray-200 dark:border-zinc-700 shadow-lg rounded-2xl p-3 transition-all hover:scale-[1.03]">
+    <div className="fixed bottom-2 left-3 z-50 flex flex-col items-center gap-1 sm:gap-2 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-gray-200 dark:border-zinc-700 shadow-lg rounded-2xl p-3 transition-all hover:scale-[1.03]">
       <div className="w-10 h-10 overflow-hidden rounded-xl bg-gray-100 flex items-center justify-center">
         <Image
           src={collaborator.image}

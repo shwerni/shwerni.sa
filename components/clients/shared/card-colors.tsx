@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 
 const cardVariants = cva(
-  "relative w-11/12 md:max-w-xs bg-white px-5 pt-6 pb-3 space-y-6 rounded-3xl",
+  "relative w-11/12 bg-white px-3 sm:px-4 pt-5 pb-3 lg:pb-6 space-y-5 rounded-3xl",
   {
     variants: {
       variant: {

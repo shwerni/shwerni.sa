@@ -47,7 +47,7 @@ const Recommendation = async () => {
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-4">
           {consultants.map((i) => (
-            <Card key={i.cid} className="w-10/12 sm:w-54 py-0! border-none">
+            <Card key={i.cid} className="w-10/12 sm:w-54 h-40 py-0! border-none">
               <CardHeader className="hidden">
                 <CardTitle />
                 <CardDescription />

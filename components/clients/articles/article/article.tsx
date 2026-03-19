@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Suspense } from "react";
 
 // components
+import { ArticleLikeButton } from "./like";
 import { Badge } from "@/components/ui/badge";
 import CopyButton from "@/components/shared/copy-button";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -10,6 +11,9 @@ import ShareButtons from "@/components/shared/share-buttons";
 import CardSkeleton from "@/components/clients/shared/card-skeleton";
 import ArticleSideInfo from "@/components/clients/articles/article/side-info";
 import Recommendation from "@/components/clients/articles/article/recommendation";
+
+// css
+import "@/styles/article.css";
 
 // utils
 import { minutesToRead } from "@/utils";
@@ -25,7 +29,6 @@ import {
 import { mainRoute } from "@/constants/links";
 
 // icons
-import { PiHandsClappingLight } from "react-icons/pi";
 import { BookOpen, Calendar1, Eye, Newspaper } from "lucide-react";
 
 type ArtilceType = ArticlePrisma & {
@@ -35,40 +38,45 @@ type ArtilceType = ArticlePrisma & {
   consultant: {
     name: string;
   } | null;
+  likes: number;
+  liked: boolean;
 };
 
 // props
 interface Props {
   article: ArtilceType;
   body: string;
+  userId: string | null;
   side: {
     h3: string;
     p: string;
   }[];
 }
 
-const Article = ({ article, body, side }: Props) => {
+const Article = async ({ article, userId, body, side }: Props) => {
   return (
-    <div className="my-5 px-3 space-y-8">
-      <h2 className="text-[#094577] text-2xl sm:text-3xl font-semibold">
-        {article.title}
-      </h2>
+    <article className="my-5 px-3 space-y-8">
       {/* content */}
-      <div className="flex flex-col md:grid grid-cols-6 gap-x-4 gap-y-5">
+      <div className="flex flex-col md:grid grid-cols-8 gap-x-2 gap-y-5">
         {/* right side */}
-        <div className="md:col-span-4 space-y-5">
+        <div className="md:col-span-5 space-y-5">
+          <h1 className="text-[#094577] text-2xl sm:text-3xl font-semibold">
+            {article.title}
+          </h1>
           {/* image */}
-          <AspectRatio ratio={16 / 7} className="rounded">
+          <AspectRatio ratio={16 / 7} className="rounded-sm">
             {/* article image */}
             <Image
               src={article.image}
-              alt="article-image"
+              alt={article.title}
               fill
+              priority
+              sizes="(max-width: 768px) 100vw, 66vw"
               className="object-cover rounded"
             />
           </AspectRatio>
           {/* info */}
-          <div className="flex items-center gap-3 md:gap-5 bg-[#F1F8FE] py-4 px-2 md:px-3 rounded-sm">
+          <header className="flex items-center gap-3 md:gap-5 bg-[#F1F8FE] py-4 px-2 md:px-3 rounded-sm">
             <div className="relative">
               <Image
                 src="/layout/logo.png"
@@ -78,36 +86,42 @@ const Article = ({ article, body, side }: Props) => {
                 sizes="(max-width: 640px) 144px, 256px"
               />
             </div>
-            <div className="inline-flex items-center gap-1 text-gray-500">
+            <time
+              dateTime={article.created_at.toISOString()}
+              className="inline-flex items-center gap-1 text-gray-500"
+            >
               <Calendar1 className="w-3 md:w-4" />
-              <h6 className="text-[0.7rem] md:text-xs">
+              <span className="text-[0.7rem] md:text-xs">
                 {dateToString(article.created_at)}
-              </h6>
-            </div>
+              </span>
+            </time>
             <div className="inline-flex items-center gap-1 text-gray-500">
               <BookOpen className="w-3 md:w-4" />
-              <h6 className="text-[0.7rem] md:text-xs">
+              <span className="text-[0.7rem] md:text-xs">
                 {minutesToRead(article.article.length)} دقائق للقراءة
-              </h6>
+              </span>
             </div>
             <div className="inline-flex items-center gap-1 text-gray-500">
               <Eye className="w-3 md:w-4" />
-              <h6 className="text-[0.7rem] md:text-xs">
+              <span className="text-[0.7rem] md:text-xs">
                 {/* dynamic later */}
                 {article.read.toLocaleString()} قراءة
-              </h6>
+              </span>
             </div>
-          </div>
+          </header>
           {/* specialities */}
-          <div className="flex items-center gap-3">
+          <nav className="flex flex-wrap items-center gap-3">
             {article.specialties.map((i) => (
               <Badge key={i.specialty.id} variant="secondary">
                 {i.specialty.name}
               </Badge>
             ))}
-          </div>
+          </nav>
           {/* article */}
-          <div dangerouslySetInnerHTML={{ __html: body }} />
+          <section
+            dangerouslySetInnerHTML={{ __html: body }}
+            className="article-content prose prose-sm max-w-none"
+          />
           {/* share buttons */}
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2 py-4 px-2">
@@ -121,18 +135,16 @@ const Article = ({ article, body, side }: Props) => {
                 hideLabel={true}
               />
             </div>
-            {article.likes.length !== 0 && (
-              <div className="flex items-end gap-2">
-                <PiHandsClappingLight className="w-6 h-6" />
-                <h6 className="text-gray-600 text-sm">
-                  {article.likes.length}
-                </h6>
-              </div>
-            )}
+            <ArticleLikeButton
+              aid={article.aid}
+              userId={userId}
+              liked={article.liked}
+              iLikes={article.likes}
+            />
           </div>
         </div>
         {/* left side: desktop */}
-        <div className="hidden md:block col-span-2">
+        <div className="article-side hidden md:block col-span-3">
           {side.length > 0 && <ArticleSideInfo side={side} />}
         </div>
       </div>
@@ -148,9 +160,13 @@ const Article = ({ article, body, side }: Props) => {
           <Newspaper className="w-4 text-[#094577]" />
           <h3 className="text-[#094577] font-semibold">معلومات قد تهمك</h3>
         </div>
-        {side.length > 0 && <ArticleSideInfo side={side} />}
+        {side.length > 0 && (
+          <div className="article-side">
+            <ArticleSideInfo side={side} />
+          </div>
+        )}
       </div>
-    </div>
+    </article>
   );
 };
 

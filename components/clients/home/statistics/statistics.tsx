@@ -22,6 +22,9 @@ const Statistics = async () => {
   // statistics
   const data = await getStatistics();
 
+  // validate
+  if (!data) return;
+
   // summary
   const statistics = [
     {
