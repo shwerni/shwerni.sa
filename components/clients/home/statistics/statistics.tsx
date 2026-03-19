@@ -55,38 +55,6 @@ const Statistics = async () => {
           <StatisticsValues statistics={statistics} />
         </Suspense>
       </DivMotion>
-      {/* reserve */}
-      <div className="relative bg-linear-to-b from-[#34068312] to-[#7E91FF47] p-6 sm:p-8 space-y-5 md:space-y-8 mx-auto rounded-2xl overflow-hidden">
-        {/* images style */}
-        <Image
-          src="/svg/home/home-stars.svg"
-          alt="icon"
-          width={300}
-          height={300}
-          className="absolute top-2 left-0"
-        />
-        <div className="absolute -top-25 -left-25 w-52 h-52 rounded-full border-2 border-[#1480D957]" />
-        <div className="absolute -top-20 -left-20 w-40 h-40 rounded-full bg-[#1480D957]" />
-        <div className="absolute -bottom-80 -right-30 w-80 h-80 rounded-full bg-[#1480D957]" />
-        {/* content */}
-        <h3 className="text-black text-3xl font-semibold">
-          تحدث مباشرة مع مستشارك الشخصي
-        </h3>
-        <p className="text-black text-base">
-          لا داعي للانتظار، يمكنك بدء جلستك الآن مع أحد مستشارينا بخطوات سهلة
-          وسريعة تمنحك الراحة والطمأنينة.
-        </p>
-        <div className="flex justify-end w-11/12 mx-auto">
-          <LinkButton
-            size="lg"
-            variant="primary"
-            className="px-8"
-            href="/consultants"
-          >
-            <IconLabel Icon={ArrowLeft} label="تحدّث الآن" />
-          </LinkButton>
-        </div>
-      </div>
     </Section>
   );
 };

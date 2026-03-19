@@ -41,12 +41,12 @@ type Props = {
   }>;
 };
 
-export default async function PaymentSuccess({ searchParams }: Props) {
+export default async function Page({ searchParams }: Props) {
   // url params
   const { id, status, message, invoice_id, payment_id } = await searchParams;
 
   // pid
-  const pid = id ? invoice_id : payment_id;
+  const pid = invoice_id ? invoice_id : payment_id ? payment_id : id;
 
   // if pid not exist
   if (!pid) return <Error404 />;

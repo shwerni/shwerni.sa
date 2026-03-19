@@ -26,6 +26,9 @@ const linkifyOptions = {
   className: "text-blue-600 underline",
 };
 
+// ─── WhatsApp support number ──────────────────────────────────────────────────
+const WHATSAPP_URL = `https://wa.me/966554117879?text=${encodeURIComponent("مرحباً، أريد التحدث مع أحد مستشاري شاورني 👋")}`;
+
 interface Message {
   id: number;
   text: string;
@@ -169,6 +172,7 @@ const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
 
   return (
     <div className="fixed bottom-24 right-6 w-[90vw] sm:w-96 h-125 bg-background rounded-lg shadow-2xl flex flex-col z-50 animate-scale-in">
+
       {/* Header */}
       <div className="bg-theme p-4 rounded-t-lg">
         <h3 className="font-semibold text-lg text-white">
@@ -179,6 +183,53 @@ const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
           <Bot className="text-gray-200" />
         </div>
       </div>
+
+      <a
+        href={WHATSAPP_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="
+          group flex items-center justify-between
+          px-4 py-2.5 gap-3
+          bg-[#0794551a] hover:bg-[#34BE8F]/20
+          border-b border-[#34BE8F]/30
+          transition-colors duration-200
+        "
+        dir="rtl"
+      >
+        {/* right: text */}
+        <div className="flex flex-col leading-tight">
+          <span className="text-[0.72rem] font-semibold text-[#34BE8F]">
+            هل تريد التحدث مع خدمة العملاء؟ 💬
+          </span>
+          <span className="text-[0.65rem] text-gray-500">
+            فريقنا متاح لمساعدتك عبر واتساب الآن
+          </span>
+        </div>
+
+        {/* left: WhatsApp button */}
+        <div
+          className="
+            flex items-center gap-1.5 shrink-0
+            bg-[#34BE8F] hover:bg-[#2aab7e]
+            text-white text-[0.7rem] font-semibold
+            px-3 py-1.5 rounded-full
+            transition-colors duration-150
+            group-hover:shadow-md
+          "
+        >
+          {/* WhatsApp SVG icon */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 32 32"
+            className="w-3.5 h-3.5 fill-white"
+            aria-hidden="true"
+          >
+            <path d="M16 2C8.268 2 2 8.268 2 16c0 2.478.664 4.797 1.82 6.797L2 30l7.395-1.793A13.93 13.93 0 0 0 16 30c7.732 0 14-6.268 14-14S23.732 2 16 2zm0 25.5a11.43 11.43 0 0 1-5.832-1.594l-.418-.248-4.387 1.063 1.094-4.27-.273-.44A11.46 11.46 0 0 1 4.5 16C4.5 9.596 9.596 4.5 16 4.5S27.5 9.596 27.5 16 22.404 27.5 16 27.5zm6.29-8.562c-.344-.172-2.04-1.006-2.355-1.12-.316-.115-.546-.172-.775.172-.23.344-.89 1.12-1.09 1.35-.2.23-.4.258-.743.086-.344-.172-1.452-.535-2.766-1.707-1.022-.912-1.713-2.037-1.913-2.381-.2-.344-.021-.53.15-.7.154-.154.344-.4.516-.6.172-.2.23-.344.344-.574.115-.23.058-.43-.029-.602-.086-.172-.775-1.87-1.062-2.561-.28-.672-.563-.58-.775-.59-.2-.01-.43-.012-.66-.012a1.27 1.27 0 0 0-.918.43c-.315.344-1.203 1.176-1.203 2.867s1.232 3.326 1.404 3.555c.172.23 2.425 3.703 5.875 5.192.82.354 1.46.566 1.959.724.822.262 1.571.225 2.162.137.66-.099 2.04-.834 2.328-1.639.287-.805.287-1.494.2-1.639-.086-.143-.315-.23-.66-.4z" />
+          </svg>
+          واتساب
+        </div>
+      </a>
 
       {/* Messages */}
       <ScrollArea className="flex-1 p-4 h-60">

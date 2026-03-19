@@ -7,7 +7,6 @@ import Benefits from "@/components/clients/home/benefits";
 import Categories from "@/components/clients/home/categories";
 import Reviews from "@/components/clients/home/reviews/reviews";
 import Coupons from "@/components/clients/home/coupons/coupons";
-import Programs from "@/components/clients/home/programs/programs";
 import Statistics from "@/components/clients/home/statistics/statistics";
 import Consultants from "@/components/clients/home/consultant/consultants";
 
@@ -20,16 +19,16 @@ const Home = async () => {
       <Hero />
       {/* categories */}
       <Categories />
-      {/* steps to use */}
-      <Steps />
       {/* consultant */}
       <Consultants />
       {/* programs */}
-      <Programs />
+      {/* <Programs /> */}
+      {/* steps to use */}
+      <Steps />
       {/* statistics */}
       <Statistics />
       {/* coupons */}
-      <Coupons />
+      {/* <Coupons /> */}
       {/* reviews */}
       <Reviews />
       {/* benefits */}

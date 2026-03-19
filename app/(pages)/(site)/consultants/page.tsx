@@ -20,6 +20,7 @@ import { timeZone } from "@/lib/site/time";
 
 // constants
 import { mainRoute } from "@/constants/links";
+import Search from "@/components/clients/consultants/reservation/search";
 
 // meta data seo
 export const metadata: Metadata = {
@@ -144,6 +145,11 @@ export default async function Page({ searchParams }: Props) {
         <div className="col-span-4">
           {/* time picker */}
           <Appointment initialDate={iso} />
+
+          {/* search */}
+          <div className="md:hidden flex justify-center items-center w-11/12 mx-auto my-3">
+            <Search />
+          </div>
 
           {/* consultant list */}
           <Suspense

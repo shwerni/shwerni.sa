@@ -30,7 +30,7 @@ const Steps = () => {
   ];
 
   return (
-    <Section className="space-y-8">
+    <Section className="hidden md:block space-y-8">
       <Title title="خطوات سهلة لاستخدام شاورني" subTitle="ابدأ رحلتك" />
       {/* content */}
       <div className="space-y-2 max-w-4xl mx-auto">

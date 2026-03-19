@@ -3,6 +3,7 @@ import { mainRoute } from "@/constants/links";
 
 // types
 import { TimeMeta } from "@/types/admin";
+import { Metadata } from "next";
 
 // initial times
 export const itimes: Record<string, TimeMeta> = {
@@ -153,17 +154,36 @@ export const zdencrypt: any = {
 };
 
 // default meta data api
-export const defaultMetaApi = {
-  title: "شاورني",
-  description: "شاورني هي منصة سعودية تربطك بأفضل المستشارين بكل خصوصية وسرية.",
+const siteName = "شاورني";
+const siteHandle = "@shwernisa";
+const siteUrl = mainRoute;
+const ogImage = `${siteUrl}layout/shwerni.jpg`;
+
+const title = "شاورني | منصة الاستشارات النفسية والأسرية";
+const description =
+  "شاورني منصة سعودية تربطك بأفضل المستشارين بسرية وخصوصية تامة — احجز جلستك الآن.";
+
+export const defaultMetaApi: Metadata = {
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: title,
+    template: `%s | ${siteName}`,
+  },
+  description,
+  applicationName: siteName,
+  authors: [{ name: siteName, url: siteUrl }],
+  generator: "Next.js",
+  referrer: "origin-when-cross-origin",
+
+  // keywords
   keywords: [
-    // الاسم والمنصة
+    // brand
     "شاورني",
     "shwerni",
     "منصة شاورني",
     "شاوني",
 
-    // استشارات عامة
+    // general
     "منصة استشارات سعودية",
     "استشارات أونلاين",
     "جلسات استشارية",
@@ -172,7 +192,7 @@ export const defaultMetaApi = {
     "استشارة زوجية",
     "استشارة قانونية",
 
-    // مستشارين واختصاصات
+    // specialists
     "مستشار نفسي",
     "مستشار أسري",
     "مستشار قانوني",
@@ -182,7 +202,7 @@ export const defaultMetaApi = {
     "خبير علاقات",
     "خبير قانوني",
 
-    // تخصصات مهمة
+    // topics
     "علاج القلق",
     "علاج الاكتئاب",
     "علاج الوسواس",
@@ -192,7 +212,7 @@ export const defaultMetaApi = {
     "مشاكل زوجية",
     "الخيانة الزوجية",
 
-    // كلمات أجنبية تدعم الفهرسة
+    // english indexing
     "Psychological support",
     "Online therapy",
     "Mental health counseling",
@@ -200,7 +220,7 @@ export const defaultMetaApi = {
     "Family therapy",
     "Saudi consultant platform",
 
-    // قيم مضافة
+    // value props
     "استشارات بسرية",
     "جلسات نفسية عن بعد",
     "أفضل مستشارين في السعودية",
@@ -208,37 +228,75 @@ export const defaultMetaApi = {
     "استشارة مجانية",
     "منصة موثوقة للاستشارات",
   ],
+
+  alternates: {
+    canonical: siteUrl,
+    languages: {
+      "ar-SA": siteUrl,
+    },
+  },
+
   openGraph: {
     type: "website",
-    url: mainRoute,
-    title: "شاورني - shwerni",
-    siteName: "شاورني - shwerni",
-    description:
-      "منصة استشارات سعودية تساعدك في الوصول إلى أفضل المستشارين بسرية وخصوصية تامة.",
+    url: siteUrl,
+    siteName,
+    locale: "ar_SA",
+    title,
+    description,
     images: [
       {
-        url: `${mainRoute}layout/shwerni.jpg`,
-        alt: "shwerni - شاورني",
-        type: "image/jpg",
+        url: ogImage,
+        alt: `${siteName} - shwerni`,
+        type: "image/jpeg",
         width: 1200,
         height: 630,
       },
     ],
   },
+
   twitter: {
     card: "summary_large_image",
-    title: "شاورني - shwerni",
-    description: "منصة سعودية للاستشارات النفسية والأسرية بكل خصوصية.",
-    creator: "@shwernisa",
+    site: siteHandle,
+    creator: siteHandle,
+    title,
+    description,
     images: [
       {
-        url: `${mainRoute}layout/shwerni.jpg`,
-        alt: "shwerni - شاورني",
+        url: ogImage,
+        alt: `${siteName} - shwerni`,
         width: 1200,
         height: 630,
-        type: "image/jpg",
       },
     ],
   },
-  icons: `${mainRoute}favicon.ico`,
+
+  icons: {
+    icon: `${siteUrl}favicon.ico`,
+    shortcut: `${siteUrl}favicon.ico`,
+    apple: `${siteUrl}apple-touch-icon.png`,
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+
+  verification: {
+    // google: "xxxx",
+    // yandex: "xxxx",
+  },
+
+  category: "health",
+  formatDetection: {
+    email: false,
+    telephone: false,
+    address: false,
+  },
 };

@@ -52,6 +52,7 @@ export const viewport: Viewport = {
   width: "device-width",
   maximumScale: 1,
   userScalable: false,
+  colorScheme: "light",
 };
 
 async function UTSSR() {
@@ -67,8 +68,10 @@ export default async function RootLayout({
   return (
     <html
       dir="rtl"
-      // lang="en"
-      // suppressHydrationWarning
+      lang="ar"
+      suppressHydrationWarning
+      data-color-scheme="light"
+      className="light"
     >
       {/* google analytic */}
       <GoogleAnalytics gaId="G-DRN37CDE50" />
@@ -82,7 +85,7 @@ export default async function RootLayout({
             <Suspense>
               <UTSSR />
             </Suspense>
-            {/* top loader animation */}
+            {/* top loader */}
             <NextTopLoader />
             {/* nuqs adaptar */}
             <NuqsAdapter>

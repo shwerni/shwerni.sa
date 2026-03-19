@@ -6,13 +6,10 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import UserNav from "@/components/clients/header/user";
 import { UserRole } from "@/lib/generated/prisma/enums";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -35,18 +32,14 @@ interface Props {
 }
 
 const HeaderSheet = ({ user, path }: Props) => {
-  // is consultant (to simplify there menu)
   const isConsultant = user?.role === UserRole.OWNER;
 
   return (
     <div className="flex items-center gap-3">
-      {/* theme toggle */}
-      {/* todo hidden md:flex */}
       <div className="hidden">
         <ThemeToggle variant="switch" />
       </div>
 
-      {/* user */}
       <div className="flex items-center gap-3">
         <LinkButton
           variant="primary"
@@ -55,138 +48,173 @@ const HeaderSheet = ({ user, path }: Props) => {
         >
           احجز موعدك الآن
         </LinkButton>
-
-        {/* user nav */}
         {user && <UserNav user={user} />}
       </div>
 
-      {/* side bar */}
-      <div className="flex items-center">
-        <Sheet>
-          {/* trigger */}
-          <SheetTrigger asChild>
-            <div className="p-3">
-              <Menu className="w-5 h-5 md:w-6 md:h-6 text-primary" />
-            </div>
-          </SheetTrigger>
+      <Sheet>
+        <SheetTrigger asChild>
+          <button className="relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 hover:bg-[#117ED8]/8 active:scale-95 group">
+            <Menu className="w-5 h-5 text-[#117ED8] transition-transform duration-200 group-hover:scale-110" />
+          </button>
+        </SheetTrigger>
 
-          {/* content */}
-          <SheetContent
-            hidex
-            side="left"
-            className="h-full bg-white border-border"
+        <SheetContent
+          hidex
+          side="left"
+          className="h-full p-0 border-0 shadow-2xl"
+          style={{ width: "300px" }}
+        >
+          {/* gradient header */}
+          <SheetHeader
+            className="relative px-6 py-5 overflow-hidden"
+            style={{
+              background: "linear-gradient(135deg, #117ED8 0%, #0a5fa3 100%)",
+            }}
           >
-            {/* header */}
-            <SheetHeader className="flex flex-row items-center gap-3 pb-4 border-b border-border">
-              <Image
-                src="/layout/metaTilte.png"
-                alt="logo"
-                width={28}
-                height={28}
-              />
+            {/* decorative circles */}
+            <div
+              className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-10"
+              style={{ background: "white" }}
+            />
+            <div
+              className="absolute -bottom-8 -left-4 w-32 h-32 rounded-full opacity-10"
+              style={{ background: "white" }}
+            />
+
+            <div className="relative flex flex-row items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm">
+                <Image
+                  src="/layout/metaTilte.png"
+                  alt="logo"
+                  width={24}
+                  height={24}
+                />
+              </div>
               <div>
-                <SheetTitle className="text-xl font-bold text-primary">
+                <SheetTitle className="text-lg font-bold text-white">
                   شاورني
                 </SheetTitle>
-                <SheetDescription />
+                <SheetDescription className="text-white/60 text-xs mt-0">
+                  منصة الاستشارات النفسية
+                </SheetDescription>
               </div>
-            </SheetHeader>
+            </div>
 
-            {/* header & content */}
-            <div className="flex flex-col justify-between h-[95%]">
-              {/* pages */}
-              <ScrollArea className="h-[75vh]" dir="rtl">
-                <div className="flex flex-col gap-6 my-6 px-2">
-                  {/* pages */}
-                  {!isConsultant && (
-                    <>
-                      {/* main pages */}
-                      <div className="space-y-4 bg-gray-100 rounded-lg p-4 shadow">
-                        <Label className="text-base font-semibold">
-                          القائمة الرئيسية
-                        </Label>
-                        {/* separator */}
-                        <Separator className="bg-white w-10/12 mx-auto" />
-                        {/* menu */}
-                        <div className="space-y-3">
-                          {navLinks.map((i, index) => (
-                            <SideBarBtn
-                              key={index}
-                              item={i}
-                              active={path === i.link}
-                            />
-                          ))}
-                        </div>
+            {/* user badge if logged in */}
+            {user && (
+              <div className="relative mt-4 flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+                  style={{ background: "rgba(255,255,255,0.2)" }}
+                >
+                  {user.name?.charAt(0) ?? "U"}
+                </div>
+                <div>
+                  <p className="text-white text-sm font-medium leading-none">
+                    {user.name}
+                  </p>
+                  <p className="text-white/60 text-xs mt-0.5">{user.email}</p>
+                </div>
+              </div>
+            )}
+          </SheetHeader>
+
+          {/* body */}
+          <div
+            className="flex flex-col justify-between h-[calc(100%-1px)]"
+            style={{
+              height: user ? "calc(100% - 170px)" : "calc(100% - 110px)",
+            }}
+          >
+            <ScrollArea className="flex-1" dir="rtl">
+              <div className="flex flex-col gap-4 p-4">
+                {!isConsultant && (
+                  <>
+                    {/* main nav */}
+                    <div>
+                      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest px-2 mb-2">
+                        القائمة الرئيسية
+                      </p>
+                      <div className="space-y-1">
+                        {navLinks.map((i, index) => (
+                          <SideBarBtn
+                            key={index}
+                            item={i}
+                            active={path === i.link}
+                          />
+                        ))}
                       </div>
+                    </div>
 
-                      {/* other pages */}
-                      <div className="space-y-4 bg-gray-100 rounded-lg p-4 shadow">
-                        <Label className="text-base font-semibold">
-                          خدمات إضافية
-                        </Label>
-                        {/* separator */}
-                        <Separator className="bg-white w-10/12 mx-auto" />
+                    {/* divider */}
+                    <div className="h-px bg-linear-to-r from-transparent via-gray-200 to-transparent" />
 
-                        {/* menu */}
-                        <div className="space-y-3">
-                          {subPages.map(
-                            (i, index) =>
-                              i.status && (
-                                <SideBarBtn
-                                  key={index}
-                                  item={i}
-                                  active={path === i.link}
-                                />
-                              ),
-                          )}
-                        </div>
+                    {/* sub pages */}
+                    <div>
+                      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest px-2 mb-2">
+                        خدمات إضافية
+                      </p>
+                      <div className="space-y-1">
+                        {subPages.map(
+                          (i, index) =>
+                            i.status && (
+                              <SideBarBtn
+                                key={index}
+                                item={i}
+                                active={path === i.link}
+                              />
+                            ),
+                        )}
                       </div>
-                    </>
-                  )}
+                    </div>
+                  </>
+                )}
 
-                  {/* account */}
-                  {user && (
-                    <div className="space-y-4 bg-muted/40 rounded-lg p-4">
-                      <Label className="text-base font-semibold">
+                {/* profile */}
+                {user && (
+                  <>
+                    <div className="h-px bg-linear-to-r from-transparent via-gray-200 to-transparent" />
+                    <div>
+                      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest px-2 mb-2">
                         الملف الشخصي
-                      </Label>
+                      </p>
                       <SubMenu user={user} />
                     </div>
-                  )}
-                </div>
-              </ScrollArea>
-
-              {/* footer */}
-              <SheetFooter className="border-t border-border pt-4">
-                {user ? (
-                  <LinkButton
-                    href="/logout"
-                    variant="destructive"
-                    className="flex gap-2 w-10/12 mx-auto"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>تسجيل الخروج</span>
-                  </LinkButton>
-                ) : (
-                  <div className="space-y-3 w-full">
-                    <Label className="text-muted-foreground text-sm">
-                      سجّل دخولك للاستفادة من كامل المزايا
-                    </Label>
-                    <LinkButton
-                      href="/login"
-                      variant="outline"
-                      className="flex gap-2 w-10/12 mx-auto"
-                    >
-                      <LogIn className="h-4 w-4" />
-                      <span>تسجيل الدخول</span>
-                    </LinkButton>
-                  </div>
+                  </>
                 )}
-              </SheetFooter>
+              </div>
+            </ScrollArea>
+
+            {/* footer */}
+            <div className="p-4 border-t border-gray-100">
+              {user ? (
+                <LinkButton
+                  href="/logout"
+                  variant="destructive"
+                  className="flex gap-2 w-full"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>تسجيل الخروج</span>
+                </LinkButton>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-center text-gray-400">
+                    سجّل دخولك للاستفادة من كامل المزايا
+                  </p>
+                  <LinkButton
+                    href="/login"
+                    variant="primary"
+                    className="flex gap-2 w-full"
+                  >
+                    <LogIn className="h-4 w-4" />
+                    <span>تسجيل الدخول</span>
+                  </LinkButton>
+                </div>
+              )}
             </div>
-          </SheetContent>
-        </Sheet>
-      </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

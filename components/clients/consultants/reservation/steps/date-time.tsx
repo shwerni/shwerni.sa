@@ -2,22 +2,11 @@
 import React from "react";
 
 // components
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { IconLabel } from "@/components/shared/icon-label";
 
-// styles
-import { getDefaultClassNames } from "react-day-picker";
-
 // pacakges
-import { addDays, isSameDay, startOfDay } from "date-fns";
-import { ar } from "date-fns/locale";
+import { addDays, format, isSameDay, startOfDay } from "date-fns";
 import { Controller, type UseFormReturn } from "react-hook-form";
 
 // lib
@@ -25,7 +14,12 @@ import { timeZone } from "@/lib/site/time";
 
 // utils
 import { cn } from "@/lib/utils";
-import { add25Minutes, dateToWeekDay } from "@/utils/date";
+import {
+  add25Minutes,
+  dateToWeekDay,
+  getDatesAhead,
+  meetingLabel,
+} from "@/utils/date";
 
 // schema
 import { ReservationFormType } from "@/schemas";
@@ -47,6 +41,11 @@ import {
   Sunrise,
   Sunset,
 } from "lucide-react";
+import CurrencyLabel from "@/components/clients/shared/currency-label";
+import { Cost } from "@/types/data";
+import DaysButtons from "../../days-buttons";
+import { Separator } from "@/components/ui/separator";
+import { ar } from "date-fns/locale";
 
 // props
 interface Props {
@@ -89,31 +88,31 @@ export default function StepDateTime({ form, onNext }: Props) {
   // cid & unavailable
   const { cid, unavailable } = form.getValues();
 
-  // acordin open
-  const [open, setOpen] = React.useState<string | undefined>();
-
   // loading
   const [loading, setLoading] = React.useState<boolean>(false);
 
   // date
   const { iso: initial } = timeZone();
-
   // time
-  const { date: iso, time } = React.useMemo(() => {
+  const {
+    date: iso,
+    iso: nDate,
+    time,
+  } = React.useMemo(() => {
     return add25Minutes(initial);
   }, [initial]);
+
+  // get 7 days ahead
+  const days = getDatesAhead(7, nDate);
 
   // times
   const times = form.watch("times");
 
-  // selected time
-  const selectedTime = form.watch("time");
-
   // selected date
   const selectedDate = form.watch("date");
 
-  // default calendar styles
-  const classNames = React.useMemo(() => getDefaultClassNames(), []);
+  // selected time
+  const selectedTime = form.watch("time");
 
   // find time label and phase
   const timeByValue = React.useMemo(
@@ -123,13 +122,6 @@ export default function StepDateTime({ form, onNext }: Props) {
       ),
     [],
   );
-
-  // open active grouped selected time accordion for ui/ux
-  React.useEffect(() => {
-    if (!selectedTime) return setOpen(undefined);
-
-    setOpen(timeByValue[selectedTime]?.phase);
-  }, [selectedTime, timeByValue]);
 
   async function fetchTimes(date: Date | undefined) {
     if (date) {
@@ -157,50 +149,40 @@ export default function StepDateTime({ form, onNext }: Props) {
   }
 
   return (
-    <div className="flex flex-col lg:grid lg:grid-cols-3 lg:gap-x-2 space-y-4">
+    <div className="flex flex-col gap-y-4">
       {/* calendar */}
-      <Controller
-        name="date"
-        control={control}
-        render={({ field }) => (
-          <Calendar
-            className="col-span-2 w-full h-90 xs:h-110 sm:h-120 max-w-lg pb-10 mx-auto data-[selected-single=true]:bg-white!"
-            buttonVariant="ghost"
-            classNames={{
-              disabled: cn(classNames.disabled, "text-gray-500 line-through"),
-              day_button: cn(
-                classNames.day_button,
-                "font-semibold data-[selected-single=true]:!bg-theme data-[selected-single=true]:!text-white rounded-full rounded-l-full! rounded-r-full!",
-              ),
-            }}
-            locale={ar}
-            mode="single"
-            selected={selectedDate}
-            onSelect={(date) => {
-              field.onChange(
-                date
-                  ? new Date(
-                      Date.UTC(
-                        date.getFullYear(),
-                        date.getMonth(),
-                        date.getDate(),
-                      ),
-                    )
-                  : date,
-              );
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        {days.map((i, index) => (
+          <div
+            key={index}
+            onClick={() => {
+              form.setValue("date", new Date(i));
               // @ts-expect-error - this is a hack to reset time when date changes
               form.setValue("time", undefined);
               // get this day times
-              fetchTimes(date);
+              fetchTimes(new Date(i));
             }}
-            disabled={(date) =>
-              date < startOfDay(iso) ||
-              date > addDays(iso, 10) ||
-              unavailable.includes(dateToWeekDay(date))
-            }
-          />
-        )}
-      />
+            className={cn(
+              new Date(i) < startOfDay(iso) ||
+                new Date(i) > addDays(iso, 10) ||
+                unavailable.includes(dateToWeekDay(new Date(i)))
+                ? "pointer-events-none opacity-35"
+                : "",
+            )}
+          >
+            <DaysButtons day={i} selected={dateToString(selectedDate) === i} />
+          </div>
+        ))}
+      </div>
+
+      {/* date label */}
+      {selectedDate && (
+        <h5 className="text-sm font-medium text-[#094577]">
+          {format(selectedDate, "EEEE، d MMMM yyyy", {
+            locale: ar,
+          })}
+        </h5>
+      )}
 
       {/* time slots */}
       <Controller
@@ -238,78 +220,83 @@ export default function StepDateTime({ form, onNext }: Props) {
             );
 
           return (
-            <Accordion
-              type="single"
-              collapsible
-              className="space-y-3"
-              value={open}
-              onValueChange={setOpen}
-            >
+            <div className="space-y-3">
               {Object.entries(times).map(([phase, phaseTimes]) => {
                 if (!phaseTimes || phaseTimes.length === 0) return;
 
                 const meta = phaseMeta[phase as keyof typeof phaseMeta];
 
                 return (
-                  <AccordionItem
+                  <div
                     key={phase}
-                    value={phase}
-                    className="border-none transition-colors duration-300"
+                    className="border-none transition-colors duration-300 space-y-3 my-3"
                   >
                     {/* phase header */}
-                    <AccordionTrigger className="p-3 rounded-lg border hover:no-underline hover:bg-gray-100">
-                      <div className="inline-flex justify-between items-center w-full">
-                        <div className="inline-flex items-center gap-1.5">
-                          <meta.Icon className={cn(meta.style, "w-5")} />
-                          <h4 className="text-gray-700 text-sm font-medium">
-                            {meta.label}
-                          </h4>
-                          {/* <span className="text-xs text-gray-600 font-medium">({phaseTimes.length})</span> */}
-                        </div>
-                        <span className="text-xs text-gray-500">
-                          {meta.range}
-                        </span>
+                    <div className="inline-flex justify-between items-center w-full">
+                      <div className="inline-flex items-center gap-1.5">
+                        <meta.Icon className={cn(meta.style, "w-5")} />
+                        <h4 className="text-gray-700 text-sm font-medium">
+                          {meta.label}
+                        </h4>
+                        {/* <span className="text-xs text-gray-600 font-medium">({phaseTimes.length})</span> */}
                       </div>
-                    </AccordionTrigger>
+                      <span className="text-xs text-gray-500">
+                        {meta.range}
+                      </span>
+                    </div>
 
                     {/* times */}
-                    <AccordionContent className="pt-2">
-                      <div className="flex flex-col gap-1.5">
-                        {phaseTimes.map((t) => {
-                          const option = timeByValue[t];
-                          return (
-                            <button
-                              key={t}
-                              type="button"
-                              onClick={() => field.onChange(t)}
-                              className={cn(
-                                "w-full text-right text-gray-800 text-sm font-medium px-3 py-2 rounded-lg border transition-colors",
-                                field.value === t
-                                  ? "bg-theme text-white border-theme hover:bg-theme/90"
-                                  : "hover:bg-theme hover:text-white",
-                              )}
-                            >
-                              {option.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
+                    <div className="flex flex-wrap gap-2.5 pt-2">
+                      {phaseTimes.map((t) => {
+                        const option = timeByValue[t];
+                        return (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => field.onChange(t)}
+                            className={cn(
+                              "text-right text-gray-800 text-sm font-medium px-3 py-2 rounded-lg border transition-colors",
+                              selectedTime === t
+                                ? "bg-theme text-white border-theme hover:bg-theme/90"
+                                : "bg-gray-100 hover:bg-theme hover:text-white",
+                            )}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* seperator */}
+                    <Separator className="w-10/12 max-w-80 mx-auto mt-10" />
+                  </div>
                 );
               })}
-            </Accordion>
+            </div>
           );
         }}
       />
 
-      <Button variant="primary" type="button" onClick={onNext} size="sm">
-        <IconLabel
-          Icon={ChevronLeft}
-          label="الخطوة التالية"
-          className="text-sm"
-        />
-      </Button>
+      <div className="flex items-center justify-between col-span-3">
+        <Button variant="primary" type="button" onClick={onNext} size="sm">
+          <IconLabel
+            Icon={ChevronLeft}
+            label="الخطوة التالية"
+            className="text-sm"
+          />
+        </Button>
+
+        <div className="flex flex-col items-center justify-center gap-2 ">
+          <CurrencyLabel
+            amount={
+              form.getValues("cost")[form.getValues("duration") as keyof Cost]
+            }
+            tax={15}
+            textStyle="text-theme font-semibold"
+          />
+          <span className="text-sm font-semibold">تكلفة الجلسة</span>
+        </div>
+      </div>
     </div>
   );
 }

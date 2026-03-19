@@ -26,10 +26,11 @@ const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
           type="search"
           className={cn("pl-9", className)}
           {...props}
+          maxLength={50}
         />
       </div>
     );
-  }
+  },
 );
 
 SearchInput.displayName = "SearchInput";

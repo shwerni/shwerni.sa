@@ -26,12 +26,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { IconLabel } from "@/components/shared/icon-label";
-import SearchInput from "@/components/clients/shared/search-input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Stars from "../shared/stars";
 
@@ -42,12 +40,10 @@ import { findCategory, genderLabel } from "@/utils";
 // prisma types
 import { Categories, Gender, Specialty } from "@/lib/generated/prisma/browser";
 
-// hooks
-import { useDebounced } from "@/hooks/debounced";
-
 // icons
 import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Search from "./reservation/search";
 
 // props
 interface Props {
@@ -109,13 +105,6 @@ export const FilterContent = ({
   // max
   const max = 1000;
 
-  // search
-  const [search, setSearch] = useQueryState("search", {
-    defaultValue: "",
-    clearOnDefault: true,
-    shallow: false,
-  });
-
   // gender
   const [gender, setGender] = useQueryState(
     "gender",
@@ -137,12 +126,6 @@ export const FilterContent = ({
     clearOnDefault: true,
     shallow: false,
   });
-
-  // local input state
-  const [searchInput, setSearchInput] = React.useState(search);
-
-  // debounce
-  const debounced = useDebounced(searchInput, 500);
 
   // specialties
   const [specialtiesIds, setSpecialtiesIds] = useQueryState(
@@ -234,11 +217,6 @@ export const FilterContent = ({
     setMaxCost(newMax === max ? null : newMax);
   }
 
-  // update search
-  function updateSearch(value: string | null) {
-    setSearch(value?.trim() || null);
-  }
-
   // update radio group
   function updateRadio(value: "newest" | "viral") {
     if (value === "newest" || value === "viral") setOrderBy(value);
@@ -254,27 +232,11 @@ export const FilterContent = ({
     router.push("/consultants");
   };
 
-  // update local search
-  React.useEffect(() => {
-    setSearchInput(search);
-  }, [search]);
-
-  React.useEffect(() => {
-    // debounced search
-    updateSearch(debounced || null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debounced, setSearch]);
-
   return (
     <div className="space-y-4">
-      {/* Search */}
-      <div className="w-11/12 space-y-3">
-        <Label>البحث</Label>
-        <SearchInput
-          defaultValue={searchInput}
-          placeholder="...ابحث"
-          onChange={(e) => setSearchInput(e.target.value)}
-        />
+      {/* search for desktop */}
+      <div className="hidden md:block">
+        <Search />
       </div>
       {/* order by */}
       <Accordion
@@ -439,7 +401,7 @@ export const FilterContent = ({
         </AccordionItem>
       </Accordion>
       {/* cost */}
-      <Accordion
+      {/* <Accordion
         type="single"
         collapsible
         className="w-full"
@@ -467,7 +429,7 @@ export const FilterContent = ({
             </div>
           </AccordionContent>
         </AccordionItem>
-      </Accordion>
+      </Accordion> */}
       {/* separator */}
       <Separator className="w-10/12 mx-auto" />
       {/* specialties */}
