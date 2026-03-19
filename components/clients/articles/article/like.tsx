@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 import { toast } from "@/components/shared/toast";
 import { PiHandsClappingLight } from "react-icons/pi";
