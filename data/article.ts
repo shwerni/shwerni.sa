@@ -74,10 +74,10 @@ export const getArticles = async (
 ) => {
   const clause =
     orderBy === "newest"
-      ? Prisma.sql`"created_at" DESC`
+      ? Prisma.sql`a."created_at" DESC`
       : orderBy === "oldest"
-        ? Prisma.sql`"created_at" ASC`
-        : Prisma.sql`likes DESC, "created_at" DESC`;
+        ? Prisma.sql`a."created_at" ASC`
+        : Prisma.sql`likes_count DESC, a."created_at" DESC`;
 
   const where = search
     ? Prisma.sql`AND LOWER(a.title) LIKE LOWER(${`%${search}%`})`
@@ -92,25 +92,27 @@ export const getArticles = async (
 
   const total = Number(result[0]?.count ?? 0);
   const pages = Math.max(1, Math.ceil(total / pageSize));
-
   const safePage = Math.min(Math.max(page, 1), pages);
 
   const items = await prisma.$queryRaw<ArticleItem[]>`
     SELECT
       a.aid,
       a.title,
-      LEFT(a.article, 200) AS article,
-      LENGTH(a.article) AS length,
+      LEFT(a.article, 200)  AS article,
+      LENGTH(a.article)     AS length,
       a.image,
-      a.category::text AS category,
-      COALESCE(array_length(a.likes, 1), 0) AS likes,
+      a.category::text      AS category,
       a.created_at,
       c.name,
-      c.rate
+      c.rate,
+      COUNT(al.id)::int     AS likes_count
     FROM "articles" a
-    LEFT JOIN "consultants" c ON c."cid" = a."consultantId"
+    LEFT JOIN "consultants"   c  ON c."cid"       = a."consultantId"
+    LEFT JOIN "article_likes" al ON al."articleId" = a.id
     WHERE a.status = 'PUBLISHED'
       ${where}
+    GROUP BY a.id, a.aid, a.title, a.article, a.image, a.category,
+             a.created_at, c.name, c.rate
     ORDER BY ${clause}
     LIMIT ${pageSize} OFFSET ${(safePage - 1) * pageSize}
   `;
