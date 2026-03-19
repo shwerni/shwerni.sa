@@ -38,14 +38,14 @@ type ArtilceType = ArticlePrisma & {
   consultant: {
     name: string;
   } | null;
-  likes: number;
-  liked: boolean;
 };
 
 // props
 interface Props {
   article: ArtilceType;
   body: string;
+  liked: boolean;
+  likes: number;
   userId: string | null;
   side: {
     h3: string;
@@ -53,7 +53,14 @@ interface Props {
   }[];
 }
 
-const Article = async ({ article, userId, body, side }: Props) => {
+const Article = async ({
+  article,
+  userId,
+  body,
+  side,
+  liked,
+  likes,
+}: Props) => {
   return (
     <article className="my-5 px-3 space-y-8">
       {/* content */}
@@ -138,8 +145,8 @@ const Article = async ({ article, userId, body, side }: Props) => {
             <ArticleLikeButton
               aid={article.aid}
               userId={userId}
-              liked={article.liked}
-              iLikes={article.likes}
+              liked={liked}
+              iLikes={likes}
             />
           </div>
         </div>

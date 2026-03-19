@@ -9,7 +9,11 @@ import Error404 from "@/components/shared/error-404";
 import Article from "@/components/clients/articles/article/article";
 
 // prisma data
-import { getArticleByAid, incrementArticleRead } from "@/data/article";
+import {
+  getArticleByAid,
+  getArticleLikes,
+  incrementArticleRead,
+} from "@/data/article";
 
 // prisma data
 import { cacheLife } from "next/cache";
@@ -136,6 +140,9 @@ export default async function Page({ params }: Props) {
   // increment
   await incrementArticleRead(articleId);
 
+  // user liked
+  const like = await getArticleLikes(articleId, userId);
+
   // seo
   const writer = result.article.consultant?.name ?? "مستشارين شاورني";
 
@@ -167,6 +174,8 @@ export default async function Page({ params }: Props) {
         body={result.body}
         side={result.side}
         userId={userId}
+        liked={like?.liked }
+        likes={like?.count}
       />
     </>
   );

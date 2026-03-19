@@ -224,31 +224,51 @@ export const getArticleTitleByBid = async (aid: number) => {
 };
 
 // get question by qid
-export const getArticleByAid = async (aid: number, userId?: string) => {
-   try {
+export const getArticleByAid = async (aid: number) => {
+  try {
     const article = await prisma.article.findUnique({
       where: { aid },
       include: {
         consultant: { select: { name: true } },
         specialties: { select: { specialty: true } },
-        _count: { select: { likes: true } },
-        likes: userId
-          ? { where: { userId }, select: { id: true }, take: 1 }
-          : false,
       },
     });
 
     if (!article) return null;
 
-    const { _count, likes, ...rest } = article;
-
-    return {
-      ...rest,
-      likes: _count.likes,
-      liked: userId ? likes.length > 0 : false,
-    };
+    return article;
   } catch {
     return null;
+  }
+};
+
+export const getArticleLikes = async (aid: number, userId: string | null) => {
+  try {
+    const article = await prisma.article.findUnique({
+      where: { aid },
+      select: {
+        id: true,
+        _count: { select: { likes: true } },
+      },
+    });
+
+    if (!article) return { liked: false, count: 0 };
+
+    const liked = userId
+      ? !!(await prisma.articleLike.findUnique({
+          where: {
+            articleId_userId: { articleId: article.id, userId },
+          },
+          select: { id: true },
+        }))
+      : false;
+
+    return {
+      liked,
+      count: article._count.likes,
+    };
+  } catch {
+    return { liked: false, count: 0 };
   }
 };
 
@@ -281,7 +301,7 @@ export const getArticleMetaData = async (aid: number) => {
 
 export async function toggleArticleLike(
   aid: number,
-  userId: string
+  userId: string,
 ): Promise<{ liked: boolean; count: number }> {
   const article = await prisma.article.findUnique({
     where: { aid },

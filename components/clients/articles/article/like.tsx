@@ -1,8 +1,8 @@
 "use client";
 import React from "react";
 import { toast } from "@/components/shared/toast";
-import { PiHandsClappingLight } from "react-icons/pi";
 import { toggleArticleLike } from "@/data/article";
+import { AiOutlineLike, AiFillLike } from "react-icons/ai";
 
 interface Props {
   aid: number;
@@ -14,6 +14,7 @@ interface Props {
 export function ArticleLikeButton({ aid, liked, iLikes = 0, userId }: Props) {
   const [isLiked, setIsLiked] = React.useState<boolean>(liked);
   const [likes, setLikes] = React.useState<number>(iLikes);
+  const [pending, setPending] = React.useState<boolean>(false);
 
   const handleLike = async () => {
     if (!userId) {
@@ -23,30 +24,46 @@ export function ArticleLikeButton({ aid, liked, iLikes = 0, userId }: Props) {
       return;
     }
 
-    setIsLiked((prev) => !prev);
+    if (pending) return; // prevent double clicks
+
+    // snapshot before mutation
+    const prevLiked = isLiked;
+    const prevCount = likes;
+
+    // optimistic update
+    setPending(true);
+    setIsLiked(!prevLiked);
+    setLikes((c) => (!prevLiked ? c + 1 : Math.max(0, c - 1)));
 
     try {
       const result = await toggleArticleLike(aid, userId);
+      // sync with server truth
       setIsLiked(result.liked);
       setLikes(result.count);
     } catch {
-      setIsLiked(isLiked);
+      // rollback to snapshot
+      setIsLiked(prevLiked);
+      setLikes(prevCount);
       toast.error({ message: "حدث خطأ، حاول مجدداً" });
+    } finally {
+      setPending(false);
     }
   };
 
   return (
-    <button onClick={handleLike} className="flex items-end gap-2 group">
-      <PiHandsClappingLight
-        className={`w-6 h-6 transition-colors duration-200 ${
-          isLiked
-            ? "text-yellow-500 fill-yellow-400" // liked  → colored
-            : "text-gray-400 group-hover:text-yellow-400" // hover preview
-        }`}
-      />
+    <button
+      onClick={handleLike}
+      disabled={pending}
+      className="flex items-end gap-2 group disabled:opacity-70"
+    >
+      {isLiked ? (
+        <AiFillLike className="w-6 h-6 text-theme transition-colors duration-200" />
+      ) : (
+        <AiOutlineLike className="w-6 h-6 text-gray-400 group-hover:text-theme transition-colors duration-200" />
+      )}
       {likes > 0 && (
         <span
-          className={`text-sm ${isLiked ? "text-yellow-500" : "text-gray-600"}`}
+          className={`font-semibold text-sm ${isLiked ? "text-theme" : "text-gray-600"}`}
         >
           {likes}
         </span>
