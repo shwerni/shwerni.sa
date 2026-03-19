@@ -34,7 +34,15 @@ const ConsultantReviews = async ({ cid }: Props) => {
         </h4>
       </div>
       {/* coupons */}
-      <Suspense fallback={<CardSkeleton count={3} CardClassName="w-32 h-32" className="flex flex-col gap-3"/>}>
+      <Suspense
+        fallback={
+          <CardSkeleton
+            count={3}
+            CardClassName="w-32 h-32"
+            className="flex flex-col gap-3"
+          />
+        }
+      >
         <ScrollArea className="h-96 gap-2" dir="rtl">
           <div className="space-y-4">
             {reviews.map((review) => (

@@ -26,6 +26,7 @@ import {
 // constants
 import { mainRoute } from "@/constants/links";
 import { cacheLife } from "next/cache";
+import AddYourReview from "@/components/clients/consultants/consultant/post-review";
 
 // props
 type Props = {

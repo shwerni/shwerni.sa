@@ -12,6 +12,7 @@ import { getFinanceConfig } from "@/data/admin/settings/finance";
 
 // lib
 import { userServer } from "@/lib/auth/server";
+import AddYourReview from "../consultant/post-review";
 
 // props
 interface Props {
@@ -51,6 +52,13 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
 
   return (
     <div className="max-w-6xl mx-auto py-5">
+      {/* review */}
+      <AddYourReview
+        cid={cid}
+        consultant={info.name}
+        author={user?.id || null}
+        name={user?.name || null}
+      />
       {/* discount badge */}
       {isDiscount && (
         <div className="w-fit mx-auto">
