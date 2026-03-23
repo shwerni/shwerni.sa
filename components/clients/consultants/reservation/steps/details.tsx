@@ -13,20 +13,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import PhoneInput from "@/components/shared/phone-input";
-import { IconLabel } from "@/components/shared/icon-label";
 import {
   Field,
   FieldLabel,
   FieldError,
   FieldGroup,
 } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import PhoneInput from "@/components/shared/phone-input";
+import { IconLabel } from "@/components/shared/icon-label";
 import CurrencyLabel from "@/components/clients/shared/currency-label";
-import GiftForm from "@/components/clients/consultants/reservation/steps/gift";
+// import GiftForm from "@/components/clients/consultants/reservation/steps/gift";
 
 // utils
 import { meetingLabel } from "@/utils/date";
@@ -181,7 +181,7 @@ export default function StepDetails({ form, onNext, onBack }: Props) {
         </div>
 
         {/* gift form */}
-        <GiftForm form={form} />
+        {/* <GiftForm form={form} /> */}
 
         {/* notes */}
         <Controller
