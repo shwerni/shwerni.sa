@@ -24,9 +24,9 @@ export default async function Page() {
       {/* title */}
       <Btitle title="ملفك الشخصي" />
       {/* pop up */}
-      {consultant && (
+      {/* {consultant && (
         <ConsultantPopUp gender={consultant?.gender} name={consultant?.name} />
-      )}
+      )} */}
       {/* form */}
       <CoProfileForm author={user.id} owner={consultant} phone={user.phone} />
     </Section>

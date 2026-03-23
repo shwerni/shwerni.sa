@@ -3,11 +3,11 @@ import Error404 from "@/components/shared/error-404";
 import ConsultantProfile from "@/components/clients/consultants/consultant/profile";
 
 // prisma data
+import { getFavorite } from "@/data/favorites";
 import { getConsultant } from "@/data/consultant";
 
 // hooks
 import { userServer } from "@/lib/auth/server";
-import { getFavorite } from "@/data/favorites";
 
 const Consultant = async ({ cid }: { cid: number; }) => {
   // user

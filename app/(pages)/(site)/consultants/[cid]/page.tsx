@@ -1,6 +1,7 @@
 // React & Next
 import { Metadata } from "next";
 import { Suspense } from "react";
+import { cacheLife } from "next/cache";
 
 // components
 import Error404 from "@/components/shared/error-404";
@@ -8,6 +9,7 @@ import CardSkeleton from "@/components/clients/shared/card-skeleton";
 import CollaborationBadge from "@/components/shared/collaboration-badge";
 import Consultant from "@/components/clients/consultants/consultant/consultant";
 import ConsultantReviews from "@/components/clients/consultants/consultant/reviews";
+// import AddYourReview from "@/components/clients/consultants/consultant/post-review";
 import ConsultantReserve from "@/components/clients/consultants/reservation/reserve";
 import SkeletonConsultant from "@/components/clients/consultants/consultant/skeleton";
 import SkeletonCoupons from "@/components/clients/consultants/consultant/coupons/skeleton";
@@ -25,8 +27,6 @@ import {
 
 // constants
 import { mainRoute } from "@/constants/links";
-import { cacheLife } from "next/cache";
-import AddYourReview from "@/components/clients/consultants/consultant/post-review";
 
 // props
 type Props = {
@@ -137,17 +137,22 @@ const Page = async ({ params, searchParams }: Props) => {
         <Suspense fallback={<SkeletonCoupons />}>
           <ConsultantCoupons cid={cidN} />
         </Suspense>
+      </div>
+      {/* reservation */}
+      <Suspense fallback={<CardSkeleton count={1} className="w-full" />}>
+        {consultant.status && (
+          <ConsultantReserve cid={cidN} collaboration={collaboration} />
+        )}
+      </Suspense>
+      {/* reviews */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-5 space-y-6 mb-10">
         <Suspense
           fallback={<CardSkeleton count={4} className="flex flex-col gap-4" />}
         >
           <ConsultantReviews cid={cidN} />
         </Suspense>
       </div>
-      <Suspense fallback={<CardSkeleton count={1} className="w-full" />}>
-        {consultant.status && (
-          <ConsultantReserve cid={cidN} collaboration={collaboration} />
-        )}
-      </Suspense>
+      {/* collaboration */}
       {collaboration && (
         <Suspense
           fallback={

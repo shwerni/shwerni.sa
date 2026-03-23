@@ -1,5 +1,4 @@
 // componenets
-import DiscountBadge from "../../event/discounts/discount-badge";
 import Reservation from "@/components/clients/consultants/reservation/form";
 
 // prisma data
@@ -43,28 +42,21 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
   if (!cost || !finance || !info) return;
 
   // discount // dynamic later
-  const isDiscount = info?.DiscountConsultant.some(
-    (i) => i.discountId === 3 && i.status,
-  );
+  // const isDiscount = info?.DiscountConsultant.some(
+    // (i) => i.discountId === 3 && i.status,
+  // );
 
   // cost
-  if (isDiscount) cost[30] = 77.3;
+  // if (isDiscount) cost[30] = 77.3;
 
   return (
-    <div className="max-w-6xl mx-auto py-5">
-      {/* review */}
-      <AddYourReview
-        cid={cid}
-        consultant={info.name}
-        author={user?.id || null}
-        name={user?.name || null}
-      />
+    <div className="max-w-6xl mx-auto py-5 space-y-8">
       {/* discount badge */}
-      {isDiscount && (
+      {/* {isDiscount && (
         <div className="w-fit mx-auto">
           <DiscountBadge />
         </div>
-      )}
+      )} */}
       {/* reservation */}
       <Reservation
         cid={cid}
@@ -74,6 +66,13 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
         finance={finance}
         unavailable={[...unavailable]}
         collaboration={collaboration}
+      />
+      {/* review */}
+      <AddYourReview
+        cid={cid}
+        consultant={info.name}
+        author={user?.id || null}
+        name={user?.name || null}
       />
     </div>
   );

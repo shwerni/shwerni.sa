@@ -4,13 +4,12 @@ import React from "react";
 
 // packages
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import "@smastrom/react-rating/style.css";
 import { useForm } from "react-hook-form";
 import { Rating } from "@smastrom/react-rating";
-import "@smastrom/react-rating/style.css";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 // components
-import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -18,18 +17,19 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/components/shared/toast";
+import { Textarea } from "@/components/ui/textarea";
 
 // prisma data
+import { acceptNewreview } from "@/data/review";
 
 // schemas
+import { CommentSchema } from "@/schemas";
 
 // icons
 import { CheckCircle2, Send } from "lucide-react";
-import { toast } from "@/components/shared/toast";
-import { CommentSchema } from "@/schemas";
-import { acceptNewreview } from "@/data/review";
 
 // props
 interface Props {
@@ -63,6 +63,16 @@ export default function AddYourReview({
 
   // on submit
   async function onSubmit(data: z.infer<typeof CommentSchema>) {
+    // rate
+    if (!rating || rating === 0) {
+      // rate
+      toast.warning({
+        title: "التقييم مطلوب",
+        message: "يرجى اختيار عدد النجوم للمتابعة",
+      }); 
+      // return
+      return;
+    }
     // post
     const response = await acceptNewreview(
       cid,

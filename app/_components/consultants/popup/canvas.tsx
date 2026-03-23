@@ -53,11 +53,22 @@ const CanvasCenter: React.FC<Props> = ({ name, gender }) => {
         ctx.fillStyle = color;
         ctx.textAlign = "center";
 
-        const txt =
-          (gender === Gender.MALE ? "المستشار/ " : "المستشارة/ ") + name;
+        const line1 = "شركة المجد للمقاولات العمومية";
+const line2 = "احمد ابوالمجد"; // or just "امل" if you want only the name
 
-        ctx.strokeText(txt, x(canvas.width), y(canvas.height));
-        ctx.fillText(txt, x(canvas.width), y(canvas.height));
+const baseX = x(canvas.width);
+const baseY = y(canvas.height);
+
+// spacing between lines
+const lineHeight = 60;
+
+// first line
+ctx.strokeText(line1, baseX, baseY);
+ctx.fillText(line1, baseX, baseY);
+
+// second line (under it)
+ctx.strokeText(line2, baseX, baseY + lineHeight);
+ctx.fillText(line2, baseX, baseY + lineHeight);
       };
       img.src = src;
     },

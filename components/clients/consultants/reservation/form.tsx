@@ -8,12 +8,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 // components
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { toast } from "@/components/shared/toast";
 import { Stepper } from "@/components/clients/consultants/reservation/stepper";
 import StepPayment from "@/components/clients/consultants/reservation/steps/payment";
@@ -37,6 +31,7 @@ import { Cost, FinanceConfig } from "@/types/data";
 
 // schema
 import { ReservationFormType, reservationSchema } from "@/schemas/index";
+import { CalendarDays } from "lucide-react";
 
 // props
 interface Props {
@@ -169,40 +164,39 @@ export default function ReservationForm({
   }
 
   return (
-    <Accordion type="single" collapsible defaultValue="reserve" id="reserve">
-      <AccordionItem value="reserve">
-        <AccordionTrigger className="items-center justify-center text-gray-700">
-          الحجز
-        </AccordionTrigger>
-        <AccordionContent className="bg-[#F1F8FE] px-4 sm:px-5">
-          <div className="max-w-4xl mx-auto">
-            <Stepper step={step} steps={steps} />
+    <div id="reserve" className="space-y-3">
+      <div className="w-fit mx-auto flex items-center gap-2 px-5 py-1.5 rounded-full bg-[#F1F8FE] border border-blue-100">
+        <CalendarDays className="text-theme w-5" />
+        <h3 className="text-base font-semibold">الحجز</h3>
+      </div>
+      <div className="bg-[#F1F8FE] px-4 sm:px-5 pb-5">
+        <div className="max-w-4xl mx-auto">
+          <Stepper step={step} steps={steps} />
 
-            <div className="bg-white py-10 px-3 sm:px-6 rounded-lg shadow">
-              <form onSubmit={form.handleSubmit(onSubmit)}>
-                {/* date & time */}
-                {step === 0 && (
-                  <StepDateTime form={form} onNext={() => handleNext(1)} />
-                )}
+          <div className="bg-white py-10 px-3 sm:px-6 rounded-lg shadow">
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              {/* date & time */}
+              {step === 0 && (
+                <StepDateTime form={form} onNext={() => handleNext(1)} />
+              )}
 
-                {/* reserver info */}
-                {step === 1 && (
-                  <StepDetails
-                    form={form}
-                    onNext={() => handleNext(2)}
-                    onBack={() => handleNext(0)}
-                  />
-                )}
+              {/* reserver info */}
+              {step === 1 && (
+                <StepDetails
+                  form={form}
+                  onNext={() => handleNext(2)}
+                  onBack={() => handleNext(0)}
+                />
+              )}
 
-                {/* payment */}
-                {step === 2 && (
-                  <StepPayment form={form} onBack={() => handleNext(1)} />
-                )}
-              </form>
-            </div>
+              {/* payment */}
+              {step === 2 && (
+                <StepPayment form={form} onBack={() => handleNext(1)} />
+              )}
+            </form>
           </div>
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -6,7 +6,7 @@ import Sticky from "@/components/clients/home/instant";
 import Benefits from "@/components/clients/home/benefits";
 import Categories from "@/components/clients/home/categories";
 import Reviews from "@/components/clients/home/reviews/reviews";
-import Coupons from "@/components/clients/home/coupons/coupons";
+// import Coupons from "@/components/clients/home/coupons/coupons";
 import Statistics from "@/components/clients/home/statistics/statistics";
 import Consultants from "@/components/clients/home/consultant/consultants";
 

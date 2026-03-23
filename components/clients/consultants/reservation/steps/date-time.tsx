@@ -14,12 +14,7 @@ import { timeZone } from "@/lib/site/time";
 
 // utils
 import { cn } from "@/lib/utils";
-import {
-  add25Minutes,
-  dateToWeekDay,
-  getDatesAhead,
-  meetingLabel,
-} from "@/utils/date";
+import { add25Minutes, dateToWeekDay, getDatesAhead } from "@/utils/date";
 
 // schema
 import { ReservationFormType } from "@/schemas";
