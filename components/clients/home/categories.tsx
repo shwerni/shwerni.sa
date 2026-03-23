@@ -121,7 +121,7 @@ const Categories = () => {
             size="lg"
             variant="primary"
             className="px-8"
-            href="/consultants"
+            href="/instant"
           >
             <IconLabel Icon={ArrowLeft} label="تحدّث الآن" />
           </LinkButton>

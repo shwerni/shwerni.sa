@@ -153,7 +153,7 @@ export default function ReservationInstant({ form, onNext }: Props) {
             <h6 className="text-sm text-center text-gray-700 font-semibold">
               تفقد قائمة المستشارين المتاحون خلال الساعات القادمة
             </h6>
-            <Link href="/consultants">
+            <Link href="/consultants" type="button">
               <Button
                 className="gap-1.5 border-theme text-theme"
                 variant="outline"

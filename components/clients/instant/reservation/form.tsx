@@ -44,7 +44,7 @@ export default function InstantReservationForm({ user, finance }: Props) {
   const { executeRecaptcha } = useGoogleReCaptcha();
 
   const { time, iso } = addNMinutes();
-  
+
   // form
   const form = useForm<InstantFormType>({
     resolver: zodResolver(instantSchema),
@@ -138,7 +138,6 @@ export default function InstantReservationForm({ user, finance }: Props) {
         });
       })}
     >
-      {" "}
       {/* reserver info */}
       {step === 0 && <StepDetails form={form} onNext={() => handleNext(1)} />}
       {/* payment */}
