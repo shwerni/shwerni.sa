@@ -4,7 +4,7 @@ import { z } from "zod";
 // prisma types
 import { Categories } from "@/lib/generated/prisma/enums";
 
-// repeated schemas
+// reusable schemas
 export const schemas = {
   // name
   name: z

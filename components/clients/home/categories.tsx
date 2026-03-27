@@ -19,6 +19,8 @@ import { LinkButton } from "@/components/shared/link-button";
 import { IconLabel } from "@/components/shared/icon-label";
 import Image from "next/image";
 
+import EventCard from "@/components/clients/EventCard";
+
 const Categories = () => {
   // link
   const url = (category: CategoriesType) => {
@@ -30,7 +32,7 @@ const Categories = () => {
       {/* title */}
       <Title title="تلائم أهدافك وتحقق نتائجك" subTitle="مجالات واسعة" />
       {/* event card */}
-      {/* <EventCard /> */}
+      <EventCard />
       {/* cards */}
       {/* handle better instead of just hide */}
       <div className="hidden md:block space-y-5">
