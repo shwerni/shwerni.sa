@@ -114,12 +114,12 @@ export default async function Page({ searchParams }: Props) {
               />
             }
           >
-            {/* <ConsultantsList
+            <ConsultantsList
               search={search}
               page={page}
               categories={categories}
               gender={gender}
-            /> */}
+            />
           </Suspense>
         </div>
       </div>
