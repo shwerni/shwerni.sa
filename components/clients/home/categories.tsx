@@ -19,7 +19,7 @@ import { LinkButton } from "@/components/shared/link-button";
 import { IconLabel } from "@/components/shared/icon-label";
 import Image from "next/image";
 
-import EventCard from "@/components/clients/EventCard";
+// import EventCard from "@/components/clients/EventCard";
 
 const Categories = () => {
   // link
