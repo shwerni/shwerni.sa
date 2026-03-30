@@ -91,6 +91,12 @@ enum ProgramState {
   HIDDEN
 }
 
+enum CommentState {
+  PUBLISHED
+  HOLD
+  HIDDEN
+}
+
 enum Categories {
   FAMILY
   PSYCHIC
@@ -215,6 +221,7 @@ model User {
   ConsultantTiming ConsultantTiming[]
   collaboration    Collaboration?
   articleLikes     ArticleLike[]
+  articleComments  ArticleComment[]
 
   @@map("users")
 }
@@ -337,6 +344,7 @@ model Consultant {
   programs                 ProgramConsultant[]
   DiscountConsultant       DiscountConsultant[]
   specialties              ConsultantSpecialty[]
+  articleComments          ArticleComment[]
 
   @@map("consultants")
 }
@@ -481,9 +489,10 @@ model Article {
   read       Int           @default(0)
 
   // @relations
-  consultantId Int?
-  consultant   Consultant?        @relation(fields: [consultantId], references: [cid])
-  specialties  ArticleSpecialty[]
+  consultantId    Int?
+  consultant      Consultant?        @relation(fields: [consultantId], references: [cid])
+  specialties     ArticleSpecialty[]
+  articleComments ArticleComment[]
 
   @@map("articles")
 }
@@ -501,6 +510,30 @@ model ArticleLike {
 
   @@unique([articleId, userId])
   @@map("article_likes")
+}
+
+model ArticleComment {
+  id         String       @id @default(cuid())
+  comment    String
+  name       String
+  status     CommentState @default(HOLD)
+  rate       Float
+  author     String?
+  created_at DateTime     @default(now())
+
+  // @relations
+  articleId Int
+  article   Article @relation(fields: [articleId], references: [aid], onDelete: Cascade)
+
+  consultantId Int?
+  consultant   Consultant? @relation(fields: [consultantId], references: [cid], onDelete: SetNull)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([articleId])
+  @@index([consultantId])
+  @@map("article_comments")
 }
 
 model Wallet {
