@@ -45,9 +45,9 @@ const Recommendation = async () => {
             مستشارون مقترحون لإرشادك
           </h3>
         </div>
-        <div className="flex flex-col sm:flex-row items-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-center sm:justify-start sm:items-center gap-4">
           {consultants.map((i) => (
-            <Card key={i.cid} className="w-10/12 sm:w-54 h-40 py-0! border-none">
+            <Card key={i.cid} className="w-10/12 sm:w-56 h-40 py-0! border-none">
               <CardHeader className="hidden">
                 <CardTitle />
                 <CardDescription />

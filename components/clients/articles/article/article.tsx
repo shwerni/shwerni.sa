@@ -157,18 +157,25 @@ const Article = async ({
           {side.length > 0 && <ArticleSideInfo side={side} />}
         </div>
       </div>
-      {/* comments */}
-      <Suspense fallback={<CardSkeleton count={3} />}>
-        <AddArticleComment aid={article.aid} author={userId} />
-        <ArticleComments aid={article.aid} />
-      </Suspense>
 
-      {/* footer */}
-      <div className="space-y-8">
-        <Suspense fallback={<CardSkeleton count={3} />}>
-          <Recommendation />
-        </Suspense>
+      {/* comments & recommendation */}
+      <div className="xl:flex  xl:gap-4">
+        {/* comments */}
+        <div className="flex-1 max-w-xl">
+          <Suspense fallback={<CardSkeleton count={3} />}>
+            <AddArticleComment aid={article.aid} author={userId} />
+            <ArticleComments aid={article.aid} />
+          </Suspense>
+        </div>
+
+        {/* footer */}
+        <div className="space-y-6">
+          <Suspense fallback={<CardSkeleton count={3} />}>
+            <Recommendation />
+          </Suspense>
+        </div>
       </div>
+
       {/* article info: mobile */}
       <div className="md:hidden space-y-5">
         <div className="inline-flex items-center gap-1.5">
