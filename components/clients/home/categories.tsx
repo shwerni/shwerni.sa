@@ -1,12 +1,27 @@
+// React & Next
+import Image from "next/image";
+
 // components
 import { Button } from "@/components/ui/button";
 import Card from "@/components/clients/shared/card";
 import Title from "@/components/clients/shared/titles";
 import DivMotion from "@/components/shared/div-motion";
 import Section from "@/components/clients/shared/section";
+import { IconLabel } from "@/components/shared/icon-label";
+import { LinkButton } from "@/components/shared/link-button";
 
 // icons
-import { ArrowLeft, Goal } from "lucide-react";
+import {
+  ArrowLeft,
+  Award,
+  Brain,
+  Clock,
+  Goal,
+  Scale,
+  ShieldCheck,
+  Users,
+  Zap,
+} from "lucide-react";
 
 // prisma types
 import { Categories as CategoriesType } from "@/lib/generated/prisma/enums";
@@ -15,24 +30,66 @@ import { Categories as CategoriesType } from "@/lib/generated/prisma/enums";
 import Law from "@/public/svg/icons/categories-law.svg";
 import Family from "@/public/svg/icons/categories-family.svg";
 import Psychic from "@/public/svg/icons/categories-psychic.svg";
-import { LinkButton } from "@/components/shared/link-button";
-import { IconLabel } from "@/components/shared/icon-label";
-import Image from "next/image";
-
-// import EventCard from "@/components/clients/EventCard";
 
 const Categories = () => {
-  // link
   const url = (category: CategoriesType) => {
     return `/consultants?categories=${category}`;
   };
+
+  const trust = [
+    { icon: Zap, label: "جلسة فورية خلال دقائق" },
+    { icon: ShieldCheck, label: "خصوصية تامة مضمونة" },
+    { icon: Clock, label: "متاح 24/ 7" },
+  ];
+  const categories = [
+    {
+      id: CategoriesType.FAMILY,
+      label: "الأسرة",
+      sub: "زواج · طلاق · أبناء",
+      iconBg: "bg-green-100",
+      iconColor: "text-green-600",
+      icon: Users,
+      style: "bg-green-50 text-green-600 border-green-100",
+      dot: "bg-green-500",
+    },
+    {
+      id: CategoriesType.PSYCHIC,
+      label: "الدعم النفسي",
+      sub: "قلق · اكتئاب · ضغوط",
+      iconBg: "bg-blue-100",
+      iconColor: "text-blue-600",
+      style: "bg-blue-50 text-blue-600 border-blue-100",
+      dot: "bg-blue-500",
+      icon: Brain,
+    },
+    {
+      id: CategoriesType.LAW,
+      label: "القانون",
+      sub: "عقود · حقوق · نزاعات",
+      iconBg: "bg-rose-100",
+      iconColor: "text-rose-600",
+      style: "bg-red-50 text-red-600 border-red-100",
+      dot: "bg-red-500",
+      icon: Scale,
+    },
+    {
+      id: CategoriesType.PERSONAL,
+      label: "التطوير الشخصي",
+      sub: "أهداف · مهارات · ثقة",
+      iconBg: "bg-amber-100",
+      iconColor: "text-amber-600",
+      icon: Award,
+      style: "bg-amber-50 text-amber-600 border-amber-100",
+      dot: "bg-amber-500",
+    },
+  ];
 
   return (
     <Section className="max-w-5xl mx-auto">
       {/* title */}
       <Title title="تلائم أهدافك وتحقق نتائجك" subTitle="مجالات واسعة" />
       {/* event card */}
-      <EventCard />
+      {/* <EventCard /> */}
       {/* cards */}
       {/* handle better instead of just hide */}
       <div className="hidden md:block space-y-5">
@@ -98,35 +155,83 @@ const Categories = () => {
         </DivMotion>
       </div>
       {/* reserve */}
-      <div className="md:hidden relative bg-linear-to-b from-[#34068312] to-[#7E91FF47] p-6 sm:p-8 space-y-5 md:space-y-8 mx-5 :mx-3 rounded-2xl overflow-hidden">
-        {/* images style */}
-        <Image
-          src="/svg/home/home-stars.svg"
-          alt="icon"
-          width={300}
-          height={300}
-          className="absolute top-2 left-0"
-        />
-        <div className="absolute -top-25 -left-25 w-52 h-52 rounded-full border-2 border-[#1480D957]" />
-        <div className="absolute -top-20 -left-20 w-40 h-40 rounded-full bg-[#1480D957]" />
-        <div className="absolute -bottom-80 -right-30 w-80 h-80 rounded-full bg-[#1480D957]" />
-        {/* content */}
-        <h3 className="text-black text-3xl font-semibold">
-          تحدث مباشرة مع مستشارك الشخصي
-        </h3>
-        <p className="text-black text-base">
-          لا داعي للانتظار، يمكنك بدء جلستك الآن مع أحد مستشارينا بخطوات سهلة
-          وسريعة تمنحك الراحة والطمأنينة.
-        </p>
-        <div className="flex justify-end w-11/12 mx-auto">
-          <LinkButton
-            size="lg"
-            variant="primary"
-            className="px-8"
-            href="/instant"
-          >
-            <IconLabel Icon={ArrowLeft} label="تحدّث الآن" />
-          </LinkButton>
+      <div className="md:hidden flex flex-col items-center gap-6 text-center">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3.5 py-1 text-xs font-medium text-gray-500 shadow-sm">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-500" />
+          </span>
+          مستشارون متاحون الآن
+        </span>
+        <div className="space-y-2">
+          <h3 className="text-gray-600 text-xl sm:text-2xl font-semibold">
+            تحدث مباشرة مع مستشارك
+          </h3>
+          <p className="text-gray-500 text-xs">
+            لا داعي للانتظار، يمكنك بدء جلستك الآن مع أحد مستشارينا بخطوات سهلة
+            وسريعة تمنحك الراحة والطمأنينة.
+          </p>
+        </div>
+        {/* reserve */}
+        <div className="md:hidden relative bg-linear-to-b from-[#34068312] to-[#7E91FF47] p-6 sm:p-8 space-y-5 md:space-y-8 mx-5 :mx-3 rounded-2xl overflow-hidden">
+          {/* images style */}
+          <Image
+            src="/svg/home/home-stars.svg"
+            alt="icon"
+            width={300}
+            height={300}
+            className="absolute top-2 left-0"
+          />
+          <div className="absolute -top-25 -left-25 w-52 h-52 rounded-full border-2 border-[#1480D957]" />
+          <div className="absolute -top-20 -left-20 w-40 h-40 rounded-full bg-[#1480D957]" />
+          <div className="absolute -bottom-80 -right-30 w-80 h-80 rounded-full bg-[#1480D957]" />
+          {/* content */}
+          <h3 className="text-black text-3xl font-semibold z-20">
+            حجزك مع مستشارك خلال دقيقة
+          </h3>
+          <p className="text-black text-base">
+            لا داعي للانتظار، يمكنك بدء جلستك الآن مع أحد مستشارينا بخطوات سهلة
+            وسريعة تمنحك الراحة والطمأنينة.
+          </p>
+          <div className="flex flex-wrap justify-center gap-2.5">
+            {categories.map((cat) => (
+              <a
+                key={cat.id}
+                href={`/consultants?categories=${cat.id}`}
+                className={`
+                inline-flex items-center gap-2 rounded-full border px-4 py-2
+                text-sm font-semibold transition-all duration-200
+                hover:scale-105 hover:shadow-md active:scale-100
+                ${cat.style}
+              `}
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${cat.dot} shrink-0`}
+                />
+                {cat.label}
+              </a>
+            ))}
+          </div>
+        </div>
+        <LinkButton
+          size="lg"
+          variant="primary"
+          className="px-10 rounded-xl"
+          href="/instant"
+        >
+          <IconLabel Icon={ArrowLeft} label="ابدأ جلستك الآن" />
+        </LinkButton>
+
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+          {trust.map(({ icon: Icon, label }) => (
+            <span
+              key={label}
+              className="flex items-center gap-1 sm:gap-1.5 text-xs font-meduim text-gray-400"
+            >
+              <Icon className="h-3.5 w-3.5 text-gray-300" strokeWidth={2.8} />
+              {label}
+            </span>
+          ))}
         </div>
       </div>
     </Section>

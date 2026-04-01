@@ -30,6 +30,8 @@ import { mainRoute } from "@/constants/links";
 
 // icons
 import { BookOpen, Calendar1, Eye, Newspaper } from "lucide-react";
+import ArticleComments from "../comments";
+import AddArticleComment from "../add-comments";
 
 type ArtilceType = ArticlePrisma & {
   // types
@@ -155,6 +157,12 @@ const Article = async ({
           {side.length > 0 && <ArticleSideInfo side={side} />}
         </div>
       </div>
+      {/* comments */}
+      <Suspense fallback={<CardSkeleton count={3} />}>
+        <AddArticleComment aid={article.aid} author={userId} />
+        <ArticleComments aid={article.aid} />
+      </Suspense>
+
       {/* footer */}
       <div className="space-y-8">
         <Suspense fallback={<CardSkeleton count={3} />}>

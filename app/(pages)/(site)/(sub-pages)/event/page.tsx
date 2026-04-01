@@ -88,7 +88,7 @@ export default async function Page({ searchParams }: Props) {
   const { search = "", page = "1", categories, gender } = await searchParams;
 
   // no event
-  // return <NoActiveEvents />;
+  return <NoActiveEvents />;
 
   return (
     <div>
@@ -114,12 +114,12 @@ export default async function Page({ searchParams }: Props) {
               />
             }
           >
-            <ConsultantsList
+            {/* <ConsultantsList
               search={search}
               page={page}
               categories={categories}
               gender={gender}
-            />
+            /> */}
           </Suspense>
         </div>
       </div>
@@ -127,33 +127,33 @@ export default async function Page({ searchParams }: Props) {
   );
 }
 
-const ConsultantsList = async ({
-  search,
-  page,
-  categories,
-  gender,
-  // specialties,
-}: FilterParams): Promise<React.JSX.Element> => {
-  // safe page
-  const n = Number(page);
-  const safe = n > 0 && Number.isInteger(n) ? n : 1;
+// const ConsultantsList = async ({
+//   search,
+//   page,
+//   categories,
+//   gender,
+//   // specialties,
+// }: FilterParams): Promise<React.JSX.Element> => {
+//   // safe page
+//   const n = Number(page);
+//   const safe = n > 0 && Number.isInteger(n) ? n : 1;
 
-  // get articles
-  const data = await getDiscountConsultants(
-    3,
-    safe,
-    search,
-    categories?.split(","),
-    gender?.split(","),
-  );
+//   // get articles
+//   const data = await getDiscountConsultants(
+//     3,
+//     safe,
+//     search,
+//     categories?.split(","),
+//     gender?.split(","),
+//   );
 
-  return (
-    <>
-      <Consultants consultants={data.items} />
-      <Navigation pages={data.pages} current={data.page} total={data.total} />
-    </>
-  );
-};
+//   return (
+//     <>
+//       <Consultants consultants={data.items} />
+//       <Navigation pages={data.pages} current={data.page} total={data.total} />
+//     </>
+//   );
+// };
 
 const NoActiveEvents = () => {
   return (

@@ -1,7 +1,9 @@
 // React & Next
+import { Suspense } from "react";
 import { cacheLife } from "next/cache";
 
 // components
+import CardSkeleton from "../../shared/card-skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ReviewCard from "@/components/clients/shared/review-card";
 
@@ -10,8 +12,6 @@ import { getConsultantReviews } from "@/data/consultant";
 
 // icons
 import { CiStar } from "react-icons/ci";
-import { Suspense } from "react";
-import CardSkeleton from "../../shared/card-skeleton";
 
 // props
 interface Props {

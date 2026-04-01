@@ -1,9 +1,6 @@
 // React
 import React from "react";
 
-// packages
-import { differenceInYears } from "date-fns";
-
 // components
 import {
   Card,
@@ -17,9 +14,6 @@ import StarBadge from "@/components/clients/shared/star-badge";
 import { CategoryBadge } from "@/components/shared/categories-badge";
 import ConsultantImage from "@/components/clients/shared/consultant-image";
 import ConsultantSpecialties from "@/components/clients/shared/consultant-specialties";
-
-// lib
-import { timeZone } from "@/lib/site/time";
 
 // tpyes
 import { ConsultantCard as ConsultantCardType } from "@/types/layout";
@@ -79,7 +73,7 @@ const ConsultantCard = ({ consultant }: Props) => {
                     className="w-3.5 text-slate-400"
                   />
                   <h5 className="text-slate-400 text-xs">
-                    {Number(consultant.reviews)} مراجعات
+                    {Number(consultant.reviews)} تقييمات
                   </h5>
                 </div>
               )}

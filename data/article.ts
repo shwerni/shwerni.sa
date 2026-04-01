@@ -7,7 +7,7 @@ import { Prisma } from "@/lib/generated/prisma/client";
 import { ArticleItem } from "@/types/layout";
 
 // prisma types
-import { BlogState, Gender } from "@/lib/generated/prisma/enums";
+import { BlogState, CommentState, Gender } from "@/lib/generated/prisma/enums";
 import { Categories } from "@/lib/generated/prisma/enums";
 
 // get all published questions
@@ -337,4 +337,56 @@ export async function toggleArticleLike(
     liked: !existing,
     count,
   };
+}
+
+interface AddArticleCommentInput {
+  aid: number;
+  name: string;
+  comment: string;
+  rate: number;
+  author?: string;
+}
+
+export async function addArticleComment(input: AddArticleCommentInput) {
+  try {
+    // check if conultant
+    const consultant = input.author
+      ? await prisma.consultant.findUnique({
+          where: {
+            userId: input.author,
+          },
+          select: { cid: true },
+        })
+      : null;
+
+    await prisma.articleComment.create({
+      data: {
+        articleId: input.aid,
+        name: input.name,
+        comment: input.comment,
+        rate: input.rate,
+        author: input.author ?? null,
+        consultantId: consultant?.cid ?? null,
+        userId: input.author ?? null,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.log(error);
+
+    return { success: false };
+  }
+}
+
+export async function getArticleComments(aid: number) {
+  return prisma.articleComment.findMany({
+    where: { articleId: aid, status: CommentState.PUBLISHED },
+    orderBy: [{ consultantId: "asc" }, { created_at: "desc" }],
+    include: {
+      consultant: {
+        select: { cid: true, name: true, image: true, gender: true },
+      },
+    },
+  });
 }

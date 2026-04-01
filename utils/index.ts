@@ -118,6 +118,11 @@ export const genderLabel = (gender: Gender) => {
   return gender == Gender.MALE ? "ذكر" : "أنثى";
 };
 
+// gender label
+export const consultantGenderLabel = (gender: Gender) => {
+  return gender == Gender.MALE ? "مستشار" : "مستشارة";
+};
+
 // total after tax
 export const totalAfterTax = (
   cost: number,
