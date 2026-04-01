@@ -42,11 +42,7 @@ interface Props {
   author?: string | null;
 }
 
-export default function AddArticleComment({
-  aid,
-  name,
-  author,
-}: Props) {
+export default function AddArticleComment({ aid, name, author }: Props) {
   const [rating, setRating] = React.useState<number>(0);
   const [done, setDone] = React.useState<boolean>(false);
 
@@ -107,24 +103,22 @@ export default function AddArticleComment({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
           {/* name — only when not logged in */}
-          {!name && !author && (
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Input
-                      placeholder="اسمك"
-                      {...field}
-                      className="h-8 text-sm"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Input
+                    placeholder="اسمك"
+                    {...field}
+                    className="h-8 text-sm"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           {/* comment */}
           <FormField
