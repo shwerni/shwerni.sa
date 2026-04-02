@@ -86,7 +86,7 @@ export const getArticles = async (
   const result = await prisma.$queryRaw<{ count: bigint }[]>`
     SELECT COUNT(*)::bigint AS count
     FROM "articles" a
-    WHERE a.status = 'PUBLISHED'
+    WHERE a.status = 'PUBLISHED'::"ArticleState"
       ${where}
   `;
 
@@ -109,7 +109,7 @@ export const getArticles = async (
     FROM "articles" a
     LEFT JOIN "consultants"   c  ON c."cid"       = a."consultantId"
     LEFT JOIN "article_likes" al ON al."articleId" = a.id
-    WHERE a.status = 'PUBLISHED'
+    WHERE a.status = 'PUBLISHED'::"ArticleState"
       ${where}
     GROUP BY a.id, a.aid, a.title, a.article, a.image, a.category,
              a.created_at, c.name, c.rate
