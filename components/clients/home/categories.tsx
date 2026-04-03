@@ -156,22 +156,6 @@ const Categories = () => {
       </div>
       {/* reserve */}
       <div className="md:hidden flex flex-col items-center gap-6 text-center">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3.5 py-1 text-xs font-medium text-gray-500 shadow-sm">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-500" />
-          </span>
-          مستشارون متاحون الآن
-        </span>
-        <div className="space-y-2">
-          <h3 className="text-gray-600 text-xl sm:text-2xl font-semibold">
-            تحدث مباشرة مع مستشارك
-          </h3>
-          <p className="text-gray-500 text-xs">
-            لا داعي للانتظار، يمكنك بدء جلستك الآن مع أحد مستشارينا بخطوات سهلة
-            وسريعة تمنحك الراحة والطمأنينة.
-          </p>
-        </div>
         {/* reserve */}
         <div className="md:hidden relative bg-linear-to-b from-[#34068312] to-[#7E91FF47] p-6 sm:p-8 space-y-5 md:space-y-8 mx-5 :mx-3 rounded-2xl overflow-hidden">
           {/* images style */}
