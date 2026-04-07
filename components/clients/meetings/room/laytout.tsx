@@ -32,7 +32,7 @@ export default function HMSLayout({ children, meeting }: HMSLayoutProps) {
   const { time, date } = timeZone();
 
   // after limit
-  const after = Number(meeting.duration) + 15;
+  const after = Number(meeting.duration) + 25;
 
   // is time available
   const isAvailable = meetingTime(
@@ -40,7 +40,7 @@ export default function HMSLayout({ children, meeting }: HMSLayoutProps) {
     date,
     meeting.time,
     meeting.date,
-    -5,
+    5,
     after,
   );
 
