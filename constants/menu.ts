@@ -162,6 +162,12 @@ export const subPages: Link[] = [
     status: true,
   },
   {
+    label: "الكوبونات",
+    link: "/coupons",
+    icon: BadgePercent,
+    status: true,
+  },
+  {
     label: "جلسة مجانية",
     link: "/freesessions",
     icon: Gift,
