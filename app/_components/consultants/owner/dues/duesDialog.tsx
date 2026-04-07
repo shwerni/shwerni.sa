@@ -10,7 +10,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 // utils
-import { dateToString } from "@/utils/moment";
+import { dateToString } from "@/utils/time";
 import { calculateDues } from "@/utils/admin/dues";
 
 // prisma types

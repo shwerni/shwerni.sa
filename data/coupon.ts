@@ -3,8 +3,7 @@
 import prisma from "@/lib/database/db";
 
 // packages
-import moment from "moment";
-import { startOfDay } from "date-fns";
+import { parseISO, isBefore, isAfter, startOfDay } from "date-fns";
 
 // prisma types
 import {
@@ -61,14 +60,14 @@ export const applyCoupon = async (user: string, code: string, cid: number) => {
       const { date, time } = timeZone();
 
       // now
-      const now = moment(`${date}T${time}`);
+      const now = parseISO(`${date}T${time}`);
 
       // start at
-      if (coupon.starts_at && !now.isSameOrAfter(moment(coupon.starts_at)))
+      if (coupon.starts_at && isBefore(now, coupon.starts_at))
         return { state: false, message: "الكوبون لم يبدأ بعد" };
 
       // end at
-      if (coupon.expires_at && !now.isSameOrBefore(moment(coupon.expires_at)))
+      if (coupon.expires_at && isAfter(now, coupon.expires_at))
         return { state: false, message: "انتهت صلاحية الكوبون" };
     }
 
@@ -182,7 +181,7 @@ export const createConsultantsCoupon = async (
   limits: number,
   startAt: string,
   endAt: string | null,
-  isPublic: boolean
+  isPublic: boolean,
 ) => {
   try {
     // check if exist
@@ -254,7 +253,7 @@ export async function getCouponsForHome(): Promise<CouponConsultant[]> {
 }
 
 export async function getAvailableCoupons(
-  today: Date
+  today: Date,
 ): Promise<CouponConsultant[]> {
   try {
     // get coupons
@@ -289,3 +288,54 @@ export async function getAvailableCoupons(
     return [];
   }
 }
+
+export const getCoupons = async (
+  page: number = 1,
+  search: string = "",
+) => {
+  try {
+    const pageSize = 12;
+
+    const where = {
+      status: CouponState.PUBLISHED,
+      visibility: CouponVisibility.PUBLIC,
+      consultant: search
+        ? { name: { contains: search, mode: "insensitive" as const } }
+        : undefined,
+    };
+
+    const [total, coupons] = await Promise.all([
+      prisma.coupon.count({ where }),
+      prisma.coupon.findMany({
+        where,
+        include: {
+          consultant: {
+            select: {
+              cid: true,
+              rate: true,
+              name: true,
+              image: true,
+              gender: true,
+              category: true,
+            },
+          },
+        },
+        orderBy: { created_at: "desc" },
+        take: pageSize,
+        skip: (page - 1) * pageSize,
+      }),
+    ]);
+
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+    const safePage = Math.min(Math.max(page, 1), pages);
+
+    return {
+      coupons: coupons as CouponConsultant[],
+      total,
+      pages,
+      page: safePage,
+    };
+  } catch {
+    return { coupons: [], total: 0, pages: 1, page: 1 };
+  }
+};

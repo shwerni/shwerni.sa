@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
 // utils
 import { paymentMethodLabel } from "@/utils";
-import { meetingLabel } from "@/utils/moment";
+import { meetingLabel } from "@/utils/time";
 
 // types
 import { Reservation } from "@/types/admin";

@@ -73,6 +73,9 @@ export default async function RootLayout({
       data-color-scheme="light"
       className="light"
     >
+      <head>
+        <JsonLd />
+      </head>
       {/* google analytic */}
       <GoogleAnalytics gaId="G-DRN37CDE50" />
       {/* google ads mangaer */}
@@ -104,5 +107,95 @@ export default async function RootLayout({
       {/* snap pixel ads */}
       <SnapPixel />
     </html>
+  );
+}
+
+// below your imports, add this function
+function JsonLd() {
+  const schema = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://shwerni.sa/#website",
+        url: "https://shwerni.sa",
+        name: "شاورني",
+        alternateName: "shwerni",
+        inLanguage: "ar-SA",
+        description:
+          "منصة استشارات سعودية أونلاين — استشارات نفسية وأسرية وزوجية مع أفضل المستشارين",
+        potentialAction: {
+          "@type": "SearchAction",
+          target: {
+            "@type": "EntryPoint",
+            urlTemplate:
+              "https://shwerni.sa/consultants?q={search_term_string}",
+          },
+          "query-input": "required name=search_term_string",
+        },
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://shwerni.sa/#organization",
+        name: "شاورني",
+        alternateName: "shwerni",
+        url: "https://shwerni.sa",
+        logo: {
+          "@type": "ImageObject",
+          "@id": "https://shwerni.sa/#logo",
+          url: "https://shwerni.sa/apple-touch-icon.png",
+          contentUrl: "https://shwerni.sa/apple-touch-icon.png",
+          caption: "شاورني",
+        },
+        image: {
+          "@type": "ImageObject",
+          url: "https://shwerni.sa/layout/shwerni.jpg",
+          width: 1200,
+          height: 630,
+        },
+        sameAs: [
+          "https://twitter.com/shwernisa",
+          // add instagram, snapchat, etc. here
+        ],
+        contactPoint: {
+          "@type": "ContactPoint",
+          contactType: "customer support",
+          availableLanguage: ["Arabic"],
+          areaServed: "SA",
+        },
+        areaServed: {
+          "@type": "Country",
+          name: "Saudi Arabia",
+        },
+        knowsAbout: [
+          "استشارات نفسية",
+          "استشارات أسرية",
+          "استشارات زوجية",
+          "استشارات قانونية",
+          "استشارات مهنية",
+          "Online therapy",
+          "Mental health counseling",
+          "Marriage counseling",
+        ],
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://shwerni.sa/#webpage",
+        url: "https://shwerni.sa",
+        name: "شاورني - منصة الاستشارات السعودية",
+        isPartOf: { "@id": "https://shwerni.sa/#website" },
+        about: { "@id": "https://shwerni.sa/#organization" },
+        inLanguage: "ar-SA",
+        description:
+          "منصة استشارات سعودية أونلاين — استشارات نفسية وأسرية وزوجية مع أفضل المستشارين",
+      },
+    ],
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
   );
 }

@@ -3,7 +3,6 @@
 import prisma from "@/lib/database/db";
 
 // packages
-import moment from "moment";
 
 // prisma types
 import { PaymentState } from "@/lib/generated/prisma/enums";
@@ -13,6 +12,7 @@ import { GroupedDues } from "@/types/types";
 
 // utils
 import { calculateDues } from "@/utils/admin/dues";
+import { endOfMonth, parse, startOfMonth } from "date-fns";
 
 // get collaborator
 export async function getCollaboratorById(id: string) {
@@ -138,9 +138,10 @@ export const getTotalDuesCollaboratorByMonth = async (
   range: string,
 ) => {
   try {
-    const pDate = moment(range, "MM-YYYY");
-    const startDate = pDate.startOf("month").toDate();
-    const endDate = pDate.endOf("month").toDate();
+    const pDate = parse(range, "MM-yyyy", new Date());
+
+    const startDate = startOfMonth(pDate);
+    const endDate = endOfMonth(pDate);
 
     const dues = await prisma.order.findMany({
       where: {

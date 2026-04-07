@@ -1,9 +1,8 @@
 // React & Next
-import React from "react";
 import Link from "next/link";
 
 // packages
-import moment from "moment";
+import { differenceInMinutes, parse } from "date-fns";
 
 // compoennt
 import { Button } from "@/components/ui/button";
@@ -54,10 +53,18 @@ export default function PayBtn({ time, order }: Props) {
   // Check if more than 6 hours ahead
   function CheckHours(now: DateTime, order: DateTime) {
     // compare dates and time
-    const meeting = moment(`${order.date} ${order.time}`, "YYYY-MM-DD HH:mm");
-    const timeNow = moment(`${now.date} ${now.time}`, "YYYY-MM-DD HH:mm");
+    const meeting = parse(
+      `${order.date} ${order.time}`,
+      "yyyy-MM-dd HH:mm",
+      new Date(),
+    );
+    const timeNow = parse(
+      `${now.date} ${now.time}`,
+      "yyyy-MM-dd HH:mm",
+      new Date(),
+    );
     // check 6 hours difference
-    const diff = meeting.diff(timeNow, "minutes");
+    const diff = differenceInMinutes(meeting, timeNow);
 
     // refund able (still)
     if (diff >= 5) return true;

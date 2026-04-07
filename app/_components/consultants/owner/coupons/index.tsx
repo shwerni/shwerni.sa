@@ -16,7 +16,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { ZToast } from "@/app/_components/layout/toasts";
 import LoadingBtn from "@/app/_components/layout/loadingBtn";
-import { DatePicker } from "@/app/_components/management/layout/datePicker";
 import {
   Form,
   FormControl,
@@ -38,6 +37,7 @@ import { cn } from "@/lib/utils";
 
 // schema
 import { couponConsultantSchema } from "@/schemas/consultant";
+import { DatePicker } from "@/components/shared/date-picker";
 
 // props
 interface Props {
@@ -54,8 +54,8 @@ export default function ConsultantCoupons({ cid }: Props) {
   const { date, iso: originDate } = timeZone();
 
   // states
-  const [endAt, setEndAt] = React.useState<string>(date);
-  const [startAt, setStartAt] = React.useState<string>(date);
+  const [endAt, setEndAt] = React.useState<string | undefined>(date);
+  const [startAt, setStartAt] = React.useState<string | undefined>(date);
   const [noLimits, setNoLimits] = React.useState(false);
   const [noEndDate, setNoEndDate] = React.useState(false);
   const [isPublic, setPublic] = React.useState<boolean>(true);
@@ -106,8 +106,8 @@ export default function ConsultantCoupons({ cid }: Props) {
         data.code,
         data.discount,
         data.limits,
-        startAt,
-        FinalEndDate,
+        startAt || originDate.toISOString(),
+        FinalEndDate || originDate.toISOString(),
         isPublic,
       );
 
@@ -244,7 +244,7 @@ export default function ConsultantCoupons({ cid }: Props) {
           {/* Start Date */}
           <div className="flex flex-col gap-2">
             <Label>تاريخ البدء</Label>
-            <DatePicker setDate={setStartAt} lang="ar" date={startAt} />
+            <DatePicker value={startAt} onChange={setStartAt} />
           </div>
 
           {/* separator */}
@@ -255,9 +255,8 @@ export default function ConsultantCoupons({ cid }: Props) {
             <div className="flex flex-col gap-2">
               <Label>تاريخ الانتهاء</Label>
               <DatePicker
-                setDate={setEndAt}
-                lang="ar"
-                date={endAt}
+                value={endAt}
+                onChange={setEndAt}
                 disabled={noEndDate}
               />
             </div>

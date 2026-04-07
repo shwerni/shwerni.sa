@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TimingsTable from "@/app/_components/layout/consultant/timings/timings";
 
 // utils
-import { DaysAheadFromToday } from "@/utils/moment";
+import { DaysAheadFromToday } from "@/utils/time";
 
 // types
 import { Days } from "@/types/types";

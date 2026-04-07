@@ -329,6 +329,7 @@ model Consultant {
   updated_at    DateTime         @default(now()) @updatedAt
   online_at     DateTime?
   online_status OnlineStatus     @default(OFFLINE)
+  sort_key      Float            @default(0)
 
   // @relations
   user                     User                  @relation(fields: [userId], references: [id])
@@ -346,6 +347,8 @@ model Consultant {
   specialties              ConsultantSpecialty[]
   articleComments          ArticleComment[]
 
+  @@index([sort_key])
+  @@index([status, statusA, approved, sort_key])
   @@map("consultants")
 }
 

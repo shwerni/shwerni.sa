@@ -10,12 +10,9 @@ import {
 } from "@/lib/generated/prisma/enums";
 import { InstantFormType, instantSchema } from "@/schemas";
 import { checkMeetingTimeConflict } from "./order/reserveation";
-import { dateToString } from "@/utils/moment";
+import { dateToString } from "@/utils/time";
 import { orderInfoLabel } from "@/utils";
 import { createParticipants } from "./room";
-import { cancelSchedule } from "@/utils/schedule/orders";
-
-// ─── Shared SQL fragments ────────────────────────────────────────────────────
 
 const BUSY_SUBQUERY = `
   EXISTS (
@@ -263,9 +260,6 @@ export const reserveInstant = async (
 
     // deactivate online state
     await broadcastConsultantBusy(order.consultant.userId);
-
-    // cancel order if not paid in 15 min job schedule
-    cancelSchedule(order.oid);
 
     // return
     return order;

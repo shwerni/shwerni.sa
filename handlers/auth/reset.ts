@@ -49,6 +49,7 @@ export const forgetpassowrd = async (data: z.infer<typeof PhoneSchema>) => {
   //  send otp via whatsapp
   await notificationSecurityOtp(
     verificationToken?.phone,
+    userExist?.name || "",
     verificationToken?.otp,
   );
 

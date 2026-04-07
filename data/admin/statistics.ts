@@ -1,7 +1,6 @@
 "use server";
 // packages
-import moment from "moment";
-import { startOfDay, endOfDay } from "date-fns";
+import { startOfDay, endOfDay, format } from "date-fns";
 
 // prisma db
 import prisma from "@/lib/database/db";
@@ -165,7 +164,7 @@ export const statisticsMeetings = async () => {
 
   // count
   for (const order of orders) {
-    const date = moment(order.created_at).format("YYYY-MM-DD");
+    const date = format(order.created_at, "yyyy-MM-dd");
     if (!grouped[date]) grouped[date] = { done: 0, yet: 0 };
 
     const meetings = order.meeting || [];
@@ -211,7 +210,7 @@ export const statisticsAllPaidOrders = async () => {
 
     // days results
     const dResult = orders.map((order) => ({
-      date: moment(order.created_at).format("YYYY-MM-DD"),
+      date: format(order.created_at, "yyyy-MM-dd"),
       count: order._count._all,
     }));
     // get month and year statistics
@@ -250,7 +249,7 @@ export const statisticsAllOtherOrders = async () => {
 
     // days results
     const dResult = orders.map((order) => ({
-      date: moment(order.created_at).format("YYYY-MM-DD"),
+      date: format(order.created_at, "yyyy-MM-dd"),
       count: order._count._all,
     }));
 
@@ -282,8 +281,8 @@ function monthYearStatistics(
   const yearlyCounts: { [key: string]: number } = {};
   // count month & year
   orders.forEach((order) => {
-    const formattedMonth = moment(order.created_at).format("YYYY-MM");
-    const formattedYear = moment(order.created_at).format("YYYY");
+    const formattedMonth = format(order.created_at, "yyyy-MM");
+    const formattedYear = format(order.created_at, "yyyy");
 
     // Update monthly counts
     if (monthlyCounts[formattedMonth]) {

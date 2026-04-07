@@ -24,7 +24,7 @@ import { getConsultantAvailableTimes } from "@/data/consultant";
 
 // utils
 import { timeOptions } from "@/utils";
-import { dateToString } from "@/utils/moment";
+import { dateToString } from "@/utils/time";
 
 // icons
 import {

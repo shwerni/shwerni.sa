@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { SkeltonTimings } from "@/app/_components/layout/skeleton/timings";
 
 // utils
-import { addMinutesToNow, meetingLabel } from "@/utils/moment";
+import { addMinutesToNow, meetingLabel } from "@/utils/time";
 
 // prisma data
 import { getTimingsReservation } from "@/data/timings";

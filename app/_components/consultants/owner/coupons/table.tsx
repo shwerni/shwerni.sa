@@ -31,7 +31,7 @@ import { CouponState, CouponVisibility } from "@/lib/generated/prisma/enums";
 
 // icons
 import { Trash2 } from "lucide-react";
-import { dateToString } from "@/utils/moment";
+import { dateToString } from "@/utils/time";
 
 export function CouponsTable({ coupons }: { coupons: Coupon[] }) {
   // router

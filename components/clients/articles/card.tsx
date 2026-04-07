@@ -14,7 +14,7 @@ import Stars from "@//components/clients/shared/stars";
 // import { CategoryBadge } from "@/components/shared/categories-badge";
 
 // utils
-import { dateToString } from "@/utils/moment";
+import { dateToString } from "@/utils/time";
 import { htmlToText, minutesToRead } from "@/utils";
 
 // types

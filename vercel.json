@@ -1,0 +1,14 @@
+{
+  "crons": [
+    {
+      // cancel orders that are pending for more than 15 minutes
+      "path": "/api/cron/cancel-orders",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      // shuffle consultants every 3 hours to update the sort_key
+      "path": "/api/cron/shuffle/consultants",
+      "schedule": "0 */3 * * *"
+    }
+  ]
+}

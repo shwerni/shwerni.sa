@@ -23,7 +23,7 @@ interface Props {
 
 const CouponCard: React.FC<Props> = ({ coupon }: Props) => {
   return (
-    <div className="relative flex flex-col items-center justify-between bg-linear-to-b from-[#CFE5F8] from-30% via-blue-50 via-50% to-white px-4 pt-6 rounded-3xl shadow shadow-gray-100 border border-gray-100  overflow-hidden">
+    <div className="relative flex flex-col items-center justify-between max-w-xs bg-linear-to-b from-[#CFE5F8] from-30% via-blue-50 via-50% to-white px-4 pt-6 rounded-3xl shadow shadow-gray-100 border border-gray-100 overflow-hidden">
       {/* square */}
       <div
         className="absolute top-0 h-32 w-full
@@ -60,13 +60,17 @@ const CouponCard: React.FC<Props> = ({ coupon }: Props) => {
               />
             )}
             <h4 className="text-xl text-gray-700 text-center font-medium">
-              {coupon.consultant.name}
+              {coupon.type === CouponType.PLATFORM
+                ? "خصم شاورني"
+                : (coupon.consultant?.name ?? "خصم شاورني")}
             </h4>
           </div>
           <h5 className="text-sm text-gray-700 text-center">
             {coupon.type === CouponType.PLATFORM
               ? "جميع الفئات"
-              : findCategory(coupon.consultant.category)?.label}
+              : coupon.consultant
+                ? findCategory(coupon.consultant.category)?.label
+                : "جميع الفئات"}
           </h5>
         </div>
         {/* code info */}

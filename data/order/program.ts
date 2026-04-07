@@ -2,11 +2,6 @@
 // prisma db
 import prisma from "@/lib/database/db";
 
-// packages
-moment.locale("en");
-import "moment/locale/ar";
-import moment from "moment";
-
 // prisma types
 import {
   OrderType,
@@ -16,8 +11,7 @@ import {
 
 // utils
 import { orderInfoLabel } from "@/utils";
-import { dateToString } from "@/utils/moment";
-import { cancelSchedule } from "@/utils/schedule/orders";
+import { dateToString } from "@/utils/time";
 
 // schema
 import {
@@ -97,9 +91,6 @@ export const reserveProgram = async (
 
     // create participants
     await createParticipants(order.meeting[0].id);
-
-    // cancel order if not paid in 15 min job schedule
-    cancelSchedule(order.oid);
 
     // return
     return order;

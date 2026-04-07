@@ -15,7 +15,7 @@ import {
   dateTimeToString,
   dateToString,
   getWeekStartSaturday,
-} from "@/utils/moment";
+} from "@/utils/time";
 
 // schema
 import { freeSessionSchema, freeSessionSchemaType } from "@/schemas";
@@ -96,88 +96,6 @@ export const getFreeSessionByFid = async (fid: number) => {
     // return
     return null;
   }
-};
-
-// get all owners free sessions time
-export const getFreeSessionOwners = async (date: string, time: string) => {
-  // try {
-  //   // validate
-  //   if (!time || !date) return null;
-  //   // origin date
-  //   const originDate = moment(`${date} ${time}`, "YYYY-MM-DD HH:mm").toDate();
-  //   // this week
-  //   const activeWeek = getWeekStartSaturday(originDate);
-  //   // range this day // not month
-  //   const start = startOfDay(originDate); // startOfMonth(originDate);
-  //   const end = endOfDay(originDate); // endOfMonth(originDate);
-  //   // get cids
-  //   const cids = await prisma.freeTimings.findMany({
-  //     where: { activeWeek, status: true },
-  //     select: { consultantId: true, time: true },
-  //   });
-  //   // validate
-  //   if (!cids) return null;
-  //   // session ( all free session owner's cids ) cids array
-  //   const SCids = cids.map((i) => i.consultantId);
-  //   // sessions
-  //   const sessions = await prisma.freeSession.findMany({
-  //     where: {
-  //       created_at: {
-  //         gte: start,
-  //         lte: end,
-  //       },
-  //       consultantId: {
-  //         in: SCids,
-  //       },
-  //     },
-  //     select: {
-  //       consultantId: true,
-  //     },
-  //   });
-  //   // final cids
-  //   const NCids = new Set(sessions.map((s) => s.consultantId));
-  //   // filter cids
-  //   const fCids = SCids.filter((cid) => !NCids.has(cid));
-  //   // get consultant
-  //   const owners = await prisma.consultant.findMany({
-  //     where: {
-  //       cid: { in: fCids },
-  //       status: true,
-  //       statusA: ConsultantState.PUBLISHED,
-  //     },
-  //   });
-  //   // if not exist
-  //   if (!owners) return null;
-  //   // final onwer and times
-  //   const result = await Promise.all(
-  //     owners.map(async (o) => {
-  //       const timing = cids.find((t) => t.consultantId === o.cid);
-  //       const time = timing?.time;
-  //       // remove past due times
-  //       const validTimes = time.filter((t) => {
-  //         return moment(t, "HH:mm").isSameOrAfter(moment(time, "HH:mm"));
-  //       });
-  //       // get already reserved times
-  //       const reservedTimes = await alreadyReservedTimes(o.cid, date);
-  //       // apply reserved filter
-  //       const iTimes = validTimes
-  //         .map((t) => initialTimes(t))
-  //         .filter((i): i is NonNullable<typeof i> => Boolean(i));
-  //       const filtered = reservedFilter(iTimes, validTimes, reservedTimes);
-  //       return {
-  //         ...o,
-  //         day5: filtered.map((f) => f.value),
-  //       };
-  //     })
-  //   );
-  //   // availble owners
-  //   const available = result.filter((r) => r.day5.length > 0);
-  //   // return
-  //   return available;
-  // } catch {
-  //   // return
-  //   return null;
-  // }
 };
 
 // get owner free sessions time
@@ -311,7 +229,7 @@ export const freeSessionMeetingUrl = async (fid: number) => {
     if (meeting?.url) return meeting.url;
 
     // create url if not exist
-    const newUrl = await createMeeting(Number(meeting?.duration) + 5);
+    const newUrl = await createMeeting();
     // update order
     await prisma.freeSession.update({
       where: { fid },

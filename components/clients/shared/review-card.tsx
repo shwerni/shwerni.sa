@@ -9,7 +9,7 @@ import { Review } from "@/lib/generated/prisma/client";
 
 // utils
 import { cn } from "@/lib/utils";
-import { dateToString } from "@/utils/moment";
+import { dateToString } from "@/utils/time";
 
 // shadcn ui
 import {

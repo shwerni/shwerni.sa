@@ -1,6 +1,3 @@
-// packages
-import { v4 as uuidv4 } from "uuid";
-
 // lib
 import prisma from "@/lib/database/db";
 
@@ -37,7 +34,7 @@ export const generateVerificationToken = async (phone: string) => {
     // generate otp one time password
     const otp = String(generateOtp());
     // generate token using uuid
-    const token = uuidv4();
+    const token = crypto.randomUUID();
     // token expire time one hour
     const expire = new Date(new Date().getTime() + 3600 * 1000);
 

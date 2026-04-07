@@ -4,11 +4,9 @@ import React from "react";
 
 // packages
 import { z } from "zod";
-import moment from "moment";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import PhoneInput from "react-phone-input-2";
-import "react-phone-input-2/lib/style.css";
+import { parse, differenceInMinutes } from "date-fns";
 
 // components
 import {
@@ -40,6 +38,7 @@ import { PasswordSchema, PhoneSchema, UserSchema } from "@/schemas";
 
 // icons
 import { KeyRound, Phone, Save, Shield, User2 } from "lucide-react";
+import PhoneInput from "@/components/shared/phone-input";
 
 // user profile form
 export default function UserSettings({
@@ -55,11 +54,11 @@ export default function UserSettings({
   const [isSending, startSending] = React.useTransition();
 
   // time now
-  const timeNow = moment(`${date} ${time}`, "YYYY-MM-DD HH:mm");
+  const timeNow = parse(`${date} ${time}`, "yyyy-MM-dd HH:mm", new Date());
 
   // time differnce since last updat of user info
   const diff = user?.updated_at
-    ? timeNow.diff(moment(user?.updated_at), "minutes")
+    ? differenceInMinutes(timeNow, user.updated_at)
     : 15;
 
   // upadate time
@@ -85,7 +84,7 @@ export default function UserSettings({
   const phoneNumber = useForm<z.infer<typeof PhoneSchema>>({
     resolver: zodResolver(PhoneSchema),
     defaultValues: {
-      phone: user?.phone || "",
+      phone: "+" + user?.phone || "+",
     },
   });
 
@@ -334,16 +333,6 @@ export default function UserSettings({
                     <FormControl>
                       <div dir="ltr" className="w-fit">
                         <PhoneInput
-                          onlyCountries={[
-                            "sa",
-                            "eg",
-                            "ps",
-                            "qa",
-                            "om",
-                            "ae",
-                            "kw",
-                          ]}
-                          country={"sa"}
                           value={field.value}
                           onChange={field.onChange}
                           disabled={isSending}

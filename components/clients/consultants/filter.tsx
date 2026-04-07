@@ -6,7 +6,6 @@ import React from "react";
 import {
   parseAsString,
   useQueryState,
-  parseAsInteger,
   parseAsArrayOf,
   parseAsStringEnum,
 } from "nuqs";
@@ -31,7 +30,6 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { IconLabel } from "@/components/shared/icon-label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import Stars from "../shared/stars";
 
 // utils
 import { cn } from "@/lib/utils";
@@ -99,12 +97,6 @@ export const FilterContent = ({
   // order type
   type OrderType = (typeof orderType)[keyof typeof orderType];
 
-  // min
-  const min = 100;
-
-  // max
-  const max = 1000;
-
   // gender
   const [gender, setGender] = useQueryState(
     "gender",
@@ -115,17 +107,6 @@ export const FilterContent = ({
         shallow: false,
       }),
   );
-
-  // rate
-  const [rate, setRate] = useQueryState("rate", {
-    defaultValue: 0,
-    parse: (value) => {
-      const n = Number(value);
-      return Number.isInteger(n) && n > 0 ? n : 1;
-    },
-    clearOnDefault: true,
-    shallow: false,
-  });
 
   // specialties
   const [specialtiesIds, setSpecialtiesIds] = useQueryState(
@@ -156,24 +137,6 @@ export const FilterContent = ({
         clearOnDefault: true,
         shallow: false,
       }),
-  );
-
-  // min cost
-  const [minCost, setMinCost] = useQueryState(
-    "minCost",
-    parseAsInteger.withDefault(min).withOptions({
-      shallow: false,
-      clearOnDefault: true,
-    }),
-  );
-
-  // max cost
-  const [maxCost, setMaxCost] = useQueryState(
-    "maxCost",
-    parseAsInteger.withOptions({
-      shallow: false,
-      clearOnDefault: true,
-    }),
   );
 
   // select specialty
@@ -207,16 +170,6 @@ export const FilterContent = ({
     });
   }
 
-  // max & min
-  const value: [number, number] = [minCost ?? min, maxCost ?? max];
-
-  // handle change
-  function handleChange(newValue: [number, number]) {
-    const [newMin, newMax] = newValue;
-    setMinCost(newMin === min ? null : newMin);
-    setMaxCost(newMax === max ? null : newMax);
-  }
-
   // update radio group
   function updateRadio(value: "newest" | "viral") {
     if (value === "newest" || value === "viral") setOrderBy(value);
@@ -238,38 +191,7 @@ export const FilterContent = ({
       <div className="hidden md:block">
         <Search />
       </div>
-      {/* order by */}
-      <Accordion
-        type="single"
-        collapsible
-        className="w-full"
-        defaultValue="item-1"
-      >
-        <AccordionItem value="item-1">
-          <AccordionTrigger className="text-[#094577] text-base font-medium">
-            التصنيف حسب
-          </AccordionTrigger>
-          <AccordionContent className="">
-            <RadioGroup
-              dir="rtl"
-              defaultValue="newest"
-              value={orderBy}
-              onValueChange={updateRadio}
-            >
-              <div className="flex items-center gap-3">
-                <RadioGroupItem value="newest" id="r1" />
-                <Label htmlFor="r1">الأحدث</Label>
-              </div>
-              <div className="flex items-center gap-3">
-                <RadioGroupItem value="viral" id="r2" />
-                <Label htmlFor="r2">الأكثر مراجعات</Label>
-              </div>
-            </RadioGroup>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-      {/* separator */}
-      <Separator className="w-3/4 mx-auto" />
+
       {/* categories */}
       <Accordion
         type="single"
@@ -346,87 +268,33 @@ export const FilterContent = ({
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-      {/* separator */}
-      <Separator className="w-10/12 mx-auto" />
-      {/* rate */}
-      <Accordion
-        type="single"
-        collapsible
-        className="w-full"
-        defaultValue="item-4"
-      >
-        <AccordionItem value="item-4">
-          <AccordionTrigger className="text-[#094577] text-base font-medium">
-            التقييم
-          </AccordionTrigger>
-          <AccordionContent className="flex flex-col gap-4 text-balance">
-            <div className="flex items-center gap-3">
-              <RadioGroup
-                dir="rtl"
-                className="w-full"
-                value={String(rate)}
-                onValueChange={(value) => {
-                  const n = Number(value);
-                  setRate(n >= 1 && n <= 5 ? n : null);
-                }}
-              >
-                <div className="flex items-center gap-x-1">
-                  <RadioGroupItem id="all" value="0" />
-                  <Label htmlFor="all" className="text-xs text-gray-400">
-                    الكل
-                  </Label>
-                </div>
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <div className="flex items-center justify-between" key={n}>
-                    <div className="flex items-center gap-x-1">
-                      <RadioGroupItem id={String(n)} value={String(n)} />
-                      <Stars
-                        rate={n}
-                        color="#DBA102"
-                        width={85}
-                        inactive="#E5E7EB"
-                      />
-                    </div>
-                    <Label
-                      htmlFor={String(n)}
-                      className="text-xs text-gray-400"
-                    >
-                      0{n}
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-      {/* cost */}
+      {/* order by */}
       {/* <Accordion
         type="single"
         collapsible
         className="w-full"
-        defaultValue="item-5"
+        defaultValue="item-1"
       >
-        <AccordionItem value="item-5">
+        <AccordionItem value="item-1">
           <AccordionTrigger className="text-[#094577] text-base font-medium">
-            التسعير (ريال)
+            التصنيف حسب
           </AccordionTrigger>
-          <AccordionContent className="flex flex-col gap-4 text-balance">
-            <div className="w-full max-w-xs mx-auto">
-              <Slider
-                value={value}
-                onValueChange={handleChange}
-                min={min}
-                max={max}
-                step={10}
-                className="mx-auto h-6 w-full max-w-xs"
-                dir="rtl"
-              />
-              <div className="flex justify-between mt-2 text-sm font-medium text-gray-700">
-                <span className="text-xs text-gray-500">{value[0]} ⃁</span>
-                <span className="text-xs text-gray-500">{value[1]} ⃁</span>
+          <AccordionContent className="">
+            <RadioGroup
+              dir="rtl"
+              defaultValue="newest"
+              value={orderBy}
+              onValueChange={updateRadio}
+            >
+              <div className="flex items-center gap-3">
+                <RadioGroupItem value="newest" id="r1" />
+                <Label htmlFor="r1">الأحدث</Label>
               </div>
-            </div>
+              <div className="flex items-center gap-3">
+                <RadioGroupItem value="viral" id="r2" />
+                <Label htmlFor="r2">الأكثر مراجعات</Label>
+              </div>
+            </RadioGroup>
           </AccordionContent>
         </AccordionItem>
       </Accordion> */}

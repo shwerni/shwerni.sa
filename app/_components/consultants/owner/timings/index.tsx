@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Weekday } from "@/lib/generated/prisma/enums";
 
 // utils
-import { DaysAheadFromToday } from "@/utils/moment";
+import { DaysAheadFromToday } from "@/utils/time";
 
 export default function OwnerTimings(props: { author: string; cid: number }) {
   // props

@@ -15,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { getOwnerFreeSessions } from "@/data/freesession";
 
 // utils
-import { meetingLabel } from "@/utils/moment";
+import { meetingLabel } from "@/utils/time";
 
 // props
 interface Props {

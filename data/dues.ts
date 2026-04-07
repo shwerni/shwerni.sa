@@ -1,12 +1,12 @@
 "use server";
 // packages
-import moment from "moment";
 
 // prisma db
 import prisma from "@/lib/database/db";
 
 // prisma types
 import { PaymentState } from "@/lib/generated/prisma/enums";
+import { endOfMonth, parse, startOfMonth } from "date-fns";
 
 // get all dues
 export const getAllDuesOwner = async (cid: number) => {
@@ -52,11 +52,11 @@ export const getAllDuesOwner = async (cid: number) => {
 export const getDuesOwnenByMonth = async (range: string, cid: number) => {
   try {
     // parse month year to get month and year
-    const pDate = moment(range, "MM-YYYY");
+    const pDate = parse(range, "MM-yyyy", new Date());
 
-    // use moment to handle dates
-    const startDate = pDate.startOf("month").toDate();
-    const endDate = pDate.endOf("month").toDate();
+    // use to handle dates
+    const startDate = startOfMonth(pDate);
+    const endDate = endOfMonth(pDate);
 
     // get all orders created in the specified month and year
     const dues = await prisma.order.findMany({

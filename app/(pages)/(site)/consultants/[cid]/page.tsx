@@ -43,21 +43,34 @@ const getCachedConsultant = async (cid: number) => {
   return getConsultantInfo(cid);
 };
 
+// guard — reuse across metadata + page
+const isConsultantVisible = (
+  consultant: Awaited<ReturnType<typeof getCachedConsultant>>,
+): consultant is NonNullable<typeof consultant> =>
+  !!consultant &&
+  consultant.approved === ApprovalState.APPROVED &&
+  consultant.statusA === ConsultantState.PUBLISHED &&
+  !!consultant.status;
+
 // meta data seo
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { cid } = await params;
   const consultant = await getCachedConsultant(Number(cid));
 
-  if (consultant?.approved !== ApprovalState.APPROVED) return {};
+  if (!isConsultantVisible(consultant)) return {};
 
   const isMale = consultant.gender === Gender.MALE;
+  const genderLabel = isMale ? "المستشار" : "المستشارة";
+  const genderImage = isMale ? "male" : "female";
+
   const image = consultant.image?.trim()
     ? consultant.image
-    : `${mainRoute}layout/${isMale ? "male" : "female"}.jpg`;
+    : `${mainRoute}layout/${genderImage}.jpg`;
 
-  const fullName = `${isMale ? "المستشار" : "المستشارة"} ${consultant.name ?? ""}`;
+  const fullName = `${genderLabel} ${consultant.name ?? ""}`;
   const title = `شاورني - ${fullName}`;
-  const description = `شاورني - ${fullName} احجز جلساتك مع أخصائيين نفسيين موثوقين عبر شاورني بسرية تامة وأسعار مناسبة. دعم نفسي بجودة عالية في أي وقت ومن أي مكان.`;
+  const description = `احجز جلساتك مع ${fullName} عبر شاورني — دعم نفسي بسرية تامة وأسعار مناسبة، في أي وقت ومن أي مكان.`;
+
   const ogImage = {
     url: image,
     alt: `صورة ${fullName}`,
@@ -71,10 +84,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description,
     keywords: [
       consultant.name ?? "",
-      "المستشارون",
-      "المستشارين",
-      "مستشارين",
-      "مستشار",
       "مستشار نفسي",
       "مستشار أسري",
       "علاج نفسي",
@@ -82,15 +91,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       "online therapy",
       "mental health support",
       "family counseling",
-      "relationship advice",
       "Saudi therapy",
-      "platform",
     ],
     openGraph: {
       title,
       description,
-      type: "website",
-      url: `${mainRoute}/consultant/${cid}`,
+      type: "profile",
+      url: `${mainRoute}consultants/${cid}`,
       siteName: "شاورني | Shwerni",
       images: [ogImage],
     },
@@ -107,11 +114,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 // return
 const Page = async ({ params, searchParams }: Props) => {
-  // cid
-  const { cid } = await params;
-
-  // collaboration
-  const { collaboration } = await searchParams;
+  // cid & collaboration
+  const [{ cid }, { collaboration }] = await Promise.all([
+    params,
+    searchParams,
+  ]);
 
   // parse cid as number
   const cidN = Number(cid);
@@ -120,52 +127,79 @@ const Page = async ({ params, searchParams }: Props) => {
   const consultant = await getCachedConsultant(cidN);
 
   // if consultant refused, show 404 only
-  if (
-    !consultant ||
-    consultant.approved !== ApprovalState.APPROVED ||
-    consultant.statusA !== ConsultantState.PUBLISHED ||
-    !consultant.status
-  )
-    return <Error404 />;
+  if (!isConsultantVisible(consultant)) return <Error404 />;
+
+  // jsonb object
+  const isMale = consultant.gender === Gender.MALE;
+  const genderLabel = isMale ? "المستشار" : "المستشارة";
+  const image = consultant.image?.trim()
+    ? consultant.image
+    : `${mainRoute}layout/${isMale ? "male" : "female"}.jpg`;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: `${genderLabel} ${consultant.name ?? ""}`,
+    image,
+    url: `${mainRoute}consultants/${cid}`,
+    jobTitle: "مستشار",
+    worksFor: {
+      "@type": "Organization",
+      name: "شاورني",
+      url: mainRoute,
+    },
+    offers: {
+      "@type": "Service",
+      name: "جلسة استشارية",
+      provider: {
+        "@type": "Person",
+        name: consultant.name ?? "",
+      },
+      areaServed: "SA",
+      availableLanguage: "Arabic",
+      url: `${mainRoute}consultants/${cid}`,
+    },
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="max-w-6xl mx-auto px-4 sm:px-5 space-y-6">
-        <Suspense fallback={<SkeletonConsultant />}>
-          <Consultant cid={cidN} />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <div className="space-y-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-5 space-y-6">
+          <Suspense fallback={<SkeletonConsultant />}>
+            <Consultant cid={cidN} />
+          </Suspense>
+          <Suspense fallback={<SkeletonCoupons />}>
+            <ConsultantCoupons cid={cidN} />
+          </Suspense>
+        </div>
+        {/* reservation */}
+        <Suspense fallback={<CardSkeleton count={1} className="w-full" />}>
+          {consultant.status && (
+            <ConsultantReserve cid={cidN} collaboration={collaboration} />
+          )}
         </Suspense>
-        <Suspense fallback={<SkeletonCoupons />}>
-          <ConsultantCoupons cid={cidN} />
-        </Suspense>
-      </div>
-      {/* reservation */}
-      <Suspense fallback={<CardSkeleton count={1} className="w-full" />}>
-        {consultant.status && (
-          <ConsultantReserve cid={cidN} collaboration={collaboration} />
+        {/* reviews */}
+        <div className="max-w-6xl mx-auto px-4 sm:px-5 space-y-6 mb-10">
+          <Suspense
+            fallback={
+              <CardSkeleton count={4} className="flex flex-col gap-4" />
+            }
+          >
+            <ConsultantReviews cid={cidN} />
+          </Suspense>
+        </div>
+        {/* collaboration */}
+        {collaboration && (
+          <Suspense fallback={null}>
+            <CollaborationBadge collaboration={collaboration} />
+          </Suspense>
         )}
-      </Suspense>
-      {/* reviews */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-5 space-y-6 mb-10">
-        <Suspense
-          fallback={<CardSkeleton count={4} className="flex flex-col gap-4" />}
-        >
-          <ConsultantReviews cid={cidN} />
-        </Suspense>
       </div>
-      {/* collaboration */}
-      {collaboration && (
-        <Suspense
-          fallback={
-            <CardSkeleton
-              count={1}
-              className="fixed bottom-6 left-6 z-50 bg-white/90 backdrop-blur-md border border-gray-200 shadow-lg rounded-2xl p-3 transition-all hover:scale-[1.03]"
-            />
-          }
-        >
-          <CollaborationBadge collaboration={collaboration} />
-        </Suspense>
-      )}
-    </div>
+    </>
   );
 };
 

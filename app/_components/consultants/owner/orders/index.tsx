@@ -3,7 +3,7 @@
 import React from "react";
 
 // packages
-import moment from "moment";
+import { isAfter, parse } from "date-fns";
 
 // copmonents
 import {
@@ -77,10 +77,14 @@ export default function OwnerOrderLayout(props: {
 
   // upcoming orders
   const newOrder = zOrders.filter((o) =>
-    moment(
-      `${o.meeting?.[0].date} ${o.meeting?.[0].time}:00`,
-      "YYYY-MM-DD HH:mm:ss",
-    ).isAfter(moment(`${date} ${time}:00`, "YYYY-MM-DD HH:mm:ss")),
+    isAfter(
+      parse(
+        `${o.meeting?.[0].date} ${o.meeting?.[0].time}:00`,
+        "yyyy-MM-dd HH:mm:ss",
+        new Date(),
+      ),
+      parse(`${date} ${time}:00`, "yyyy-MM-dd HH:mm:ss", new Date()),
+    ),
   );
 
   // on selecting month

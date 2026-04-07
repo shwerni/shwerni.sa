@@ -56,7 +56,6 @@ export default async function Page() {
             </h3>
             <h6 dir="rtl" className="text-zgrey-100 text-sm font-semibold mb-3">
               برجاء اختيار المواعيد المناسبة معك اليوم{" "}
-              {/* {moment(fDate?.date).locale("ar").format("dddd")} */}
             </h6>
             {/* map times */}
           </div>

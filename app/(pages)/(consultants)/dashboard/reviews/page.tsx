@@ -15,7 +15,7 @@ import { getReviewsForConsultant } from "@/data/review";
 import { findReview } from "@/utils";
 import { Btitle } from "@/app/_components/layout/titles";
 import { Section } from "@/app/_components/layout/section";
-import { dateToArString } from "@/utils/moment";
+import { dateToArString } from "@/utils/time";
 import { Review } from "@/lib/generated/prisma/client";
 
 export default function ReviewsPage() {

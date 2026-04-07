@@ -10,7 +10,7 @@ import { OrderSchema } from "@/schemas/admin";
 
 // utils
 import { orderInfoLabel, randomId } from "@/utils";
-import { dateTimeToString } from "@/utils/moment";
+import { dateTimeToString } from "@/utils/time";
 
 // hooks
 import {

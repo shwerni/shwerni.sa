@@ -13,7 +13,7 @@ import {
 } from "@/lib/generated/prisma/client";
 
 // utils
-import { dateToString } from "@/utils/moment";
+import { dateToString } from "@/utils/time";
 
 // lib
 import { aiAcceptReview } from "@/lib/api/ai/ai";

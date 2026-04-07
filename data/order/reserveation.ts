@@ -3,9 +3,6 @@
 import prisma from "@/lib/database/db";
 
 // packages
-moment.locale("en");
-import "moment/locale/ar";
-import moment from "moment";
 
 // prisma data
 import { addWalletCredit, payPartiallyByWallet } from "@/data/wallet";
@@ -20,13 +17,19 @@ import {
 // utils
 import { orderInfoLabel } from "@/utils";
 import { dateToString } from "@/utils/date";
-import { cancelSchedule } from "@/utils/schedule/orders";
-import { aboveAndLowerTime, dateTimeToString } from "@/utils/moment";
+import { aboveAndLowerTime, dateTimeToString } from "@/utils/time";
 
 import { PaymentState } from "@/lib/generated/prisma/enums";
 
 import { ReservationFormType, reservationSchema } from "@/schemas";
 import { createParticipants } from "../room";
+import {
+  endOfDay,
+  endOfMonth,
+  parse,
+  startOfDay,
+  startOfMonth,
+} from "date-fns";
 
 // reserve a new order (meeting) with owner
 export const reserveConsultant = async (
@@ -154,9 +157,6 @@ export const reserveConsultant = async (
 
     // create participants
     await createParticipants(order.meeting[0].mid);
-
-    // cancel order if not paid in 15 min job schedule
-    cancelSchedule(order.oid);
 
     // return
     return order;
@@ -464,11 +464,11 @@ export const getAllOrdersByAuthorAndMonth = async (
 ) => {
   try {
     // parse month year to get month and year
-    const pDate = moment(range, "MM-YYYY");
+    const pDate = parse(range, "MM-yyyy", new Date());
 
-    // use moment to handle dates
-    const startDate = pDate.startOf("month").toDate();
-    const endDate = pDate.endOf("month").toDate();
+    // handle dates
+    const startDate = startOfMonth(pDate);
+    const endDate = endOfMonth(pDate);
 
     // Get all orders created in the specified month and year
     const orders = await prisma.order.findMany({
@@ -514,11 +514,11 @@ export const getAllOwnersOrdersByAuthorAndMonth = async (
     if (!owner || !owner.cid) return null;
 
     // parse month year to get month and year
-    const pDate = moment(range, "MM-YYYY");
+    const pDate = parse(range, "MM-yyyy", new Date());
 
-    // use moment to handle dates
-    const startDate = pDate.startOf("month").toDate();
-    const endDate = pDate.endOf("month").toDate();
+    // handle dates
+    const startDate = startOfMonth(pDate);
+    const endDate = endOfMonth(pDate);
 
     // Get all orders created in the specified month and year
     const orders = await prisma.order.findMany({
@@ -554,11 +554,11 @@ export const getPaidOwnersOrdersByAuthorAndMonth = async (
     if (!owner || !owner.cid) return null;
 
     // parse month year to get month and year
-    const pDate = moment(range, "MM-YYYY");
+    const pDate = parse(range, "MM-yyyy", new Date());
 
-    // use moment to handle dates
-    const startDate = pDate.startOf("month").toDate();
-    const endDate = pDate.endOf("month").toDate();
+    // handle dates
+    const startDate = startOfMonth(pDate);
+    const endDate = endOfMonth(pDate);
 
     // get paid orders created in the specified month and year
     const orders = await prisma.order.findMany({
@@ -609,9 +609,9 @@ export const getPaidOwnersOrdersByAuthorAndRange = async (
     // if not exist
     if (!owner || !owner.cid) return null;
 
-    // use moment to handle dates
-    const startDate = moment(start, "YYYY-MM-DD").startOf("day").toDate();
-    const endDate = moment(end, "YYYY-MM-DD").endOf("day").toDate();
+    // handle dates
+    const startDate = startOfDay(parse(start, "yyyy-MM-dd", new Date()));
+    const endDate = endOfDay(parse(end, "yyyy-MM-dd", new Date()));
 
     // get paid orders created in the specified month and year
     const orders = await prisma.order.findMany({
@@ -639,9 +639,9 @@ export const getPaidOwnersOrdersByCidAndRange = async (
   end: string,
 ) => {
   try {
-    // use moment to handle dates
-    const startDate = moment(start, "YYYY-MM-DD").startOf("day").toDate();
-    const endDate = moment(end, "YYYY-MM-DD").endOf("day").toDate();
+    // handle dates
+    const startDate = startOfDay(parse(start, "yyyy-MM-dd", new Date()));
+    const endDate = endOfDay(parse(end, "yyyy-MM-dd", new Date()));
 
     // get paid orders created in the specified month and year
     const orders = await prisma.order.findMany({
@@ -999,6 +999,25 @@ export const updateOrderPaidByOid = async (oid: number, total: number) => {
     return true;
   } catch {
     return null;
+  }
+};
+
+// get unpaid order
+export const getUnpaidOrder = async (deadline: Date) => {
+  try {
+    return await prisma.order.findMany({
+      where: {
+        payment: {
+          is: {
+            payment: { in: [PaymentState.NEW, PaymentState.PROCESSING] },
+          },
+        },
+        created_at: { lte: deadline },
+      },
+      select: { oid: true },
+    });
+  } catch {
+    return [];
   }
 };
 

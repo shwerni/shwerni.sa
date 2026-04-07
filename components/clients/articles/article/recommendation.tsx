@@ -17,7 +17,7 @@ import ConsultantImage from "@/components/clients/shared/consultant-image";
 
 // utils
 import { minutesToRead } from "@/utils";
-import { dateToString } from "@/utils/moment";
+import { dateToString } from "@/utils/time";
 
 // prisma data
 import { getRecommendedConsultants, getSimilarArticles } from "@/data/article";

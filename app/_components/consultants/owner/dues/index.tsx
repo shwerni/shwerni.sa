@@ -29,7 +29,7 @@ import Spinner from "@/app/_components/layout/skeleton/spinners";
 import DuesDialog from "@/app/_components/consultants/owner/dues/duesDialog";
 
 // utils
-import { dateToString } from "@/utils/moment";
+import { dateToString } from "@/utils/time";
 // import { exportDuesForOwner } from "@/app/_utils/excel/dues";
 
 // prisam data

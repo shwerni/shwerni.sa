@@ -16,7 +16,7 @@ import { Meeting } from "@/lib/generated/prisma/client";
 import { timeZone } from "@/lib/site/time";
 
 // utils
-import { meetingLabel, meetingTime } from "@/utils/moment";
+import { meetingLabel, meetingTime } from "@/utils/time";
 
 // icons
 import { AlertTriangle } from "lucide-react";

@@ -1,9 +1,7 @@
 "use server";
+
 // prisma types
 import { UserRole } from "@/lib/generated/prisma/client";
-
-// packages
-import TelegramBot from "node-telegram-bot-api";
 
 // prisma data
 import { getServiceTelegramIds } from "@/data/admin/settings/employee";
@@ -18,13 +16,30 @@ import {
   serviceTelegramNewOrder,
 } from "./templates";
 
+// telegram api base
+const TELEGRAM_URL = `https://api.telegram.org/bot${process.env.TELEGRAM_APIKEY}`;
+
+// telegram fetch helper
+const telegramFetch = (method: string, body: object) =>
+  fetch(`${TELEGRAM_URL}/${method}`, {
+    method: "POST",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+// send message helper
+const sendMessage = (chat_id: string, text: string) =>
+  telegramFetch("sendMessage", { chat_id, text });
+
+// send document helper
+const sendDocument = (chat_id: string, document: string) =>
+  telegramFetch("sendDocument", { chat_id, document });
+
 // infom me & inform manager 966554117879 or 201014203964
 export const newOrdertelegram = async (data: Reservation) => {
   try {
-    // notify
-    const bot = new TelegramBot(process.env.TELEGRAM_APIKEY as string);
-
-    // notify admin
+    // notify admins
     const admins = await getServiceTelegramIds(UserRole.ADMIN);
 
     // service
@@ -33,26 +48,19 @@ export const newOrdertelegram = async (data: Reservation) => {
     // manager
     const managers = await getServiceTelegramIds(UserRole.MANAGER);
 
-    // send to admins
     // notify admins
     await Promise.allSettled(
-      admins.map((admin) =>
-        bot.sendMessage(String(admin), adminTelegramNewOrder(data))
-      )
+      admins.map((admin) => sendMessage(String(admin), adminTelegramNewOrder(data)))
     );
 
     // notify services
     await Promise.allSettled(
-      services.map((service) =>
-        bot.sendMessage(String(service), serviceTelegramNewOrder(data))
-      )
+      services.map((service) => sendMessage(String(service), serviceTelegramNewOrder(data)))
     );
 
     // notify managers
     await Promise.allSettled(
-      managers.map((manager) =>
-        bot.sendMessage(String(manager), managerTelegramNewOrder(data))
-      )
+      managers.map((manager) => sendMessage(String(manager), managerTelegramNewOrder(data)))
     );
 
     // return
@@ -81,10 +89,8 @@ export const telegramRefund = async (data: Reservation) => {
 // notification orders
 export const telegram = async (data: string) => {
   try {
-    // notify
-    const bot = new TelegramBot(process.env.TELEGRAM_APIKEY as string);
     // notify me telegram
-    bot.sendMessage("1744134911", data);
+    await sendMessage("1744134911", data);
     // return
     return true;
   } catch {
@@ -96,10 +102,8 @@ export const telegram = async (data: string) => {
 // notify customer service telegram
 export const telegramCService = async (data: string) => {
   try {
-    // notify
-    const bot = new TelegramBot(process.env.TELEGRAM_APIKEY as string);
     // notify me telegram
-    bot.sendMessage("5421775862", data);
+    await sendMessage("5421775862", data);
     // return
     return true;
   } catch {
@@ -111,10 +115,8 @@ export const telegramCService = async (data: string) => {
 // zadmin notification
 export const telegramAdmin = async (data: string) => {
   try {
-    // notify
-    const bot = new TelegramBot(process.env.TELEGRAM_APIKEY as string);
     // notify me telegram
-    bot.sendMessage("1065815464", data);
+    await sendMessage("1065815464", data);
     // return
     return true;
   } catch {
@@ -126,10 +128,8 @@ export const telegramAdmin = async (data: string) => {
 // notify reviewer telegram
 export const telegramEmployees = async (to: string, data: string) => {
   try {
-    // notify
-    const bot = new TelegramBot(process.env.TELEGRAM_APIKEY as string);
     // notify me telegram
-    bot.sendMessage(to, data);
+    await sendMessage(to, data);
     // return
     return true;
   } catch {
@@ -141,10 +141,8 @@ export const telegramEmployees = async (to: string, data: string) => {
 // pdf documents notification
 export const telegramDocuments = async (to: string, url: string) => {
   try {
-    // notify
-    const bot = new TelegramBot(process.env.TELEGRAM_APIKEY as string);
     // notify me telegram
-    bot.sendDocument(to, url);
+    await sendDocument(to, url);
     // return
     return true;
   } catch {

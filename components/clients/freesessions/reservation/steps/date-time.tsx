@@ -36,7 +36,7 @@ import {
   Sunset,
 } from "lucide-react";
 import { getConsultantAvailableTimes } from "@/data/consultant";
-import { dateToString } from "@/utils/moment";
+import { dateToString } from "@/utils/time";
 import { add25Minutes, dateToWeekDay } from "@/utils/date";
 import { parseISO } from "date-fns";
 import { LinkButton } from "@/components/shared/link-button";

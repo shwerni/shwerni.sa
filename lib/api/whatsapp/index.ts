@@ -1,42 +1,89 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
-// packages
-import axios from "axios";
+// whatsapp config
+const WHATSAPP_URL = process.env.WHATSAPP_URL!;
+const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN!;
 
 // whatsapp api
-const whatsapp = axios.create({
-  baseURL: process.env.WHATSAPP_URL,
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
-  },
-});
+const whatsapp = (body: object) =>
+  fetch(WHATSAPP_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+    },
+    body: JSON.stringify(body),
+  });
 
-// template sending
+// types
+export type TemplateParams = {
+  text?: (string | number)[];
+  url?: string[];
+  quick_reply?: string[];
+  flow?: { index?: number; flow_token: string };
+};
+
+// send template message
 export const sendWhatsappTemplate = async (
   to: string,
-  templateName: string,
-  language: string,
-  components: any[]
+  template: string,
+  params: TemplateParams,
+  language = "ar",
 ) => {
-  // body
-  const body = {
-    messaging_product: "whatsapp",
-    to,
-    type: "template",
-    template: {
-      name: templateName,
-      language: { code: language },
-      components,
-    },
-  };
+  const components = [];
+
+  if (params.text?.length) {
+    components.push({
+      type: "body",
+      parameters: params.text.map((t) => ({ type: "text", text: String(t) })),
+    });
+  }
+
+  params.url?.forEach((text, index) => {
+    components.push({
+      type: "button",
+      sub_type: "url",
+      index,
+      parameters: [{ type: "text", text }],
+    });
+  });
+
+  params.quick_reply?.forEach((payload, index) => {
+    components.push({
+      type: "button",
+      sub_type: "quick_reply",
+      index,
+      parameters: [{ type: "payload", payload }],
+    });
+  });
+
+  // flow button
+  if (params.flow) {
+    components.push({
+      type: "button",
+      sub_type: "flow",
+      index: params.flow.index ?? 0,
+      parameters: [
+        {
+          type: "action",
+          action: { flow_token: String(params.flow.flow_token) },
+        },
+      ],
+    });
+  }
+
   try {
-    // send whatsapp
-    const response = await whatsapp.post("", body);
-    //  return
-    return response.data;
-  } catch {    
-    //  return
+    const res = await whatsapp({
+      messaging_product: "whatsapp",
+      to,
+      type: "template",
+      template: {
+        name: template,
+        language: { code: language },
+        components,
+      },
+    });
+    return res.ok ? res.json() : null;
+  } catch {
     return null;
   }
 };
@@ -45,7 +92,7 @@ export const sendWhatsappTemplate = async (
 export const sendWhatsappText = async (phone: string, text: string) => {
   try {
     // send
-    await whatsapp.post("", {
+    const res = await whatsapp({
       messaging_product: "whatsapp",
       to: phone,
       type: "text",
@@ -53,60 +100,9 @@ export const sendWhatsappText = async (phone: string, text: string) => {
     });
 
     // return
-    return true;
+    return res.ok ? true : null;
   } catch {
     // return
     return null;
   }
 };
-
-// later
-// export const sendWhatsappTemplate = async (
-//   to: string,
-//   template: string,
-//   params: TemplateParams,
-//   language = "ar",
-// ) => {
-//   const components = [];
-
-//   if (params.text?.length) {
-//     components.push({
-//       type: "body",
-//       parameters: params.text.map((t) => ({ type: "text", text: String(t) })),
-//     });
-//   }
-
-//   params.url?.forEach((text, index) => {
-//     components.push({
-//       type: "button",
-//       sub_type: "url",
-//       index,
-//       parameters: [{ type: "text", text }],
-//     });
-//   });
-
-//   params.quick_reply?.forEach((payload, index) => {
-//     components.push({
-//       type: "button",
-//       sub_type: "quick_reply",
-//       index,
-//       parameters: [{ type: "payload", payload }],
-//     });
-//   });
-
-//   try {
-//     const { data } = await whatsapp.post("", {
-//       messaging_product: "whatsapp",
-//       to,
-//       type: "template",
-//       template: {
-//         name: template,
-//         language: { code: language },
-//         components,
-//       },
-//     });
-//     return data;
-//   } catch {
-//     return null;
-//   }
-// };

@@ -1,6 +1,5 @@
 "use server";
 // packages
-import moment from "moment";
 
 // prisma db
 import prisma from "@/lib/database/db";
@@ -11,6 +10,7 @@ import { GroupedDues } from "@/types/types";
 // prisma types
 import { PaymentState } from "@/lib/generated/prisma/enums";
 import { calculateDues } from "@/utils/admin/dues";
+import { endOfMonth, parse, startOfMonth } from "date-fns";
 
 // get all dues
 export const getAllDuesAdmin = async () => {
@@ -108,11 +108,11 @@ export const getAllDuesAdminByCid = async (cid: number) => {
 export const getDuesAdminByMonth = async (range: string) => {
   try {
     // parse month year to get month and year
-    const pDate = moment(range, "MM-YYYY");
+    const pDate = parse(range, "MM-yyyy", new Date());
 
-    // use moment to handle dates
-    const startDate = pDate.startOf("month").toDate();
-    const endDate = pDate.endOf("month").toDate();
+    // handle dates
+    const startDate = startOfMonth(pDate);
+    const endDate = endOfMonth(pDate);
 
     // get all orders created in the specified month and year
     const dues = await prisma.order.findMany({
@@ -166,11 +166,11 @@ export const getDuesAdminByMonth = async (range: string) => {
 export const getDuesAdminByMonthByCid = async (range: string, cid: number) => {
   try {
     // parse month year to get month and year
-    const pDate = moment(range, "MM-YYYY");
+    const pDate = parse(range, "MM-yyyy", new Date());
 
-    // use moment to handle dates
-    const startDate = pDate.startOf("month").toDate();
-    const endDate = pDate.endOf("month").toDate();
+    // handle dates
+    const startDate = startOfMonth(pDate);
+    const endDate = endOfMonth(pDate);
 
     // get all orders created in the specified month and year
     const dues = await prisma.order.findMany({
@@ -219,9 +219,10 @@ export const getDuesAdminByMonthByCid = async (range: string, cid: number) => {
 // get range dues
 export const getTotalDuesAdminByMonth = async (range: string) => {
   try {
-    const pDate = moment(range, "MM-YYYY");
-    const startDate = pDate.startOf("month").toDate();
-    const endDate = pDate.endOf("month").toDate();
+    const pDate = parse(range, "MM-yyyy", new Date());
+
+    const startDate = startOfMonth(pDate);
+    const endDate = endOfMonth(pDate);
 
     const dues = await prisma.order.findMany({
       where: {
@@ -319,11 +320,11 @@ export const getTotalDuesAdminByMonth = async (range: string) => {
 export const getCompletedTotalDuesAdminByMonth = async (range: string) => {
   try {
     // parse month year to get month and year
-    const pDate = moment(range, "MM-YYYY");
+    const pDate = parse(range, "MM-yyyy", new Date());
 
-    // use moment to handle dates
-    const startDate = pDate.startOf("month").toDate();
-    const endDate = pDate.endOf("month").toDate();
+    // handle dates
+    const startDate = startOfMonth(pDate);
+    const endDate = endOfMonth(pDate);
 
     // get total orders for one owners
     const dues = await prisma.order.findMany({
@@ -404,11 +405,11 @@ export const getCompletedTotalDuesAdminByMonth = async (range: string) => {
 export const totalDuesByPaymentMethods = async (range: string) => {
   try {
     // parse month year to get month and year
-    const pDate = moment(range, "MM-YYYY");
+    const pDate = parse(range, "MM-yyyy", new Date());
 
-    // use moment to handle dates
-    const startDate = pDate.startOf("month").toDate();
-    const endDate = pDate.endOf("month").toDate();
+    // handle dates
+    const startDate = startOfMonth(pDate);
+    const endDate = endOfMonth(pDate);
 
     // orders
     const orders = await prisma.payment.groupBy({

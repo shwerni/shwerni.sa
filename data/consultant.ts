@@ -44,7 +44,7 @@ export type ConsultantItem = {
 export const getConsultants = async (
   page: number = 1,
   search: string = "",
-  orderBy: "newest" | "oldest" | "viral" = "newest",
+  orderBy: "newest" | "oldest" | "viral" | "random" = "random",
   categories?: string[],
   gender?: string[],
   rate?: string,
@@ -66,7 +66,9 @@ export const getConsultants = async (
         ? Prisma.sql`c."created_at" DESC`
         : orderBy === "oldest"
           ? Prisma.sql`c."created_at" ASC`
-          : Prisma.sql`c."rate" DESC NULLS LAST, c."created_at" DESC`;
+          : orderBy === "random"
+            ? Prisma.sql`c."sort_key" ASC`
+            : Prisma.sql`c."rate" DESC NULLS LAST, c."created_at" DESC`;
 
     const searchWhere = search
       ? Prisma.sql`AND LOWER(c.name) LIKE LOWER(${`%${search}%`})`
@@ -108,19 +110,16 @@ export const getConsultants = async (
           )})`
         : Prisma.empty;
 
-    // rate
     const rateNumber = rate != null ? Number(rate) : null;
 
-    // rate filter
     const rateWhere =
       rateNumber == null || rateNumber === 0
         ? Prisma.empty
         : Prisma.sql`
-        AND c."rate" > ${rateNumber - 1}
-        AND c."rate" <= ${rateNumber}
-      `;
+          AND c."rate" > ${rateNumber - 1}
+          AND c."rate" <= ${rateNumber}
+        `;
 
-    // timing filter
     const timingJoin =
       weekday || time
         ? Prisma.sql`
@@ -137,24 +136,8 @@ export const getConsultants = async (
         `
         : Prisma.empty;
 
-    // specialties filter: join through consultant_specialties -> specialties
-    // const specialtiesJoin =
-    //   Array.isArray(specialties) && specialties.length > 0
-    //     ? Prisma.sql`
-    //       JOIN "consultant_specialties" cs
-    //         ON cs."consultantId" = c."cid"
-    //       JOIN "specialties" s
-    //         ON s."id" = cs."specialtyId"
-    //     `
-    //     : Prisma.empty;
-
-    // const specialtiesWhere =
-    //   Array.isArray(specialties) && specialties.length > 0
-    //     ? Prisma.sql`AND s."id" = ANY (${specialties}::text[])`
-    //     : Prisma.empty;
-
     // count
-    const result = await prisma.$queryRaw<{ count: bigint }[]>`
+    const countQuery = Prisma.sql`
       SELECT COUNT(DISTINCT c.id)::bigint AS count
       FROM "consultants" c
       ${timingJoin}
@@ -170,17 +153,16 @@ export const getConsultants = async (
         ${timingWhere}
     `;
 
-    const total = Number(result[0]?.count ?? 0);
+    const countResult = (await prisma.$queryRaw(countQuery)) as {
+      count: bigint;
+    }[];
+
+    const total = Number(countResult[0]?.count ?? 0);
     const pages = Math.max(1, Math.ceil(total / pageSize));
     const safePage = Math.min(Math.max(page, 1), pages);
 
     // items
-    const items = await prisma.$queryRaw<
-      (ConsultantItem & {
-        review_count: bigint;
-        review_avg_rate: number | null;
-      })[]
-    >`
+    const itemsQuery = Prisma.sql`
       SELECT
         c.id,
         c.cid,
@@ -194,8 +176,9 @@ export const getConsultants = async (
         c.rate,
         c."cost30",
         c."cost60",
+        c."sort_key",
         GREATEST(
-        DATE_PART('year', AGE(NOW(), seniority)),
+          DATE_PART('year', AGE(NOW(), seniority)),
           1
         ) AS years,
         c."category"::text AS category,
@@ -228,24 +211,20 @@ export const getConsultants = async (
         c."cost30",
         c."cost60",
         c."category",
-        c."gender"
+        c."gender",
+        c."sort_key"
       ORDER BY ${clause}
       LIMIT ${pageSize} OFFSET ${(safePage - 1) * pageSize}
     `;
 
-    return {
-      items,
-      total,
-      pages,
-      page: safePage,
-    };
+    const items = (await prisma.$queryRaw(itemsQuery)) as (ConsultantItem & {
+      review_count: bigint;
+      review_avg_rate: number | null;
+    })[];
+
+    return { items, total, pages, page: safePage };
   } catch {
-    return {
-      items: [],
-      total: 0,
-      pages: 1,
-      page: 1,
-    };
+    return { items: [], total: 0, pages: 1, page: 1 };
   }
 };
 
@@ -315,6 +294,7 @@ export const getConsultantInfo = async (cid: number) => {
         approved: true,
         statusA: true,
         status: true,
+        category: true,
         DiscountConsultant: {
           select: {
             status: true,

@@ -26,7 +26,7 @@ import { PaymentState, UserRole } from "@/lib/generated/prisma/enums";
 
 // utils
 import { meetingUrl, totalAfterTax } from "@/utils";
-import { dateToString, timeToArabic } from "@/utils/moment";
+import { dateToString, timeToArabic } from "@/utils/time";
 
 // types
 import { DateTime } from "@/types/types";

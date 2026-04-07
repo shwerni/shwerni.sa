@@ -9,7 +9,6 @@ import { AdvisorResponse, ClientIssue } from "@/schemas";
 import { z } from "zod";
 
 // lib
-import { notificationWPreConsultationResponse } from "@/lib/notifications/whatsapp";
 
 // primsa types
 import { UserRole } from "@/lib/generated/prisma/enums";
@@ -123,17 +122,16 @@ export const updatePreConsultationSeassion = async (
 
     // get coordinator by id
     const coordinator = await getUserById(advisorId);
-    console.log(!session.response);
 
     // send notification to user
     if (!session.response) {
-      await notificationWPreConsultationResponse(
-        session.id,
-        session.phone,
-        session.name,
-        coordinator?.name ?? "المنسق",
-        session.pid
-      );
+      // await notificationWPreConsultationResponse(
+      //   session.id,
+      //   session.phone,
+      //   session.name,
+      //   coordinator?.name ?? "المنسق",
+      //   session.pid
+      // );
     }
 
     // return

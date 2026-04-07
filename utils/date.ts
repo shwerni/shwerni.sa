@@ -1,7 +1,4 @@
 // packages
-moment.locale("en");
-import "moment/locale/ar";
-import moment from "moment-timezone";
 import { ar, arSA } from "date-fns/locale";
 import {
   format,
@@ -10,16 +7,23 @@ import {
   isAfter,
   isWithinInterval,
   isBefore,
+  addDays,
+  addHours,
+  parseISO,
+  setMinutes,
+  fromUnixTime,
 } from "date-fns";
-import { addDays, addHours, parseISO, setMinutes } from "date-fns";
 
 // prisma types
 import { Weekday } from "@/lib/generated/prisma/enums";
 import { timeZone } from "@/lib/site/time";
 
-// date to label
+/**
+ * Converts a unix timestamp to Arabic day name
+ * @example dateToLabel(1706572800000) → "الجمعة"
+ */
 export function dateToLabel(date: number) {
-  return moment(date).locale("ar").format("dddd");
+  return format(fromUnixTime(date / 1000), "EEEE", { locale: ar });
 }
 
 /**
@@ -122,12 +126,10 @@ export function getDatesAhead(
 }
 
 /**
- * get weekday label as WeekDay type of pismae
+ * get weekday label as WeekDay type of prisma
  * @returns WeekDay
  */
 export function dateToWeekDay(date: Date): Weekday {
-  // format(date, "EEEE").toUpperCase();
-  // moment(date).locale("en").format("dddd").toUpperCase();
   return Object.keys(Weekday)[date.getDay()] as Weekday;
 }
 
@@ -192,7 +194,7 @@ export function timeLabel(time: string) {
 
 /**
  * convert a JavaScript Date object into an ISO-like date string (YYYY-MM-DD)
-
+ *
  * @param date - JavaScript Date instance (must be valid)
  * @returns string formatted as "YYYY-MM-DD"
  *
@@ -200,7 +202,6 @@ export function timeLabel(time: string) {
  * dateToString(new Date(2026, 1, 11)) // "2026-02-11"
  */
 export const dateToString = (date: Date): string => {
-  // return format(date, "yyyy-MM-dd");
   return date.toISOString().split("T")[0];
 };
 

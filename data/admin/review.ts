@@ -11,7 +11,7 @@ import { reviewSchema } from "@/schemas/admin";
 
 // utils
 import { averageRating } from "@/utils";
-import { dateToString } from "@/utils/moment";
+import { dateToString } from "@/utils/time";
 
 // lib
 import { aiAcceptReview } from "@/lib/api/ai/ai";

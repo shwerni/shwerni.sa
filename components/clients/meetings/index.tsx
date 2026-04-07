@@ -57,7 +57,7 @@ export default async function Meetings({
   participant,
 }: Props) {
   // url
-  const url = meeting.rooms?.url || `/rooms/${mid}?participant=${participant}`;
+  const url = `/rooms/${mid}?participant=${participant}`; // meeting.rooms?.url
 
   // meetings status
   const mStatus = meetingTime(time, date, meeting.time, meeting.date);

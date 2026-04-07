@@ -1,5 +1,6 @@
 "use server";
-// prisam types
+
+// prisma types
 import {
   FreeSession,
   OrderType,
@@ -10,236 +11,182 @@ import {
 import { sendWhatsappTemplate } from "@/lib/api/whatsapp";
 
 // utils
-import { meetingLabel } from "@/utils/moment";
+import { meetingLabel } from "@/utils/time";
 import { encryptionDigitsToUrl, zencryption } from "@/utils/admin/encryption";
-
-// templates
-import {
-  wTemplateNewOwner,
-  wTemplateSecurityOtp,
-  wTemplateNewOrderOwner,
-  wTemplateNewOrderClient,
-  wTemplateNewPreConsultation,
-  wTemplateNewFreeSessionOwner,
-  wTemplateNewFreeSessionClient,
-  wTemplateNewGiftOrderConfirm,
-  wTemplateNewGiftOrder,
-} from "@/utils/templates/whatsapp/whatsapp";
-import {
-  wTemplateNewProgramOrderOwner,
-  wTemplateProgramConfirm,
-  wTemplateProgramSession,
-  wTemplateReview,
-} from "@/utils/templates/whatsapp/order/program";
 
 // types
 import { Reservation } from "@/types/admin";
 
-// otp sending
-export const notificationSecurityOtp = async (
-  phone: string,
-  otp: string | number,
-) => {
+// helper — wraps every notification in try/catch
+const notify = async (fn: () => Promise<void>) => {
   try {
-    // send to owner
-    await sendWhatsappTemplate(
-      phone,
-      "security_otp",
-      "ar",
-      wTemplateSecurityOtp(otp),
-    );
-    // return
+    await fn();
     return true;
   } catch {
-    // return
     return null;
   }
 };
 
+// otp sending
+export const notificationSecurityOtp = async (
+  phone: string,
+  name: string,
+  otp: string | number,
+) => {
+  await sendWhatsappTemplate(phone, "security_otp", {
+    text: [otp],
+    url: [String(otp)],
+  });
+  await sendWhatsappTemplate(phone, "new_confirm", {
+    text: [name, otp],
+  });
+};
+
 // new order notification
 export const notificationNewOrder = async (order: Reservation) => {
-  try {
-    // meeting
-    const meeting = order.meeting;
-    // payment
-    const payment = order.payment;
-    // program
-    const program = order.program;
-    // consultant name
-    const coname = order.consultant.name;
-    // consultnat phone
-    const cophone = order.consultant.phone;
-    // session type
-    const isProgram = order.session === SessionType.MULTIPLE;
+  // meeting
+  const meeting = order.meeting;
+  // payment
+  const payment = order.payment;
+  // program
+  const program = order.program;
+  // consultant name
+  const coname = order.consultant.name;
+  // consultant phone
+  const cophone = order.consultant.phone;
+  // session type
+  const isProgram = order.session === SessionType.MULTIPLE;
 
-    // validate
-    if (!meeting || !payment || (isProgram && !program)) return;
+  // validate
+  if (!meeting || !payment || (isProgram && !program)) return;
 
-    // zid
-    const zid = zencryption(order.oid);
+  // zid
+  const zid = zencryption(order.oid);
+  // meeting label
+  const label = meetingLabel(meeting[0].time, meeting[0].date);
 
-    // meeting label
-    const label = meetingLabel(meeting[0].time, meeting[0].date);
-
+  return notify(async () => {
     // if program or single
     if (isProgram && program) {
       // owner
       await sendWhatsappTemplate(
         cophone,
         "program_owner_new",
+        {
+          text: [
+            coname,
+            program.title,
+            order.name,
+            order.oid,
+            order.sessionCount,
+            label,
+          ],
+          url: [`${zid}?participant=owner&session=1`],
+        },
         "en_us",
-        wTemplateNewProgramOrderOwner(
-          order.oid,
-          program.title,
-          coname,
-          order.name,
-          order.sessionCount,
-          label,
-          zid,
-        ),
       );
       // client
       await sendWhatsappTemplate(
         order.phone,
         "program_session_confirm",
+        {
+          text: [
+            program.title,
+            order.name,
+            coname,
+            order.oid,
+            1,
+            program.sessions,
+            label,
+          ],
+          url: [`${zid}?participant=client&session=1`],
+        },
         "en_us",
-        wTemplateProgramConfirm(
-          false,
-          order.oid,
-          program.title,
-          order.name,
-          coname,
-          1,
-          program.sessions,
-          label,
-          zid,
-        ),
       );
-      // return
-      return true;
+      return;
     }
 
     // if order instant
     if (order.type === OrderType.INSTANT) {
       // owner
-      await sendWhatsappTemplate(
-        cophone,
-        "order_new_instant_owner",
-        "ar",
-        wTemplateNewOrderOwner(
+      await sendWhatsappTemplate(cophone, "order_new_instant_owner", {
+        text: [coname, order.name, order.oid, meeting[0].duration, label],
+        quick_reply: [`meeting-url:${meeting[0].mid}`],
+      });
+      // client
+      await sendWhatsappTemplate(order.phone, "order_new_instant_client", {
+        text: [
+          order.name,
           order.oid,
           coname,
-          order.name,
+          payment.total.toFixed(2),
           meeting[0].duration,
           label,
-          meeting[0].mid,
-        ),
-      );
-      // send to client
-      await sendWhatsappTemplate(
-        order.phone,
-        "order_new_instant_client",
-        "ar",
-        wTemplateNewOrderClient(
-          order.oid,
-          order.name,
-          coname,
-          payment.total,
-          meeting[0].duration,
-          label,
-          meeting[0].mid,
-        ),
-      );
-      // return
-      return true;
+        ],
+        quick_reply: [`meeting-url:${meeting[0].mid}`],
+      });
+      return;
     }
 
     // if gifted
     if (order.guest && order.gift) {
       // owner
-      await sendWhatsappTemplate(
-        cophone,
-        "order_new_owner",
-        "ar",
-        wTemplateNewOrderOwner(
-          order.oid,
-          coname,
-          order.name,
-          meeting[0].duration,
-          label,
-          meeting[0].mid,
-        ),
-      );
+      await sendWhatsappTemplate(cophone, "order_new_owner", {
+        text: [coname, order.name, order.oid, meeting[0].duration, label],
+        quick_reply: [`meeting-url:${meeting[0].mid}`],
+      });
       // send to the client gifted to (the one will take the session)
       await sendWhatsappTemplate(
         order.phone,
         "order_new_gift",
+        {
+          text: [
+            order.name,
+            order.guest.name,
+            order.oid,
+            coname,
+            meeting[0].duration,
+            meeting[0].session,
+            label,
+          ],
+          // later edit template to match quick reply
+          quick_reply: [`meeting-url:${meeting[0].mid}`],
+        },
         "en_us",
-        wTemplateNewGiftOrder(
-          order.oid,
-          order.name,
-          order.guest.name,
-          coname,
-          meeting[0].duration,
-          meeting[0].session,
-          label,
-          zid,
-        ),
       );
-      // confirm payment to the client pay
-      await sendWhatsappTemplate(
-        order.guest.phone,
-        "order_new_gift_confirm",
-        "ar",
-        wTemplateNewGiftOrderConfirm(
-          order.oid,
+      // confirm payment to the client who paid
+      await sendWhatsappTemplate(order.guest.phone, "order_new_gift_confirm", {
+        text: [
           order.guest.name,
           order.name,
+          order.oid,
           coname,
           payment.total,
-        ),
-      );
-      // return
-      return true;
+          order.name,
+        ],
+      });
+      return;
     }
 
-    // if ordinary order
+    // ordinary order
     // owner
-    await sendWhatsappTemplate(
-      cophone,
-      "order_new_owner",
-      "ar",
-      wTemplateNewOrderOwner(
-        order.oid,
-        coname,
+    await sendWhatsappTemplate(cophone, "order_new_owner", {
+      text: [coname, order.name, order.oid, meeting[0].duration, label],
+      quick_reply: [`meeting-url:${meeting[0].mid}`],
+    });
+    // client
+    await sendWhatsappTemplate(order.phone, "order_new_client", {
+      text: [
         order.name,
-        meeting[0].duration,
-        label,
-        meeting[0].mid,
-      ),
-    );
-    // send to client
-    await sendWhatsappTemplate(
-      order.phone,
-      "order_new_client",
-      "ar",
-      wTemplateNewOrderClient(
         order.oid,
-        order.name,
         coname,
         payment.total,
         meeting[0].duration,
         label,
-        meeting[0].mid,
-      ),
-    );
-
-    // return
-    return true;
-  } catch {
-    // return
-    return null;
-  }
+      ],
+      quick_reply: [`meeting-url:${meeting[0].mid}`],
+    });
+  });
 };
 
 // new owner welcome notification
@@ -247,124 +194,77 @@ export const notificationNewOwner = async (
   phone: string,
   name: string,
   cid: string,
-) => {
-  try {
-    // send owner
-    await sendWhatsappTemplate(
-      phone,
-      "owner_new_approved",
-      "ar",
-      wTemplateNewOwner(name, cid),
-    );
-    // return
-    return true;
-  } catch {
-    // return
-    return null;
-  }
-};
+) =>
+  notify(() =>
+    sendWhatsappTemplate(phone, "owner_new_approved", {
+      text: [name],
+      url: [cid],
+    }),
+  );
 
-// new preConsultion session
+// new pre-consultation session
 export const notificationNewPreConsultation = async (
   phone: string,
   name: string,
   advisor: string,
   pid: number,
-) => {
-  try {
-    // send owner
-    await sendWhatsappTemplate(
-      phone,
-      "preconsultation_new",
-      "ar",
-      wTemplateNewPreConsultation(advisor, name, pid),
-    );
-    // return
-    return true;
-  } catch {
-    // return
-    return null;
-  }
-};
+) =>
+  notify(() =>
+    sendWhatsappTemplate(phone, "preconsultation_new", {
+      text: [advisor, name, pid],
+    }),
+  );
 
-// new order notification
+// new free session notification
 export const notificationNewFreeSession = async (
   coname: string,
   cophone: string,
   session: FreeSession,
 ) => {
-  try {
-    // zid
-    const zid = zencryption(session.fid);
-    // meeting label
-    const label = meetingLabel(session.time, session.date);
+  // zid
+  const zid = zencryption(session.fid);
+  // meeting label
+  const label = meetingLabel(session.time, session.date);
+
+  return notify(async () => {
     // owner
-    await sendWhatsappTemplate(
-      cophone,
-      "freesession_new_owner",
-      "ar",
-      wTemplateNewFreeSessionOwner(
-        session.fid,
-        coname,
-        session.name,
-        session.duration,
-        label,
-        zid,
-      ),
-    );
-    // send to client
+    await sendWhatsappTemplate(cophone, "freesession_new_owner", {
+      text: [coname, session.name, session.fid, session.duration, label],
+      // later edit template to match quick reply
+      // quick_reply: [`meeting-url:${meeting[0].mid}`],
+      url: [zid],
+    });
+    // client
     await sendWhatsappTemplate(
       session.phone,
       "freesession_new_client",
+      {
+        text: [session.name, session.fid, coname, session.duration, label],
+        // later edit template to match quick reply
+        // quick_reply: [`meeting-url:${meeting[0].mid}`],
+        url: [zid],
+      },
       "en_us",
-      wTemplateNewFreeSessionClient(
-        session.fid,
-        session.name,
-        coname,
-        session.duration,
-        label,
-        zid,
-      ),
     );
-
-    // return
-    return true;
-  } catch {
-    // return
-    return null;
-  }
+  });
 };
 
-// new order notification
+// program next session selection notification
 export const notificationProgramSession = async (
   order: Reservation,
   program: string,
   session: number,
 ) => {
-  try {
-    // zid
-    const czid = encryptionDigitsToUrl(order.oid);
+  // zid
+  const czid = encryptionDigitsToUrl(order.oid);
 
+  return notify(() =>
     // send to client
-    await sendWhatsappTemplate(
-      order.phone,
-      "program_session_select",
-      "ar",
-      wTemplateProgramSession(
-        order.oid,
-        program,
-        order.consultant.name,
-        session,
-        czid,
-      ),
-    );
-
-    // return
-    return true;
-  } catch {
-    // return
-    return null;
-  }
+    sendWhatsappTemplate(order.phone, "program_session_select", {
+      text: [session, program, order.consultant.name, order.oid],
+      url: [`${czid}?session=${session}`],
+    }),
+  );
 };
 
 // new program session confirm notification
@@ -380,69 +280,49 @@ export const notificationProgramSessionConfirm = async (
   time: string,
   date: string,
 ) => {
-  try {
-    // zid
-    const zid = zencryption(oid);
-    // meeting label
-    const label = meetingLabel(time, date);
-    // send clinet
+  // zid
+  const zid = zencryption(oid);
+  // meeting label
+  const label = meetingLabel(time, date);
+
+  return notify(async () => {
+    // client
     await sendWhatsappTemplate(
       phone,
       "program_session_confirm",
+      {
+        text: [name, program, coname, oid, session, sessions, label],
+        url: [`${zid}?participant=client&session=${session}`],
+      },
       "en_us",
-      wTemplateProgramConfirm(
-        false,
-        oid,
-        program,
-        name,
-        coname,
-        session,
-        sessions,
-        label,
-        zid,
-      ),
     );
-    // send owner
+    // owner
     await sendWhatsappTemplate(
       cophone,
       "program_session_confirm",
+      {
+        text: [coname, program, name, oid, session, sessions, label],
+        url: [`${zid}?participant=client&session=${session}`],
+      },
       "en_us",
-      wTemplateProgramConfirm(
-        true,
-        oid,
-        program,
-        coname,
-        name,
-        session,
-        sessions,
-        label,
-        zid,
-      ),
     );
-    // return
-    return true;
-  } catch {
-    // return
-    return null;
-  }
+  });
 };
 
 // review reminder
 export const notificationReviewReminder = async (
   oid: number,
   phone: string,
-  conusltant: string,
+  consultant: string,
   date: string,
   time: string,
 ) => {
   // meeting label
   const label = meetingLabel(time, date);
 
-  // send clinet
-  await sendWhatsappTemplate(
-    phone,
-    "review_reminder",
-    "ar",
-    wTemplateReview(oid, conusltant, label),
-  );
+  // send client
+  return sendWhatsappTemplate(phone, "review_reminder", {
+    text: [consultant, "#" + oid, label],
+    flow: { flow_token: String(oid) },
+  });
 };

@@ -2,7 +2,7 @@
 import React from "react";
 
 // packages
-import moment from "moment";
+import { differenceInHours, parse } from "date-fns";
 
 // compoennt
 import {
@@ -159,10 +159,18 @@ export default function RefundBtn({ time, order }: Props) {
 // Check if more than 6 hours ahead
 function CheckHours(now: DateTime, order: DateTime) {
   // compare dates and time
-  const meeting = moment(`${order.date} ${order.time}`, "YYYY-MM-DD HH:mm");
-  const timeNow = moment(`${now.date} ${now.time}`, "YYYY-MM-DD HH:mm");
+  const meeting = parse(
+    `${order.date} ${order.time}`,
+    "yyyy-MM-dd HH:mm",
+    new Date(),
+  );
+  const timeNow = parse(
+    `${now.date} ${now.time}`,
+    "yyyy-MM-dd HH:mm",
+    new Date(),
+  );
   // check 6 hours difference
-  const diff = meeting.diff(timeNow, "hours");
+  const diff = differenceInHours(meeting, timeNow);
 
   // refund able (still)
   if (diff >= 6) return true;

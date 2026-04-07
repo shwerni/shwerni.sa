@@ -2,13 +2,8 @@
 // prisma db
 import prisma from "@/lib/database/db";
 
-// packages
-moment.locale("en");
-import "moment/locale/ar";
-import moment from "moment";
-
 // utils
-import { dateToString } from "@/utils/moment";
+import { dateToString } from "@/utils/time";
 
 // prisma types
 import { PaymentMethod } from "@/lib/generated/prisma/enums";

@@ -6,7 +6,7 @@ import { AiBot } from "./setup";
 import { sendWhatsappText } from "@/lib/api/whatsapp";
 
 // utils
-import { meetingLabel } from "@/utils/moment";
+import { meetingLabel } from "@/utils/time";
 
 // prisma data
 import {

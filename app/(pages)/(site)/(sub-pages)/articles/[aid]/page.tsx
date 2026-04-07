@@ -1,9 +1,6 @@
 // React & Next
 import { Metadata } from "next";
 
-// packages
-import * as cheerio from "cheerio";
-
 // components
 import Error404 from "@/components/shared/error-404";
 import Article from "@/components/clients/articles/article/article";
@@ -189,33 +186,33 @@ function extractArticleSideFast(
   body: string;
   side: { h3: string; p: string }[];
 } {
-  const $ = cheerio.load(html);
-
-  const h3Elements = $("h3").toArray();
-  const selected = h3Elements.slice(-count);
+  const h3Regex = /<h3[^>]*>(.*?)<\/h3>/gis;
+  const matches = [...html.matchAll(h3Regex)];
+  const selected = matches.slice(-count);
 
   const side: { h3: string; p: string }[] = [];
 
-  selected.forEach((h3) => {
-    const $h3 = $(h3);
-    const title = $h3.text().trim();
-    if (!title) return;
-    let text = "";
-    let next = $h3.next();
+  for (const match of selected) {
+    const h3Text = match[1].replace(/<[^>]*>/g, "").trim();
+    if (!h3Text) continue;
 
-    while (next.length && next[0].tagName !== "h3") {
-      const t = next.text().trim();
-      if (t) text += text ? "\n" + t : t;
-      next = next.next();
-    }
+    const afterH3 = html.slice(html.indexOf(match[0]) + match[0].length);
+    const nextH3Index = afterH3.search(/<h3/i);
+    const content = nextH3Index === -1 ? afterH3 : afterH3.slice(0, nextH3Index);
 
-    side.push({ h3: title, p: text });
-  });
+    const text = content
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
-  selected.forEach((h3) => $(h3).remove());
+    side.push({ h3: h3Text, p: text });
+  }
 
-  return {
-    body: $("body").html() ?? "",
-    side,
-  };
+  // remove selected h3s from body
+  let body = html;
+  for (const match of selected) {
+    body = body.replace(match[0], "");
+  }
+
+  return { body, side };
 }

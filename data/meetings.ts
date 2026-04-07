@@ -88,7 +88,7 @@ export const orderMeetingUrl = async (oid: number, session?: number) => {
     if (meeting?.rooms?.url) return meeting.rooms.url;
 
     // create url if not exist
-    const newUrl = await createMeeting(Number(meeting?.duration) + 5);
+    const newUrl = await createMeeting();
 
     // update order
     await prisma.meeting.update({

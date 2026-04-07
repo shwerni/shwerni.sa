@@ -1,6 +1,4 @@
 "use server";
-// packages
-import axios from "axios";
 
 // response
 interface RecaptchaResponse {
@@ -16,17 +14,16 @@ interface RecaptchaResponse {
 const recaptchaToken = async (token: string): Promise<RecaptchaResponse> => {
   // body
   const body = `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${token}`;
+
   // response
-  const { data } = await axios.post(
-    "https://www.google.com/recaptcha/api/siteverify",
+  const response = await fetch("https://www.google.com/recaptcha/api/siteverify", {
+    method: "POST",
+    cache: "no-store",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    }
-  );
-  return data;
+  });
+
+  return response.json();
 };
 
 export const verifyRecaptcha = async (token: string): Promise<boolean> => {

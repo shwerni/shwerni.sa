@@ -10,7 +10,7 @@ import {
 } from "@/lib/api/telegram/telegram";
 
 // utils
-import { dateToString } from "@/utils/moment";
+import { dateToString } from "@/utils/time";
 
 // types
 import { Reservation } from "@/types/admin";

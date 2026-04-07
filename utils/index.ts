@@ -30,7 +30,7 @@ import {
 } from "@/constants/admin";
 import { itimes } from "@/constants";
 import { timeZone } from "@/lib/site/time";
-import { dateTimeToString } from "./moment";
+import { dateTimeToString } from "./time";
 import { mainRoute } from "@/constants/links";
 
 // packages

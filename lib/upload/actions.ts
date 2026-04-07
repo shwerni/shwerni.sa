@@ -1,6 +1,4 @@
 "use server";
-// pacakges
-import axios from "axios";
 
 // constants
 import { mainRoute } from "@/constants/links";
@@ -9,11 +7,15 @@ import { mainRoute } from "@/constants/links";
 export async function deleteImageAdmin(key: string) {
   // try delete
   try {
-    const response = await axios.post(`${mainRoute}api/uploadthing/delete`, {
-      key,
+    const response = await fetch(`${mainRoute}api/uploadthing/delete`, {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key }),
     });
+
     // return
-    return response;
+    return response.json();
   } catch {
     // error
     return null;

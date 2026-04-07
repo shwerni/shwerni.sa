@@ -17,7 +17,7 @@ import "@/styles/article.css";
 
 // utils
 import { minutesToRead } from "@/utils";
-import { dateToString } from "@/utils/moment";
+import { dateToString } from "@/utils/time";
 
 // prisma types
 import {

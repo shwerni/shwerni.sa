@@ -10,7 +10,7 @@ import { onPaymentSuccess } from "@/handlers/admin/order/payment";
 
 // utils
 import { totalAfterTax } from "@/utils";
-import { dateTimeToString, dateToString } from "@/utils/moment";
+import { dateTimeToString, dateToString } from "@/utils/time";
 
 // get unique user by phone
 export const getWalletByAuthor = async (author: string) => {
