@@ -96,7 +96,7 @@ export const createUser = async (
   username: string,
   email: string | undefined,
   phone: string,
-  password: string
+  password: string,
 ) => {
   try {
     await prisma.user.create({
@@ -149,3 +149,19 @@ export async function getUserOrders({
   });
 }
 
+export const removeUnverifiedUsers = async (deadline: Date) => {
+  try {
+    const users = await prisma.user.deleteMany({
+      where: {
+        phoneVerified: null,
+        created_at: {
+          lt: deadline,
+        },
+      },
+    });
+
+    return users;
+  } catch {
+    return null;
+  }
+};

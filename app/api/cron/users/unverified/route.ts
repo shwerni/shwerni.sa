@@ -1,8 +1,8 @@
 // React & Next
 import { NextResponse } from "next/server";
+import { removeUnverifiedUsers } from "@/data/user";
 
 // prisma data
-import { cancelOrderByOid, getUnpaidOrder } from "@/data/order/reserveation";
 
 // verify cron secret (protect the endpoint)
 const isAuthorized = (req: Request) =>
@@ -14,21 +14,20 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   try {
-    // deadline — orders older than 10 minutes
-    const deadline = new Date(Date.now() - 15 * 60000);
+    // remove unverified users past the deadline
+    const deadline = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 
-    // find all orders still processing past the deadline
-    const staleOrders = await getUnpaidOrder(deadline);
+    // clean up users
+    const deletedUsers = await removeUnverifiedUsers(deadline);
 
-    // cancel each stale order
-    const results = await Promise.allSettled(
-      staleOrders.map((order) => cancelOrderByOid(order.oid)),
-    );
+    // validate
+    if (!deletedUsers)
+      return NextResponse.json({ error: "failed" }, { status: 500 });
 
     // return
     return NextResponse.json({
-      cancelled: staleOrders.length,
-      results,
+      success: true,
+      message: `deleted ${deletedUsers.count} unverified users.`,
     });
   } catch {
     return NextResponse.json({ error: "failed" }, { status: 500 });

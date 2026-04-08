@@ -33,12 +33,13 @@ export const notificationSecurityOtp = async (
   name: string,
   otp: string | number,
 ) => {
-  await sendWhatsappTemplate(phone, "security_otp", {
-    text: [otp],
-    url: [String(otp)],
-  });
+  const sotp = String(otp);
   await sendWhatsappTemplate(phone, "new_confirm", {
-    text: [name, otp],
+    text: [name, sotp],
+  });
+  await sendWhatsappTemplate(phone, "security_otp", {
+    text: [sotp],
+    url: [sotp],
   });
 };
 

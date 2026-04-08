@@ -85,7 +85,7 @@ export const metadata: Metadata = {
 type FilterParams = {
   search?: string;
   page?: string;
-  orderby?: "newest" | "oldest" | "viral";
+  orderby?: "newest" | "oldest" | "viral" | "random";
   specialties?: string;
   categories?: string;
   gender?: string;
@@ -113,7 +113,7 @@ export default async function Page({ searchParams }: Props) {
   const {
     search = "",
     page = "1",
-    orderby = "newest",
+    orderby = "random",
     // specialties = "", // later
     categories,
     gender,
