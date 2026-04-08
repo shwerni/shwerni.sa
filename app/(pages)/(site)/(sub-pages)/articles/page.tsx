@@ -6,13 +6,13 @@ import { cacheLife } from "next/cache";
 
 // components
 import Articles from "@/components/clients/articles/list";
+import Navigation from "@/components/clients/articles/navigation";
 import CardSkeleton from "@/components/clients/shared/card-skeleton";
 import Filter, { FilterContent } from "@/components/clients/articles/filter";
 
 // prisma data
-import { getSpecialties } from "@/data/specialty";
 import { getArticles } from "@/data/article";
-import Navigation from "@/components/clients/articles/navigation";
+import { getSpecialties } from "@/data/specialty";
 
 // meta data seo
 export const metadata: Metadata = {

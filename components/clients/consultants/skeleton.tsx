@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-const ArticleSkeleton = () => (
+const ConsultantsSkeleton = () => (
   <div className="flex flex-col md:grid grid-cols-6 justify-items-center gap-5 mx-3 my-6">
     {/* right side */}
     <div className="col-span-4 flex w-full max-w-2xl flex-col gap-6">
@@ -45,4 +45,4 @@ const ArticleSkeleton = () => (
   </div>
 );
 
-export default ArticleSkeleton;
+export default ConsultantsSkeleton;

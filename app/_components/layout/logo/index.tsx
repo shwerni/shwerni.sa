@@ -31,19 +31,3 @@ export default function MLogo() {
     </Link>
   );
 }
-
-export function SLogo() {
-  return (
-    <Link href="/" className="block relative w-48 sm:w-52">
-      <div className="relative w-full h-auto">
-        <Image
-          src="/layout/logob.png"
-          alt="logo"
-          width={256}
-          height={60}
-          sizes="(max-width: 640px) 144px, 256px"
-        />
-      </div>
-    </Link>
-  );
-}

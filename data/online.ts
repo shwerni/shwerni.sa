@@ -139,8 +139,6 @@ export async function handlePresenceWebhook(userId: string, isOnline: boolean) {
   await trigger(userId, isAvailable, consultant);
 }
 
-// ─── Called after reservation is created ─────────────────────────────────────
-
 export async function broadcastConsultantBusy(userId: string) {
   const consultant = await prisma.consultant.findUnique({
     where: { userId },

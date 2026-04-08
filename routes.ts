@@ -81,4 +81,3 @@ export const apiAuthPrefix = "/api/auth";
  * default route to redirect after login
  * @type {string}
  */
-export const LogInRedirect = "/";

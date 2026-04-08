@@ -1,8 +1,6 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 @import "@smastrom/react-rating/style.css";
-@import "react-phone-input-2/lib/style.css";
-
 
 /* @import "uploadthing/tw/v4"; */
 @theme {

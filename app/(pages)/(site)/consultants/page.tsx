@@ -9,6 +9,7 @@ import Navigation from "@/components/clients/consultants/navigation";
 import CardSkeleton from "@/components/clients/shared/card-skeleton";
 import Appointment from "@/components/clients/consultants/appointment";
 import ConsultantsHeader from "@/components/clients/consultants/header";
+import Search from "@/components/clients/consultants/reservation/search";
 import Filter, { FilterContent } from "@/components/clients/consultants/filter";
 
 // prisma data
@@ -20,7 +21,6 @@ import { timeZone } from "@/lib/site/time";
 
 // constants
 import { mainRoute } from "@/constants/links";
-import Search from "@/components/clients/consultants/reservation/search";
 
 // meta data seo
 export const metadata: Metadata = {

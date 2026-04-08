@@ -39,7 +39,7 @@ const ProgramsCarousel = ({ programs }: Props) => {
     >
       <CarouselContent>
         {programs.map((i, index) => (
-          <CarouselItem key={index} className="max-w-[305px]">
+          <CarouselItem key={index} className="max-w-76.25">
             <Link href={`/programs/${i.prid}`}>
               <ProgramCard program={i} />
             </Link>

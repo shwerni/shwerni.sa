@@ -6,7 +6,7 @@ import { cacheLife } from "next/cache";
 
 // components
 import Program from "@/components/clients/programs/program/program";
-import SkeletonConsultant from "@/components/clients/consultants/consultant/skeleton";
+import ProgramSkeleton from "@/components/clients/programs/skeleton";
 
 // prisma data
 import { getProgramInfo } from "@/data/program";
@@ -106,7 +106,7 @@ const Page = async ({ params }: Props) => {
   return (
     <div className="space-y-4">
       <div className="max-w-6xl mx-auto px-4 sm:px-5 space-y-6">
-        <Suspense fallback={<SkeletonConsultant />}>
+        <Suspense fallback={<ProgramSkeleton />}>
           <Program prid={pridN} />
         </Suspense>
       </div>

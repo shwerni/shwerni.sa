@@ -19,15 +19,15 @@ import { SendChatBot } from "@/lib/api/ai/chat-bot";
 
 // hooks
 import { timeZone } from "@/lib/site/time";
+import { toast } from "@/components/shared/toast";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import { verifyRecaptcha } from "@/lib/api/recaptcha";
 
 // linkify
 const linkifyOptions = {
   rel: "noopener noreferrer",
   className: "text-blue-600 underline",
 };
-
-// ─── WhatsApp support number ──────────────────────────────────────────────────
-const WHATSAPP_URL = `https://wa.me/966554117879?text=${encodeURIComponent("مرحباً، أريد التحدث مع أحد مستشاري شاورني 👋")}`;
 
 interface Message {
   id: number;
@@ -43,7 +43,7 @@ interface ChatProps {
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
 }
 
-// Extracted as a pure component — avoids re-rendering all messages on each keystroke
+// extracted as a pure component — avoids re-rendering all messages on each keystroke
 const MessageBubble = React.memo(({ message }: { message: Message }) => (
   <div
     className={cn(
@@ -103,31 +103,73 @@ const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
     return () => cancelAnimationFrame(raf);
   }, [messages]);
 
+  // reCaptcha-v3
+  const { executeRecaptcha } = useGoogleReCaptcha();
+
   const handleSend = React.useCallback(async () => {
+    // validate
     if (!input.trim() || isSending) return;
 
+    // time
     const { iso } = timeZone();
-    setIsSending(true);
 
-    const userMessage: Message = {
-      id: iso.getTime(),
-      text: input,
-      sender: "user",
-      timestamp: iso,
-    };
+    // reCaptcha-v3 handler
+    if (!executeRecaptcha) {
+      // toast
+      toast.error({
+        title: "حدث خطأ ما",
+        message:
+          "حدثت مشكلة اثناء التحقق من الامان, برجاء المحاولة لاحقا او تواصل مع الدعم",
+      });
+      // loading
+      setIsSending(false);
 
-    const typingMessage: Message = {
-      id: iso.getTime() + 1,
-      text: "",
-      sender: "bot",
-      timestamp: iso,
-      loading: true,
-    };
-
-    setMessages((prev) => [...prev, userMessage, typingMessage]);
-    setInput("");
+      // return
+      return;
+    }
 
     try {
+      // execute recaptcha
+      const token = await executeRecaptcha();
+
+      // verify recaptcha
+      const recaptcha = await verifyRecaptcha(token);
+
+      // validate
+      if (!token || !recaptcha) {
+        // toast
+        toast.error({
+          title: "حدث خطأ ما",
+          message:
+            "حدثت مشكلة اثناء التحقق من الامان, برجاء المحاولة لاحقا او تواصل مع الدعم",
+        });
+        // loading
+        setIsSending(false);
+
+        // return
+        return;
+      }
+
+      setIsSending(true);
+
+      const userMessage: Message = {
+        id: iso.getTime(),
+        text: input,
+        sender: "user",
+        timestamp: iso,
+      };
+
+      const typingMessage: Message = {
+        id: iso.getTime() + 1,
+        text: "",
+        sender: "bot",
+        timestamp: iso,
+        loading: true,
+      };
+
+      setMessages((prev) => [...prev, userMessage, typingMessage]);
+      setInput("");
+
       const reply = await SendChatBot(input);
       setMessages((prev) =>
         prev.map((m) =>
@@ -157,7 +199,7 @@ const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
     } finally {
       setIsSending(false);
     }
-  }, [input, isSending, setMessages]);
+  }, [executeRecaptcha, input, isSending, setMessages]);
 
   // Allow Enter to send (Shift+Enter for newline)
   const handleKeyDown = React.useCallback(
@@ -170,9 +212,19 @@ const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
     [handleSend],
   );
 
+  // whatsApp redirection logic
+  const handleWhatsAppRedirect = () => {
+    const phone = "966554117879";
+    const message = "مرحباً، أريد التحدث مع أحد مستشاري شاورني 👋";
+    window.open(
+      `https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  };
+
   return (
     <div className="fixed bottom-24 right-6 w-[90vw] sm:w-96 h-125 bg-background rounded-lg shadow-2xl flex flex-col z-50 animate-scale-in">
-
       {/* Header */}
       <div className="bg-theme p-4 rounded-t-lg">
         <h3 className="font-semibold text-lg text-white">
@@ -184,9 +236,8 @@ const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
         </div>
       </div>
 
-      <a
-        href={WHATSAPP_URL}
-        target="_blank"
+      <div
+        onClick={handleWhatsAppRedirect}
         rel="noopener noreferrer"
         className="
           group flex items-center justify-between
@@ -229,7 +280,7 @@ const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
           </svg>
           واتساب
         </div>
-      </a>
+      </div>
 
       {/* Messages */}
       <ScrollArea className="flex-1 p-4 h-60">

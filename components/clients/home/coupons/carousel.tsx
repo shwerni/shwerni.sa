@@ -94,7 +94,7 @@ const CouponsCarousel = ({ coupons }: Props) => {
     >
       <CarouselContent>
         {[sCoupon, ...coupons].map((i, index) => (
-          <CarouselItem key={index} className="max-w-[305px]">
+          <CarouselItem key={index} className="max-w-76.25">
             <CouponCard coupon={i} />
           </CarouselItem>
         ))}
