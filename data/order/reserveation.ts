@@ -1007,11 +1007,7 @@ export const getUnpaidOrder = async (deadline: Date) => {
   try {
     return await prisma.order.findMany({
       where: {
-        payment: {
-          is: {
-            payment: { in: [PaymentState.NEW, PaymentState.PROCESSING] },
-          },
-        },
+        where: { payment: { in: [PaymentState.NEW, PaymentState.PROCESSING] } },
         created_at: { lte: deadline },
       },
       select: { oid: true },
@@ -1028,7 +1024,12 @@ export const cancelOrderByOid = async (oid: number) => {
       where: {
         oid,
       },
-      data: { payment: { update: { payment: PaymentState.CANCELED } } },
+      data: {
+        payment: { update: { payment: PaymentState.CANCELED } },
+        info: {
+          push: `order canceled by system due to non payment | modified_at: ${dateTimeToString(new Date())}`,
+        },
+      },
       select: { payment: true },
     });
     return true;
