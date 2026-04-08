@@ -53,6 +53,7 @@ export const DynamicpublicRoutes = [
   // apis
   "/api/whatsapp",
   "/api/uploadthing",
+  "/api/cron",
 ];
 
 /**
