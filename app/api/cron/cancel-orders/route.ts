@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 
 // prisma data
-import { cancelOrderByOid, getUnpaidOrder } from "@/data/order/reserveation";
+import { cancelOrders } from "@/data/order/reserveation";
 
 // verify cron secret (protect the endpoint)
 const isAuthorized = (req: Request) =>
@@ -14,22 +14,17 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   try {
-    // deadline — orders older than 10 minutes
-    const deadline = new Date(Date.now() - 15 * 60000);
+    // deadline — orders older than 20 minutes
+    const deadline = new Date(Date.now() - 20 * 60000);
 
     // find all orders still processing past the deadline
-    const staleOrders = await getUnpaidOrder(deadline);
+    const cancelled = await cancelOrders(deadline);
 
-    // cancel each stale order
-    const results = await Promise.allSettled(
-      staleOrders.map((order) => cancelOrderByOid(order.oid)),
-    );
-
+    // valdiate
+    if (cancelled === null)
+      return NextResponse.json({ error: "failed" }, { status: 500 });
     // return
-    return NextResponse.json({
-      cancelled: staleOrders.length,
-      results,
-    });
+    return NextResponse.json({ cancelled });
   } catch {
     return NextResponse.json({ error: "failed" }, { status: 500 });
   }

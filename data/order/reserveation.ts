@@ -1007,8 +1007,16 @@ export const getUnpaidOrder = async (deadline: Date) => {
   try {
     return await prisma.order.findMany({
       where: {
-        where: { payment: { in: [PaymentState.NEW, PaymentState.PROCESSING] } },
-        created_at: { lte: deadline },
+        payment: {
+          is: {
+            payment: {
+              in: [PaymentState.NEW, PaymentState.PROCESSING],
+            },
+          },
+        },
+        created_at: {
+          lte: deadline,
+        },
       },
       select: { oid: true },
     });
@@ -1033,6 +1041,46 @@ export const cancelOrderByOid = async (oid: number) => {
       select: { payment: true },
     });
     return true;
+  } catch {
+    return null;
+  }
+};
+
+// cancel orders
+export const cancelOrders = async (deadline: Date) => {
+  try {
+    const infoMessage = `order canceled by system due to non payment | modified_at: ${dateTimeToString(new Date())}`;
+
+   return await prisma.$transaction(async (tx) => {
+      const stalePayments = await tx.payment.findMany({
+        where: {
+          payment: { in: [PaymentState.NEW, PaymentState.PROCESSING] },
+          cancelled_at: null,
+          order: { created_at: { lte: deadline } },
+        },
+        select: { orderId: true },
+      });
+
+      const orderIds = stalePayments
+        .map((p) => p.orderId)
+        .filter(Boolean) as number[];
+
+      await tx.payment.updateMany({
+        where: { orderId: { in: orderIds } },
+        data: { payment: PaymentState.CANCELED, cancelled_at: new Date() },
+      });
+
+      await Promise.all(
+        orderIds.map((oid) =>
+          tx.order.update({
+            where: { oid },
+            data: { info: { push: infoMessage } },
+          }),
+        ),
+      );
+
+      return orderIds.length;
+    });
   } catch {
     return null;
   }

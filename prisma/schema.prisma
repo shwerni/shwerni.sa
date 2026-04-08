@@ -664,16 +664,17 @@ model Meeting {
 }
 
 model Payment {
-  id         String         @id @default(cuid())
-  pid        String?        @unique
-  commission Int
-  total      Float
-  tax        Float
-  payment    PaymentState
-  method     PaymentMethod?
-  paid       Float?
-  credit     Float?         @default(0)
-  wallet     Float?
+  id           String         @id @default(cuid())
+  pid          String?        @unique
+  commission   Int
+  total        Float
+  tax          Float
+  payment      PaymentState
+  method       PaymentMethod?
+  paid         Float?
+  credit       Float?         @default(0)
+  wallet       Float?
+  cancelled_at DateTime?
 
   // @relations
   orderId    Int?        @unique
