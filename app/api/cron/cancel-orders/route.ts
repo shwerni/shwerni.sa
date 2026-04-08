@@ -22,10 +22,16 @@ export async function GET(req: Request) {
 
     // valdiate
     if (cancelled === null)
-      return NextResponse.json({ error: "failed" }, { status: 500 });
+      return NextResponse.json(
+        { error: "failed - could not cancel orders" },
+        { status: 500 },
+      );
     // return
     return NextResponse.json({ cancelled });
   } catch {
-    return NextResponse.json({ error: "failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "failed - failed to cancel orders" },
+      { status: 500 },
+    );
   }
 }

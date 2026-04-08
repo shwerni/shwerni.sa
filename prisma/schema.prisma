@@ -332,7 +332,7 @@ model Consultant {
   sort_key      Float            @default(0)
 
   // @relations
-  user                     User                  @relation(fields: [userId], references: [id])
+  user                     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   orders                   Order[]
   articles                 Article[]
   Coupon                   Coupon[]
@@ -360,7 +360,7 @@ model ConsultantTiming {
 
   // @relations
   userId       String
-  user         User       @relation(fields: [userId], references: [id])
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   consultantId Int
   consultant   Consultant @relation(fields: [consultantId], references: [cid])
 
@@ -550,7 +550,7 @@ model Wallet {
 
   // @relations
   userId String @unique
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("wallets")
 }
@@ -800,7 +800,7 @@ model Collaboration {
 
   // @ relations
   userId String  @unique
-  user   User    @relation(fields: [userId], references: [id])
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   orders Order[]
 
   @@map("collaborations")
