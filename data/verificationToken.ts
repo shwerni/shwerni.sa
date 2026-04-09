@@ -1,11 +1,11 @@
-// lib
+// prisma db
 import prisma from "@/lib/database/db";
 
 // utils
 import { generateOtp } from "@/utils/auth";
 
-// lib
-// import { notificationSecurityOtp } from "@/lib/notifications";
+// prisma data
+import { notificationSecurityOtp } from "@/lib/notifications";
 
 export const getVerificationTokenByToken = async (token: string) => {
   try {
@@ -69,7 +69,11 @@ export const generateVerificationToken = async (phone: string) => {
     });
 
     // send otp via whatsapp
-    // await notificationSecurityOtp(newToken.phone, newToken.otp);
+    await notificationSecurityOtp(
+      newToken.phone,
+      userName?.name || "",
+      newToken.otp,
+    );
 
     // return
     return newToken;
