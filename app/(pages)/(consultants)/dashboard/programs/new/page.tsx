@@ -1,5 +1,5 @@
 import React from 'react'
-import CreateProgramForm from '@/app/_components/consultants/owner/programs/new'
+import CreateProgramForm from '@/components/legacy/consultants/owner/programs/new'
 
 function Page() {
   return <CreateProgramForm />

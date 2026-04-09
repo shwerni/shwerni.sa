@@ -1,5 +1,5 @@
 // components
-import { ConsultantSkeleton } from "@/app/_components/layout/skeleton/consultant";
+import { ConsultantSkeleton } from "@/components/legacy/layout/skeleton/consultant";
 
 export default async function Loading() {
     return <ConsultantSkeleton />;

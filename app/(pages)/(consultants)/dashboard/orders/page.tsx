@@ -1,6 +1,6 @@
 // compenents
-import OwnerOrderLayout from "@/app/_components/consultants/owner/orders";
-import WrongPage from "@/app/_components/layout/zErrors/site/wrongPage";
+import OwnerOrderLayout from "@/components/legacy/consultants/owner/orders";
+import WrongPage from "@/components/legacy/layout/zErrors/site/wrongPage";
 
 // prisma data
 import { getAllPaidOwnersOrdersByAuthor } from "@/data/order/reserveation";

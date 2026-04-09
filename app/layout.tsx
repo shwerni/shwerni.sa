@@ -25,9 +25,9 @@ import { ourFileRouter } from "@/app/api/uploadthing/core";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 
 // scripts
-import MetaPixel from "@/app/_components/layout/scripts/ads/metaPixel";
-import SnapPixel from "@/app/_components/layout/scripts/ads/snapPixel";
-import TwitterPixel from "@/app/_components/layout/scripts/ads/twitterPixel";
+import MetaPixel from "@/components/legacy/layout/scripts/ads/metaPixel";
+import SnapPixel from "@/components/legacy/layout/scripts/ads/snapPixel";
+import TwitterPixel from "@/components/legacy/layout/scripts/ads/twitterPixel";
 
 // css
 import "@/app/globals.css";

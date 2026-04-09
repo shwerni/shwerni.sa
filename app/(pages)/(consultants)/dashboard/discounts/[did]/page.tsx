@@ -1,8 +1,8 @@
 import { userServer } from "@/lib/auth/server";
 import { getOwnerCidByAuthor } from "@/data/consultant";
-import WrongPage from "@/app/_components/layout/zErrors/site/wrongPage";
+import WrongPage from "@/components/legacy/layout/zErrors/site/wrongPage";
 import { getDiscountByDid, getDiscountConsultant } from "@/data/discounts";
-import DiscountConsultant from "@/app/_components/consultants/owner/discount";
+import DiscountConsultant from "@/components/legacy/consultants/owner/discount";
 import { connection } from "next/server";
 
 // props

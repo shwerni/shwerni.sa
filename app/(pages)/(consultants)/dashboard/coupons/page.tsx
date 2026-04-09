@@ -2,13 +2,13 @@
 import React from "react";
 
 // components
-import ConsultantCoupons from "@/app/_components/consultants/owner/coupons";
+import ConsultantCoupons from "@/components/legacy/consultants/owner/coupons";
 import { userServer } from "@/lib/auth/server";
 import { getOwnerCidByAuthor } from "@/data/consultant";
-import WrongPage from "@/app/_components/layout/zErrors/site/wrongPage";
+import WrongPage from "@/components/legacy/layout/zErrors/site/wrongPage";
 import { getConsultantsCoupons } from "@/data/coupon";
-import { Section } from "@/app/_components/layout/section";
-import { CouponsTable } from "@/app/_components/consultants/owner/coupons/table";
+import { Section } from "@/components/legacy/layout/section";
+import { CouponsTable } from "@/components/legacy/consultants/owner/coupons/table";
 
 // prisma data
 

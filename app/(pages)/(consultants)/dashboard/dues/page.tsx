@@ -3,8 +3,8 @@ import React from "react";
 import { Metadata } from "next";
 
 // components
-import DuesOwner from "@/app/_components/consultants/owner/dues";
-import WrongPage from "@/app/_components/layout/zErrors/site/wrongPage";
+import DuesOwner from "@/components/legacy/consultants/owner/dues";
+import WrongPage from "@/components/legacy/layout/zErrors/site/wrongPage";
 
 // prisma data
 import { getAllDuesOwner } from "@/data/dues";

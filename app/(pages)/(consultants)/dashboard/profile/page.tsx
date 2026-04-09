@@ -1,7 +1,7 @@
 // component
-import { Section } from "@/app/_components/layout/section";
-import { Btitle } from "@/app/_components/layout/titles";
-import UserSettings from "@/app/_components/layout/settings";
+import { Section } from "@/components/legacy/layout/section";
+import { Btitle } from "@/components/legacy/layout/titles";
+import UserSettings from "@/components/legacy/layout/settings";
 
 // lib
 import { timeZone } from "@/lib/site/time";

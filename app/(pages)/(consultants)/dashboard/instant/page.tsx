@@ -4,7 +4,7 @@ import React from "react";
 // components
 import InstantDashboard from "@/components/consultant/instant";
 import Error404 from "@/components/shared/error-404";
-import { OwnerIsDisabled } from "@/app/_components/layout/zStatus";
+import { OwnerIsDisabled } from "@/components/legacy/layout/zStatus";
 
 // prisma data
 import { getOwnerbyAuthor } from "@/data/consultant";

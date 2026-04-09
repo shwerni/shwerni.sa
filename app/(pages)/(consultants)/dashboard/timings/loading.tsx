@@ -2,8 +2,8 @@
 import React from "react";
 // components
 import { Skeleton } from "@/components/ui/skeleton";
-import { Btitle } from "@/app/_components/layout/titles";
-import { Section } from "@/app/_components/layout/section";
+import { Btitle } from "@/components/legacy/layout/titles";
+import { Section } from "@/components/legacy/layout/section";
 
 // icons
 import { Clock } from "lucide-react";

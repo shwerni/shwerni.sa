@@ -1,4 +1,4 @@
-// app/(pages)/(site)/coupons/page.tsx
+// React & Next
 import { Suspense } from "react";
 import type { Metadata } from "next";
 
@@ -6,17 +6,20 @@ import type { Metadata } from "next";
 import { getCoupons } from "@/data/coupon";
 
 // components
-
-// nuqs
-import { SearchParams } from "nuqs/server";
-import {
-  createSearchParamsCache,
-  parseAsInteger,
-  parseAsString,
-} from "nuqs/server";
 import Search from "@/components/clients/coupons/search";
 import CouponCard from "@/components/clients/shared/coupons-card";
 import CouponsNavigation from "@/components/clients/coupons/navigation";
+
+// nuqs
+import {
+  parseAsString,
+  parseAsInteger,
+  createSearchParamsCache,
+} from "nuqs/server";
+import { SearchParams } from "nuqs/server";
+
+// constants
+import { mainRoute } from "@/constants/links";
 
 const searchParamsCache = createSearchParamsCache({
   page: parseAsInteger.withDefault(1),
@@ -26,14 +29,81 @@ const searchParamsCache = createSearchParamsCache({
 export const metadata: Metadata = {
   title: "كوبونات الخصم",
   description:
-    "تصفح كوبونات الخصم المتاحة على منصة شاورني واحصل على خصومات حصرية",
+    "تصفح كوبونات الخصم المتاحة على منصة شاورني واحصل على خصومات حصرية على جلسات الاستشارة النفسية والأسرية",
+
+  keywords: [
+    "كوبون خصم شاورني",
+    "كوبونات استشارات",
+    "خصم جلسات نفسية",
+    "كود خصم شاورني",
+    "عروض شاورني",
+    "تخفيضات استشارات",
+    "كوبون حجز استشارة",
+    "شاورني كوبون",
+    "coupon shwerni",
+    "discount code shwerni",
+  ],
+
+  alternates: {
+    canonical: `${mainRoute}coupons`,
+    languages: {
+      "ar-SA": `${mainRoute}coupons`,
+    },
+  },
+
+  openGraph: {
+    type: "website",
+    url: `${mainRoute}coupons`,
+    siteName: "شاورني",
+    locale: "ar_SA",
+    title: "كوبونات الخصم | شاورني",
+    description:
+      "تصفح كوبونات الخصم المتاحة على منصة شاورني واحصل على خصومات حصرية على جلسات الاستشارة النفسية والأسرية",
+    images: [
+      {
+        url: `${mainRoute}layout/shwerni.jpg`,
+        alt: "شاورني - كوبونات الخصم",
+        type: "image/jpeg",
+        width: 1200,
+        height: 630,
+      },
+    ],
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    site: "@shwernisa",
+    creator: "@shwernisa",
+    title: "كوبونات الخصم | شاورني",
+    description:
+      "تصفح كوبونات الخصم المتاحة على منصة شاورني واحصل على خصومات حصرية على جلسات الاستشارة النفسية والأسرية",
+    images: [
+      {
+        url: `${mainRoute}layout/shwerni.jpg`,
+        alt: "شاورني - كوبونات الخصم",
+        width: 1200,
+        height: 630,
+      },
+    ],
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 interface Props {
   searchParams: Promise<SearchParams>;
 }
 
-const CouponsPage = async ({ searchParams }: Props) => {
+const Page = async ({ searchParams }: Props) => {
   const { page, search } = await searchParamsCache.parse(searchParams);
 
   const { coupons, total, pages } = await getCoupons(page, search);
@@ -79,4 +149,4 @@ const CouponsPage = async ({ searchParams }: Props) => {
   );
 };
 
-export default CouponsPage;
+export default Page;

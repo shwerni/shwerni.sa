@@ -1,9 +1,9 @@
 // components
-import { Btitle } from "@/app/_components/layout/titles";
-import { Section } from "@/app/_components/layout/section";
-import ConsultantPopUp from "@/app/_components/consultants/popup/intro";
-import ErrorRefresh from "@/app/_components/layout/zErrors/site/refresh";
-import CoProfileForm from "@/app/_components/consultants/owner/profile/form";
+import { Btitle } from "@/components/legacy/layout/titles";
+import { Section } from "@/components/legacy/layout/section";
+import ConsultantPopUp from "@/components/legacy/consultants/popup/intro";
+import ErrorRefresh from "@/components/legacy/layout/zErrors/site/refresh";
+import CoProfileForm from "@/components/legacy/consultants/owner/profile/form";
 
 // lib
 import { userServer } from "@/lib/auth/server";

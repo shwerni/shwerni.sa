@@ -5,10 +5,10 @@ import Image from "next/image";
 // components
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Section } from "@/app/_components/layout/section";
-import BackButton from "@/app/_components/layout/navigation/backButton";
-import WrongPage from "@/app/_components/layout/zErrors/site/wrongPage";
-import ProgramEnroll from "@/app/_components/consultants/owner/programs/enroll";
+import { Section } from "@/components/legacy/layout/section";
+import BackButton from "@/components/legacy/layout/navigation/backButton";
+import WrongPage from "@/components/legacy/layout/zErrors/site/wrongPage";
+import ProgramEnroll from "@/components/legacy/consultants/owner/programs/enroll";
 
 // prisma data
 import {

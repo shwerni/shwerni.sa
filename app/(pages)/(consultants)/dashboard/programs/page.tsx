@@ -2,9 +2,9 @@
 import React, { Suspense } from "react";
 
 // components
-import { Btitle } from "@/app/_components/layout/titles";
-import { Section } from "@/app/_components/layout/section";
-import ConsultantPrograms from "@/app/_components/consultants/owner/programs";
+import { Btitle } from "@/components/legacy/layout/titles";
+import { Section } from "@/components/legacy/layout/section";
+import ConsultantPrograms from "@/components/legacy/consultants/owner/programs";
 
 // prisma data
 import { getAllPublishedPrograms } from "@/data/program";

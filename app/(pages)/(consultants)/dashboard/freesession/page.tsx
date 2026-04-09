@@ -4,12 +4,12 @@ import React from "react";
 
 // components
 import { Separator } from "@/components/ui/separator";
-import { Btitle } from "@/app/_components/layout/titles";
-import Custom404 from "@/app/_components/layout/notFound";
-import { Section } from "@/app/_components/layout/section";
-import { OwnerIsDisabled } from "@/app/_components/layout/zStatus";
-import OwnerFreeSessions from "@/app/_components/consultants/owner/freeSession";
-import UpcomingFreeSessions from "@/app/_components/consultants/owner/freeSession/sessions";
+import { Btitle } from "@/components/legacy/layout/titles";
+import Custom404 from "@/components/legacy/layout/notFound";
+import { Section } from "@/components/legacy/layout/section";
+import { OwnerIsDisabled } from "@/components/legacy/layout/zStatus";
+import OwnerFreeSessions from "@/components/legacy/consultants/owner/freeSession";
+import UpcomingFreeSessions from "@/components/legacy/consultants/owner/freeSession/sessions";
 
 // utils
 import { userServer } from "@/lib/auth/server";

@@ -2,11 +2,11 @@
 import type { Metadata } from "next";
 
 // components
-import Header from "@/app/_components/consultants/header";
-import RoleError from "@/app/_components/layout/zErrors/auth/role";
-import ConsultantOath from "@/app/_components/consultants/owner/oath";
-import WrongPage from "@/app/_components/layout/zErrors/site/wrongPage";
-import PleaseVerify from "@/app/_components/layout/zErrors/auth/verify";
+import Header from "@/components/legacy/consultants/header";
+import RoleError from "@/components/legacy/layout/zErrors/auth/role";
+import ConsultantOath from "@/components/legacy/consultants/owner/oath";
+import WrongPage from "@/components/legacy/layout/zErrors/site/wrongPage";
+import PleaseVerify from "@/components/legacy/layout/zErrors/auth/verify";
 
 // lib
 import { userServer } from "@/lib/auth/server";

@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getActiveDiscounts } from "@/data/discounts";
-import { Btitle } from "@/app/_components/layout/titles";
-import { Section } from "@/app/_components/layout/section";
+import { Btitle } from "@/components/legacy/layout/titles";
+import { Section } from "@/components/legacy/layout/section";
 import { cacheLife } from "next/cache";
 import { Suspense } from "react";
 import GlobalSkeleton from "@/components/shared/global-skeleton";

@@ -3,11 +3,11 @@
 import React from "react";
 
 // components
-import { Btitle } from "@/app/_components/layout/titles";
-import Custom404 from "@/app/_components/layout/notFound";
-import { Section } from "@/app/_components/layout/section";
-import OwnerTimings from "@/app/_components/consultants/owner/timings";
-import { OwnerIsDisabled } from "@/app/_components/layout/zStatus";
+import { Btitle } from "@/components/legacy/layout/titles";
+import Custom404 from "@/components/legacy/layout/notFound";
+import { Section } from "@/components/legacy/layout/section";
+import OwnerTimings from "@/components/legacy/consultants/owner/timings";
+import { OwnerIsDisabled } from "@/components/legacy/layout/zStatus";
 
 // lib
 import { userServer } from "@/lib/auth/server";

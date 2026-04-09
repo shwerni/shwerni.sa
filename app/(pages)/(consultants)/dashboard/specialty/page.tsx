@@ -1,7 +1,7 @@
 import { userServer } from "@/lib/auth/server";
 import { getConsultantSpecialties } from "@/data/specialty";
-import WrongPage from "@/app/_components/layout/zErrors/site/wrongPage";
-import Specialties from "@/app/_components/consultants/owner/specialty";
+import WrongPage from "@/components/legacy/layout/zErrors/site/wrongPage";
+import Specialties from "@/components/legacy/consultants/owner/specialty";
 
 const Page = async () => {
   const author = await userServer();

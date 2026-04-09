@@ -13,8 +13,8 @@ import { getReviewsForConsultant } from "@/data/review";
 
 // utils
 import { findReview } from "@/utils";
-import { Btitle } from "@/app/_components/layout/titles";
-import { Section } from "@/app/_components/layout/section";
+import { Btitle } from "@/components/legacy/layout/titles";
+import { Section } from "@/components/legacy/layout/section";
 import { dateToArString } from "@/utils/time";
 import { Review } from "@/lib/generated/prisma/client";
 
