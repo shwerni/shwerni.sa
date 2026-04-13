@@ -919,3 +919,60 @@ model Participant {
   @@index([participant])
   @@map("participants")
 }
+
+// scale test
+model Scale {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  subtitle    String?
+  description String?  @db.Text
+  whoNeedsIt  String?  @db.Text
+  howItWorks  String?  @db.Text
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items        ScaleItem[]
+  resultRanges ScaleResultRange[]
+}
+
+model ScaleItem {
+  id        String   @id @default(cuid())
+  scaleId   String
+  scale     Scale    @relation(fields: [scaleId], references: [id], onDelete: Cascade)
+  text      String   @db.Text
+  order     Int
+  createdAt DateTime @default(now())
+
+  options AnswerOption[]
+
+  @@index([scaleId])
+  @@index([scaleId, order])
+}
+
+model AnswerOption {
+  id        String    @id @default(cuid())
+  itemId    String
+  item      ScaleItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  label     String
+  value     Int
+  order     Int
+  createdAt DateTime  @default(now())
+
+  @@index([itemId])
+}
+
+model ScaleResultRange {
+  id          String  @id @default(cuid())
+  scaleId     String
+  scale       Scale   @relation(fields: [scaleId], references: [id], onDelete: Cascade)
+  label       String
+  minScore    Int
+  maxScore    Int
+  description String? @db.Text
+  severity    String?
+
+  @@index([scaleId])
+}
