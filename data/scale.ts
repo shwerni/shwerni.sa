@@ -1,10 +1,15 @@
 import prisma from "@/lib/database/db";
-import { AnswerOption, Scale, ScaleItem, ScaleResultRange } from "@/lib/generated/prisma/client";
+import {
+  ScaleAnswerOption,
+  Scale,
+  ScaleItem,
+  ScaleResultRange,
+} from "@/lib/generated/prisma/client";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
 export type ScaleWithItems = Scale & {
-  items: (ScaleItem & { options: AnswerOption[] })[];
+  items: (ScaleItem & { options: ScaleAnswerOption[] })[];
   resultRanges: ScaleResultRange[];
 };
 
@@ -32,7 +37,9 @@ export async function getAllScales(): Promise<ScaleSummary[]> {
 }
 
 /** Single scale with all items + options + result ranges */
-export async function getScaleBySlug(slug: string): Promise<ScaleWithItems | null> {
+export async function getScaleBySlug(
+  slug: string,
+): Promise<ScaleWithItems | null> {
   return prisma.scale.findUnique({
     where: { slug, isActive: true },
     include: {
@@ -59,12 +66,15 @@ export async function getAllScaleSlugs(): Promise<{ slug: string }[]> {
 
 export function resolveResultRange(
   score: number,
-  ranges: ScaleResultRange[]
+  ranges: ScaleResultRange[],
 ): ScaleResultRange | undefined {
   return ranges.find((r) => score >= r.minScore && score <= r.maxScore);
 }
 
-export function maxPossibleScore(items: ScaleItem[], options: AnswerOption[]): number {
+export function maxPossibleScore(
+  items: ScaleItem[],
+  options: ScaleAnswerOption[],
+): number {
   // Max value per item × number of items
   const maxPerItem = Math.max(...options.map((o) => o.value));
   return items.length * maxPerItem;

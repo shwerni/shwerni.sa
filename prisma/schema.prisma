@@ -389,6 +389,7 @@ model Order {
   type           OrderType   @default(SCHEDULED)
   name           String
   phone          String
+  gender         Gender?
   consultantId   Int
   programId      Int?
   collaboratorId String?
@@ -936,23 +937,26 @@ model Scale {
 
   items        ScaleItem[]
   resultRanges ScaleResultRange[]
+
+  @@map("scales")
 }
 
 model ScaleItem {
-  id        String   @id @default(cuid())
+  id        String         @id @default(cuid())
   scaleId   String
-  scale     Scale    @relation(fields: [scaleId], references: [id], onDelete: Cascade)
-  text      String   @db.Text
+  scale     Scale          @relation(fields: [scaleId], references: [id], onDelete: Cascade)
+  text      String         @db.Text
   order     Int
-  createdAt DateTime @default(now())
-
-  options AnswerOption[]
+  createdAt DateTime       @default(now())
+  reversed  Boolean
+  options   ScaleAnswerOption[]
 
   @@index([scaleId])
   @@index([scaleId, order])
+  @@map("scale_items")
 }
 
-model AnswerOption {
+model ScaleAnswerOption {
   id        String    @id @default(cuid())
   itemId    String
   item      ScaleItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -962,6 +966,7 @@ model AnswerOption {
   createdAt DateTime  @default(now())
 
   @@index([itemId])
+  @@map("scale_answer_options")
 }
 
 model ScaleResultRange {
@@ -975,4 +980,5 @@ model ScaleResultRange {
   severity    String?
 
   @@index([scaleId])
+  @@map("scale_result_ranges")
 }
