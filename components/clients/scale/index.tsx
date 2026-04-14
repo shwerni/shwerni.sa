@@ -3,11 +3,11 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AnswerOption, ScaleItem, ScaleResultRange } from "@/lib/generated/prisma/client";
+import { ScaleAnswerOption, ScaleItem, ScaleResultRange } from "@/lib/generated/prisma/client";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type ItemWithOptions = ScaleItem & { options: AnswerOption[] };
+type ItemWithOptions = ScaleItem & { options: ScaleAnswerOption[] };
 
 interface Props {
   scaleSlug: string;
