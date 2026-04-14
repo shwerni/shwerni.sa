@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/shuffle/consultants",
-      "schedule": "0 * * * *"
+      "schedule": "*/10 * * * *"
     },
     {
       "path": "/api/cron/users/unverified",

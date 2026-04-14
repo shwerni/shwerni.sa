@@ -350,6 +350,11 @@ export const reservationSchema = z
     // ui /ux data
     order: z.string(),
     user: z.string(),
+    gender: z
+      .nativeEnum(Gender, {
+        required_error: "خلل في اختيار الفئة",
+      })
+      .optional(),
     cid: z.number(),
     consultant: z.string(),
     collaboration: z.string().optional().nullable(),

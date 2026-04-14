@@ -8,6 +8,7 @@ import Categories from "@/components/clients/home/categories";
 import Reviews from "@/components/clients/home/reviews/reviews";
 import Statistics from "@/components/clients/home/statistics/statistics";
 import Consultants from "@/components/clients/home/consultant/consultants";
+import MarriageAwareness from "./features/marriage-awareness";
 
 const Home = async () => {
   return (
@@ -20,6 +21,8 @@ const Home = async () => {
       <Categories />
       {/* consultant */}
       <Consultants />
+      {/* marriage awareness */}
+      <MarriageAwareness />
       {/* programs */}
       {/* <Programs /> */}
       {/* steps to use */}

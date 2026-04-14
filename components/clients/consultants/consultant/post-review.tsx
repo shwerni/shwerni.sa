@@ -114,7 +114,6 @@ export default function AddYourReview({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
           {/* name — only if guest */}
-          {!name && !author && (
             <FormField
               control={form.control}
               name="name"
@@ -131,8 +130,6 @@ export default function AddYourReview({
                 </FormItem>
               )}
             />
-          )}
-
           {/* comment */}
           <FormField
             control={form.control}

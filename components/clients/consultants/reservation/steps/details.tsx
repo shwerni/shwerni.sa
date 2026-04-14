@@ -83,7 +83,7 @@ export default function StepDetails({ form, onNext, onBack }: Props) {
                     {...field}
                     id={field.name}
                     aria-invalid={fieldState.invalid}
-                    placeholder="سليمان يوسف"
+                    placeholder="اكتب اسمك"
                   />
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
