@@ -9,6 +9,7 @@ import {
   Gender,
   PaymentMethod,
   PaymentState,
+  Relation,
   ReviewState,
   UserRole,
 } from "@/lib/generated/prisma/enums";
@@ -195,4 +196,26 @@ export const averageRating = (ratings: number[]): number => {
 
   // return average
   return sum / ratings.length;
+};
+
+// relation labels
+export const relationLabel = (relation: Relation) => {
+  switch (relation) {
+    case Relation.SPOUSE:
+      return "زوج / زوجة";
+    case Relation.PARENT:
+      return "أب / أم";
+    case Relation.SIBLING:
+      return "أخ / أخت";
+    case Relation.CHILD:
+      return "ابن / ابنة";
+    case Relation.RELATIVE:
+      return "قريب";
+    case Relation.FRIEND:
+      return "صديق";
+    case Relation.COLLEAGUE:
+      return "زميل عمل";
+    default:
+      return "أخرى";
+  }
 };

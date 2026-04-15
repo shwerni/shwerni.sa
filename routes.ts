@@ -13,6 +13,7 @@ export const publicRoutes = [
   "/information",
   "/freesessions",
   "/instant",
+  "/marriage-awareness",
   "/event/eid",
   // apis
   "/api/hotline",

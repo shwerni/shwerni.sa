@@ -2,7 +2,7 @@ import { getAllScaleSlugs, getScaleBySlug } from "@/data/scale";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { buildScaleMetadata } from "../metadata";
-import ScaleAssessment from "@/components/clients/scale";
+import ScaleAssessment from "@/components/clients/scales";
 
 // ── Static params ────────────────────────────────────────────────────────────
 

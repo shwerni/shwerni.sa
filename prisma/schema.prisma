@@ -410,6 +410,10 @@ model Order {
   consultant     Consultant      @relation(fields: [consultantId], references: [cid])
   collaboration  Collaboration?  @relation(fields: [collaboratorId], references: [id])
   reconciliation Reconciliation?
+  scaleId        String?
+  scaleResult    ScaleResult?
+  scale          Scale?          @relation(fields: [scaleId], references: [id])
+  scaleResponses ScaleResponse[]
 
   @@map("orders")
 }
@@ -921,7 +925,6 @@ model Participant {
   @@map("participants")
 }
 
-// scale test
 model Scale {
   id          String   @id @default(cuid())
   slug        String   @unique
@@ -937,19 +940,22 @@ model Scale {
 
   items        ScaleItem[]
   resultRanges ScaleResultRange[]
+  orders       Order[]
+  scaleResults ScaleResult[]
 
   @@map("scales")
 }
 
 model ScaleItem {
-  id        String         @id @default(cuid())
-  scaleId   String
-  scale     Scale          @relation(fields: [scaleId], references: [id], onDelete: Cascade)
-  text      String         @db.Text
-  order     Int
-  createdAt DateTime       @default(now())
-  reversed  Boolean
-  options   ScaleAnswerOption[]
+  id             String              @id @default(cuid())
+  scaleId        String
+  scale          Scale               @relation(fields: [scaleId], references: [id], onDelete: Cascade)
+  text           String              @db.Text
+  order          Int
+  createdAt      DateTime            @default(now())
+  reversed       Boolean
+  options        ScaleAnswerOption[]
+  scaleResponses ScaleResponse[]
 
   @@index([scaleId])
   @@index([scaleId, order])
@@ -981,4 +987,39 @@ model ScaleResultRange {
 
   @@index([scaleId])
   @@map("scale_result_ranges")
+}
+
+model ScaleResult {
+  id String @id @default(cuid())
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  scaleId String
+  scale   Scale  @relation(fields: [scaleId], references: [id])
+
+  score   Int
+  rangeId String?
+
+  createdAt DateTime @default(now())
+
+  @@map("scale_results")
+}
+
+model ScaleResponse {
+  id String @id @default(cuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  itemId String
+  item   ScaleItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  value Int
+
+  createdAt DateTime @default(now())
+
+  @@unique([orderId, itemId])
+  @@index([orderId])
+  @@map("scale_responses")
 }

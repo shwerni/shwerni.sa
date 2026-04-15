@@ -57,16 +57,12 @@ import { runRecaptcha } from "@/handlers/admin/recaptcha";
 import { getConsultantAvailableTimes } from "@/data/consultant";
 
 // types
-import { Gender, PaymentMethod, Weekday } from "@/lib/generated/prisma/enums";
+import { Gender, Weekday } from "@/lib/generated/prisma/enums";
 import { User } from "next-auth";
-import { Cost, FinanceConfig } from "@/types/data";
+import { FinanceConfig } from "@/types/data";
 import StepPayment from "./payment";
 import { reservationSchema } from "@/schemas";
-
-// ── Schema ────────────────────────────────────────────────────────────────────
 type AwarenessFormType = z.infer<typeof reservationSchema>;
-
-// ── Phase metadata ────────────────────────────────────────────────────────────
 
 const phaseMeta = {
   late: {
@@ -95,8 +91,6 @@ const phaseMeta = {
   },
 } as const;
 
-// ── Props ─────────────────────────────────────────────────────────────────────
-
 interface Props {
   cid: number;
   consultant: string;
@@ -105,8 +99,6 @@ interface Props {
   finance: FinanceConfig;
   user?: User;
 }
-
-// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function AwarenessForm({
   cid,
@@ -258,7 +250,6 @@ export default function AwarenessForm({
           onSubmit={handleSubmit(onSubmit)}
           className="p-5 sm:p-7 space-y-6"
         >
-          {/* ── STEP 0: Gender + DateTime ──────────────────────────────────── */}
           {step === 0 && (
             <div className="space-y-6">
               {/* gender */}
@@ -466,7 +457,6 @@ export default function AwarenessForm({
             </div>
           )}
 
-          {/* ── STEP 1: Personal info + Pay ───────────────────────────────── */}
           {step === 1 && (
             <div className="space-y-6">
               {/* selected summary */}
@@ -582,6 +572,7 @@ export default function AwarenessForm({
               </div>
             </div>
           )}
+
           {step === 2 && <StepPayment form={form} onBack={handleBack} />}
         </form>
       </div>

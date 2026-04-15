@@ -9,7 +9,7 @@ import { checkProgramNextSession } from "@/data/program";
 import { createMeeting } from "@/lib/api/google";
 
 // hooks
-import { reviewReminder } from "@/handlers/clients/reservation/order";
+import { reviewReminder } from "@/handlers/clients/order";
 
 // prisma data
 import { getUserByPhone } from "./user";
