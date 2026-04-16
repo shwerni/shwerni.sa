@@ -29,12 +29,13 @@ const Home = async () => {
       {/* <Programs /> */}
       {/* steps to use */}
       <Steps />
-      {/* statistics */}
-      <Statistics />
+      
       {/* coupons */}
       {/* <Coupons /> */}
       {/* reviews */}
       <Reviews />
+      {/* statistics */}
+      <Statistics />
       {/* benefits */}
       <Benefits />
       {/* join us */}
