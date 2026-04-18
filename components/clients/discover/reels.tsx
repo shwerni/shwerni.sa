@@ -184,7 +184,7 @@ export default function Reels({
 
       {/* reel body */}
       <div className="flex-1 overflow-hidden relative">
-        {/* Add the tutorial here! */}
+        {/* scroll tutorial */}
         <ScrollTutorial />
 
         {/* initial loading */}
