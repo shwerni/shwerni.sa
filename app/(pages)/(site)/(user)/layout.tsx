@@ -30,12 +30,12 @@ export default async function RootLayout({
   // user role
   const role = user?.role;
   // if user not logged in
-  if (!user) return <Error404 />;
+  if (!user || role !== UserRole.USER) return <Error404 />;
   // is user verified
   const isVerified = await getUserById(user?.id ?? "");
   // if not verified
   if (!isVerified?.phoneVerified)
     return <ErrorVerify phone={isVerified?.phone ?? ""} />;
   // if consulant
-  if (role === UserRole.USER) return children;
+  return children;
 }

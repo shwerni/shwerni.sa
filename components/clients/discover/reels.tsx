@@ -126,6 +126,9 @@ export default function Reels({
   // ✅ useCallback — stable reference, safe for effect deps
   const loadMore = React.useCallback(async () => {
     if (loadingMoreRef.current || !hasMoreRef.current) return;
+
+    // ✅ set ref synchronously — blocks re-entry before state catches up
+    loadingMoreRef.current = true;
     setLoadingMore(true);
 
     const { consultants: data, hasMore: more } =
@@ -138,9 +141,15 @@ export default function Reels({
         pageSize,
       );
 
-    setConsultants((prev) => [...prev, ...data]);
+    setConsultants((prev) => {
+      const existingIds = new Set(prev.map((c) => c.cid));
+      const fresh = data.filter((c) => !existingIds.has(c.cid));
+      return [...prev, ...fresh];
+    });
+
     setHasMore(more);
     setSkip((s) => s + pageSize);
+    loadingMoreRef.current = false;
     setLoadingMore(false);
   }, [selectedCategory, selectedDate, selectedGender, selectedTime]);
 
