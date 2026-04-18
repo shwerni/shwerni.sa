@@ -11,7 +11,7 @@ export default function TopBar({
   sub?: string;
 }) {
   return (
-    <div className="shrink-0 bg-white border-b border-gray-100 px-5 pb-1 flex items-center gap-3">
+    <div className="bg-white border-b border-gray-100 px-5 py-1.5 flex items-center gap-3">
       {onBack && (
         <button
           type="button"

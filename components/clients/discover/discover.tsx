@@ -3,7 +3,7 @@
 import React from "react";
 
 // packages
-import { isSameDay } from "date-fns";
+import { format, isSameDay } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -38,6 +38,9 @@ import { runRecaptcha } from "@/handlers/admin/recaptcha";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { phoneNumber } from "@/utils";
 import { Pay } from "@/handlers/admin/order/payment";
+import { Stepper } from "./stepper";
+import TopBar from "./top-bar";
+import { ar } from "date-fns/locale";
 
 type Step = "date" | "time" | "reel" | "info" | "payment";
 
@@ -99,6 +102,13 @@ export default function Discover({ user, finance }: Props) {
         30: 0,
         60: 0,
       },
+      times: {
+        late: [],
+        day: [],
+        noon: [],
+        night: [],
+      },
+      unavailable: [],
       // form basic info
       name: "",
       phone: "",
@@ -170,15 +180,26 @@ export default function Discover({ user, finance }: Props) {
     await Pay(data, payment.total, payment.totalWTax);
   }
 
+  const stepOrder = ["date", "time", "reel", "info", "payment"];
+  const currentStepIndex = stepOrder.indexOf(step);
+
   return (
     <form
       onSubmit={form.handleSubmit(onSubmit)}
-      className="flex flex-col h-full overflow-hidden bg-gray-50"
+      className="flex flex-col h-screen w-full overflow-hidden bg-gray-50"
     >
-      <div className="relative flex-1 overflow-hidden">
+      <div className="shrink-0">
+        <Header />
+      </div>
+      <Stepper
+        steps={["التاريخ", "الوقت", "المستشار", "البيانات", "الدفع"]}
+        step={currentStepIndex}
+      />
+
+      <div className="grid flex-1 overflow-hidden">
         {/* step 1: Date */}
         <StepView active={step === "date"}>
-          <Header />
+          <TopBar title="متى تريد الجلسة؟" sub="اختر أحد المواعيد المتاحة" />
           <DateStep
             days={days}
             iso={iso}
@@ -192,13 +213,19 @@ export default function Discover({ user, finance }: Props) {
 
         {/* step 2: Time */}
         <StepView active={step === "time"}>
-          <Header />
+          <TopBar
+            onBack={() => setStep("date")}
+            title="اختر الوقت"
+            sub={
+              selectedDate
+                ? format(selectedDate, "EEEE، d MMMM yyyy", { locale: ar })
+                : ""
+            }
+          />
           {selectedDate && (
             <TimeStep
-              selectedDate={selectedDate}
               times={flatTimes}
               loading={loadingTimes}
-              onBack={() => setStep("date")}
               onSelect={handleTimeSelect}
             />
           )}
@@ -230,7 +257,6 @@ export default function Discover({ user, finance }: Props) {
 
         {/* step 4: Info / Details */}
         <StepView active={step === "info"}>
-          <Header />
           <div className="flex-1 overflow-y-auto px-5 py-6">
             {selectedDate && selectedTime && (
               <StepDetails
@@ -251,7 +277,6 @@ export default function Discover({ user, finance }: Props) {
 
         {/* step 5: Payment */}
         <StepView active={step === "payment"}>
-          <Header />
           <div className="flex-1 overflow-y-auto px-5 py-6">
             {selectedDate && selectedTime && (
               <StepPayment onBack={() => setStep("info")} form={form} />
@@ -272,7 +297,7 @@ function StepView({
 }) {
   return (
     <div
-      className="absolute inset-0 flex flex-col transition-all duration-300"
+      className="col-start-1 row-start-1 flex flex-col w-full h-full min-h-0 transition-all duration-300"
       style={{
         opacity: active ? 1 : 0,
         transform: active ? "translateX(0)" : "translateX(40px)",

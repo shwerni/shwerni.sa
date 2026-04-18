@@ -1,28 +1,15 @@
 "use client";
-// React & Next
 import React from "react";
-
-// packages
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-
-// components
 import ConsultantCard from "./card";
 import ScrollTutorial from "./tutorial";
-
-// prisma data
 import { getConsultantsAvailableAt } from "@/data/reels";
-
-// prisma types
 import { Categories, Gender } from "@/lib/generated/prisma/enums";
-
-// utils
 import { cn } from "@/lib/utils";
-import { dateToString } from "@/utils/time";
 import { timeOptions } from "@/utils";
-
-// icons
-import { ArrowRight, MessageCircle } from "lucide-react";
+import { dateToString } from "@/utils/time";
+import { ArrowRight, User2 } from "lucide-react";
 
 type ReelConsultant = {
   cid: number;
@@ -40,6 +27,7 @@ type ReelConsultant = {
   review_count: number;
 };
 
+// ✅ stable — defined once at module level, never re-created
 function timeLabel(value: string): string {
   return timeOptions.find((o) => o.value === value)?.label ?? value;
 }
@@ -59,26 +47,61 @@ export default function Reels({
   onBack: () => void;
   onNext: (consultant: ReelConsultant) => void;
 }) {
-  // page size
   const pageSize = 5;
 
-  // states
   const [skip, setSkip] = React.useState(0);
-  const [hasMore, setHasMore] = React.useState(false);
-  const [consultants, setConsultants] = React.useState<ReelConsultant[]>([]);
-  const [initialLoading, setInitialLoading] = React.useState(true);
-  const [loadingMore, setLoadingMore] = React.useState(false);
   const [activeIdx, setActiveIdx] = React.useState(0);
+  const [hasMore, setHasMore] = React.useState(false);
+  const [loadingMore, setLoadingMore] = React.useState(false);
+  const [initialLoading, setInitialLoading] = React.useState(true);
+  const [consultants, setConsultants] = React.useState<ReelConsultant[]>([]);
+  const [cardHeight, setCardHeight] = React.useState(0);
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const sentinelRef = React.useRef<HTMLDivElement>(null);
+  const dotRailRef = React.useRef<HTMLDivElement>(null);
 
-  // Initial load
+  // ✅ keep a ref for skip so loadMore always reads the latest value
+  //    without needing skip in its dependency array
+  const skipRef = React.useRef(0);
+  const hasMoreRef = React.useRef(false);
+  const loadingMoreRef = React.useRef(false);
+
+  // keep refs in sync
+  React.useEffect(() => {
+    skipRef.current = skip;
+    hasMoreRef.current = hasMore;
+    loadingMoreRef.current = loadingMore;
+  }, [skip, hasMore, loadingMore]);
+
+  // dot rail scroll — scoped, never touches card container
+  React.useEffect(() => {
+    const rail = dotRailRef.current;
+    if (!rail) return;
+    const activeDot = rail.children[activeIdx] as HTMLElement;
+    if (!activeDot) return;
+    const railCenter = rail.offsetHeight / 2;
+    const dotCenter = activeDot.offsetTop + activeDot.offsetHeight / 2;
+    rail.scrollTo({ top: dotCenter - railCenter, behavior: "smooth" });
+  }, [activeIdx]);
+
+  // measure scroll container height once (and on resize)
+  React.useEffect(() => {
+    if (!scrollRef.current) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setCardHeight(entry.contentRect.height);
+    });
+    ro.observe(scrollRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  // initial + filter load
   React.useEffect(() => {
     let cancelled = false;
     setInitialLoading(true);
     setConsultants([]);
     setSkip(0);
+    setActiveIdx(0);
 
     getConsultantsAvailableAt(
       dateToString(selectedDate),
@@ -100,26 +123,9 @@ export default function Reels({
     };
   }, [selectedCategory, selectedDate, selectedGender, selectedTime]);
 
-  // intersectionObserver on sentinel (second-to-last card)
-  React.useEffect(() => {
-    if (!sentinelRef.current || !hasMore || loadingMore) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          loadMore();
-        }
-      },
-      { threshold: 0.3 },
-    );
-
-    observer.observe(sentinelRef.current);
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [consultants, hasMore, loadingMore]);
-
-  async function loadMore() {
-    if (loadingMore || !hasMore) return;
+  // ✅ useCallback — stable reference, safe for effect deps
+  const loadMore = React.useCallback(async () => {
+    if (loadingMoreRef.current || !hasMoreRef.current) return;
     setLoadingMore(true);
 
     const { consultants: data, hasMore: more } =
@@ -128,7 +134,7 @@ export default function Reels({
         selectedTime,
         selectedGender,
         selectedCategory,
-        skip,
+        skipRef.current,
         pageSize,
       );
 
@@ -136,9 +142,22 @@ export default function Reels({
     setHasMore(more);
     setSkip((s) => s + pageSize);
     setLoadingMore(false);
-  }
+  }, [selectedCategory, selectedDate, selectedGender, selectedTime]);
 
-  // track active card via scroll
+  // sentinel observer
+  React.useEffect(() => {
+    if (!sentinelRef.current || !hasMore || loadingMore) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) loadMore();
+      },
+      { threshold: 0.3 },
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [consultants, hasMore, loadingMore, loadMore]);
+
+  // ✅ track active card — runs once, reads clientHeight live from the element
   React.useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -148,19 +167,21 @@ export default function Reels({
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
-  }, [initialLoading, consultants.length]);
+    // ✅ no deps: scrollRef is stable, re-registering on every load was wasteful
+  }, []);
 
-  function scrollToCard(i: number) {
+  // ✅ useCallback — stable, dot onClick handlers won't re-create on each render
+  const scrollToCard = React.useCallback((i: number) => {
     scrollRef.current?.scrollTo({
       top: i * (scrollRef.current.clientHeight ?? 0),
       behavior: "smooth",
     });
-  }
+  }, []);
 
   return (
-    <>
+    <div className="flex flex-col h-full w-full overflow-hidden">
       {/* top bar */}
-      <div className="shrink-0 bg-white border-b border-gray-100 px-5 py-3 flex items-center justify-between">
+      <div className="shrink-0 bg-white border-b border-gray-100 px-5 py-3 flex items-center justify-between z-30">
         <button
           type="button"
           onClick={onBack}
@@ -185,11 +206,9 @@ export default function Reels({
       </div>
 
       {/* reel body */}
-      <div className="flex-1 overflow-hidden relative">
-        {/* scroll tutorial */}
+      <div className="flex-1 min-h-0 overflow-hidden relative bg-gray-50">
         <ScrollTutorial />
 
-        {/* initial loading */}
         {initialLoading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
             <div className="w-11 h-11 rounded-full border-4 border-[#094577]/15 border-t-[#094577] animate-spin" />
@@ -197,11 +216,10 @@ export default function Reels({
           </div>
         )}
 
-        {/* empty */}
         {!initialLoading && consultants.length === 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-8 text-center">
             <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center">
-              <MessageCircle className="w-8 h-8 text-red-300" />
+              <User2 className="w-8 h-8 text-red-300" />
             </div>
             <div>
               <p className="font-semibold text-gray-700 text-lg">
@@ -214,45 +232,44 @@ export default function Reels({
           </div>
         )}
 
-        {/* dot rail */}
         {consultants.length > 1 && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 flex flex-col gap-1.5 z-10">
-            {consultants.map((_, i) => (
-              <div
-                key={i}
-                onClick={() => scrollToCard(i)}
-                className={cn(
-                  "w-1.75 rounded-full cursor-pointer transition-all duration-200",
-                  activeIdx === i
-                    ? "h-6 bg-[#094577]"
-                    : "h-1.75 bg-[#094577]/20 hover:bg-[#094577]/35",
-                )}
-              />
-            ))}
-            {hasMore && (
-              <div className="w-1.75 h-1.75 rounded-full bg-[#094577]/10" />
-            )}
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 flex flex-col z-10">
+            <div
+              ref={dotRailRef}
+              className="flex flex-col gap-1.5 max-h-[35vh] overflow-y-auto py-3 items-center [&::-webkit-scrollbar]:hidden"
+              style={{ scrollbarWidth: "none" }}
+            >
+              {consultants.map((_, i) => (
+                <DotItem // ✅ extracted — prevents all dots re-rendering on activeIdx change
+                  key={i}
+                  index={i}
+                  active={activeIdx === i}
+                  onClick={scrollToCard}
+                />
+              ))}
+              {hasMore && (
+                <div className="w-1.75 h-1.75 rounded-full bg-[#094577]/10 shrink-0" />
+              )}
+            </div>
           </div>
         )}
 
-        {/* snap scroll container */}
         {!initialLoading && consultants.length > 0 && (
           <div
             ref={scrollRef}
             className="h-full overflow-y-scroll"
-            style={{
-              scrollSnapType: "y mandatory",
-              scrollBehavior: "smooth",
-              scrollbarWidth: "none",
-            }}
+            style={{ scrollSnapType: "y mandatory", scrollbarWidth: "none" }}
           >
             {consultants.map((c, i) => {
-              // attach sentinel to the second-to-last card
               const isSentinel = i === consultants.length - 2 && hasMore;
               return (
                 <div
                   key={c.cid}
-                  style={{ height: "100%", scrollSnapAlign: "start" }}
+                  style={{
+                    scrollSnapAlign: "start",
+                    height: cardHeight > 0 ? `${cardHeight}px` : "100%",
+                    flexShrink: 0,
+                  }}
                 >
                   <ConsultantCard
                     consultant={c}
@@ -265,20 +282,41 @@ export default function Reels({
                 </div>
               );
             })}
+          </div>
+        )}
 
-            {/* loading more indicator */}
-            {loadingMore && (
-              <div
-                style={{ height: "100%", scrollSnapAlign: "start" }}
-                className="flex flex-col items-center justify-center gap-3"
-              >
-                <div className="w-10 h-10 rounded-full border-4 border-[#094577]/15 border-t-[#094577] animate-spin" />
-                <p className="text-sm text-gray-400">تحميل المزيد…</p>
-              </div>
-            )}
+        {loadingMore && (
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 bg-white/95 backdrop-blur-sm shadow-[0_4px_12px_rgba(0,0,0,0.1)] border border-gray-200 rounded-full px-5 py-2.5 flex items-center gap-3 transition-all">
+            <div className="w-4 h-4 rounded-full border-2 border-[#094577]/20 border-t-[#094577] animate-spin" />
+            <p className="text-xs font-semibold text-[#094577]">
+              تحميل المزيد…
+            </p>
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }
+
+// ✅ memoized dot — only re-renders when its own active state changes
+const DotItem = React.memo(function DotItem({
+  index,
+  active,
+  onClick,
+}: {
+  index: number;
+  active: boolean;
+  onClick: (i: number) => void;
+}) {
+  return (
+    <div
+      onClick={() => onClick(index)}
+      className={cn(
+        "w-1.75 rounded-full cursor-pointer transition-all duration-200 shrink-0",
+        active
+          ? "h-6 bg-[#094577]"
+          : "h-1.75 bg-[#094577]/20 hover:bg-[#094577]/35",
+      )}
+    />
+  );
+});

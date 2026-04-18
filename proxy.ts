@@ -1,8 +1,5 @@
-// auth
-import NextAuth from "next-auth";
-import authConfig from "@/auth.config";
-
-// routes
+import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 import {
   authRoutes,
   publicRoutes,
@@ -10,51 +7,47 @@ import {
   DynamicpublicRoutes,
 } from "@/routes";
 
-// next auth
-const { auth } = NextAuth(authConfig);
-
-export default auth((req) => {
-  // request url
+export async function middleware(req: NextRequest) {
   const { nextUrl } = req;
-  const isLoggedIn = !!req.auth;
+  const pathname = nextUrl.pathname;
 
-  // is auth API routes ex: "/api/auht/providers"
-  const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
-  // is auth routes ex: "/auh/login"
-  const isAuthRoute = authRoutes.includes(nextUrl.pathname);
-  // is Public routes ex: "/" - home
-  const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
-  // is dynamic Public routes ex: "/consultants/1"
-  const isDynamicPublicRoute = DynamicpublicRoutes.some((route) =>
-    nextUrl.pathname.startsWith(route),
-  );
+  // ✅ 1. always allow auth API — no token check needed
+  if (pathname.startsWith(apiAuthPrefix)) return NextResponse.next();
 
-  // deprecated pages redirection
-  if (nextUrl.pathname === "/available")
-    return Response.redirect(new URL("/consultants", nextUrl));
+  // ✅ 2. deprecated redirect — no token check needed
+  if (pathname === "/available")
+    return NextResponse.redirect(new URL("/discover", nextUrl));
 
-  // auth logic
-  // auth API route always allow ex: "/api/auth"
-  if (isApiAuthRoute) return;
+  // ✅ 3. public routes — skip entirely, no token check
+  if (
+    publicRoutes.includes(pathname) ||
+    DynamicpublicRoutes.some((r) => pathname.startsWith(r))
+  )
+    return NextResponse.next();
 
-  // is public route
-  if (isPublicRoute || isDynamicPublicRoute) return;
+  // ✅ 4. only verify token when actually needed (auth + protected routes)
+  const token = await getToken({
+    req,
+    secret: process.env.AUTH_SECRET,
+    // if you use __Secure- prefix in prod:
+    secureCookie: process.env.NODE_ENV === "production",
+  });
 
-  // auth route ex: "/auh/login"
+  const isLoggedIn = !!token;
+  const isAuthRoute = authRoutes.includes(pathname);
+
   if (isAuthRoute) {
-    // if logged redirect to default redirected route after logged in
-    if (isLoggedIn) return Response.redirect(new URL("/", nextUrl));
-    // if not logged in redirect to the auth route normally
-    return;
+    if (isLoggedIn) return NextResponse.redirect(new URL("/", nextUrl));
+    return NextResponse.next();
   }
 
-  // if is not logged or is not public route allow all
-  if (!isLoggedIn) return Response.redirect(new URL("/login", nextUrl));
+  // protected route — not logged in
+  if (!isLoggedIn)
+    return NextResponse.redirect(new URL("/login", nextUrl));
 
-  return;
-});
+  return NextResponse.next();
+}
 
 export const config = {
-  // could be replaced by every private route I want
-  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: ["/((?!.+\\.[\\w]+$|_next|_static|favicon.ico).*)"],
 };
