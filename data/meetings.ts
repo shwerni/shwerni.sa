@@ -6,7 +6,6 @@ import prisma from "@/lib/database/db";
 import { checkProgramNextSession } from "@/data/program";
 
 // lib
-import { createMeeting } from "@/lib/api/google";
 
 // hooks
 import { reviewReminder } from "@/handlers/clients/order";
@@ -20,6 +19,7 @@ import { PaymentState, UserRole } from "@/lib/generated/prisma/client";
 // lib
 import { timeZone } from "@/lib/site/time";
 import { mainRoute } from "@/constants/links";
+import { createGoogleMeeting } from "@/lib/api/google";
 
 // get reservation
 export const participantAttendance = async (
@@ -88,7 +88,7 @@ export const orderMeetingUrl = async (oid: number, session?: number) => {
     if (meeting?.rooms?.url) return meeting.rooms.url;
 
     // create url if not exist
-    const newUrl = await createMeeting();
+    const newUrl = await createGoogleMeeting();
 
     // update order
     await prisma.meeting.update({

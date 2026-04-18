@@ -64,7 +64,7 @@ export const {
       if (!user) return token;
 
       // add phone and role to the token
-      token.phone = user.phone;
+      token.phone = user.phone ?? "";
       token.role = user.role;
 
       return token;

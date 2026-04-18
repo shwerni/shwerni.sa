@@ -7,7 +7,6 @@ import { checkMeetingTimeConflict } from "./order/reserveation";
 
 // lib
 import { timeZone } from "@/lib/site/time";
-import { createMeeting } from "@/lib/api/google";
 import { notificationNewFreeSession } from "@/lib/notifications";
 
 // utils
@@ -20,6 +19,7 @@ import {
 // schema
 import { freeSessionSchema, freeSessionSchemaType } from "@/schemas";
 import { Categories, Gender, Prisma } from "@/lib/generated/prisma/client";
+import { createGoogleMeeting } from "@/lib/api/google";
 
 // get all free sessions
 export const getAllFreeSessions = async () => {
@@ -229,7 +229,7 @@ export const freeSessionMeetingUrl = async (fid: number) => {
     if (meeting?.url) return meeting.url;
 
     // create url if not exist
-    const newUrl = await createMeeting();
+    const newUrl = await createGoogleMeeting();
     // update order
     await prisma.freeSession.update({
       where: { fid },
