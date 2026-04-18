@@ -29,7 +29,6 @@ const Home = async () => {
       {/* <Programs /> */}
       {/* steps to use */}
       <Steps />
-      
       {/* coupons */}
       {/* <Coupons /> */}
       {/* reviews */}
