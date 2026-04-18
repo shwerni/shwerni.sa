@@ -8,6 +8,7 @@ import { ar } from "date-fns/locale";
 
 // components
 import ConsultantCard from "./card";
+import ScrollTutorial from "./tutorial";
 
 // prisma data
 import { getConsultantsAvailableAt } from "@/data/reels";
@@ -22,7 +23,6 @@ import { timeOptions } from "@/utils";
 
 // icons
 import { ArrowRight, MessageCircle } from "lucide-react";
-import ScrollTutorial from "./tutorial";
 
 type ReelConsultant = {
   cid: number;
@@ -50,12 +50,14 @@ export default function Reels({
   selectedGender,
   selectedCategory,
   onBack,
+  onNext,
 }: {
   selectedDate: Date;
   selectedTime: string;
   selectedGender: Gender | null;
   selectedCategory: Categories | null;
   onBack: () => void;
+  onNext: (consultant: ReelConsultant) => void;
 }) {
   // page size
   const pageSize = 5;
@@ -254,6 +256,7 @@ export default function Reels({
                 >
                   <ConsultantCard
                     consultant={c}
+                    onNext={onNext}
                     isActive={activeIdx === i}
                     selectedDate={selectedDate}
                     selectedTime={selectedTime}

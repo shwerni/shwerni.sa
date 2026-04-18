@@ -4,13 +4,12 @@ import React from "react";
 
 // components
 import StarBadge from "../shared/star-badge";
-import { LinkButton } from "@/components/shared/link-button";
+import { Button } from "@/components/ui/button";
 import ConsultantImage from "@/components/clients/shared/consultant-image";
 
 // utils
 import { cn } from "@/lib/utils";
 import { findCategory, timeOptions } from "@/utils";
-import { dateToString } from "@/utils/time";
 
 // prisma types
 import { Categories, Gender } from "@/lib/generated/prisma/enums";
@@ -41,21 +40,17 @@ function timeLabel(value: string): string {
 export default function ConsultantCard({
   consultant,
   isActive,
-  selectedDate,
   selectedTime,
   sentinelRef,
+  onNext,
 }: {
   consultant: ReelConsultant;
   isActive: boolean;
   selectedDate: Date;
   selectedTime: string;
   sentinelRef?: React.RefObject<HTMLDivElement | null>;
+  onNext: (consultant: ReelConsultant) => void;
 }) {
-  const params = new URLSearchParams({
-    date: dateToString(selectedDate),
-    time: selectedTime,
-  });
-
   return (
     <div
       ref={sentinelRef}
@@ -85,7 +80,7 @@ export default function ConsultantCard({
             "radial-gradient(circle,rgba(9,69,119,.09) 0%,transparent 70%)",
         }}
       />
-      
+
       {/* avatar & rate */}
       <div className="flex flex-col items-center gap-5 pt-14">
         {/* avatar */}
@@ -189,14 +184,14 @@ export default function ConsultantCard({
         </div>
 
         {/* CTA */}
-        <LinkButton
-          href={`/consultants/${consultant.cid}?${params.toString()}`}
+        <Button
+          onClick={() => onNext(consultant)}
           variant="primary"
           className="gap-2 w-full py-3.5 rounded-2xltext-sm font-semibold hover:bg-[#0a5291] active:scale-[0.98] transition-all duration-150"
         >
           احجز الآن – {timeLabel(selectedTime)}
           <ChevronLeft className="w-4 h-4" />
-        </LinkButton>
+        </Button>
       </div>
     </div>
   );
