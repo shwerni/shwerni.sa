@@ -7,6 +7,8 @@ import { randomId } from "@/utils";
 
 // prisma types
 import { UserRole } from "@/lib/generated/prisma/enums";
+import { createGoogleMeeting } from "@/lib/api/google";
+import { Meeting } from "@/lib/generated/prisma/client";
 
 // get created room
 export const getRoom = async (roomName: string) => {
@@ -101,3 +103,20 @@ export const getParticipants = async (meetingId: string, role: UserRole) => {
     return null;
   }
 };
+
+export async function createNewMeeting(meeting: Meeting) {
+  try {
+    // room name
+    const roomName = meeting.orderId + meeting.mid;
+
+    // create room
+    const url = await createGoogleMeeting();
+
+    if (!url) return;
+
+    // create room
+    await createRoom(roomName, meeting.mid, meeting.orderId, url);
+  } catch {
+    return null;
+  }
+}

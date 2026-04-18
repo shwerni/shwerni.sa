@@ -171,7 +171,10 @@ export default function Discover({ user, finance }: Props) {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-gray-50">
+    <form
+      onSubmit={form.handleSubmit(onSubmit)}
+      className="flex flex-col h-full overflow-hidden bg-gray-50"
+    >
       <div className="relative flex-1 overflow-hidden">
         {/* step 1: Date */}
         <StepView active={step === "date"}>
@@ -217,6 +220,7 @@ export default function Discover({ user, finance }: Props) {
                 });
 
                 form.setValue("cid", selectedConsultant.cid);
+                form.setValue("consultant", selectedConsultant.name);
 
                 setStep("info");
               }}
@@ -255,7 +259,7 @@ export default function Discover({ user, finance }: Props) {
           </div>
         </StepView>
       </div>
-    </div>
+    </form>
   );
 }
 

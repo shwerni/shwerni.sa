@@ -1,12 +1,15 @@
 "use server";
+// React & Next
+import { redirect } from "next/navigation";
+
 // prima types
 import { Order, PaymentMethod } from "@/lib/generated/prisma/client";
 
 // lib
 import {
-  newOrdertelegram,
   telegram,
   telegramRefund,
+  newOrdertelegram,
 } from "@/lib/api/telegram/telegram";
 
 // utils
@@ -15,21 +18,24 @@ import { dateToString } from "@/utils/time";
 // types
 import { Reservation } from "@/types/admin";
 
-// constants
+// lib
 import { notificationNewOrder } from "@/lib/notifications";
 import { createTabbyCheckout } from "@/lib/api/gatewaies/tabby";
 import { createMoyasarCheckout } from "@/lib/api/gatewaies/moyasar";
+
+// schema
 import {
   InstantFormType,
   ProgramReservationFormType,
   ReservationFormType,
 } from "@/schemas";
-import { reserveConsultant } from "@/data/order/reserveation";
+
+// prisma data
 import { saveACoupon } from "@/data/coupon";
-import { redirect } from "next/navigation";
-import { reserveProgram } from "@/data/order/program";
 import { reserveInstant } from "@/data/online";
-import { create100msRoom } from "@/lib/api/100ms";
+import { createNewMeeting } from "@/data/room";
+import { reserveProgram } from "@/data/order/program";
+import { reserveConsultant } from "@/data/order/reserveation";
 
 // on payment success
 export const onPaymentSuccess = async (order: Reservation) => {
@@ -37,7 +43,7 @@ export const onPaymentSuccess = async (order: Reservation) => {
   if (!order || !order?.meeting?.[0]) return;
 
   // create room
-  await create100msRoom(order.meeting[0]);
+  await createNewMeeting(order.meeting[0]);
   // send order notify
   await notificationNewOrder(order);
   // send telegram notify
