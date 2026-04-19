@@ -363,6 +363,7 @@ export const reservationSchema = z
       30: z.number().positive(),
       60: z.number().positive(),
     }),
+    scale: z.string().nullish().or(z.literal("")),
     times: z
       .object({
         late: z.array(z.string()).optional(),

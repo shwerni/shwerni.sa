@@ -1,4 +1,3 @@
-// components/clients/awareness/product-card.tsx
 import CurrencyLabel from "@/components/clients/shared/currency-label";
 import { Brain, CalendarCheck, ClipboardList } from "lucide-react";
 
@@ -64,11 +63,7 @@ export default function ProductCard() {
 
       <div className="flex flex-col gap-0.5">
         <div className="inline-flex items-center gap-2">
-          <CurrencyLabel
-            amount={304}
-            className="text-xl font-bold"
-            tax={15}
-          />
+          <CurrencyLabel amount={304} className="text-xl font-bold" tax={15} />
           <h6 className="text-gray-500 font-light text-xs">شامل الضريبة</h6>
         </div>
         <span className="text-sm text-gray-400">

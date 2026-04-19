@@ -1,6 +1,9 @@
+// components
 import Stars from "@/components/clients/shared/stars";
-import ConsultantImage from "@/components/clients/shared/consultant-image";
 import { CategoryBadge } from "@/components/shared/categories-badge";
+import ConsultantImage from "@/components/clients/shared/consultant-image";
+
+// prisma data
 import { Consultant } from "@/lib/generated/prisma/client";
 
 interface Props {
@@ -34,9 +37,7 @@ export default function ConsultantMiniCard({ consultant }: Props) {
           </div>
         )}
         {consultant.years > 0 && (
-          <p className="text-xs text-gray-500">
-            {consultant.years} سنوات خبرة
-          </p>
+          <p className="text-xs text-gray-500">{consultant.years} سنوات خبرة</p>
         )}
       </div>
     </div>

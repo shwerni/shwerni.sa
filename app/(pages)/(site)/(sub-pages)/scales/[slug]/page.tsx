@@ -1,17 +1,18 @@
-import { getAllScaleSlugs, getScaleBySlug } from "@/data/scale";
+// React & Next
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { buildScaleMetadata } from "../metadata";
-import ScaleAssessment from "@/components/clients/scales";
 
-// ── Static params ────────────────────────────────────────────────────────────
+// components
+import { buildScaleMetadata } from "../metadata";
+import ScaleAssessment from "@/components/clients/sub-pages/scales/sacle";
+
+// prisma data
+import { getAllScaleSlugs, getScaleBySlug } from "@/data/scale";
 
 export async function generateStaticParams() {
   const slugs = await getAllScaleSlugs();
   return slugs.map((s) => ({ slug: s.slug }));
 }
-
-// ── Metadata ─────────────────────────────────────────────────────────────────
 
 export async function generateMetadata({
   params,
@@ -28,8 +29,6 @@ export async function generateMetadata({
   });
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
-
 export default async function ScalePage({
   params,
 }: {
@@ -39,9 +38,8 @@ export default async function ScalePage({
   if (!scale) notFound();
 
   return (
-    <main className="min-h-screen bg-gray-50" dir="rtl">
+    <main className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 py-10">
-        {/* ── Title card ─────────────────────────────────────────── */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 mb-6">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-gray-900">{scale.title}</h1>
@@ -52,7 +50,6 @@ export default async function ScalePage({
             )}
           </div>
 
-          {/* من يحتاجه */}
           {scale.whoNeedsIt && (
             <div className="mb-5">
               <h2 className="text-base font-semibold text-gray-800 mb-2">
@@ -64,7 +61,6 @@ export default async function ScalePage({
             </div>
           )}
 
-          {/* كيف يتم العمل */}
           {scale.howItWorks && (
             <div className="mb-5">
               <h2 className="text-base font-semibold text-gray-800 mb-2">
@@ -76,7 +72,6 @@ export default async function ScalePage({
             </div>
           )}
 
-          {/* Description */}
           {scale.description && !scale.whoNeedsIt && (
             <p className="text-sm text-gray-600 leading-7">
               {scale.description}
@@ -84,7 +79,6 @@ export default async function ScalePage({
           )}
         </div>
 
-        {/* ── Interactive assessment ──────────────────────────────── */}
         <ScaleAssessment
           scaleSlug={scale.slug}
           scaleTitle={scale.title}

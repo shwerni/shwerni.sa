@@ -58,7 +58,7 @@ const Hero = () => {
         </p>
 
         <div className="flex items-center gap-6 sm:gap-4">
-          <LinkButton variant="primary" href="/consultants">
+          <LinkButton variant="primary" href="/discover">
             <IconLabel label="احجز موعدك الآن" Icon={ArrowLeft} />
           </LinkButton>
           <LinkButton variant="secondary" href="/consultants">

@@ -275,6 +275,11 @@ export const getReservationByPid = async (pid: string) => {
             participants: true,
           },
         },
+        scaleResult: {
+          select: {
+            id: true,
+          },
+        },
         consultant: {
           select: {
             phone: true,

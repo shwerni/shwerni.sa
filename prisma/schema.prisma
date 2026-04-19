@@ -199,6 +199,17 @@ enum OnlineStatus {
   OFFLINE
 }
 
+enum ScaleState {
+  PUBLISHED
+  HOLD
+  HIDDEN
+}
+
+enum ScaleType {
+  PUBLIC
+  PRIVATE
+}
+
 // models
 model User {
   id            String    @id @default(cuid())
@@ -926,18 +937,19 @@ model Participant {
 }
 
 model Scale {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  title       String
-  subtitle    String?
-  description String?  @db.Text
-  whoNeedsIt  String?  @db.Text
-  howItWorks  String?  @db.Text
-  isActive    Boolean  @default(true)
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
+  id           String             @id @default(cuid())
+  slug         String             @unique
+  title        String
+  subtitle     String?
+  description  String?            @db.Text
+  whoNeedsIt   String?            @db.Text
+  howItWorks   String?            @db.Text
+  isActive     Boolean            @default(true)
+  order        Int                @default(0)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  type         ScaleType          @default(PUBLIC)
+  status       ScaleState         @default(HOLD)
   items        ScaleItem[]
   resultRanges ScaleResultRange[]
   orders       Order[]
@@ -992,8 +1004,8 @@ model ScaleResultRange {
 model ScaleResult {
   id String @id @default(cuid())
 
-  orderId String @unique
-  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId Int @unique
+  order   Order  @relation(fields: [orderId], references: [oid], onDelete: Cascade)
 
   scaleId String
   scale   Scale  @relation(fields: [scaleId], references: [id])
@@ -1009,8 +1021,8 @@ model ScaleResult {
 model ScaleResponse {
   id String @id @default(cuid())
 
-  orderId String
-  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId Int
+  order   Order  @relation(fields: [orderId], references: [oid], onDelete: Cascade)
 
   itemId String
   item   ScaleItem @relation(fields: [itemId], references: [id], onDelete: Cascade)

@@ -21,7 +21,7 @@ import { Pay } from "@/handlers/admin/order/payment";
 import { runRecaptcha } from "@/handlers/admin/recaptcha";
 
 // utils
-import { add25Minutes, addNMinutes } from "@/utils/date";
+import { addNMinutes } from "@/utils/date";
 
 // types
 import { User } from "next-auth";

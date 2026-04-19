@@ -7,7 +7,6 @@ import { UseFormReturn } from "react-hook-form";
 // components
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import CouponForm from "@/components/clients/consultants/reservation/forms/coupons";
 import MethodForm from "@/components/clients/consultants/reservation/forms/method";
 import TermsForm from "@/components/clients/consultants/reservation/forms/terms";
 
@@ -19,9 +18,6 @@ import { dateLabel, timeLabel } from "@/utils/date";
 
 // hooks
 import { usePaymentCalculation } from "@/hooks/site/usePaymentCalculation";
-
-// types
-import { Cost } from "@/types/data";
 
 // icons
 import { FaUserDoctor } from "react-icons/fa6";
@@ -43,7 +39,7 @@ export default function StepPayment({ form, onBack }: Props) {
   const consultant = form.getValues("consultant");
 
   // form data
-  const { cost, finance } = form.getValues();
+  const { finance } = form.getValues();
 
   // initial cost
   const initialCost = 304;

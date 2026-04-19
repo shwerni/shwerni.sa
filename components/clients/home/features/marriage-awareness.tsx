@@ -1,7 +1,7 @@
 // components/clients/home/marriage-awareness-card.tsx
 import Link from "next/link";
 import { ArrowLeft, ShieldCheck, Sparkles } from "lucide-react";
-import ConsultantMiniCard from "@/app/(pages)/(site)/(sub-pages)/marriage-awareness/card";
+import ConsultantMiniCard from "@/components/clients/sub-pages/marriage-awareness/card";
 import { getConsultant } from "@/data/consultant";
 
 export default async function MarriageAwarenessSlimCard() {
@@ -58,7 +58,7 @@ export default async function MarriageAwarenessSlimCard() {
 
           {/* CONSULTANT */}
           <div className="w-full sm:w-auto flex justify-center sm:justify-end shrink-0">
-            <div className="sm:min-w-[220px]">
+            <div className="sm:min-w-55">
               <ConsultantMiniCard consultant={consultant} />
             </div>
           </div>

@@ -28,6 +28,8 @@ import {
   ReceiptText,
   Video,
 } from "lucide-react";
+import Redirection from "@/components/clients/shared/redirection";
+import { encryptionDigitsToUrl } from "@/utils/admin/encryption";
 
 // props
 type Props = {
@@ -80,6 +82,12 @@ export default async function Page({ searchParams }: Props) {
   // redirect to failed
   if (!success) redirect(`payment/failed?id=${payment.pid}`);
 
+  // if scale exist
+  const scale =
+    order.scaleId && !order.scaleResult
+      ? `/scales/orders/${encryptionDigitsToUrl(order.oid)}`
+      : null;
+
   return (
     <Section className="my-5 py-5 px-3 max-w-xl mx-auto">
       <div className="space-y-6">
@@ -93,6 +101,9 @@ export default async function Page({ searchParams }: Props) {
             تم تأكيد حجزك ومعالجة الدفع بنجاح
           </p>
         </div>
+
+        {/* scale  */}
+        {scale && <Redirection href={scale} delay={2500} />}
 
         {/* order detials */}
         <OrderTable order={order} />

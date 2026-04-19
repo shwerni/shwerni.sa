@@ -9,12 +9,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import StarBadge from "@/components/clients/shared/star-badge";
 import { CategoryBadge } from "@/components/shared/categories-badge";
 import ConsultantImage from "@/components/clients/shared/consultant-image";
 
 // types
 import { ConsultantItem } from "@/data/consultant";
-import StarBadge from "../../shared/star-badge";
 
 // props
 interface Props {

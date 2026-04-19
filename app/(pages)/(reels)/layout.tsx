@@ -4,17 +4,7 @@ export default function ReelLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 50,
-        background: "#f5f7fa",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-    >
+    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-[#f5f7fa]">
       {children}
     </div>
   );

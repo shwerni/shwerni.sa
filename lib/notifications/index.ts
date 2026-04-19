@@ -107,6 +107,17 @@ export const notificationNewOrder = async (order: Reservation) => {
       return;
     }
 
+    // scale
+    if (order.scaleId) {
+      // scale url
+      const scale = encryptionDigitsToUrl(order.oid);
+
+      await sendWhatsappTemplate(order.phone, "scale_reminder", {
+        text: [order.name, coname, `/scales/orders/${scale}`],
+        url: [scale],
+      });
+    }
+
     // if order instant
     if (order.type === OrderType.INSTANT) {
       // owner
@@ -325,5 +336,22 @@ export const notificationReviewReminder = async (
   return sendWhatsappTemplate(phone, "review_reminder", {
     text: [consultant, "#" + oid, label],
     flow: { flow_token: String(oid) },
+  });
+};
+
+// scale reminder
+export const notificationScaleReminder = async (
+  oid: number,
+  phone: string,
+  name: string,
+  consultant: string,
+) => {
+  // scale url
+  const scale = encryptionDigitsToUrl(oid);
+
+  // send
+  await sendWhatsappTemplate(phone, "scale_result", {
+    text: [consultant, name, oid, `/scales/results/${scale}`],
+    url: [scale],
   });
 };

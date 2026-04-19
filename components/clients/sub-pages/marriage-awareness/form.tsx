@@ -1,29 +1,60 @@
 "use client";
-// components/clients/awareness/awareness-form.tsx
-
+// React & Next
 import React from "react";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+
+// packages
 import { z } from "zod";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
-import { isSameDay, startOfDay, addDays } from "date-fns";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { useForm, Controller, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { isSameDay, startOfDay, addDays } from "date-fns";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 // components
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import PhoneInput from "@/components/shared/phone-input";
-import { toast } from "@/components/shared/toast";
-import DaysButtons from "@/components/clients/consultants/days-buttons";
 import {
   Field,
   FieldLabel,
   FieldError,
   FieldGroup,
 } from "@/components/ui/field";
+import StepPayment from "./payment";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/components/shared/toast";
+import { Separator } from "@/components/ui/separator";
+import PhoneInput from "@/components/shared/phone-input";
 import CurrencyLabel from "@/components/clients/shared/currency-label";
+import DaysButtons from "@/components/clients/consultants/days-buttons";
+
+// utils
+import { cn } from "@/lib/utils";
+import { dateToString } from "@/utils/time";
+import { timeOptions, phoneNumber } from "@/utils";
+import { calculatePayment } from "@/utils/admin/payments";
+import { add25Minutes, dateToWeekDay, getDatesAhead } from "@/utils/date";
+
+// lib
+import { timeZone } from "@/lib/site/time";
+
+// handlers
+import { Pay } from "@/handlers/admin/order/payment";
+import { runRecaptcha } from "@/handlers/admin/recaptcha";
+
+// schema
+import { reservationSchema } from "@/schemas";
+
+// data
+import { getConsultantAvailableTimes } from "@/data/consultant";
+
+// auth
+import { User } from "next-auth";
+
+// types
+import { FinanceConfig } from "@/types/data";
+
+// prisma types
+import { Gender, Weekday } from "@/lib/generated/prisma/enums";
 
 // icons
 import {
@@ -40,28 +71,6 @@ import {
   CircleAlert,
 } from "lucide-react";
 import { CalendarIcon } from "lucide-react";
-
-// utils
-import { cn } from "@/lib/utils";
-import { add25Minutes, dateToWeekDay, getDatesAhead } from "@/utils/date";
-import { dateToString } from "@/utils/time";
-import { timeOptions, phoneNumber } from "@/utils";
-import { timeZone } from "@/lib/site/time";
-import { calculatePayment } from "@/utils/admin/payments";
-
-// handlers
-import { Pay } from "@/handlers/admin/order/payment";
-import { runRecaptcha } from "@/handlers/admin/recaptcha";
-
-// data
-import { getConsultantAvailableTimes } from "@/data/consultant";
-
-// types
-import { Gender, Weekday } from "@/lib/generated/prisma/enums";
-import { User } from "next-auth";
-import { FinanceConfig } from "@/types/data";
-import StepPayment from "./payment";
-import { reservationSchema } from "@/schemas";
 type AwarenessFormType = z.infer<typeof reservationSchema>;
 
 const phaseMeta = {
@@ -143,12 +152,11 @@ export default function AwarenessForm({
     shouldUnregister: false,
   });
 
-  const { control, watch, setValue, trigger, handleSubmit, formState } = form;
-
-  const selectedDate = watch("date");
-  const selectedTime = watch("time");
-  const selectedGender = watch("gender");
-  const times = watch("times");
+  // states
+  const selectedDate = useWatch({ control: form.control, name: "date" });
+  const selectedTime = useWatch({ control: form.control, name: "time" });
+  const selectedGender = useWatch({ control: form.control, name: "gender" });
+  const times = useWatch({ control: form.control, name: "times" });
 
   const timeByValue = React.useMemo(
     () =>
@@ -158,8 +166,6 @@ export default function AwarenessForm({
     [],
   );
 
-  // ── Fetch times ──────────────────────────────────────────────────────────────
-
   async function fetchTimes(date: Date) {
     setLoadingTimes(true);
     const data = await getConsultantAvailableTimes(
@@ -168,11 +174,9 @@ export default function AwarenessForm({
       dateToWeekDay(date),
       isSameDay(date, iso) ? time : undefined,
     );
-    setValue("times", data, { shouldValidate: false });
+    form.setValue("times", data, { shouldValidate: false });
     setLoadingTimes(false);
   }
-
-  // ── Navigation ───────────────────────────────────────────────────────────────
 
   const stepFields: Record<number, (keyof AwarenessFormType)[]> = {
     0: ["gender", "date", "time"],
@@ -181,7 +185,7 @@ export default function AwarenessForm({
   };
 
   async function handleNext() {
-    const isValid = await trigger(stepFields[step]);
+    const isValid = await form.trigger(stepFields[step]);
     if (!isValid) {
       toast.info({ title: steps[step], message: "الرجاء ملء الحقول المطلوبة" });
       return;
@@ -196,9 +200,13 @@ export default function AwarenessForm({
     setStep((s) => s - 1);
   }
 
-  // ── Submit ───────────────────────────────────────────────────────────────────
-
   async function onSubmit(data: AwarenessFormType) {
+    // recaptcha
+    const token = await runRecaptcha(executeRecaptcha);
+
+    // validate
+    if (!token) return;
+
     // fixed 60-min duration for this product
     const payment = calculatePayment({
       baseCost: cost,
@@ -207,6 +215,12 @@ export default function AwarenessForm({
     });
 
     data.phone = phoneNumber(data.phone);
+
+    // scale // later daynmic
+    data.scale =
+      form.getValues("gender") === Gender.MALE
+        ? "735e8e69-fcf7-47ff-a3ec-e8302bb2985f"
+        : "763594ee-8459-4339-a5dc-4184dd1efdfb";
 
     await Pay(
       { ...data, gender: data.gender },
@@ -247,7 +261,7 @@ export default function AwarenessForm({
         </div>
 
         <form
-          onSubmit={handleSubmit(onSubmit)}
+          onSubmit={form.handleSubmit(onSubmit)}
           className="p-5 sm:p-7 space-y-6"
         >
           {step === 0 && (
@@ -259,7 +273,7 @@ export default function AwarenessForm({
                 </p>
                 <Controller
                   name="gender"
-                  control={control}
+                  control={form.control}
                   render={({ field, fieldState }) => (
                     <div className="space-y-2">
                       <div className="flex gap-3">
@@ -320,7 +334,7 @@ export default function AwarenessForm({
                           unavailable.includes(dateToWeekDay(new Date(d)))
                         )
                           return;
-                        setValue("date", new Date(d));
+                        form.setValue("date", new Date(d));
                         // @ts-expect-error reset time
                         setValue("time", undefined);
                         fetchTimes(new Date(d));
@@ -354,7 +368,7 @@ export default function AwarenessForm({
                 </p>
                 <Controller
                   name="time"
-                  control={control}
+                  control={form.control}
                   render={({ field, fieldState }) => (
                     <div className="space-y-2">
                       {loadingTimes ? (
@@ -367,6 +381,7 @@ export default function AwarenessForm({
                           </p>
                         </div>
                       ) : !times ||
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         Object.values(times).every((t: any) => !t?.length) ? (
                         <div className="flex items-start gap-3 p-4 border rounded-lg bg-red-50 text-red-700">
                           <Clock className="w-5 h-5 shrink-0" />
@@ -377,6 +392,7 @@ export default function AwarenessForm({
                       ) : (
                         <div className="space-y-4">
                           {Object.entries(times).map(
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             ([phase, phaseTimes]: [string, any]) => {
                               if (!phaseTimes?.length) return null;
                               const meta =
@@ -483,7 +499,7 @@ export default function AwarenessForm({
                 {/* name */}
                 <Controller
                   name="name"
-                  control={control}
+                  control={form.control}
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
                       <FieldLabel htmlFor={field.name}>
@@ -505,7 +521,7 @@ export default function AwarenessForm({
                 {/* phone */}
                 <Controller
                   name="phone"
-                  control={control}
+                  control={form.control}
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
                       <FieldLabel htmlFor={field.name}>

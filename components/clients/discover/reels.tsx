@@ -176,8 +176,7 @@ export default function Reels({
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
-    // ✅ no deps: scrollRef is stable, re-registering on every load was wasteful
-  }, []);
+  }, [initialLoading]);
 
   // ✅ useCallback — stable, dot onClick handlers won't re-create on each render
   const scrollToCard = React.useCallback((i: number) => {

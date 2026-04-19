@@ -1,8 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { ScaleAnswerOption, ScaleItem, ScaleResultRange } from "@/lib/generated/prisma/client";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
