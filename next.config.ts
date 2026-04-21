@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     optimizeCss: true,
     // viewTransition: true,
     useLightningcss: true,
-    optimizePackageImports: ["lucide-react", "date-fns", "lodash"],
+    // optimizePackageImports: ["lucide-react", "date-fns", "lodash"],
   },
   reactCompiler: true,
   cacheComponents: true,
