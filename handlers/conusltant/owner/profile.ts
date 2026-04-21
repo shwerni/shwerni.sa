@@ -22,6 +22,7 @@ import { getTaxCommission } from "@/data/admin/settings/finance";
 import { aiAcceptOwners } from "@/lib/api/ai/ai";
 import { sendReviewerNotification } from "@/lib/api/telegram/templates/owner";
 import prisma from "@/lib/database/db";
+import { CheckIsBlocked } from "@/data/blocked";
 
 // save or create owner profile
 export const saveConsultant = async (
@@ -46,6 +47,12 @@ export const saveConsultant = async (
 
   // if data validate
   if (validatedFields.data) {
+    // check if blocked
+    const isBLocked = await CheckIsBlocked(phone);
+
+    // vakidate
+    if (isBLocked) return { state: false, message: "هذا الحساب محظور" };
+
     // get commisson and tax
     const taxCommission = await getTaxCommission();
 

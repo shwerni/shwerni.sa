@@ -15,16 +15,23 @@ import { generateVerificationToken } from "@/data/verificationToken";
 
 // prisma types
 import { UserRole } from "@/lib/generated/prisma/client";
+import { CheckIsBlocked } from "@/data/blocked";
 
 export const login = async (
   phone: string,
   password: string,
-  administrator: boolean = false
+  administrator: boolean = false,
 ) => {
   // validate
   if (!phone || !password)
     // will not reach this so no need but keep fo unsuring
     return { state: false, message: "برجاء ادخال جميع البيانات" };
+
+  // check if blocked
+  const isBLocked = await CheckIsBlocked(phone);
+
+  // vakidate
+  if (isBLocked) return { state: false, message: "هذا الحساب محظور" };
 
   // get user by phone
   const userExist = await getUserLogin(phoneNumber(phone), administrator);
@@ -58,8 +65,8 @@ export const login = async (
         userExist?.role === UserRole.ADMIN
           ? "/zadmin"
           : userExist?.role === UserRole.OWNER
-          ? "/dashboard"
-          : "/",
+            ? "/dashboard"
+            : "/",
       // redirectTo: LogInRedirect,
     });
   } catch (error) {

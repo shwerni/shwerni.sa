@@ -11,13 +11,14 @@ import { UserRole } from "@/lib/generated/prisma/enums";
 // database data
 import { createUser, getUserByPhone } from "@/data/user";
 import { generateVerificationToken } from "@/data/verificationToken";
+import { CheckIsBlocked } from "@/data/blocked";
 
 export const register = async (
   role: UserRole,
   username: string,
   email: string | undefined,
   phone: string,
-  password: string
+  password: string,
 ) => {
   // bcrypt hasing
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -27,6 +28,12 @@ export const register = async (
 
   // phone exist
   if (phoneExist) return { state: false, message: "رقم الهاتف موجود بالفعل" };
+
+  // check if blocked
+  const isBLocked = await CheckIsBlocked(phone);
+
+  // vakidate
+  if (isBLocked) return { state: false, message: "هذا الحساب محظور" };
 
   try {
     // if success then push data to database

@@ -36,6 +36,7 @@ import { reserveInstant } from "@/data/online";
 import { createNewMeeting } from "@/data/room";
 import { reserveProgram } from "@/data/order/program";
 import { reserveConsultant } from "@/data/order/reserveation";
+import { CheckIsBlocked } from "@/data/blocked";
 
 // on payment success
 export const onPaymentSuccess = async (order: Reservation) => {
@@ -80,6 +81,12 @@ export async function Pay(
   cost: number,
   total: number,
 ) {
+  // check if blocked
+  const isBLocked = await CheckIsBlocked(data.phone);
+
+  // vakidate
+  if (isBLocked) return { state: false, message: "هذا الحساب محظور" };
+
   // order
   let order;
 

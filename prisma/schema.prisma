@@ -1004,8 +1004,8 @@ model ScaleResultRange {
 model ScaleResult {
   id String @id @default(cuid())
 
-  orderId Int @unique
-  order   Order  @relation(fields: [orderId], references: [oid], onDelete: Cascade)
+  orderId Int   @unique
+  order   Order @relation(fields: [orderId], references: [oid], onDelete: Cascade)
 
   scaleId String
   scale   Scale  @relation(fields: [scaleId], references: [id])
@@ -1022,7 +1022,7 @@ model ScaleResponse {
   id String @id @default(cuid())
 
   orderId Int
-  order   Order  @relation(fields: [orderId], references: [oid], onDelete: Cascade)
+  order   Order @relation(fields: [orderId], references: [oid], onDelete: Cascade)
 
   itemId String
   item   ScaleItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -1034,4 +1034,13 @@ model ScaleResponse {
   @@unique([orderId, itemId])
   @@index([orderId])
   @@map("scale_responses")
+}
+
+model Blocked {
+  id         String   @id @default(cuid())
+  phone      String   @unique
+  reason     String?
+  created_at DateTime @default(now())
+
+  @@map("blocked")
 }

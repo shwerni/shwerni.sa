@@ -15,6 +15,7 @@ import {
   getVerificationTokenByToken,
 } from "@/data/verificationToken";
 import { getUserByPhone } from "@/data/user";
+import { CheckIsBlocked } from "@/data/blocked";
 
 // prisma types
 
@@ -35,6 +36,12 @@ export const checkToken = async (token: string) => {
 
   // if user not exist
   if (!user) return { state: false, message: "لا يوجد حساب بهذا الرقم" };
+
+  // check if blocked
+  const isBLocked = await CheckIsBlocked(tokenExist.phone);
+
+  // vakidate
+  if (isBLocked) return { state: false, message: "هذا الحساب محظور" };
 
   // success without message
   return { phone: user.phone, name: user.name, otp: tokenExist.otp };

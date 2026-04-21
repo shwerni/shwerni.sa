@@ -21,6 +21,7 @@ import {
   getVerificationTokenByPhone,
 } from "@/data/verificationToken";
 import { getUserByPhone } from "@/data/user";
+import { CheckIsBlocked } from "@/data/blocked";
 
 export const forgetpassowrd = async (data: z.infer<typeof PhoneSchema>) => {
   // reset fields { newpassword, confirmphone, phone}
@@ -35,6 +36,12 @@ export const forgetpassowrd = async (data: z.infer<typeof PhoneSchema>) => {
 
   // get user by phone
   const userExist = await getUserByPhone(phone);
+
+  // check if blocked
+  const isBLocked = await CheckIsBlocked(phone);
+
+  // vakidate
+  if (isBLocked) return { state: false, message: "هذا الحساب محظور" };
 
   // if user or phone number exist
   if (!userExist) return { state: false, message: "لا يوجد حساب بهذا الرقم" };
