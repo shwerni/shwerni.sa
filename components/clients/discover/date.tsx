@@ -13,8 +13,8 @@ import { Separator } from "@/components/ui/separator";
 
 // genders
 const genders = [
-  { value: Gender.MALE, label: "ذكر" },
-  { value: Gender.FEMALE, label: "أنثى" },
+  { value: Gender.MALE, label: "مستشار" },
+  { value: Gender.FEMALE, label: "مستشارة" },
 ];
 
 export default function DateStep({
