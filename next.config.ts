@@ -4,17 +4,17 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizeCss: true,
     // viewTransition: true,
-    useLightningcss: true,
+    // useLightningcss: true,
     // optimizePackageImports: ["lucide-react", "date-fns", "lodash"],
   },
-  reactCompiler: true,
+  // reactCompiler: true,
   cacheComponents: true,
   compress: true,
-  compiler: {
-    removeConsole: {
-      exclude: ["error", "warn"],
-    },
-  },
+  // compiler: {
+  //   removeConsole: {
+  //     exclude: ["error", "warn"],
+  //   },
+  // },
   images: {
     qualities: [75, 100],
     formats: ["image/avif", "image/webp"],
