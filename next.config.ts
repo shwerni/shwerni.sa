@@ -4,8 +4,8 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizeCss: true,
     // viewTransition: true,
-    useLightningcss: true,
     // optimizePackageImports: ["lucide-react", "date-fns", "lodash"],
+    useLightningcss: true,
   },
   // reactCompiler: true,
   cacheComponents: true,
