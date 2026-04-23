@@ -163,6 +163,13 @@ export default async function Meetings({
                 <p className="text-xs text-muted-foreground">{label}</p>
               </div>
             )}
+
+            {/* session */}
+            {order.sessionCount > 1 && (
+              <p className="text-gray-500 text-xs font-medium text-center">
+                جلسة رقم {meeting.session}
+              </p>
+            )}
           </CardContent>
         </Card>
 

@@ -11,7 +11,7 @@ import { phoneNumber } from "@/utils";
 
 // prisma data
 import { getUserLogin } from "@/data/user";
-import { generateVerificationToken } from "@/data/verificationToken";
+import { generateVerificationToken } from "@/data/verificationTokens";
 
 // prisma types
 import { UserRole } from "@/lib/generated/prisma/client";

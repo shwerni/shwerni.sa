@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ZToast } from "@/components/legacy/layout/toasts";
 import { cn } from "@/lib/utils";
-import { EnrollOnProgram, toggleProgramState } from "@/data/program";
+import { EnrollOnProgram, toggleProgramState } from "@/data/programs";
 import { ProgramEnrollState } from "@/lib/generated/prisma/enums";
 
 interface ProgramEnrollProps {

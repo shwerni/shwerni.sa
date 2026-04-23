@@ -10,8 +10,8 @@ import ProgramsHeader from "@/components/clients/programs/header";
 import Filter, { FilterContent } from "@/components/clients/programs/filter";
 
 // prisma data
-import { getPrograms } from "@/data/program";
-import { getSpecialties } from "@/data/specialty";
+import { getPrograms } from "@/data/programs";
+import { getSpecialties } from "@/data/specialties";
 
 // constants
 import { mainRoute } from "@/constants/links";

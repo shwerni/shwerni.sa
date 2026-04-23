@@ -22,7 +22,7 @@ import { aboveAndLowerTime, dateTimeToString } from "@/utils/time";
 import { PaymentState } from "@/lib/generated/prisma/enums";
 
 import { ReservationFormType, reservationSchema } from "@/schemas";
-import { createParticipants } from "../room";
+import { createParticipants } from "../rooms";
 import {
   endOfDay,
   endOfMonth,

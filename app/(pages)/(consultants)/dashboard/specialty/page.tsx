@@ -1,5 +1,5 @@
 import { userServer } from "@/lib/auth/server";
-import { getConsultantSpecialties } from "@/data/specialty";
+import { getConsultantSpecialties } from "@/data/specialties";
 import WrongPage from "@/components/legacy/layout/zErrors/site/wrongPage";
 import Specialties from "@/components/legacy/consultants/owner/specialty";
 

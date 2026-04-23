@@ -12,7 +12,7 @@ import { InstantFormType, instantSchema } from "@/schemas";
 import { checkMeetingTimeConflict } from "./order/reserveation";
 import { dateToString } from "@/utils/time";
 import { orderInfoLabel } from "@/utils";
-import { createParticipants } from "./room";
+import { createParticipants } from "./rooms";
 
 const BUSY_SUBQUERY = `
   EXISTS (

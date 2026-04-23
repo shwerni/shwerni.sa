@@ -20,7 +20,7 @@ export const getVerificationTokenByToken = async (token: string) => {
 
 export const getVerificationTokenByPhone = async (phone: string) => {
   try {
-    const result = prisma.verificationToken.findFirst({
+    const result = await prisma.verificationToken.findFirst({
       where: { phone },
     });
     return result;

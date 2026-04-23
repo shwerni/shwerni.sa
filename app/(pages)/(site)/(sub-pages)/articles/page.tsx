@@ -12,7 +12,7 @@ import Filter, { FilterContent } from "@/components/clients/articles/filter";
 
 // prisma data
 import { getArticles } from "@/data/article";
-import { getSpecialties } from "@/data/specialty";
+import { getSpecialties } from "@/data/specialties";
 
 // meta data seo
 export const metadata: Metadata = {

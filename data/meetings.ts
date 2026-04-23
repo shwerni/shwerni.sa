@@ -3,7 +3,7 @@
 import prisma from "@/lib/database/db";
 
 // prisma data
-import { checkProgramNextSession } from "@/data/program";
+import { checkProgramNextSession } from "@/data/programs";
 
 // lib
 

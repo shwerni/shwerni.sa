@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CategoryBadge } from "@/components/legacy/layout/badge/owner";
 import LoadingBtn from "@/components/legacy/layout/loadingBtn";
 
-import { updateConsultantSpecialties } from "@/data/specialty";
+import { updateConsultantSpecialties } from "@/data/specialties";
 
 import { cn } from "@/lib/utils";
 

@@ -9,7 +9,7 @@ import CardSkeleton from "@/components/clients/shared/card-skeleton";
 import ProgramsCarousel from "@/components/clients/home/programs/carousel";
 
 // prisma data
-import { getAllPublishedPrograms } from "@/data/program";
+import { getAllPublishedPrograms } from "@/data/programs";
 
 const Programs = async () => {
   // programs

@@ -8,13 +8,13 @@ const nextConfig: NextConfig = {
     useLightningcss: true,
   },
   // reactCompiler: true,
-  cacheComponents: true,
-  compress: true,
   // compiler: {
   //   removeConsole: {
   //     exclude: ["error", "warn"],
   //   },
   // },
+  cacheComponents: true,
+  compress: true,
   images: {
     qualities: [75, 100],
     formats: ["image/avif", "image/webp"],

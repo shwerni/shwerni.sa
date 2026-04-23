@@ -10,7 +10,7 @@ import { UserRole } from "@/lib/generated/prisma/enums";
 
 // database data
 import { createUser, getUserByPhone } from "@/data/user";
-import { generateVerificationToken } from "@/data/verificationToken";
+import { generateVerificationToken } from "@/data/verificationTokens";
 import { CheckIsBlocked } from "@/data/blocked";
 
 export const register = async (

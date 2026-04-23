@@ -357,6 +357,7 @@ model Consultant {
   DiscountConsultant       DiscountConsultant[]
   specialties              ConsultantSpecialty[]
   articleComments          ArticleComment[]
+  packages                 Package[]
 
   @@index([sort_key])
   @@index([status, statusA, approved, sort_key])
@@ -425,6 +426,8 @@ model Order {
   scaleResult    ScaleResult?
   scale          Scale?          @relation(fields: [scaleId], references: [id])
   scaleResponses ScaleResponse[]
+  package        Package?        @relation(fields: [packageId], references: [id])
+  packageId      String?
 
   @@map("orders")
 }
@@ -1043,4 +1046,23 @@ model Blocked {
   created_at DateTime @default(now())
 
   @@map("blocked")
+}
+
+model Package {
+  id       String  @id @default(cuid())
+  count    Int
+  cost     Int
+  isActive Boolean @default(false)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // @relations
+  consultantId Int
+  consultant   Consultant? @relation(fields: [consultantId], references: [cid], onDelete: Cascade)
+  orders Order[]
+
+  @@unique([consultantId, count])
+  @@index([consultantId])
+  @@map("packages")
 }

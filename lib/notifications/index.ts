@@ -280,7 +280,7 @@ export const notificationProgramSession = async (
 };
 
 // new program session confirm notification
-export const notificationProgramSessionConfirm = async (
+export const notificationSessionConfirm = async (
   oid: number,
   program: string,
   name: string,
@@ -297,13 +297,22 @@ export const notificationProgramSessionConfirm = async (
   // meeting label
   const label = meetingLabel(time, date);
 
+  // program
   return notify(async () => {
     // client
     await sendWhatsappTemplate(
       phone,
       "program_session_confirm",
       {
-        text: [name, program, coname, oid, session, sessions, label],
+        text: [
+          name,
+          program,
+          `المستشار ${coname}`,
+          oid,
+          session,
+          sessions,
+          label,
+        ],
         url: [`${zid}?participant=client&session=${session}`],
       },
       "en_us",
@@ -313,7 +322,7 @@ export const notificationProgramSessionConfirm = async (
       cophone,
       "program_session_confirm",
       {
-        text: [coname, program, name, oid, session, sessions, label],
+        text: [coname, program, `العميل ${name}`, oid, session, sessions, label],
         url: [`${zid}?participant=client&session=${session}`],
       },
       "en_us",

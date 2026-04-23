@@ -10,7 +10,7 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { CategoryBadge } from "@/components/shared/categories-badge";
 
 // data
-import { getProgram } from "@/data/program";
+import { getProgram } from "@/data/programs";
 import { getFinanceConfig } from "@/data/admin/settings/finance";
 
 // utils

@@ -1,7 +1,11 @@
 "use server";
+// prisma db
 import prisma from "@/lib/database/db";
-// lib
 
+// packages
+import z from "zod";
+
+// prisma types
 import {
   Consultant,
   Program,
@@ -10,8 +14,9 @@ import {
   SessionType,
 } from "@/lib/generated/prisma/client";
 import { Prisma } from "@/lib/generated/prisma/client";
+
+// schema
 import { ProgramSchema } from "@/schemas";
-import z from "zod";
 
 // get programs
 type OrderBy = "newest" | "oldest" | "viral";
@@ -322,72 +327,6 @@ export const checkProgramNextSession = async (oid: number, session: number) => {
 
       // return
       return true;
-  } catch {
-    // return
-    return null;
-  }
-};
-
-// session selection
-export const selectProgramSession = async (
-  oid: number,
-  time: string,
-  date: string,
-  session: number,
-) => {
-  try {
-    // get program
-    const order = await prisma.order.findUnique({
-      where: { oid },
-      include: {
-        meeting: true,
-        program: true,
-        consultant: {
-          select: {
-            name: true,
-            phone: true,
-          },
-        },
-      },
-    });
-
-    // validate
-    if (!order) return false;
-
-    // validate
-    if (order.session !== SessionType.MULTIPLE) return false;
-
-    // create meeting
-    const newMeeting = await prisma.meeting.create({
-      data: {
-        orderId: oid,
-        duration: "60",
-        session,
-        time,
-        date,
-      },
-      select: { orderId: true },
-    });
-
-    // validate
-    // if (newMeeting) {
-    //   // notification
-    //   if (order.program)
-    //     // notificationProgramSessionConfirm(
-    //     //   oid,
-    //     //   order.program.title,
-    //     //   order.name,
-    //     //   order.consultant.name,
-    //     //   order.phone,
-    //     //   order.consultant.phone,
-    //     //   session,
-    //     //   order.sessionCount,
-    //     //   time,
-    //     //   date
-    //     // );
-    // }
-    // return
-    return newMeeting;
   } catch {
     // return
     return null;

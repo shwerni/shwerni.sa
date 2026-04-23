@@ -36,6 +36,7 @@ import { mainRoute } from "@/constants/links";
 
 // packages
 import crypto from "crypto";
+import { Participant } from "@/lib/generated/prisma/client";
 
 // create random id
 export const randomId = (length: number = 10) =>
@@ -172,6 +173,15 @@ export const orderInfoLabel = (
 export const meetingUrl = (mid: string, participant: string) => {
   // return
   return `${mainRoute}meetings/${mid}?participant=${participant}`;
+};
+
+// get participant by role
+export const findParticipant = (
+  participants: Participant[],
+  role: UserRole = UserRole.USER,
+) => {
+  // return
+  return participants.find((u) => u.role === role);
 };
 
 // payment method label

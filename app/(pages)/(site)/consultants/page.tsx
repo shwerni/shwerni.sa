@@ -7,17 +7,13 @@ import React, { Suspense } from "react";
 import Consultants from "@/components/clients/consultants/list";
 import Navigation from "@/components/clients/consultants/navigation";
 import CardSkeleton from "@/components/clients/shared/card-skeleton";
-import Appointment from "@/components/clients/consultants/appointment";
 import ConsultantsHeader from "@/components/clients/consultants/header";
 import Search from "@/components/clients/consultants/reservation/search";
 import Filter, { FilterContent } from "@/components/clients/consultants/filter";
 
 // prisma data
-import { getSpecialties } from "@/data/specialty";
+import { getSpecialties } from "@/data/specialties";
 import { getConsultants } from "@/data/consultant";
-
-// lib
-import { timeZone } from "@/lib/site/time";
 
 // constants
 import { mainRoute } from "@/constants/links";
@@ -127,9 +123,6 @@ export default async function Page({ searchParams }: Props) {
   // specialties list
   const specialtiesList = await fetchSpecialties();
 
-  // time & date
-  const { iso } = timeZone();
-
   return (
     <div>
       {/* articles headers */}
@@ -144,7 +137,7 @@ export default async function Page({ searchParams }: Props) {
         {/* content */}
         <div className="col-span-4">
           {/* time picker */}
-          <Appointment initialDate={iso} />
+          {/* <Appointment initialDate={iso} /> */}
 
           {/* search */}
           <div className="md:hidden flex justify-center items-center w-11/12 mx-auto my-3">

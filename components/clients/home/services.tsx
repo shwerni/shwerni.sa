@@ -16,7 +16,7 @@ import { RiDiamondRingFill } from "react-icons/ri";
 export default function Services() {
   const services = [
     {
-      label: "الكوبونات",
+      label: "كوبونات الخصم",
       desc: "كوبونات خصم",
       link: "/coupons",
       icon: TicketPercent,

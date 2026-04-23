@@ -3,7 +3,7 @@
 import { useQueryState } from "nuqs";
 
 // componenets
-import DaysButtons from "./days-buttons";
+import DaysButtons from "../shared/days-buttons";
 import { Separator } from "@/components/ui/separator";
 
 // utils

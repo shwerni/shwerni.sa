@@ -13,7 +13,7 @@ import {
   generateVerificationToken,
   getVerificationTokenByPhone,
   getVerificationTokenByToken,
-} from "@/data/verificationToken";
+} from "@/data/verificationTokens";
 import { getUserByPhone } from "@/data/user";
 import { CheckIsBlocked } from "@/data/blocked";
 

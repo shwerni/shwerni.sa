@@ -14,7 +14,7 @@ import ProgramEnroll from "@/components/legacy/consultants/owner/programs/enroll
 import {
   getConsultantProgramByCid,
   getProgramByPrid,
-} from "@/data/program";
+} from "@/data/programs";
 import { getOwnerbyAuthor } from "@/data/consultant";
 
 // lib

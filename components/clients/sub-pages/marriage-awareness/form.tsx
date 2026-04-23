@@ -25,7 +25,7 @@ import { toast } from "@/components/shared/toast";
 import { Separator } from "@/components/ui/separator";
 import PhoneInput from "@/components/shared/phone-input";
 import CurrencyLabel from "@/components/clients/shared/currency-label";
-import DaysButtons from "@/components/clients/consultants/days-buttons";
+import DaysButtons from "@/components/clients/shared/days-buttons";
 
 // utils
 import { cn } from "@/lib/utils";

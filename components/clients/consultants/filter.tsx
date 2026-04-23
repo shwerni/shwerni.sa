@@ -29,7 +29,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { IconLabel } from "@/components/shared/icon-label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 // utils
 import { cn } from "@/lib/utils";
@@ -61,7 +60,7 @@ const Filter = ({ children }: Props) => {
       </div>
       {/* mobile */}
       <DropdownMenu dir="rtl" onOpenChange={setOpen} open={open}>
-        <DropdownMenuTrigger asChild className="block md:hidden">
+        <DropdownMenuTrigger asChild className="block md:hidden w-fit">
           <div className="py-2 px-3 hover:underlines">
             <IconLabel
               Icon={ChevronLeft}

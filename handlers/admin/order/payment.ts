@@ -33,7 +33,7 @@ import {
 // prisma data
 import { saveACoupon } from "@/data/coupon";
 import { reserveInstant } from "@/data/online";
-import { createNewMeeting } from "@/data/room";
+import { createNewMeeting } from "@/data/rooms";
 import { reserveProgram } from "@/data/order/program";
 import { reserveConsultant } from "@/data/order/reserveation";
 import { CheckIsBlocked } from "@/data/blocked";

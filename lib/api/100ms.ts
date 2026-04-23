@@ -1,5 +1,5 @@
 "use server";
-import { createRoom, getRoom } from "@/data/room";
+import { createRoom, getRoom } from "@/data/rooms";
 // packages
 import * as HMS from "@100mslive/server-sdk";
 import { Meeting } from "../generated/prisma/client";

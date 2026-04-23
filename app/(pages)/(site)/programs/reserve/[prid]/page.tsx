@@ -9,7 +9,7 @@ import ProgramReserve from "@/components/clients/programs/reservation/reserve";
 import SkeletonConsultant from "@/components/clients/consultants/consultant/skeleton";
 
 // prisma data
-import { getProgramInfo } from "@/data/program";
+import { getProgramInfo } from "@/data/programs";
 
 // constants
 import { mainRoute } from "@/constants/links";

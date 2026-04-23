@@ -1,13 +1,17 @@
 // React & Next
 import React from "react";
 
-// components
-import { Button } from "@/components/ui/button";
-import { IconLabel } from "@/components/shared/icon-label";
-
 // pacakges
-import { addDays, format, isSameDay, startOfDay } from "date-fns";
+import { ar } from "date-fns/locale";
 import { Controller, type UseFormReturn } from "react-hook-form";
+import { addDays, format, isSameDay, startOfDay } from "date-fns";
+
+// components../../../shared/days-buttons
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { IconLabel } from "@/components/shared/icon-label";
+import DaysButtons from "@/components/clients/shared/days-buttons";
+import CurrencyLabel from "@/components/clients/shared/currency-label";
 
 // lib
 import { timeZone } from "@/lib/site/time";
@@ -21,6 +25,9 @@ import { ReservationFormType } from "@/schemas";
 
 // prisma data
 import { getConsultantAvailableTimes } from "@/data/consultant";
+
+// types
+import { Cost } from "@/types/data";
 
 // utils
 import { timeOptions } from "@/utils";
@@ -36,11 +43,6 @@ import {
   Sunrise,
   Sunset,
 } from "lucide-react";
-import CurrencyLabel from "@/components/clients/shared/currency-label";
-import { Cost } from "@/types/data";
-import DaysButtons from "../../days-buttons";
-import { Separator } from "@/components/ui/separator";
-import { ar } from "date-fns/locale";
 
 // props
 interface Props {

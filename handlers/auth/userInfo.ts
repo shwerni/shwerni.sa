@@ -11,7 +11,7 @@ import prisma from "@/lib/database/db";
 
 // prisma data
 import { getUserByEmail, getUserById, getUserByPhone } from "@/data/user";
-import { generateVerificationToken } from "@/data/verificationToken";
+import { generateVerificationToken } from "@/data/verificationTokens";
 
 // schema
 import { PasswordSchema, PhoneSchema, UserSchema } from "@/schemas";

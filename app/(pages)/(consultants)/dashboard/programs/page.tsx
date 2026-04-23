@@ -7,7 +7,7 @@ import { Section } from "@/components/legacy/layout/section";
 import ConsultantPrograms from "@/components/legacy/consultants/owner/programs";
 
 // prisma data
-import { getAllPublishedPrograms } from "@/data/program";
+import { getAllPublishedPrograms } from "@/data/programs";
 import { getTaxCommission } from "@/data/admin/settings/finance";
 import GlobalSkeleton from "@/components/shared/global-skeleton";
 import { cacheLife } from "next/cache";

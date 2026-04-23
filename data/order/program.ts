@@ -18,7 +18,7 @@ import {
   ProgramReservationFormType,
   programReservationSchema,
 } from "@/schemas";
-import { createParticipants } from "../room";
+import { createParticipants } from "../rooms";
 
 // reserve a program order (meeting) with owner
 export const reserveProgram = async (

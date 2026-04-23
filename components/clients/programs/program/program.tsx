@@ -2,7 +2,7 @@
 import Error404 from "@/components/shared/error-404";
 
 // prisma data
-import { getProgram } from "@/data/program";
+import { getProgram } from "@/data/programs";
 
 // hooks
 import { userServer } from "@/lib/auth/server";
