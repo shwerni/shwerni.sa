@@ -313,7 +313,7 @@ export const notificationSessionConfirm = async (
           sessions,
           label,
         ],
-        url: [`${zid}?participant=client&session=${session}`],
+        quick_reply: [`meeting-url:${meeting[session].mid}`],
       },
       "en_us",
     );
@@ -331,7 +331,7 @@ export const notificationSessionConfirm = async (
           sessions,
           label,
         ],
-        url: [`${zid}?participant=client&session=${session}`],
+        quick_reply: [`meeting-url:${meeting[session].mid}`],
       },
       "en_us",
     );
