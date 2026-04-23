@@ -5,7 +5,7 @@ import Image from "next/image";
 // components
 import Logo from "../shared/logo";
 
-// constant
+// constants
 import { navLinks, subPages } from "@/constants/menu";
 import { paymentsFooter, contactUs, socialMedia } from "@/constants/data";
 
