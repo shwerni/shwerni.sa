@@ -1,8 +1,7 @@
 // componenets
 import AddYourReview from "../consultant/post-review";
 import Reservation from "@/components/clients/consultants/reservation/form";
-// import DiscountBadge from "@/components/clients/event/discounts/discount-badge";
-import DiscountBadge from "@/components/clients/sub-pages/event/discounts/discount-badge";
+// import DiscountBadge from "@/components/clients/sub-pages/event/discounts/discount-badge";
 
 // prisma data
 import {
@@ -44,21 +43,21 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
   if (!cost || !finance || !info) return;
 
   // discount // dynamic later
-  const isDiscount = info?.DiscountConsultant.some(
-    (i) => i.discountId === 3 && i.status,
-  );
+  // const isDiscount = info?.DiscountConsultant.some(
+  //   (i) => i.discountId === 3 && i.status,
+  // );
 
   // cost
-  if (isDiscount) cost[30] = 77.3;
+  // if (isDiscount) cost[30] = 77.3;
 
   return (
     <div className="max-w-6xl mx-auto py-5 space-y-8">
       {/* discount badge */}
-      {isDiscount && (
+      {/* {isDiscount && (
         <div className="w-fit mx-auto">
           <DiscountBadge />
         </div>
-      )}
+      )} */}
       {/* reservation */}
       <Reservation
         cid={cid}

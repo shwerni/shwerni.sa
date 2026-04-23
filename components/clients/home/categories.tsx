@@ -89,7 +89,7 @@ const Categories = () => {
       {/* title */}
       <Title title="تلائم أهدافك وتحقق نتائجك" subTitle="مجالات واسعة" />
       {/* event card */}
-      <EventCard />
+      {/* <EventCard /> */}
       {/* cards */}
       {/* handle better instead of just hide */}
       <div className="hidden md:block space-y-5">
@@ -206,7 +206,7 @@ const Categories = () => {
           <IconLabel Icon={ArrowLeft} label="ابدأ جلستك الآن" />
         </LinkButton>
 
-        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+        {/* <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
           {trust.map(({ icon: Icon, label }) => (
             <span
               key={label}
@@ -216,7 +216,7 @@ const Categories = () => {
               {label}
             </span>
           ))}
-        </div>
+        </div> */}
       </div>
     </Section>
   );
@@ -279,25 +279,25 @@ function EventCard() {
             }}
           >
             <span>🔥</span>
-            <span>عرض حصري</span>
+            <span>عرض لمدة محدودة</span>
           </div>
 
           {/* headline */}
-          <h3
+          {/* <h3
             className="text-xl sm:text-2xl font-bold leading-snug"
             style={{ color: "#f1f5f9" }}
           >
             عرض شاورني
-          </h3>
+          </h3> */}
 
           {/* body lines */}
           <div className="space-y-1.5">
-            <p
+            {/* <p
               className="text-sm font-medium leading-relaxed"
               style={{ color: "#cbd5e1" }}
             >
               نقدّم خصمًا خاصًا لعملائنا
-            </p>
+            </p> */}
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium" style={{ color: "#e2e8f0" }}>
                 سعر الجلسة{" "}
@@ -327,7 +327,7 @@ function EventCard() {
               border: "none",
             }}
           >
-            إحجز الآن
+            احجز الآن
           </LinkButton>
         </div>
       </div>
