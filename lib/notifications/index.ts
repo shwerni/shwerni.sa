@@ -282,6 +282,7 @@ export const notificationProgramSession = async (
 // new program session confirm notification
 export const notificationSessionConfirm = async (
   oid: number,
+  mid: string,
   program: string,
   name: string,
   coname: string,
@@ -292,8 +293,6 @@ export const notificationSessionConfirm = async (
   time: string,
   date: string,
 ) => {
-  // zid
-  const zid = zencryption(oid);
   // meeting label
   const label = meetingLabel(time, date);
 
@@ -313,7 +312,7 @@ export const notificationSessionConfirm = async (
           sessions,
           label,
         ],
-        quick_reply: [`meeting-url:${meeting[session].mid}`],
+        quick_reply: [`meeting-url:${mid}`],
       },
       "en_us",
     );
@@ -331,7 +330,7 @@ export const notificationSessionConfirm = async (
           sessions,
           label,
         ],
-        quick_reply: [`meeting-url:${meeting[session].mid}`],
+        quick_reply: [`meeting-url:${mid}`],
       },
       "en_us",
     );

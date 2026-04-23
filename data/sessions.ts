@@ -66,8 +66,12 @@ export const selectSession = async (
     });
 
     // validate
+    if (!meeting) return null;
+
+    // validate
     await notificationSessionConfirm(
       oid,
+      meeting?.mid,
       order.program
         ? `برنامج ${order.program.title}`
         : `باكدج ${order.sessionCount} جلسات`,
