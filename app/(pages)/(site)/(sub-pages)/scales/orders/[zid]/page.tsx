@@ -13,7 +13,7 @@ import {
 } from "@/utils/admin/encryption";
 
 // prisma data
-import { getOrderWithScaleByOid } from "@/data/scale";
+import { getOrderWithScaleByOid } from "@/data/scales";
 import { getReservationByOid } from "@/data/order/reserveation";
 
 export const metadata: Metadata = { title: "المقياس" };

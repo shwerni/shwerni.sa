@@ -50,7 +50,6 @@ export default async function Page({ params, searchParams }: Props) {
   // get order
   const order = await getReservationByOid(oid);
 
-  console.log("1");
   // validate
   if (
     !order ||
@@ -59,7 +58,6 @@ export default async function Page({ params, searchParams }: Props) {
     order.payment?.payment !== PaymentState.PAID
   )
     notFound();
-  console.log("2");
 
   // get consultant
   const consultant = await getOwnerByCid(order.consultantId);
@@ -67,7 +65,6 @@ export default async function Page({ params, searchParams }: Props) {
   // validate
   if (!consultant) return notFound();
 
-  console.log("3");
   // validate
   const validate =
     order.meeting[nSession - 2] &&
@@ -76,7 +73,6 @@ export default async function Page({ params, searchParams }: Props) {
 
   // validate
   if (!validate) return notFound();
-  console.log("4");
 
   // return
   return (

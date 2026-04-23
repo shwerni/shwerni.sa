@@ -1,4 +1,4 @@
-import { getAllScales } from "@/data/scale";
+import { getAllScales } from "@/data/scales";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { scalesListMetadata } from "./metadata";

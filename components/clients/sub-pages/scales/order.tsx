@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-import { submitScaleResult } from "@/data/scale";
+import { submitScaleResult } from "@/data/scales";
 import { encryptionDigitsToUrl } from "@/utils/admin/encryption";
 
 interface AnswerOption {

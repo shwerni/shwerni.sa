@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getOrderScaleFullReport } from "@/data/scale";
+import { getOrderScaleFullReport } from "@/data/scales";
 import OrderInfo from "@/components/clients/shared/order-info";
 import { getReservationByOid } from "@/data/order/reserveation";
 import OrderTable from "@/components/clients/shared/order-table";

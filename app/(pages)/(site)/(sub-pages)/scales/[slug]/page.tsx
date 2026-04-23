@@ -7,7 +7,7 @@ import { buildScaleMetadata } from "../metadata";
 import ScaleAssessment from "@/components/clients/sub-pages/scales/sacle";
 
 // prisma data
-import { getAllScaleSlugs, getScaleBySlug } from "@/data/scale";
+import { getAllScaleSlugs, getScaleBySlug } from "@/data/scales";
 
 export async function generateStaticParams() {
   const slugs = await getAllScaleSlugs();

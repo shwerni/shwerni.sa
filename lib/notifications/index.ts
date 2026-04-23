@@ -322,7 +322,15 @@ export const notificationSessionConfirm = async (
       cophone,
       "program_session_confirm",
       {
-        text: [coname, program, `العميل ${name}`, oid, session, sessions, label],
+        text: [
+          coname,
+          program,
+          `العميل ${name}`,
+          oid,
+          session,
+          sessions,
+          label,
+        ],
         url: [`${zid}?participant=client&session=${session}`],
       },
       "en_us",
