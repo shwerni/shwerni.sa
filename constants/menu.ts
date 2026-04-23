@@ -37,6 +37,7 @@ import {
   Newspaper,
   CirclePercent,
   CheckCheck,
+  LibraryBig,
 } from "lucide-react";
 
 // react icons
@@ -205,6 +206,12 @@ export const cdashboard: Link[] = [
     label: "المستحقات",
     link: "/dues",
     icon: CreditCard,
+    status: true,
+  },
+  {
+    label: "الباقات",
+    link: "/packages",
+    icon: LibraryBig,
     status: true,
   },
   {
