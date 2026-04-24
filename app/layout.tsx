@@ -5,7 +5,7 @@ import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Arabic } from "next/font/google";
 
 // google analytic
-import { GoogleAnalytics, GoogleTagManager } from "@next/third-parties/google";
+import { GoogleTagManager } from "@next/third-parties/google";
 
 // top loader
 import NextTopLoader from "nextjs-toploader";
@@ -76,8 +76,6 @@ export default async function RootLayout({
       <head>
         <JsonLd />
       </head>
-      {/* google analytic */}
-      <GoogleAnalytics gaId="G-DRN37CDE50" />
       {/* google ads mangaer */}
       <GoogleTagManager gtmId="GTM-5TGBGMNN" />
       {/* main app */}

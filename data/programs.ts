@@ -17,6 +17,7 @@ import { Prisma } from "@/lib/generated/prisma/client";
 
 // schema
 import { ProgramSchema } from "@/schemas";
+import { notificationPickNewSession } from "@/lib/notifications";
 
 // get programs
 type OrderBy = "newest" | "oldest" | "viral";
@@ -323,10 +324,16 @@ export const checkProgramNextSession = async (oid: number, session: number) => {
 
     if (order.program?.title)
       // send session selection
-      // notificationProgramSession(order, order.program.title, session + 1);
+      notificationPickNewSession(
+        order.phone,
+        order.oid,
+        order.consultant.name,
+        order.program.title,
+        session + 1,
+      );
 
-      // return
-      return true;
+    // return
+    return true;
   } catch {
     // return
     return null;

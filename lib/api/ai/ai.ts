@@ -1,44 +1,55 @@
 "use server";
 import { Gender } from "@/lib/generated/prisma/enums";
 // pacakges
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 
 // ai
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_APIKEY as string);
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 // send request
-export const geminiAi = async (prompt: string) => {
+export const Ai = async (prompt: string) => {
   try {
-    // model
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const response = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+    });
 
-    // result
-    const result = await model.generateContent(prompt);
-
-    // return
-    return result;
-  } catch {
-    // return
+    return response.choices[0]?.message?.content?.trim() || null;
+  } catch (error) {
+    console.error("[OPENAI_API_ERROR]:", error);
     return null;
   }
 };
 
 // comment
 const extractJson = (
-  text: string
+  text: string,
 ): { status: boolean; comment: string | null } | null => {
-  // match json
-  const match = text.match(/\{[\s\S]*\}/);
-  // extract json
-  return match ? JSON.parse(match[0]) : null;
+  try {
+    // match json
+    const match = text.match(/\{[\s\S]*\}/);
+
+    // extract json
+    return match ? JSON.parse(match[0]) : null;
+  } catch {
+    return null;
+  }
 };
 
 // owner
 const oExtractJson = (text: string): { status: boolean } | null => {
-  // match json
-  const match = text.match(/\{[\s\S]*\}/);
-  // extract json
-  return match ? JSON.parse(match[0]) : null;
+  try {
+    // match json
+    const match = text.match(/\{[\s\S]*\}/);
+
+    // extract json
+    return match ? JSON.parse(match[0]) : null;
+  } catch {
+    return null;
+  }
 };
 
 // accpet new ratings
@@ -75,14 +86,11 @@ export const aiAcceptReview = async (comment: string, correction: boolean) => {
     - If negative: { "status": false, "comment": null }`;
 
     // generate
-    const response = await geminiAi(propmt);
+    const result = await Ai(propmt);
 
     // if response exist
-    if (response) {
-      // result
-      const result = response.response.text();
-
-      // json
+    if (result) {
+      // safer parsing
       const json = extractJson(result);
 
       // check json
@@ -92,14 +100,19 @@ export const aiAcceptReview = async (comment: string, correction: boolean) => {
         (typeof json.comment === "string" || json.comment === null)
       ) {
         // json object
-        return { status: json.status, commnet: json?.comment };
+        return { status: json.status, comment: json.comment };
       }
+
+      console.error("[AI_INVALID_REVIEW_JSON]:", result);
     }
+
     // return
-    return { status: false, commnet: null };
-  } catch {
+    return { status: false, comment: null };
+  } catch (error) {
+    console.error("[AI_REVIEW_ERROR]:", error);
+
     // return
-    return { status: false, commnet: null };
+    return { status: false, comment: null };
   }
 };
 
@@ -107,7 +120,7 @@ export const aiAcceptReview = async (comment: string, correction: boolean) => {
 export const aiAcceptOwners = async (
   about: string,
   education: string,
-  experience: string
+  experience: string,
 ) => {
   try {
     // propmt
@@ -135,14 +148,11 @@ export const aiAcceptOwners = async (
     `;
 
     // generate
-    const response = await geminiAi(propmt);
+    const result = await Ai(propmt);
 
     // if response exist
-    if (response) {
-      // result
-      const result = response.response.text();
-
-      // json
+    if (result) {
+      // safer parsing
       const json = oExtractJson(result);
 
       // check json
@@ -150,10 +160,15 @@ export const aiAcceptOwners = async (
         // json object
         return { status: json.status };
       }
+
+      console.error("[AI_INVALID_OWNER_JSON]:", result);
     }
+
     // return
     return { status: false };
-  } catch {
+  } catch (error) {
+    console.error("[AI_OWNER_ERROR]:", error);
+
     // return
     return { status: false };
   }
@@ -164,7 +179,7 @@ export const aiConsultantSummary = async (
   about: string,
   education: string[],
   experience: string[],
-  gender: Gender
+  gender: Gender,
 ) => {
   try {
     const prompt = `
@@ -189,26 +204,27 @@ export const aiConsultantSummary = async (
     { "summary": ["line1", "line2", "line3"] }
     `;
 
-    const response = await geminiAi(prompt);
+    const result = await Ai(prompt);
 
-    if (response) {
-      const result = response.response.text();
-      const match = result.match(/\{[\s\S]*\}/);
-      if (match) {
-        const json = JSON.parse(match[0]);
-        if (
-          json.summary &&
-          Array.isArray(json.summary) &&
-          json.summary.length === 3
-        ) {
-          return json.summary as string[];
-        }
+    if (result) {
+      const json = extractJson(result) as { summary: string[] } | null;
+
+      if (
+        json?.summary &&
+        Array.isArray(json.summary) &&
+        json.summary.length === 3
+      ) {
+        return json.summary;
       }
+
+      console.error("[AI_INVALID_SUMMARY_JSON]:", result);
     }
 
     // fallback if parsing fails
     return ["", "", ""];
-  } catch {
+  } catch (error) {
+    console.error("[AI_SUMMARY_ERROR]:", error);
+
     return ["", "", ""];
   }
 };

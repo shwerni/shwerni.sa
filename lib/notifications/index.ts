@@ -262,18 +262,20 @@ export const notificationNewFreeSession = async (
 };
 
 // program next session selection notification
-export const notificationProgramSession = async (
-  order: Reservation,
+export const notificationPickNewSession = async (
+  phone: string,
+  oid: number,
+  consultant: string,
   program: string,
   session: number,
 ) => {
   // zid
-  const czid = encryptionDigitsToUrl(order.oid);
+  const czid = encryptionDigitsToUrl(oid);
 
   return notify(() =>
     // send to client
-    sendWhatsappTemplate(order.phone, "program_session_select", {
-      text: [session, program, order.consultant.name, order.oid],
+    sendWhatsappTemplate(phone, "program_session_select", {
+      text: [session, program, consultant, oid],
       url: [`${czid}?session=${session}`],
     }),
   );

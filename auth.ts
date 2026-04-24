@@ -57,6 +57,10 @@ export const {
       // if not signed do nothing
       if (!token.sub) return token;
 
+      // validate
+      if (token.phone && token.role) return token;
+      
+      
       // get user by id
       const user = await getUserById(token.sub);
 

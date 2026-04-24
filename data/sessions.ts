@@ -54,6 +54,7 @@ export const selectSession = async (
     // validate
     if (!newMeeting) return null;
 
+    // create new meeting
     await createNewMeeting(newMeeting);
 
     // meeting

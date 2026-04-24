@@ -7,6 +7,7 @@ import Services from "@/components/clients/home/services";
 import Benefits from "@/components/clients/home/benefits";
 import Categories from "@/components/clients/home/categories";
 import Reviews from "@/components/clients/home/reviews/reviews";
+import InstantList from "@/components/clients/home/instant/instant-list";
 import Statistics from "@/components/clients/home/statistics/statistics";
 import Consultants from "@/components/clients/home/consultant/consultants";
 
@@ -19,6 +20,8 @@ const Home = async () => {
       <Hero />
       {/* categories */}
       <Categories />
+      {/* instant list */}
+      <InstantList />
       {/* consultant */}
       <Consultants />
       {/* services */}
@@ -44,3 +47,4 @@ const Home = async () => {
 };
 
 export default Home;
+

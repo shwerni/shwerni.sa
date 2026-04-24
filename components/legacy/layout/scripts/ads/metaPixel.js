@@ -4,9 +4,8 @@ import Script from "next/script";
 // meta pixel
 export default function MetaPixel() {
   return (
-    <>
-      <Script id="meta-pixel" strategy="afterInteractive">
-        {`!function(f,b,e,v,n,t,s)
+    <Script id="meta-pixel" strategy="afterInteractive">
+      {`!function(f,b,e,v,n,t,s)
         {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
         n.callMethod.apply(n,arguments):n.queue.push(arguments)};
         if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
@@ -16,7 +15,6 @@ export default function MetaPixel() {
         'https://connect.facebook.net/en_US/fbevents.js');
         fbq('init', '670871341209888');
         fbq('track', 'PageView');`}
-      </Script>
-    </>
+    </Script>
   );
 }

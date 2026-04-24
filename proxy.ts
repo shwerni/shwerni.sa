@@ -49,5 +49,15 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!.+\\.[\\w]+$|_next|_static|favicon.ico).*)"],
+  matcher: [
+    /*
+     * Match all request paths EXCEPT:
+     * - _next/static  (Next.js static files)
+     * - _next/image   (Next.js image optimization)
+     * - _vercel       (Vercel internals)
+     * - Static file extensions (images, fonts, docs, media)
+     * - favicon & SEO files
+     */
+    "/((?!_next/static|_next/image|_vercel|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|otf|eot|mp4|mp3|pdf|css|js)$).*)",
+  ],
 };

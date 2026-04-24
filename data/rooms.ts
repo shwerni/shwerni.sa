@@ -43,6 +43,8 @@ export const createRoom = async (
       },
     });
 
+    await createParticipants(meetingId);
+
     return room;
   } catch {
     return null;
@@ -55,7 +57,7 @@ export const createParticipants = async (mid: string) => {
     // get order
     const meeting = await prisma.meeting.findUnique({
       where: { mid },
-      select: { mid: true, orderId: true, session: true },
+      select: { mid: true },
     });
 
     // validate

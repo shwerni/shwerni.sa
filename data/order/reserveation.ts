@@ -3,6 +3,13 @@
 import prisma from "@/lib/database/db";
 
 // packages
+import {
+  endOfDay,
+  endOfMonth,
+  parse,
+  startOfDay,
+  startOfMonth,
+} from "date-fns";
 
 // prisma data
 import { addWalletCredit, payPartiallyByWallet } from "@/data/wallet";
@@ -22,14 +29,6 @@ import { aboveAndLowerTime, dateTimeToString } from "@/utils/time";
 import { PaymentState } from "@/lib/generated/prisma/enums";
 
 import { ReservationFormType, reservationSchema } from "@/schemas";
-import { createParticipants } from "../rooms";
-import {
-  endOfDay,
-  endOfMonth,
-  parse,
-  startOfDay,
-  startOfMonth,
-} from "date-fns";
 
 // reserve a new order (meeting) with owner
 export const reserveConsultant = async (
@@ -154,9 +153,6 @@ export const reserveConsultant = async (
         },
       },
     });
-
-    // create participants
-    await createParticipants(order.meeting[0].mid);
 
     // return
     return order;

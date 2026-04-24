@@ -158,7 +158,7 @@ export const acceptNewreview = async (
     // if ratea above 4 and not comment exist before and there a paid order
     if (rate >= 4 && commentExist < servicesExist && servicesExist !== 0) {
       // ai model
-      const accepted: { status: boolean; commnet: string | null } =
+      const accepted: { status: boolean; comment: string | null } =
         await aiAcceptReview(comment, true);
 
       // post new rate
@@ -167,7 +167,7 @@ export const acceptNewreview = async (
           consultantId: cid,
           author,
           name,
-          comment: accepted.commnet ? accepted.commnet : comment,
+          comment: accepted.comment ? accepted.comment : comment,
           rate,
           verified: accepted.status ? true : false,
           status: accepted.status ? ReviewState.PUBLISHED : ReviewState.HOLD,
@@ -258,7 +258,7 @@ export const acceptWhatsappReview = async (
     // if rate above 4
     if (rate >= 4) {
       // ai model
-      const accepted: { status: boolean; commnet: string | null } =
+      const accepted: { status: boolean; comment: string | null } =
         await aiAcceptReview(comment, true);
 
       // post new rate
@@ -267,7 +267,7 @@ export const acceptWhatsappReview = async (
           consultantId: consultant.consultantId,
           author: user?.id || "temp",
           name,
-          comment: accepted.commnet ? accepted.commnet : comment,
+          comment: accepted.comment ? accepted.comment : comment,
           rate,
           verified: accepted.status ? true : false,
           status: accepted.status ? ReviewState.PUBLISHED : ReviewState.HOLD,

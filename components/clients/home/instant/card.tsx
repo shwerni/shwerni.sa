@@ -1,8 +1,8 @@
 "use client";
+// React & Next
 import React from "react";
 
 // components
-import { Button } from "@/components/ui/button";
 import Stars from "@/components/clients/shared/stars";
 import { CategoryBadge } from "@/components/shared/categories-badge";
 import ConsultantImage from "@/components/clients/shared/consultant-image";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 // prisma types
 import { Categories, Gender } from "@/lib/generated/prisma/enums";
+import { LinkButton } from "@/components/shared/link-button";
 
 // types
 type OnlineConsultant = {
@@ -39,16 +40,14 @@ export default function OnlineConsultantCard({
 }: Props) {
   return (
     <div
-      dir="rtl"
       className={cn(
         "bg-white rounded-2xl border border-blue-100 shadow-sm px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4",
-        className
+        className,
       )}
       {...props}
     >
       {/* Consultant Info */}
       <div className="flex items-center gap-4">
-        
         {/* Image Wrapper with Online Indicator */}
         <div className="relative shrink-0">
           <ConsultantImage
@@ -65,31 +64,26 @@ export default function OnlineConsultantCard({
           </span>
         </div>
 
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1.5">
           <h2 className="text-[#094577] font-bold text-lg leading-tight">
             {consultant.name}
           </h2>
-          <CategoryBadge category={consultant.category} size="xs" />
-          
-          {/* Stars */}
-          {consultant.rate > 0 && (
-            <div className="flex items-center gap-2 mt-0.5">
-              <Stars rate={consultant.rate} width={70} />
-              <span className="text-sm text-gray-700 font-semibold">
-                {consultant.rate.toFixed(1)}
-              </span>
-            </div>
-          )}
+
+          <div className="flex items-center gap-2">
+            <CategoryBadge category={consultant.category} size="xs" />
+
+            {consultant.rate > 0 && <Stars rate={consultant.rate} />}
+          </div>
         </div>
       </div>
 
       {/* Action Button */}
-      <Button
+      <LinkButton
+        href="/instant"
         onClick={onBook}
-        className="bg-theme hover:opacity-90 text-white shrink-0 sm:w-auto w-full"
-      >
+        variant="primary">
         احجز الآن
-      </Button>
+      </LinkButton>
     </div>
   );
 }

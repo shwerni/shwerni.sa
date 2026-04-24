@@ -3,6 +3,9 @@ import { Metadata } from "next";
 import { cacheLife } from "next/cache";
 import React, { Suspense } from "react";
 
+// nuqs server
+import { searchParamsCache } from "@/lib/nuqs/consultants";
+
 // components
 import Consultants from "@/components/clients/consultants/list";
 import Navigation from "@/components/clients/consultants/navigation";
@@ -76,49 +79,30 @@ export const metadata: Metadata = {
   icons: `${mainRoute}favicon.ico`,
 };
 
-// type
-// filter data
+// filter data type — trimmed to active filters only
 type FilterParams = {
-  search?: string;
-  page?: string;
-  orderby?: "newest" | "oldest" | "viral" | "random";
-  specialties?: string;
-  categories?: string;
-  gender?: string;
-  rate?: string;
-  minCost?: string;
-  maxCost?: string;
-  time?: string;
-  date?: string;
+  search: string;
+  page: string;
+  gender: string[];
+  categories: string[];
 };
 
 // interface
 interface Props {
-  searchParams: Promise<FilterParams>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-const fetchSpecialties = async () => {
-  // specialties list
+async function fetchSpecialties() {
   "use cache";
+  // specialties list
   cacheLife("weeks");
   return await getSpecialties();
-};
+}
 
 export default async function Page({ searchParams }: Props) {
-  // params
-  const {
-    search = "",
-    page = "1",
-    orderby = "random",
-    // specialties = "", // later
-    categories,
-    gender,
-    rate,
-    minCost,
-    maxCost,
-    date,
-    time,
-  } = await searchParams;
+  // parse all params via nuqs — type-safe, no manual split()
+  const { search, page, gender, categories } =
+    await searchParamsCache.parse(searchParams);
 
   // specialties list
   const specialtiesList = await fetchSpecialties();
@@ -136,17 +120,14 @@ export default async function Page({ searchParams }: Props) {
 
         {/* content */}
         <div className="col-span-4">
-          {/* time picker */}
-          {/* <Appointment initialDate={iso} /> */}
-
-          {/* search */}
+          {/* search — mobile only */}
           <div className="md:hidden flex justify-center items-center w-11/12 mx-auto my-3">
             <Search />
           </div>
 
           {/* consultant list */}
           <Suspense
-            key={`${search}-${page}-${gender}-${rate}-${date}-${time}-${maxCost}-${minCost}`}
+            key={`${search}-${page}-${gender.join(",")}-${categories.join(",")}`}
             fallback={
               <CardSkeleton
                 count={9}
@@ -158,15 +139,8 @@ export default async function Page({ searchParams }: Props) {
             <ConsultantsList
               search={search}
               page={page}
-              // specialties={specialties}
-              orderby={orderby}
-              categories={categories}
               gender={gender}
-              rate={rate}
-              minCost={minCost}
-              maxCost={maxCost}
-              date={date}
-              time={time}
+              categories={categories}
             />
           </Suspense>
         </div>
@@ -178,33 +152,20 @@ export default async function Page({ searchParams }: Props) {
 const ConsultantsList = async ({
   search,
   page,
-  orderby,
-  categories,
   gender,
-  rate,
-  minCost,
-  maxCost,
-  time,
-  date,
-  // specialties,
+  categories,
 }: FilterParams): Promise<React.JSX.Element> => {
   // safe page
   const n = Number(page);
   const safe = n > 0 && Number.isInteger(n) ? n : 1;
 
-  // get articles
+  // get consultants — arrays passed directly, no split() needed
   const data = await getConsultants(
     safe,
     search,
-    orderby,
-    categories?.split(","),
-    gender?.split(","),
-    rate,
-    minCost,
-    maxCost,
-    date,
-    time,
-    // specialties?.split(",")
+    "random",
+    categories,
+    gender,
   );
 
   return (

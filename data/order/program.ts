@@ -18,7 +18,6 @@ import {
   ProgramReservationFormType,
   programReservationSchema,
 } from "@/schemas";
-import { createParticipants } from "../rooms";
 
 // reserve a program order (meeting) with owner
 export const reserveProgram = async (
@@ -88,9 +87,6 @@ export const reserveProgram = async (
         },
       },
     });
-
-    // create participants
-    await createParticipants(order.meeting[0].id);
 
     // return
     return order;

@@ -12,7 +12,6 @@ import { InstantFormType, instantSchema } from "@/schemas";
 import { checkMeetingTimeConflict } from "./order/reserveation";
 import { dateToString } from "@/utils/time";
 import { orderInfoLabel } from "@/utils";
-import { createParticipants } from "./rooms";
 
 const BUSY_SUBQUERY = `
   EXISTS (
@@ -252,9 +251,6 @@ export const reserveInstant = async (
         },
       },
     });
-
-    // create participants
-    await createParticipants(order.meeting[0].mid);
 
     // deactivate online state
     await broadcastConsultantBusy(order.consultant.userId);

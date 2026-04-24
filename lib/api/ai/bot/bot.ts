@@ -1,5 +1,5 @@
-import { geminiAi } from "../ai";
 import { sendWhatsappText } from "@/lib/api/whatsapp";
+import { Ai } from "../ai";
 
 // constants
 const support = "https://wa.me/966554117879";
@@ -123,7 +123,7 @@ export const aiBot = async (message: string, chatContext: string) => {
     `;
 
     // call AI model
-    const response = await geminiAi(prompt);
+    const response = await Ai(prompt);
 
     // validate
     if (!response)
@@ -133,7 +133,7 @@ export const aiBot = async (message: string, chatContext: string) => {
       };
 
     // response parsing
-    const raw = response.response.text();
+    const raw = response;
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
 
     // if json extracted
