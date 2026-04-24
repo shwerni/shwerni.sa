@@ -197,14 +197,14 @@ const Categories = () => {
             ))}
           </div>
         </div>
-        <LinkButton
+        {/* <LinkButton
           size="lg"
           variant="primary"
           className="px-10 rounded-xl"
           href="/instant"
         >
-          <IconLabel Icon={ArrowLeft} label="ابدأ جلستك الآن" />
-        </LinkButton>
+          <IconLabel Icon={ArrowLeft} label="المستشارون المتاحون الآن" />
+        </LinkButton> */}
 
         {/* <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
           {trust.map(({ icon: Icon, label }) => (

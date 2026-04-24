@@ -4,6 +4,7 @@ import React from "react";
 
 // components
 import Stars from "@/components/clients/shared/stars";
+import { LinkButton } from "@/components/shared/link-button";
 import { CategoryBadge } from "@/components/shared/categories-badge";
 import ConsultantImage from "@/components/clients/shared/consultant-image";
 
@@ -12,7 +13,6 @@ import { cn } from "@/lib/utils";
 
 // prisma types
 import { Categories, Gender } from "@/lib/generated/prisma/enums";
-import { LinkButton } from "@/components/shared/link-button";
 
 // types
 type OnlineConsultant = {

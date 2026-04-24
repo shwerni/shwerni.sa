@@ -2,7 +2,6 @@
 import Hero from "@/components/clients/home/hero";
 import Join from "@/components/clients/home/join";
 import Steps from "@/components/clients/home/steps";
-import Sticky from "@/components/clients/home/instant";
 import Services from "@/components/clients/home/services";
 import Benefits from "@/components/clients/home/benefits";
 import Categories from "@/components/clients/home/categories";
@@ -14,8 +13,6 @@ import Consultants from "@/components/clients/home/consultant/consultants";
 const Home = async () => {
   return (
     <>
-      {/* instant sticky */}
-      <Sticky />
       {/* hero */}
       <Hero />
       {/* categories */}
@@ -47,4 +44,3 @@ const Home = async () => {
 };
 
 export default Home;
-

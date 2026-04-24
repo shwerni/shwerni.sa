@@ -12,7 +12,7 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
-import ConsultantCard from "../../card";
+import IntantLists from "../../lists";
 import LoadingAnimation from "../../skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -134,17 +134,7 @@ export default function ReservationInstant({ form, onNext }: Props) {
       {/* reservation confirm */}
       <div className="space-y-2">
         {consultants?.length !== 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mx-3 py-5">
-            {consultants.map((consultant, index: number) => (
-              <div key={index}>
-                <ConsultantCard
-                  consultant={consultant}
-                  onNext={onNext}
-                  form={form}
-                />
-              </div>
-            ))}
-          </div>
+          <IntantLists consultants={consultants} onNext={onNext} form={form} />
         ) : (
           <div className="flex flex-col items-center justify-center gap-3 max-w-96 min-h-60 mx-auto">
             <h3 className="text-lg text-center text-gray-700 font-semibold">

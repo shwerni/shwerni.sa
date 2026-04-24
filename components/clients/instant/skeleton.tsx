@@ -1,6 +1,3 @@
-// React & Next
-import React from "react";
-
 // components
 import { Skeleton } from "@/components/ui/skeleton";
 
