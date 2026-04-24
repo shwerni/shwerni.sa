@@ -39,7 +39,7 @@ export default function InstantList() {
 
   return (
     <Section className="w-full max-w-5xl mx-auto px-4 py-5 space-y-6">
-      <Title subTitle="" title="المستشارين المتاحين الآن" />
+      <Title subTitle="" title="المستشارون المتاحون الآن" />
 
       {/* Conditional Rendering: Show Loading OR Content */}
       {!consultants || consultants.length === 0 ? (
