@@ -28,7 +28,7 @@ export const createRoom = async (
   roomId: string,
   meetingId: string,
   orderId: number,
-  url: string | null,
+  url: string,
   session: boolean = false,
 ) => {
   try {
@@ -43,6 +43,7 @@ export const createRoom = async (
       },
     });
 
+    // participants
     await createParticipants(meetingId);
 
     return room;
@@ -64,20 +65,19 @@ export const createParticipants = async (mid: string) => {
     if (!meeting) return;
 
     // participant
-    await prisma.participant.create({
-      data: {
-        participant: randomId(),
-        role: UserRole.USER,
-        meetingId: meeting.mid,
-      },
-    });
-
-    await prisma.participant.create({
-      data: {
-        participant: randomId(),
-        role: UserRole.OWNER,
-        meetingId: meeting.mid,
-      },
+    await prisma.participant.createMany({
+      data: [
+        {
+          participant: randomId(),
+          role: UserRole.USER,
+          meetingId: meeting.mid,
+        },
+        {
+          participant: randomId(),
+          role: UserRole.OWNER,
+          meetingId: meeting.mid,
+        },
+      ],
     });
 
     return true;
@@ -114,10 +114,26 @@ export async function createNewMeeting(meeting: Meeting) {
     // create room
     const url = await createGoogleMeeting();
 
+    // validate
     if (!url) return;
 
     // create room
-    await createRoom(roomName, meeting.mid, meeting.orderId, url);
+    const room = await createRoom(roomName, meeting.mid, meeting.orderId, url);
+
+    // validate
+    if (!room) return null;
+
+    // get meeting
+    const newMeeting = await prisma.meeting.findUnique({
+      where: { mid: meeting.mid },
+      include: {
+        participants: true,
+        rooms: true,
+      },
+    });
+
+    // return
+    return newMeeting;
   } catch {
     return null;
   }

@@ -8,6 +8,7 @@ import { Order, PaymentMethod } from "@/lib/generated/prisma/client";
 // lib
 import {
   telegram,
+  telegramAdmin,
   telegramRefund,
   newOrdertelegram,
 } from "@/lib/api/telegram/telegram";
@@ -26,29 +27,40 @@ import { createMoyasarCheckout } from "@/lib/api/gatewaies/moyasar";
 // schema
 import {
   InstantFormType,
-  ProgramReservationFormType,
   ReservationFormType,
+  ProgramReservationFormType,
 } from "@/schemas";
 
 // prisma data
 import { saveACoupon } from "@/data/coupon";
 import { reserveInstant } from "@/data/online";
+import { CheckIsBlocked } from "@/data/blocked";
 import { createNewMeeting } from "@/data/rooms";
 import { reserveProgram } from "@/data/order/program";
 import { reserveConsultant } from "@/data/order/reserveation";
-import { CheckIsBlocked } from "@/data/blocked";
 
 // on payment success
 export const onPaymentSuccess = async (order: Reservation) => {
-  // validate
-  if (!order || !order?.meeting?.[0]) return;
-
-  // create room
-  await createNewMeeting(order.meeting[0]);
-  // send order notify
-  await notificationNewOrder(order);
-  // send telegram notify
-  await newOrdertelegram(order);
+  try {
+    // validate
+    if (!order || !order?.meeting?.[0]) return;
+    // create room
+    const newMeeting = await createNewMeeting(order.meeting[0]);
+    // add meeting to order
+    if (newMeeting) {
+      order.meeting[0] = {
+        ...order.meeting[0],
+        ...newMeeting,
+      };
+    }
+    // send order notify
+    await notificationNewOrder(order);
+    // send telegram notify
+    await newOrdertelegram(order);
+  } catch {
+    // telegram admin
+    await telegramAdmin(`error ocured order #${order.oid}`);
+  }
 };
 
 // on payment refund
