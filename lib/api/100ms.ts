@@ -99,6 +99,9 @@ export async function create100msRoom(
     // create room code
     const url = await createRoomUrl(newRoom.id, role);
 
+    // validate
+    if (!url) return;
+
     // create room
     await createRoom(newRoom.id, meeting.mid, meeting.orderId, url);
   } catch {
