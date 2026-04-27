@@ -26,6 +26,14 @@ const sizes = {
   lg: "w-40 h-40",
 } as const;
 
+const pixels = {
+  xs: 40,
+  sm: 56,
+  base: 64,
+  default: 96,
+  lg: 160,
+} as const;
+
 const ConsultantImage = ({
   name,
   gender,
@@ -38,6 +46,7 @@ const ConsultantImage = ({
     gender === Gender.MALE ? "/svg/man-avatar.svg" : "/svg/woman-avatar.svg";
 
   const src = image || fallback;
+  const dimension = pixels[size];
 
   return (
     <div
@@ -50,10 +59,11 @@ const ConsultantImage = ({
       <Image
         src={src}
         alt={`consultant-${name || ""}`}
-        fill
-        sizes="160px"
+        width={dimension}
+        height={dimension}
+        sizes={`${dimension}px`}
         className="object-cover"
-        quality={100}
+        quality={75}
         priority={priority}
         loading={priority ? "eager" : "lazy"}
       />

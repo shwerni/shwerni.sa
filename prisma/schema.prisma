@@ -412,7 +412,9 @@ model Order {
   sessionCount   Int         @default(1)
   due_at         DateTime    @default(now())
   created_at     DateTime    @default(now())
+  scaleId        String?
   info           String[]
+  packageId      String?
 
   // @relations
   guest          Guest?
@@ -422,12 +424,11 @@ model Order {
   consultant     Consultant      @relation(fields: [consultantId], references: [cid])
   collaboration  Collaboration?  @relation(fields: [collaboratorId], references: [id])
   reconciliation Reconciliation?
-  scaleId        String?
   scaleResult    ScaleResult?
   scale          Scale?          @relation(fields: [scaleId], references: [id])
   scaleResponses ScaleResponse[]
   package        Package?        @relation(fields: [packageId], references: [id])
-  packageId      String?
+  orderMessages  OrderMessage[]
 
   @@map("orders")
 }
@@ -1060,9 +1061,22 @@ model Package {
   // @relations
   consultantId Int
   consultant   Consultant? @relation(fields: [consultantId], references: [cid], onDelete: Cascade)
-  orders Order[]
+  orders       Order[]
 
   @@unique([consultantId, count])
   @@index([consultantId])
   @@map("packages")
+}
+
+model OrderMessage {
+  id        String   @id @default(cuid())
+  orderId   String
+  content   String   @db.Text
+  sender    UserRole
+  createdAt DateTime @default(now())
+
+  // @relations
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_messages")
 }
