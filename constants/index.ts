@@ -291,8 +291,10 @@ export const defaultMetaApi: Metadata = {
   verification: {
     // google: "xxxx",
     // yandex: "xxxx",
+    other: {
+      "domain-verification": "5d5ac75ae9b63b17e69f7881d4ae239f661394dac6926db4",
+    },
   },
-
   category: "health",
   formatDetection: {
     email: false,
