@@ -16,8 +16,9 @@ const Hero = () => {
         src="/layout/hero-desktop.png"
         alt="hero background"
         fill
-        className="hidden sm:block object-cover"
         priority
+        fetchPriority="high"
+        className="hidden sm:block object-cover"
         sizes="100vw"
       />
       {/* mobile background image */}
@@ -25,6 +26,8 @@ const Hero = () => {
         src="/layout/hero-mobile.png"
         alt="hero background"
         fill
+        priority
+        fetchPriority="high"
         className="sm:hidden object-cover"
         sizes="100vw"
       />
@@ -53,8 +56,8 @@ const Hero = () => {
 
         <p className="text-white/90 text-center sm:text-right  mb-6">
           عبر {`"شاورني"`}، يمكنك الوصول بسهولة إلى استشارات نفسية واسرية وشخصية
-          وقانونية مع مختصين معتمدين وبخصوصية تامة، لمساعدتك على مواجهة
-          ضغوط الحياة بثقة وهدوء.
+          وقانونية مع مختصين معتمدين وبخصوصية تامة، لمساعدتك على مواجهة ضغوط
+          الحياة بثقة وهدوء.
         </p>
 
         <div className="flex items-center gap-6 sm:gap-4">

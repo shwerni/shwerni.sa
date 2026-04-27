@@ -1,6 +1,6 @@
 // React & Next
 import { Suspense } from "react";
-import { cacheLife } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 
 // components
 import Title from "@/components/clients/shared/titles";
@@ -58,6 +58,7 @@ export default Consultants;
 const getConsultants = async () => {
   "use cache";
   cacheLife("hours");
+  cacheTag("consultants");
 
   // get consultants
   return await getPuslishedConsultantsForHome();

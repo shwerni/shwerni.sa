@@ -38,7 +38,7 @@ export default function InstantList() {
   };
 
   return (
-    <Section className="w-full max-w-5xl mx-auto px-4 py-5 space-y-6">
+    <Section className="w-full px-4 py-5 space-y-6">
       <Title subTitle="" title="المستشارون المتاحون الآن" />
 
       {/* Conditional Rendering: Show Loading OR Content */}
@@ -79,7 +79,7 @@ export default function InstantList() {
 
           <div
             key={currentPage}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-[fadeIn_0.5s_ease-in-out]"
+            className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5 animate-[fadeIn_0.5s_ease-in-out]"
           >
             {visibleConsultants.map(
               (consultant, index) =>

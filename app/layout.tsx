@@ -38,7 +38,8 @@ import { defaultMetaApi } from "@/constants";
 // font
 const font = IBM_Plex_Sans_Arabic({
   subsets: ["arabic", "latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600"],
+  // weight: ["100", "200", "300", "400", "500", "600", "700"],
   display: "swap",
   adjustFontFallback: false,
 });
@@ -75,9 +76,19 @@ export default async function RootLayout({
     >
       <head>
         <JsonLd />
+        <link
+          rel="preload"
+          as="image"
+          href="/layout/hero-mobile.png"
+          media="(max-width: 639px)"
+        />
+        <link
+          rel="preload"
+          as="image"
+          href="/layout/hero-desktop.png"
+          media="(min-width: 640px)"
+        />
       </head>
-      {/* google ads mangaer */}
-      <GoogleTagManager gtmId="GTM-5TGBGMNN" />
       {/* main app */}
       <body className={font.className}>
         <ReCaptchaWrapper>
@@ -97,6 +108,8 @@ export default async function RootLayout({
           {/* toast */}
           <Toaster richColors expand={true} />
         </ReCaptchaWrapper>
+        {/* google ads mangaer */}
+        <GoogleTagManager gtmId="GTM-5TGBGMNN" />
       </body>
       {/* meta pixel ads */}
       <MetaPixel />
