@@ -88,6 +88,10 @@ export default async function RootLayout({
           href="/layout/hero-desktop.png"
           media="(min-width: 640px)"
         />
+        <meta
+          name="domain-verification"
+          content="5d5ac75ae9b63b17e69f7881d4ae239f661394dac6926db4"
+        />
       </head>
       {/* main app */}
       <body className={font.className}>
