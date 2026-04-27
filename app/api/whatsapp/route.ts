@@ -10,6 +10,7 @@ import { getMeetingUrl } from "@/data/meetings";
 import { checkBotLimit } from "@/data/admin/bot";
 import { upsertWhatsappChat } from "@/data/whatsapp";
 import { acceptWhatsappReview } from "@/data/review";
+import { createGoogleMeeting } from "@/lib/api/google";
 
 // type
 interface WebhookMessage {
@@ -133,6 +134,21 @@ async function handleTextMessage(
   try {
     // simple admin test
     if (from === "201227502703") await sendWhatsappText(from, "بحب يا جنتي ❤️");
+
+    // create direct google meet link
+    if (from === "966554117879" && text === "رابط اجتماع جوجل جديد - zxsrexz") {
+      // google meeting url
+      const url = await createGoogleMeeting();
+
+      // validate
+      if (!url) return;
+
+      // send url
+      await sendWhatsappText(from, url);
+
+      // return
+      return;
+    }
 
     // check limit
     if (from !== "201222166530") {

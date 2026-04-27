@@ -168,6 +168,9 @@ export default function AwarenessForm({
 
   async function fetchTimes(date: Date) {
     setLoadingTimes(true);
+    console.log(date);
+    console.log(cid);
+    
     const data = await getConsultantAvailableTimes(
       cid,
       dateToString(date),
@@ -336,7 +339,7 @@ export default function AwarenessForm({
                           return;
                         form.setValue("date", new Date(d));
                         // @ts-expect-error reset time
-                        setValue("time", undefined);
+                        form.setValue("time", undefined);
                         fetchTimes(new Date(d));
                       }}
                       className={cn(
