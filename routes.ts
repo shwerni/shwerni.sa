@@ -17,6 +17,8 @@ export const publicRoutes = [
   "/reels",
   "/discover",
   "/event/eid",
+  // site map
+  "/sitemap",
   // apis
   "/api/hotline",
   "/api/timezone",
@@ -53,6 +55,8 @@ export const DynamicpublicRoutes = [
   "/freesessions",
   "/programs",
   "/sessions",
+  // site map
+  "/sitemap",
   // apis
   "/api/whatsapp",
   "/api/uploadthing",
