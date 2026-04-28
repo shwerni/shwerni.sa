@@ -24,7 +24,7 @@ export async function siteMapDynamic() {
     //  articles
     const articles = await prisma.article.findMany({
       where: { status: ArticleState.PUBLISHED },
-      select: { aid: true, updated_at: true },
+      select: { aid: true, created_at: true, },
     });
 
     // consultants
