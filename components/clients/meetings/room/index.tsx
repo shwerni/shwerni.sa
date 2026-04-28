@@ -10,6 +10,9 @@ import {
   selectIsConnectedToRoom,
 } from "@100mslive/react-sdk";
 
+// css
+import "@/styles/room.css";
+
 // components
 import Room from "./room";
 import Section from "../../shared/section";

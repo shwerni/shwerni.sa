@@ -38,11 +38,11 @@ const TermsForm = ({ form }: Props) => {
             <FieldLabel htmlFor="acceptTerms" className="font-normal">
               الموافقة على الشروط والأحكام
             </FieldLabel>
-            <Link href="/privacy" target="_blank">
+            {/* <Link href="/privacy" target="_blank"> */}
               <FieldDescription className="text-xs">
                 اضغط لرؤية كافة الشروط والاحكام الخاصة بالعملاء
               </FieldDescription>
-            </Link>
+            {/* </Link> */}
             {fieldState.invalid && (
               <FieldError errors={[fieldState.error]} className="text-xs" />
             )}

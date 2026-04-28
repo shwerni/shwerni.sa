@@ -1,0 +1,48 @@
+/* --- Speaking bars (meeting room) ---
+   Uses transform instead of height where possible to avoid reflow.
+   height animation here is intentional for the visual — kept as-is. */
+.speaking-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 16px;
+}
+
+.speaking-bars .bar {
+    width: 2px;
+    background-color: #22c55e;
+    border-radius: 2px;
+    animation: barPulse 1s infinite ease-in-out;
+}
+
+.speaking-bars .bar:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.speaking-bars .bar:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.speaking-bars .bar:nth-child(3) {
+    animation-delay: 0.2s;
+}
+
+.speaking-bars .bar:nth-child(4) {
+    animation-delay: 0.3s;
+}
+
+.speaking-bars .bar:nth-child(5) {
+    animation-delay: 0.4s;
+}
+
+@keyframes barPulse {
+
+    0%,
+    100% {
+        height: 20%;
+    }
+
+    50% {
+        height: 100%;
+    }
+}

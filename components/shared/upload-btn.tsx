@@ -1,7 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import React from "react";
-import { Control, FieldValues, Path, useController, useFormContext } from "react-hook-form";
+
+// css
+import "@/styles/upload-thing.css";
+
+import {
+  Control,
+  FieldValues,
+  Path,
+  useController,
+  useFormContext,
+} from "react-hook-form";
 import { toast } from "./toast";
 import { cn } from "@/lib/utils";
 import { UploadButton } from "@/lib/upload";
@@ -9,11 +19,10 @@ import { CheckCircle2, FileText, ImageIcon, Loader2, X } from "lucide-react";
 
 const TYPE_CONFIG = {
   image: { endpoint: "imageUploader", accept: "image" as const },
-  pdf:   { endpoint: "pdfUploader",   accept: "pdf"   as const },
+  pdf: { endpoint: "pdfUploader", accept: "pdf" as const },
 } satisfies Record<string, { endpoint: string; accept: "image" | "pdf" }>;
 
 type UploadType = keyof typeof TYPE_CONFIG;
-
 
 interface UploadedFile {
   key: string;
@@ -36,7 +45,6 @@ interface UploadFieldProps<T extends FieldValues> {
   onUploadComplete?: (file: UploadedFile) => void | Promise<void>;
   onUploadError?: (error: Error) => void;
 }
-
 
 export function UploadField<T extends FieldValues>({
   name,
@@ -63,8 +71,12 @@ export function UploadField<T extends FieldValues>({
   });
 
   const [uploading, setUploading] = React.useState(false);
-  const [preview, setPreview] = React.useState<string | null>(initialPreview ?? null);
-  const [uploadedFile, setUploadedFile] = React.useState<UploadedFile | null>(null);
+  const [preview, setPreview] = React.useState<string | null>(
+    initialPreview ?? null,
+  );
+  const [uploadedFile, setUploadedFile] = React.useState<UploadedFile | null>(
+    null,
+  );
   const [done, setDone] = React.useState(!!initialPreview);
 
   const isPdf = accept === "pdf";
@@ -131,7 +143,9 @@ export function UploadField<T extends FieldValues>({
             {showPreview && isPdf && uploadedFile && (
               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                 <FileText size={24} className="shrink-0 text-red-500" />
-                <span className="max-w-[200px] truncate">{uploadedFile.name}</span>
+                <span className="max-w-[200px] truncate">
+                  {uploadedFile.name}
+                </span>
               </div>
             )}
           </>
@@ -140,8 +154,12 @@ export function UploadField<T extends FieldValues>({
         {/* Upload trigger */}
         {!done && !uploading && (
           <div className="flex flex-col items-center gap-2">
-            {accept === "image" && <ImageIcon size={24} className="text-gray-400" />}
-            {accept === "pdf"   && <FileText  size={24} className="text-gray-400" />}
+            {accept === "image" && (
+              <ImageIcon size={24} className="text-gray-400" />
+            )}
+            {accept === "pdf" && (
+              <FileText size={24} className="text-gray-400" />
+            )}
 
             <UploadButton
               className="upload-thing"
@@ -164,7 +182,7 @@ export function UploadField<T extends FieldValues>({
                 setUploading(false);
                 setDone(true);
 
-                field.onChange(file.ufsUrl);   // ← updates RHF + triggers validation
+                field.onChange(file.ufsUrl); // ← updates RHF + triggers validation
 
                 toast.success({ message: successMessage });
                 await onUploadComplete?.(uploaded);

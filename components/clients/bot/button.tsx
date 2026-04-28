@@ -9,6 +9,10 @@ import React, {
   useRef,
   useCallback,
 } from "react";
+
+// css
+import "@/styles/bot-button.css";
+
 // components
 import { Button } from "@/components/ui/button";
 

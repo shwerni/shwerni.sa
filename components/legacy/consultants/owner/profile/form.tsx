@@ -8,6 +8,9 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+// css
+import "@/styles/upload-thing.css";
+
 // components
 import {
   Form,

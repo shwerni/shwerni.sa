@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     // viewTransition: true,
     useLightningcss: true,
   },
-  // reactCompiler: true,
+  reactCompiler: true,
   compiler: {
     removeConsole: {
       exclude: ["error", "warn"],
