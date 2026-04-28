@@ -74,7 +74,7 @@ export default async function sitemap(props: {
       const articles = await siteMapArticles();
       return (articles ?? []).map((a) => ({
         url: `${mainRoute}articles/${a.aid}`,
-        lastModified: a.updated_at,
+        lastModified: a.created_at,
         changeFrequency: "monthly" as const,
         priority: 0.6,
       }));

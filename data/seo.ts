@@ -71,7 +71,7 @@ export async function siteMapArticles() {
       where: { status: ArticleState.PUBLISHED },
       select: {
         aid: true,
-        updated_at: true,
+        created_at: true,
       },
     });
   } catch {
