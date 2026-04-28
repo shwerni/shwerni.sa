@@ -155,7 +155,7 @@ export default function StepDateTime({ form, onNext }: Props) {
             onClick={() => {
               form.setValue("date", new Date(i));
               // @ts-expect-error - this is a hack to reset time when date changes
-              //form.setValue("time", undefined);
+              form.setValue("time", undefined);
               // get this day times
               fetchTimes(new Date(i));
             }}
