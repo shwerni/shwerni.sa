@@ -7,6 +7,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
+// schema
+import { freeSessionSchema, freeSessionSchemaType } from "@/schemas";
+
 // components
 import { toast } from "@/components/shared/toast";
 import { Stepper } from "@/components/clients/freesessions/reservation/stepper";
@@ -16,15 +19,15 @@ import StepDateTime from "@/components/clients/freesessions/reservation/steps/da
 // utils
 import { phoneNumber } from "@/utils";
 
+// lib
+import { timeZone } from "@/lib/site/time";
+
 // handlers
 import { runRecaptcha } from "@/handlers/admin/recaptcha";
+import { confirmFreeSession } from "@/handlers/admin/freesession";
 
 // types
 import { User } from "next-auth";
-import { freeSessionSchema, freeSessionSchemaType } from "@/schemas";
-import { timeZone } from "@/lib/site/time";
-import { add25Minutes } from "@/utils/date";
-import { confirmFreeSession } from "@/handlers/admin/freesession";
 
 // schema
 
@@ -56,7 +59,7 @@ export default function ReservationForm({ cid, user, consultant }: Props) {
       user: user?.id || "temp",
       order: "consultant",
       cid,
-      date: add25Minutes(iso).iso,
+      date: iso,
       consultant,
       // form
       name: "",

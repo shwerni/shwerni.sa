@@ -225,11 +225,13 @@ export const freeSessionMeetingUrl = async (fid: number) => {
       where: { fid },
       select: { url: true, duration: true },
     });
+    
     // return
     if (meeting?.url) return meeting.url;
 
     // create url if not exist
     const newUrl = await createGoogleMeeting();
+
     // update order
     await prisma.freeSession.update({
       where: { fid },

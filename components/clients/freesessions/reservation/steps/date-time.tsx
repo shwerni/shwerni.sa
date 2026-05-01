@@ -1,6 +1,9 @@
 // React & Next
 import React from "react";
 
+// packages
+import { parseISO } from "date-fns";
+
 // components
 import {
   Accordion,
@@ -10,6 +13,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { IconLabel } from "@/components/shared/icon-label";
+import { LinkButton } from "@/components/shared/link-button";
 
 // styles
 
@@ -24,6 +28,11 @@ import { ReservationFormType } from "@/schemas";
 
 // utils
 import { timeOptions } from "@/utils";
+import { dateToString } from "@/utils/time";
+import { add25Minutes, dateToWeekDay } from "@/utils/date";
+
+// prisma data
+import { getConsultantAvailableTimes } from "@/data/consultant";
 
 // icons
 import {
@@ -35,11 +44,6 @@ import {
   Sunrise,
   Sunset,
 } from "lucide-react";
-import { getConsultantAvailableTimes } from "@/data/consultant";
-import { dateToString } from "@/utils/time";
-import { add25Minutes, dateToWeekDay } from "@/utils/date";
-import { parseISO } from "date-fns";
-import { LinkButton } from "@/components/shared/link-button";
 
 // props
 interface Props {

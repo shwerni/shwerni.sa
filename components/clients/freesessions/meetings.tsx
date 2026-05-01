@@ -45,7 +45,7 @@ export default async function Meetings({
   freesession,
 }: Props) {
   // url
-  const url = "/freesessions/rooms/" + zid + "?participant=" + participant;
+  const url = freesession.url; // "/freesessions/rooms/" + zid + "?participant=" + participant;
 
   // meetings status
   const mStatus = meetingTime(time, date, freesession.time, freesession.date);
