@@ -88,8 +88,8 @@ const Categories = () => {
     <Section className="max-w-5xl mx-auto">
       {/* title */}
       <Title title="تلائم أهدافك وتحقق نتائجك" subTitle="مجالات واسعة" />
-      {/* event card */}
-       <EventCard />
+      {/* event card 
+       <EventCard /> */}
       {/* cards */}
       {/* handle better instead of just hide */}
       <div className="hidden md:block space-y-5">
