@@ -15,14 +15,14 @@ import {
 import { ConsultantSchema } from "@/schemas";
 
 // prisma data
+import { CheckIsBlocked } from "@/data/blocked";
 import { getOwnerbyAuthor } from "@/data/consultant";
 import { getTaxCommission } from "@/data/admin/settings/finance";
 
 // lib
+import prisma from "@/lib/database/db";
 import { aiAcceptOwners } from "@/lib/api/ai/ai";
 import { sendReviewerNotification } from "@/lib/api/telegram/templates/owner";
-import prisma from "@/lib/database/db";
-import { CheckIsBlocked } from "@/data/blocked";
 
 // save or create owner profile
 export const saveConsultant = async (

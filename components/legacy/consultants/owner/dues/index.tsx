@@ -307,7 +307,7 @@ export default function DuesOwner({
         <div className="rflex gap-1 pb-5">
           <BadgePercent className="w-5" />
           <h3 className="text-sm">
-            نسبة العمولة الحالية{" "}
+            نسبة المستشار{" "}
             <span className="text-zblue-200">
               {owner.commission ? owner.commission : defaultCommission}%
             </span>

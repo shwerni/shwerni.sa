@@ -6,11 +6,13 @@ import { handleBotResponse } from "@/lib/api/ai/bot";
 import { sendWhatsappText } from "@/lib/api/whatsapp";
 
 // prisma data
-import { getMeetingUrl } from "@/data/meetings";
+import { getMeetingUrl, isMeetingNeedsReschedule } from "@/data/meetings";
 import { checkBotLimit } from "@/data/admin/bot";
 import { upsertWhatsappChat } from "@/data/whatsapp";
 import { acceptWhatsappReview } from "@/data/review";
 import { createGoogleMeeting } from "@/lib/api/google";
+import { mainRoute } from "@/constants/links";
+import { meetingDone } from "@/data/reschedule";
 
 // type
 interface WebhookMessage {
@@ -200,6 +202,7 @@ async function handleReviewFlow(
 }
 
 async function handleButtonReply(from: string, action: string, data: string) {
+  // meeting url
   if (action === "meeting-url" && data) {
     // get meeting url
     const meeting = await getMeetingUrl(data, from);
@@ -212,6 +215,36 @@ async function handleButtonReply(from: string, action: string, data: string) {
       from,
       `تفضل رابط الجلسة #${meeting.orderId} \nاحرص على الدخول في الوقت المحدد، نحن بانتظارك بكل ود 🌸⏰😊.\n${meeting.url}`,
     );
+
+    // return
+    return;
+  }
+
+  // rescheduling
+  if (action === "rescheduling" && data) {
+    // get meeting url
+    const meeting = await isMeetingNeedsReschedule(data);
+
+    // validate
+    if (!meeting) return;
+
+    // url
+    const url = `${mainRoute}meetings/reschedule/${data}`;
+
+    // send url
+    await sendWhatsappText(
+      from,
+      `تفضل رابط اعادة الجدولة #${meeting.orderId} \ لاختيار موعد اخر برجاء استخدام الرابط التالي🌸.\n${url}`,
+    );
+
+    // return
+    return;
+  }
+
+  // meeting-done
+  if (action === "meeting-done" && data) {
+    // send review and next session if exists
+    await meetingDone(data);
 
     // return
     return;

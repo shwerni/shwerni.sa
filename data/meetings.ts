@@ -3,14 +3,6 @@
 import prisma from "@/lib/database/db";
 
 // prisma data
-import { checkProgramNextSession } from "@/data/programs";
-
-// lib
-
-// hooks
-import { reviewReminder } from "@/handlers/clients/order";
-
-// prisma data
 import { getUserByPhone } from "./user";
 
 // prisma types
@@ -20,6 +12,7 @@ import { PaymentState, UserRole } from "@/lib/generated/prisma/client";
 import { timeZone } from "@/lib/site/time";
 import { mainRoute } from "@/constants/links";
 import { createGoogleMeeting } from "@/lib/api/google";
+import { meetingTime } from "@/utils/date";
 
 // get reservation
 export const participantAttendance = async (
@@ -31,7 +24,7 @@ export const participantAttendance = async (
     const { time } = timeZone();
 
     // participant
-    const meeting = await prisma.participant.update({
+    await prisma.participant.update({
       where: {
         meetingId_participant: { meetingId, participant },
         attended: false,
@@ -44,31 +37,7 @@ export const participantAttendance = async (
       },
     });
 
-    // all participant
-    const participants = await prisma.participant.findMany({
-      where: {
-        meetingId,
-      },
-      select: {
-        attended: true,
-      },
-    });
-
-    // review reminder
-    if (
-      participants.every((p) => p.attended === true) &&
-      meeting.meeting.orderId
-    ) {
-      // review reminder
-      await reviewReminder(meeting.meeting.orderId, meeting.meeting.session);
-      // session selection (if program)
-      await checkProgramNextSession(
-        meeting.meeting.orderId,
-        meeting.meeting.session ?? 1,
-      );
-    }
-
-    return null;
+    return true;
   } catch {
     // return
     return null;
@@ -202,4 +171,32 @@ export const getMeetingUrl = async (mid: string, phone: string) => {
   } catch {
     return null;
   }
+};
+
+// is meeting needs reschedule
+export const isMeetingNeedsReschedule = async (mid: string) => {
+  // meeting
+  const meeting = await prisma.meeting.findUnique({
+    where: {
+      mid,
+    },
+    select: { orderId: true, date: true, time: true, done: true },
+  });
+
+  // validate
+  if (!meeting) return null;
+
+  // time
+  const { time, date } = timeZone();
+
+  // meetings status
+  const status = meetingTime(time, date, meeting.time, meeting.date);
+
+  // if done
+  if (meeting.done) return null;
+
+  // passed
+  if (status === false)
+    // return
+    return meeting;
 };

@@ -3,6 +3,8 @@
 // prisma types
 import {
   FreeSession,
+  Meeting,
+  Order,
   OrderType,
   SessionType,
 } from "@/lib/generated/prisma/client";
@@ -11,6 +13,7 @@ import {
 import { sendWhatsappTemplate } from "@/lib/api/whatsapp";
 
 // utils
+import { timeLabel } from "@/utils/date";
 import { meetingLabel } from "@/utils/time";
 import { encryptionDigitsToUrl, zencryption } from "@/utils/admin/encryption";
 
@@ -371,5 +374,41 @@ export const notificationScaleReminder = async (
   await sendWhatsappTemplate(phone, "scale_result", {
     text: [consultant, name, oid, `/scales/results/${scale}`],
     url: [scale],
+  });
+};
+
+// scale reminder
+export const notificationCheckRescheduling = async (
+  order: Order & { consultant: { name: string; phone: string } },
+  meeting: Meeting,
+) => {
+  // send
+  await sendWhatsappTemplate(order.phone, "check_session", {
+    text: [
+      order.name,
+      order.oid,
+      order.consultant.name,
+      meeting.date,
+      timeLabel(meeting.time),
+    ],
+    quick_reply: [`meeting-done:${meeting.mid}`, `rescheduling:${meeting.mid}`],
+  });
+};
+
+// scale reminder
+export const notificationConfirmRescheduling = async (
+  order: Order & { consultant: { name: string; phone: string } },
+  meeting: Meeting,
+) => {
+  // meeting label
+  const label = meetingLabel(meeting.time, meeting.date);
+
+  // send to client
+  await sendWhatsappTemplate(order.phone, "rescheduling_confirmed", {
+    text: [order.name, order.oid, label],
+  });
+  // send to consultant
+  await sendWhatsappTemplate(order.consultant.phone, "rescheduling_confirmed", {
+    text: [order.consultant.name, order.oid, label],
   });
 };

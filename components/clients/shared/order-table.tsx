@@ -1,6 +1,11 @@
+// React & Next
+import React from "react";
+
 // components
+import CurrencyLabel from "./currency-label";
 
 // utils
+import { cn } from "@/lib/utils";
 import { meetingLabel } from "@/utils/date";
 import { paymentMethodLabel } from "@/utils";
 
@@ -19,29 +24,28 @@ import {
 
 // types
 import type { Reservation } from "@/types/admin";
-import React from "react";
-import CurrencyLabel from "./currency-label";
-import { cn } from "@/lib/utils";
 
 // props
 interface Props {
   order: Reservation;
+  session?: number;
 }
 
-export default function OrderTable({ order }: Props) {
+export default function OrderTable({ order, session }: Props) {
+  // early return if order is entirely undefined/null
+  if (!order) return null;
+
+  // fallback string for missing data
+  const FALLBACK = "—";
+
   // meeting
-  const meeting = order.meeting;
+  const meeting = order?.meeting?.[session || 0];
 
   // payment
-  const payment = order.payment;
-
-  // validate
-  if (!meeting || !payment) return null;
-
-  const firstMeeting = meeting[0];
+  const payment = order?.payment;
 
   // label
-  const label = meetingLabel(firstMeeting?.date, firstMeeting?.time);
+  const label = meeting ? meetingLabel(meeting?.date, meeting?.time) : null;
 
   type RowItem = {
     title: string;
@@ -52,34 +56,36 @@ export default function OrderTable({ order }: Props) {
   const rows: RowItem[] = [
     {
       title: "رقم الطلب",
-      value: order?.oid,
+      value: order?.oid || FALLBACK,
       icon: <Hash size={15} />,
     },
     {
       title: "الاسم",
-      value: order?.name,
+      value: order?.name || FALLBACK,
       icon: <User size={15} />,
     },
     {
       title: "اسم المستشار",
-      value: order.consultant.name,
+      value: order?.consultant?.name || FALLBACK, // safely optional chained
       icon: <UserCheck size={15} />,
     },
     {
       title: "التكلفة",
-      value: (
+      value: payment ? (
         <CurrencyLabel
           size="sm"
           amount={payment.total}
           tax={payment.tax}
           textStyle="text-sm"
         />
+      ) : (
+        FALLBACK
       ),
       icon: <Wallet size={15} />,
     },
     {
       title: "مدة الاستشارة",
-      value: `${firstMeeting?.duration} دقيقة`,
+      value: meeting?.duration ? `${meeting.duration} دقيقة` : FALLBACK,
       icon: <Clock size={15} />,
     },
   ];
@@ -87,7 +93,7 @@ export default function OrderTable({ order }: Props) {
   if (payment?.method) {
     rows.push({
       title: "طريقة الدفع",
-      value: paymentMethodLabel(payment.method),
+      value: paymentMethodLabel(payment.method) || FALLBACK,
       icon: <CreditCard size={15} />,
     });
   }
@@ -100,7 +106,7 @@ export default function OrderTable({ order }: Props) {
     });
   }
 
-  if (order?.sessionCount > 1) {
+  if (order?.sessionCount && order.sessionCount > 1) {
     rows.push({
       title: "عدد الجلسات",
       value: order.sessionCount,
@@ -110,7 +116,7 @@ export default function OrderTable({ order }: Props) {
 
   rows.push({
     title: "ميعاد الاستشارة",
-    value: label,
+    value: label || FALLBACK,
     icon: <CalendarDays size={15} />,
   });
 
@@ -121,10 +127,15 @@ export default function OrderTable({ order }: Props) {
         {rows.map((row, index) => (
           <div
             key={index}
-            className={cn(index === rows.length - 1 && "sm:col-span-2 flex-col sm:flex-row","flex items-center gap-2.5 py-3 border-b border-border/30 last:border-b-0")}
+            className={cn(
+              index === rows.length - 1 && "sm:col-span-2 flex-col sm:flex-row",
+              "flex items-center gap-2.5 py-3 border-b border-border/30 last:border-b-0",
+            )}
           >
             {/* icon */}
-            <span className="text-muted-foreground/50 shrink-0">{row.icon}</span>
+            <span className="text-muted-foreground/50 shrink-0">
+              {row.icon}
+            </span>
 
             {/* title */}
             <span className="text-xs text-muted-foreground shrink-0">
