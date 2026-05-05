@@ -1,11 +1,18 @@
 "use server";
-
-import prisma from "@/lib/database/db";
+// React & Next
 import { revalidatePath } from "next/cache";
 
-// Update the base session costs for the consultant
-export async function getConsultantsPackages(consultantId: number) {
-  return await prisma.package.findMany({ where: { consultantId } });
+// prisma db
+import prisma from "@/lib/database/db";
+
+// get consultant packages
+export async function getConsultantsPackages(
+  consultantId: number,
+  status?: boolean,
+) {
+  return await prisma.package.findMany({
+    where: { consultantId, isActive: status },
+  });
 }
 
 export async function updateConsultantBaseCosts(
@@ -27,13 +34,12 @@ export async function updateConsultantBaseCosts(
     // Refresh the page data
     revalidatePath("/dashboard/consultant");
     return { success: true };
-  } catch (error) {
-    console.error("Error updating base costs:", error);
+  } catch {
     return { success: false };
   }
 }
 
-// Create or update a specific package (Upsert)
+// create or update a specific package (Upsert)
 export async function upsertConsultantPackage(
   consultantId: number,
   count: number,
@@ -42,25 +48,32 @@ export async function upsertConsultantPackage(
 ) {
   try {
     await prisma.package.upsert({
-      where: {
-        consultantId_count: {
-          consultantId,
-          count,
-        },
-      },
-      update: {
-        cost,
-        isActive,
-      },
-      create: {
-        consultantId,
-        count,
-        cost,
-        isActive,
-      },
+      where: { consultantId_count: { consultantId, count } },
+      update: { cost, isActive },
+      create: { consultantId, count, cost, isActive },
     });
 
-    // Refresh the page data
+    // if activating, enforce max 3 active packages
+    if (isActive) {
+      const activePackages = await prisma.package.findMany({
+        where: { consultantId, isActive: true },
+        orderBy: { updated_at: "asc" }, // oldest updated = last one toggled on
+        select: { id: true },
+      });
+
+      // if more than 3 active, deactivate the oldest ones
+      if (activePackages.length > 3) {
+        const toDeactivate = activePackages
+          .slice(0, activePackages.length - 3) // everything except the 3 most recent
+          .map((p) => p.id);
+
+        await prisma.package.updateMany({
+          where: { id: { in: toDeactivate } },
+          data: { isActive: false },
+        });
+      }
+    }
+
     revalidatePath("/dashboard/consultant");
     return { success: true };
   } catch (error) {

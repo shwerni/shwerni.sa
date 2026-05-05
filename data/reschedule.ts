@@ -20,7 +20,6 @@ import {
 
 // types
 import { RescheduleReason, SessionType } from "@/lib/generated/prisma/enums";
-import { telegramAdmin } from "@/lib/api/telegram/telegram";
 
 // done confirm
 export const meetingDone = async (mid: string) => {
@@ -121,9 +120,4 @@ export const checkReschedule = async (mid: string) => {
 
   // send whatsapp notification asking if meeting was done
   await notificationCheckRescheduling(meeting.orders, meeting);
-
-  // later remove send admin telegram test
-  await telegramAdmin(
-    "Checked reschedule meeting: " + mid + " | Order ID: " + meeting.orderId,
-  );
 };

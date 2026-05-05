@@ -234,7 +234,7 @@ async function handleButtonReply(from: string, action: string, data: string) {
     // send url
     await sendWhatsappText(
       from,
-      `تفضل رابط اعادة الجدولة #${meeting.orderId} \ لاختيار موعد اخر برجاء استخدام الرابط التالي🌸.\n${url}`,
+      `تفضل رابط اعادة الجدولة #${meeting.orderId} \n لاختيار موعد اخر برجاء استخدام الرابط التالي🌸.\n${url}`,
     );
 
     // return

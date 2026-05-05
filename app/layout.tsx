@@ -38,7 +38,7 @@ import { defaultMetaApi } from "@/constants";
 // font
 const font = IBM_Plex_Sans_Arabic({
   subsets: ["arabic", "latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600","700"],
   // weight: ["100", "200", "300", "400", "500", "600", "700"],
   display: "swap",
   adjustFontFallback: false,

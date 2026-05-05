@@ -1,6 +1,6 @@
 "use client";
 // React & Next
-import { useState } from "react";
+import React from "react";
 
 // prisma types
 import { Consultant } from "@/lib/generated/prisma/client";
@@ -12,8 +12,8 @@ import {
 } from "@/data/packages";
 
 export function BaseCostsForm({ consultant }: { consultant: Consultant }) {
-  const [loading, setLoading] = useState(false);
-  const [costs, setCosts] = useState({
+  const [loading, setLoading] = React.useState(false);
+  const [costs, setCosts] = React.useState({
     cost30: consultant.cost30,
     cost45: consultant.cost45,
     cost60: consultant.cost60,
@@ -100,15 +100,32 @@ export function PackageForm({
   initialCost: number;
   initialActive: boolean;
 }) {
-  const [cost, setCost] = useState(initialCost);
-  const [isActive, setIsActive] = useState(initialActive);
-  const [loading, setLoading] = useState(false);
+  const [cost, setCost] = React.useState(initialCost);
+  const [isActive, setIsActive] = React.useState(initialActive);
+  const [loading, setLoading] = React.useState(false);
 
   const handleSave = async () => {
     setLoading(true);
-    await upsertConsultantPackage(consultantId, sessionCount, cost, isActive);
+    const result = await upsertConsultantPackage(
+      consultantId,
+      sessionCount,
+      cost,
+      isActive,
+    );
     setLoading(false);
+
+    // revalidatePath will refresh the page — server state is source of truth
+    // if the server deactivated this package, the page re-render will reflect it
+    if (!result.success) {
+      // optionally show a toast error here
+    }
   };
+
+  // sync with server-refreshed props after revalidatePath re-renders
+  React.useEffect(() => {
+    setIsActive(initialActive);
+    setCost(initialCost);
+  }, [initialActive, initialCost]);
 
   return (
     <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
@@ -116,8 +133,6 @@ export function PackageForm({
         <span className="font-semibold text-gray-800">
           باقة {sessionCount} جلسات
         </span>
-
-        {/* Toggle Switch */}
         <label className="inline-flex items-center cursor-pointer">
           <input
             type="checkbox"
@@ -143,10 +158,9 @@ export function PackageForm({
             disabled={!isActive}
           />
         </div>
-
         <button
           onClick={handleSave}
-          disabled={loading || (!isActive && cost === initialCost)}
+          disabled={loading}
           className="text-xs px-3 py-1.5 bg-gray-800 text-white rounded hover:bg-gray-700 disabled:opacity-40 transition-colors"
         >
           {loading ? "..." : "تحديث الباقة"}
