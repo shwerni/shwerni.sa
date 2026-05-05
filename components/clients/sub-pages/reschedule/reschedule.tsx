@@ -11,14 +11,14 @@ import { Separator } from "@/components/ui/separator";
 import PickDateTime from "../../shared/pick-date-time";
 
 // icons
-import { Ban, CircleAlert } from "lucide-react";
+import { Ban, CircleAlert, CircleCheck, CheckCircle2 } from "lucide-react";
 
 // utils
 import { findParticipant } from "@/utils";
 import { dateToString } from "@/utils/date";
 
 // prisma data
-import { rescheduleMeeting } from "@/data/reschedule";
+import { rescheduleMeeting, meetingDone } from "@/data/reschedule";
 import { Meeting, Participant } from "@/lib/generated/prisma/client";
 
 // prisma enums
@@ -46,6 +46,8 @@ const ReschedulePick = ({ meeting, order }: Props) => {
 
   // states
   const [loading, setLoading] = React.useState<boolean>(false);
+  const [markingDone, setMarkingDone] = React.useState<boolean>(false);
+  const [markedDone, setMarkedDone] = React.useState<boolean>(false);
   const [times, setTimes] = React.useState<
     Record<string, string[]> | undefined
   >({});
@@ -66,41 +68,69 @@ const ReschedulePick = ({ meeting, order }: Props) => {
   // participant — used for redirect url
   const participant = findParticipant(meeting.participants)?.participant;
 
+  // mark meeting as done manually
+  async function onMarkDone() {
+    setMarkingDone(true);
+    try {
+      await meetingDone(meeting.mid);
+      setMarkedDone(true);
+      // redirect after 1 second
+      setTimeout(() => router.push("/"), 1000);
+    } catch {
+      toast.error({ message: "حدث خطأ أثناء تحديث الجلسة" });
+    } finally {
+      setMarkingDone(false);
+    }
+  }
+
   // on submit
   async function onSubmit() {
-    // loading
     setLoading(true);
-    // confirm
     try {
-      // confirm
       if (time && date && reason) {
         try {
-          // reschedule meeting
-          await rescheduleMeeting(meeting.mid, dateToString(date), time, reason);
-          // toast
+          await rescheduleMeeting(
+            meeting.mid,
+            dateToString(date),
+            time,
+            reason,
+          );
           toast.success({ message: "تم تأكيد إعادة الجدولة بنجاح" });
-          // redirect
           router.push(`/meetings/${meeting.mid}?participant=${participant}`);
-          // return
           return true;
         } catch {
-          // return
           return null;
         }
       }
     } catch {
-      // toast
       toast.error({ message: "حدث خطأ ما" });
     } finally {
-      // loading
       setLoading(false);
     }
+  }
+
+  // thank you screen — shown after marking done
+  if (markedDone) {
+    return (
+      <div className="max-w-3xl mx-auto px-3 sm:px-2 my-5">
+        <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
+          <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center">
+            <CheckCircle2 className="text-green-500 w-9 h-9" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground">
+            تم تحديث الجلسة
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            تم تعليم الجلسة كمنتهية بنجاح
+          </p>
+        </div>
+      </div>
+    );
   }
 
   if (meeting.done) {
     return (
       <div className="max-w-3xl mx-auto px-3 sm:px-2 my-5 space-y-8">
-        {/* order data */}
         <div className="flex flex-col items-center justify-center gap-1.5">
           <h3 className="text-theme font-semibold text-lg">
             إعادة جدولة الجلسة
@@ -113,9 +143,7 @@ const ReschedulePick = ({ meeting, order }: Props) => {
           </p>
         </div>
         <OrderTable order={order} />
-        {/* seperator */}
         <Separator className="w-10/12 max-w-xl mx-auto" />
-        {/* done message */}
         <div className="flex flex-col items-center gap-2 text-center">
           <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center">
             <Ban className="text-red-500 w-8 h-8" />
@@ -134,7 +162,6 @@ const ReschedulePick = ({ meeting, order }: Props) => {
   if (isMeetingAhead) {
     return (
       <div className="max-w-3xl mx-auto px-3 sm:px-2 my-5 space-y-8">
-        {/* order data */}
         <div className="flex flex-col items-center justify-center gap-1.5">
           <h3 className="text-theme font-semibold text-lg">
             إعادة جدولة الجلسة
@@ -147,9 +174,7 @@ const ReschedulePick = ({ meeting, order }: Props) => {
           </p>
         </div>
         <OrderTable order={order} />
-        {/* seperator */}
         <Separator className="w-10/12 max-w-xl mx-auto" />
-        {/* ahead message */}
         <div className="flex flex-col items-center gap-2 text-center">
           <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center">
             <CircleAlert className="text-amber-500 w-8 h-8" />
@@ -160,7 +185,6 @@ const ReschedulePick = ({ meeting, order }: Props) => {
           <p className="text-xs text-muted-foreground leading-relaxed">
             الجلسة مجدولة في {meeting.date} — {meeting.time}
           </p>
-          {/* redirect to meeting page */}
           <Button
             variant="primary"
             size="sm"
@@ -188,8 +212,27 @@ const ReschedulePick = ({ meeting, order }: Props) => {
         </p>
       </div>
       <OrderTable order={order} />
-      {/* seperator */}
       <Separator className="w-10/12 max-w-xl mx-auto" />
+
+      {/* mark as done banner */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full max-w-sm mx-auto rounded-lg border border-green-100 bg-green-50 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <CircleCheck className="text-green-600 w-4 h-4 shrink-0" />
+          <p className="text-sm text-green-800 font-medium">
+            هل تمت الجلسة بالفعل؟
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          loading={markingDone}
+          onClick={onMarkDone}
+          className="border-green-300 text-green-700 hover:bg-green-100 shrink-0"
+        >
+          تعليم كمنتهية
+        </Button>
+      </div>
+
       {/* reason select */}
       <div className="flex flex-col gap-2 w-full max-w-sm mx-auto">
         <label
@@ -205,11 +248,9 @@ const ReschedulePick = ({ meeting, order }: Props) => {
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-ring"
           dir="rtl"
         >
-          {/* placeholder */}
           <option value="" disabled>
             اختر السبب
           </option>
-          {/* options */}
           {REASON_OPTIONS.map(({ value, label }) => (
             <option key={value} value={value}>
               {label}
@@ -217,6 +258,7 @@ const ReschedulePick = ({ meeting, order }: Props) => {
           ))}
         </select>
       </div>
+
       {/* pick form */}
       <PickDateTime
         cid={order.consultantId}
@@ -229,6 +271,7 @@ const ReschedulePick = ({ meeting, order }: Props) => {
         availableTimes={times}
         setAvailableTimes={setTimes}
       />
+
       {/* submit */}
       <div className="flex justify-center">
         <Button
@@ -244,4 +287,5 @@ const ReschedulePick = ({ meeting, order }: Props) => {
     </div>
   );
 };
+
 export default ReschedulePick;
