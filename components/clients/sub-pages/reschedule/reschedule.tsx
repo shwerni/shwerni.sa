@@ -26,10 +26,17 @@ import { RescheduleReason } from "@/lib/generated/prisma/enums";
 
 // types
 import { Reservation } from "@/types/admin";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // reason options — label map
 const REASON_OPTIONS: { value: RescheduleReason; label: string }[] = [
-  { value: RescheduleReason.CLIENT_NO_SHOW, label: "العميل لم يحضر" },
+  { value: RescheduleReason.CLIENT_NO_SHOW, label: "انا لم احضر (العميل)" },
   { value: RescheduleReason.CONSULTANT_NO_SHOW, label: "المستشار لم يحضر" },
   { value: RescheduleReason.OTHER, label: "سبب آخر" },
 ];
@@ -241,22 +248,23 @@ const ReschedulePick = ({ meeting, order }: Props) => {
         >
           سبب إعادة الجدولة
         </label>
-        <select
-          id="reschedule-reason"
-          value={reason ?? ""}
-          onChange={(e) => setReason(e.target.value as RescheduleReason)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-ring"
+        <Select
           dir="rtl"
+          value={reason ?? undefined}
+          onValueChange={(value) => setReason(value as RescheduleReason)}
         >
-          <option value="" disabled>
-            اختر السبب
-          </option>
-          {REASON_OPTIONS.map(({ value, label }) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger id="reschedule-reason" className="w-full max-w-xs">
+            <SelectValue placeholder="اختر السبب" />
+          </SelectTrigger>
+
+          <SelectContent dir="rtl">
+            {REASON_OPTIONS.map(({ value, label }) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* pick form */}

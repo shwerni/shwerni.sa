@@ -229,7 +229,7 @@ async function handleButtonReply(from: string, action: string, data: string) {
     if (!meeting) return;
 
     // url
-    const url = `${mainRoute}meetings/reschedule/${data}`;
+    const url = `${mainRoute}reschedule/${data}`;
 
     // send url
     await sendWhatsappText(
