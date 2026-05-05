@@ -210,6 +210,12 @@ enum ScaleType {
   PRIVATE
 }
 
+enum RescheduleReason {
+  CLIENT_NO_SHOW
+  CONSULTANT_NO_SHOW
+  OTHER
+}
+
 // models
 model User {
   id            String    @id @default(cuid())
@@ -429,6 +435,7 @@ model Order {
   scaleResponses ScaleResponse[]
   package        Package?        @relation(fields: [packageId], references: [id])
   orderMessages  OrderMessage[]
+  reschedules    Reschedule[]
 
   @@map("orders")
 }
@@ -672,12 +679,14 @@ model Meeting {
   date     String
   duration String
   session  Int
+  checked  Boolean @default(false)
 
   // @relations
   orderId      Int
   orders       Order         @relation(fields: [orderId], references: [oid])
   participants Participant[]
   rooms        Room?
+  reschedules  Reschedule[]
 
   @@unique([orderId, session])
   @@map("meetings")
@@ -1079,4 +1088,25 @@ model OrderMessage {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("order_messages")
+}
+
+model Reschedule {
+  id        String @id @default(cuid())
+  orderId   Int
+  meetingId String
+
+  reason RescheduleReason
+
+  oldDate DateTime
+  newDate DateTime?
+
+  createdAt DateTime @default(now())
+
+  // relations
+  order   Order   @relation(fields: [orderId], references: [oid])
+  meeting Meeting @relation(fields: [meetingId], references: [mid])
+
+  @@index([orderId])
+  @@index([meetingId])
+  @@map("reschedules")
 }
