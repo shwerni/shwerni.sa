@@ -19,7 +19,11 @@ import {
 } from "@/lib/notifications";
 
 // types
-import { RescheduleReason, SessionType } from "@/lib/generated/prisma/enums";
+import {
+  PaymentState,
+  RescheduleReason,
+  SessionType,
+} from "@/lib/generated/prisma/enums";
 
 // done confirm
 export const meetingDone = async (mid: string) => {
@@ -104,7 +108,7 @@ export const rescheduleMeeting = async (
 export const checkReschedule = async (mid: string) => {
   // checked to true and get meeting
   const meeting = await prisma.meeting.update({
-    where: { mid },
+    where: { mid, orders: { payment: { payment: PaymentState.PAID } } },
     data: { checked: true },
     include: {
       orders: {
