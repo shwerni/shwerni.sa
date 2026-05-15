@@ -38,6 +38,7 @@ import {
   CirclePercent,
   CheckCheck,
   LibraryBig,
+  LayoutGrid
 } from "lucide-react";
 
 // react icons
@@ -212,6 +213,12 @@ export const cdashboard: Link[] = [
     label: "الباقات",
     link: "/packages",
     icon: LibraryBig,
+    status: true,
+  },
+  {
+    label: "التخصصات الدقيقة",
+    link: "/specialty",
+    icon: LayoutGrid,
     status: true,
   },
   {

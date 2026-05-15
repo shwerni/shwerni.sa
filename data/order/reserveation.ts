@@ -1120,3 +1120,26 @@ export const UpdateConsultationAnswer = async (oid: number, answer: string) => {
     return null;
   }
 };
+
+// past 3 days paid orders
+export const getPaidPast3Days = async () => {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - 3);
+
+  const orders = await prisma.order.findMany({
+    where: {
+      created_at: { gte: start },
+      payment: { payment: "PAID" },
+    },
+    select: {
+      id: true,
+      name: true,
+      consultant: { select: { name: true, category: true } },
+    },
+    orderBy: { created_at: "desc" },
+    take: 30,
+  });
+
+  return orders;
+};

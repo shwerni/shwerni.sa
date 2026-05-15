@@ -9,10 +9,13 @@ import Reviews from "@/components/clients/home/reviews/reviews";
 import InstantList from "@/components/clients/home/instant/instant-list";
 import Statistics from "@/components/clients/home/statistics/statistics";
 import Consultants from "@/components/clients/home/consultant/consultants";
+import { OrderNotification } from "./notification/notification-lazy";
 
 const Home = async () => {
   return (
     <>
+      {/* order notification */}
+      <OrderNotification />
       {/* hero */}
       <Hero />
       {/* categories */}
