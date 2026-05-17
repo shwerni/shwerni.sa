@@ -26,7 +26,7 @@ import { orderInfoLabel } from "@/utils";
 import { dateToString } from "@/utils/date";
 import { aboveAndLowerTime, dateTimeToString } from "@/utils/time";
 
-import { PaymentState } from "@/lib/generated/prisma/enums";
+import { PaymentState, UserRole } from "@/lib/generated/prisma/enums";
 
 import { ReservationFormType, reservationSchema } from "@/schemas";
 
@@ -95,7 +95,6 @@ export const reserveConsultant = async (
         consultantId: data.cid,
         name: clinetName,
         phone: clientPhone,
-        description: data.notes,
         type: data.type,
         meeting: {
           create: {
@@ -153,6 +152,16 @@ export const reserveConsultant = async (
         },
       },
     });
+
+    if (data.notes && data.notes.trim().length > 0)
+      await prisma.orderMessage.create({
+        data: {
+          content: data.notes.trim(),
+          sender: UserRole.USER,
+          orderId: order.oid,
+          meetingId: order.meeting[0].mid,
+        },
+      });
 
     // return
     return order;
@@ -439,6 +448,10 @@ export const getAllPaidOwnersOrdersByAuthor = async (author: string) => {
             participants: true,
           },
         },
+        orderMessages: {
+          take: 1,
+          orderBy: { createdAt: "asc" },
+        },
         consultant: {
           select: {
             phone: true,
@@ -577,6 +590,10 @@ export const getPaidOwnersOrdersByAuthorAndMonth = async (
           include: {
             participants: true,
           },
+        },
+        orderMessages: {
+          take: 1,
+          orderBy: { createdAt: "asc" },
         },
         consultant: {
           select: {
@@ -1080,47 +1097,6 @@ export const cancelOrders = async (deadline: Date) => {
   }
 };
 
-// consultation answer
-export const UpdateConsultationAnswer = async (oid: number, answer: string) => {
-  try {
-    // answer initial state
-    await prisma.order.findUnique({
-      where: { oid },
-      select: {
-        oid: true,
-        phone: true,
-        name: true,
-        consultant: true,
-        answer: true,
-      },
-    });
-    // update order's answer
-    await prisma.order.update({
-      where: {
-        oid,
-      },
-      data: { answer },
-      select: {
-        oid: true,
-      },
-    });
-    // if answer doesn't exist already
-    // if (iAnswer && !iAnswer?.answer) {
-    //   // send whatsapp notification
-    //   orderBriefNotification(
-    //     oid,
-    //     iAnswer.phone,
-    //     iAnswer.name,
-    //     iAnswer.consultant
-    //   );
-    // }
-    // return
-    return true;
-  } catch {
-    return null;
-  }
-};
-
 // past 3 days paid orders
 export const getPaidPast3Days = async () => {
   const start = new Date();
@@ -1130,7 +1106,7 @@ export const getPaidPast3Days = async () => {
   const orders = await prisma.order.findMany({
     where: {
       created_at: { gte: start },
-      payment: { payment: "PAID" },
+      payment: { payment: PaymentState.PAID },
     },
     select: {
       id: true,

@@ -7,6 +7,7 @@ import {
   OnlineStatus,
   OrderType,
   PaymentState,
+  UserRole,
 } from "@/lib/generated/prisma/enums";
 import { InstantFormType, instantSchema } from "@/schemas";
 import { checkMeetingTimeConflict } from "./order/reserveation";
@@ -206,7 +207,6 @@ export const reserveInstant = async (
         consultantId: data.cid,
         name: data.name,
         phone: data.phone,
-        description: data.notes,
         type: OrderType.INSTANT,
         meeting: {
           create: {
@@ -251,6 +251,16 @@ export const reserveInstant = async (
         },
       },
     });
+
+    if (data.notes && data.notes.trim().length > 0)
+      await prisma.orderMessage.create({
+        data: {
+          content: data.notes.trim(),
+          sender: UserRole.USER,
+          orderId: order.oid,
+          meetingId: order.meeting[0].mid,
+        },
+      });
 
     // deactivate online state
     await broadcastConsultantBusy(order.consultant.userId);

@@ -412,3 +412,18 @@ export const notificationConfirmRescheduling = async (
     text: [order.consultant.name, order.oid, label],
   });
 };
+
+// notify user of chat message
+export const notificationNewChatMessage = async (
+  receiver: string,
+  sender: string,
+  oid: number,
+  session: number,
+  url: string,
+) => {
+  // send to receiver
+  await sendWhatsappTemplate(receiver, "session_chat_notify", {
+    text: [sender, `${session} - #${oid} `],
+    url: [url],
+  });
+};

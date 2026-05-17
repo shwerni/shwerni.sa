@@ -1,6 +1,3 @@
-// React & Next
-import React from "react";
-
 // components
 import {
   Card,
@@ -16,9 +13,10 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
+import CopyButton from "@/components/shared/copy-button";
 import { OrderStatus } from "@/components/legacy/layout/zStatus";
 import PayBtn from "@/components/legacy/layout/orderCard/payButton";
-import OrderReason from "@/components/legacy/layout/orderCard/brief";
+import OrderReason from "@/components/legacy/layout/orderCard/chat";
 import RefundBtn from "@/components/legacy/layout/orderCard/refundButton";
 
 // prisma types
@@ -34,7 +32,6 @@ import { Reservation } from "@/types/admin";
 
 // icons
 import { CircleCheck } from "lucide-react";
-import CopyButton from "@/components/shared/copy-button";
 
 // Props
 interface Props {
@@ -62,13 +59,17 @@ export default function OrderCard({ order, owner, time }: Props) {
   //  payment
   const payment = order.payment;
 
-  // meeting url
-  const url = meetingUrl(
-    meeting?.[0].mid || "",
+  // message
+  const firstMessage = order.orderMessages?.[0]?.content || null;
+
+  // participant
+  const participant =
     meeting?.[0].participants.find(
       (i) => i.role === (owner ? UserRole.OWNER : UserRole.USER),
-    )?.participant || "",
-  );
+    )?.participant || "";
+
+  // meeting url
+  const url = meetingUrl(meeting?.[0].mid || "", participant);
 
   // return
   if (payment && meeting)
@@ -133,12 +134,9 @@ export default function OrderCard({ order, owner, time }: Props) {
                   <Separator className="my-3" />
                   {/* order description */}
                   <OrderReason
-                    oid={order.oid}
-                    owner={owner}
-                    name={order.name}
-                    consultant={order.consultant.name}
-                    description={order.description}
-                    answer={order.answer}
+                    mid={meeting?.[0].mid || ""}
+                    firstMessage={firstMessage}
+                    participantId={participant}
                   />
                 </>
               </CardContent>
@@ -170,12 +168,9 @@ export default function OrderCard({ order, owner, time }: Props) {
                   <div className="col-span-2 w-full">
                     {/* order description */}
                     <OrderReason
-                      oid={order.oid}
-                      owner={owner}
-                      name={order.name}
-                      consultant={order.consultant.name}
-                      description={order.description}
-                      answer={order.answer}
+                      mid={meeting?.[0].mid || ""}
+                      firstMessage={firstMessage}
+                      participantId={participant}
                     />
                   </div>
                 </div>

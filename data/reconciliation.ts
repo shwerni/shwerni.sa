@@ -1,7 +1,13 @@
 "use server";
 
 import prisma from "@/lib/database/db";
-import { Gender, OrderType, PaymentState, Relation } from "@/lib/generated/prisma/enums";
+import {
+  Gender,
+  OrderType,
+  PaymentState,
+  Relation,
+  UserRole,
+} from "@/lib/generated/prisma/enums";
 import { orderInfoLabel } from "@/utils";
 import { getTaxCommission } from "./admin/settings/finance";
 
@@ -42,7 +48,6 @@ export const reserveReconciliation = async (
         consultantId: 213,
         name,
         phone,
-        description,
         type: OrderType.SCHEDULED,
         reconciliation: {
           create: {
@@ -75,6 +80,17 @@ export const reserveReconciliation = async (
         ],
       },
     });
+
+    // if (description && description.trim().length > 0)
+    //   await prisma.orderMessage.create({
+    //     data: {
+    //       content: description.trim(),
+    //       sender: UserRole.USER,
+    //       orderId: order.oid,
+    //       meetingId: order.meeting[0].mid,
+    //     },
+    //   });
+
     // return
     return order;
   } catch {

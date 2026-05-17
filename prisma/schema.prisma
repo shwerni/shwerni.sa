@@ -411,8 +411,6 @@ model Order {
   consultantId   Int
   programId      Int?
   collaboratorId String?
-  description    String?
-  answer         String?
   gift           Boolean     @default(false)
   session        SessionType @default(ONCE)
   sessionCount   Int         @default(1)
@@ -682,11 +680,13 @@ model Meeting {
   checked  Boolean @default(false)
 
   // @relations
-  orderId      Int
-  orders       Order         @relation(fields: [orderId], references: [oid])
-  participants Participant[]
-  rooms        Room?
-  reschedules  Reschedule[]
+  orderId       Int
+  orders        Order          @relation(fields: [orderId], references: [oid])
+  participants  Participant[]
+  rooms         Room?
+  reschedules   Reschedule[]
+  orderMessages OrderMessage[]
+  blocked       Boolean        @default(false)
 
   @@unique([orderId, session])
   @@map("meetings")
@@ -1079,14 +1079,24 @@ model Package {
 
 model OrderMessage {
   id        String   @id @default(cuid())
-  orderId   String
   content   String   @db.Text
   sender    UserRole
   createdAt DateTime @default(now())
 
-  // @relations
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   Int
+  meetingId String
 
+  fileUrl  String?
+  fileType String?
+  fileName String?
+  blocked  Boolean @default(false)
+
+  // @relations
+  order   Order   @relation(fields: [orderId], references: [oid], onDelete: Cascade)
+  meeting Meeting @relation(fields: [meetingId], references: [mid], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([meetingId])
   @@map("order_messages")
 }
 
