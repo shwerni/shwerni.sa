@@ -19,6 +19,7 @@ import {
   Goal,
   Scale,
   ShieldCheck,
+  Sparkles,
   Users,
   Zap,
 } from "lucide-react";
@@ -90,6 +91,7 @@ const Categories = () => {
       <Title title="تلائم أهدافك وتحقق نتائجك" subTitle="مجالات واسعة" />
       {/* event card 
        <EventCard /> */}
+      <EventCardSN />
       {/* cards */}
       {/* handle better instead of just hide */}
       <div className="hidden md:block space-y-5">
@@ -340,6 +342,52 @@ function EventCard() {
             "linear-gradient(90deg, transparent, #6366f1, transparent)",
         }}
       />
+    </div>
+  );
+}
+
+function EventCardSN() {
+  return (
+    <div
+      className="mx-5 rounded-2xl bg-[#0794551a] px-6 py-5 flex items-center justify-between gap-4"
+      dir="rtl"
+    >
+      {/* icon + text */}
+      <div className="flex items-center gap-4">
+        <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
+          <Sparkles className="w-6 h-6 text-slate-800" />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          {/* badge */}
+          <div className="flex items-center gap-1.5 bg-gray-100 rounded-full px-3 py-0.5 w-fit">
+            <Clock className="w-3 h-3 text-slate-800" />
+            <span className="text-xs font-medium text-slate-800">
+              عرض لفترة محدودة
+            </span>
+          </div>
+
+          {/* title */}
+          <p className="text-slate-800 font-semibold text-base leading-tight">
+            استشارتك مع الدكتورة عفاف
+          </p>
+
+          {/* price */}
+          <p className="text-slate-700 text-sm">
+            <span className="text-slate-800 font-bold text-xl">69 ريال</span> فقط ·
+            شامل الضريبة
+          </p>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <LinkButton
+        href="/consultants/36"
+        className="shrink-0 flex items-center gap-1.5 bg-[#34BE8F] text-white font-semibold text-sm px-5 py-2.5 rounded-xl"
+      >
+        احجز الآن
+        <ArrowLeft className="w-4 h-4" />
+      </LinkButton>
     </div>
   );
 }

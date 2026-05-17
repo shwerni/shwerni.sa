@@ -13,6 +13,9 @@ import { getFinanceConfig } from "@/data/admin/settings/finance";
 
 // lib
 import { userServer } from "@/lib/auth/server";
+import Packages from "./packages";
+import { getConsultantsPackages } from "@/data/packages";
+import { Clock, Tag } from "lucide-react";
 
 // props
 interface Props {
@@ -36,6 +39,9 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
   // get finance
   const finance = await getFinanceConfig();
 
+  // packages
+  const packages = await getConsultantsPackages(cid, true);
+
   // get user wallet
   // const wallet = await getWalletByAuthor(user?.id ?? "");
 
@@ -49,6 +55,7 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
 
   // cost
   // if (isDiscount) cost[30] = 77.3;
+  if (cid === 36) cost[30] = 60;
 
   return (
     <div className="max-w-6xl mx-auto py-5 space-y-8">
@@ -58,6 +65,8 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
           <DiscountBadge />
         </div>
       )} */}
+      {cid === 36 && <SpecialOffer />}
+
       {/* reservation */}
       <Reservation
         cid={cid}
@@ -68,6 +77,7 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
         unavailable={[...unavailable]}
         collaboration={collaboration}
       />
+      {/* <Packages packages={packages} costs={cost} /> */}
       {/* review */}
       <AddYourReview
         cid={cid}
@@ -80,3 +90,29 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
 };
 
 export default ConsultantReserve;
+
+function SpecialOffer() {
+  return (
+    <div className="flex flex-col items-center gap-2 py-2" dir="rtl">
+      {/* limited time badge */}
+      <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-full px-3.5 py-1">
+        <Clock className="w-3.5 h-3.5 text-blue-700" />
+        <span className="text-xs font-semibold text-theme">
+          عرض لفترة محدودة
+        </span>
+      </div>
+
+      {/* title */}
+      <p className="text-lg font-bold text-slate-800 text-center">
+        استشارتك مع الدكتورة عفاف
+      </p>
+
+      {/* price row */}
+      <div className="flex items-center gap-2">
+        <Tag className="w-5 h-5 text-theme" />
+        <span className="text-3xl font-bold text-theme">69 ريال</span>
+        <span className="text-sm text-slate-500">فقط · شامل الضريبة</span>
+      </div>
+    </div>
+  );
+}
