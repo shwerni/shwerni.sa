@@ -13,10 +13,12 @@ export default async function MaqayesPage() {
       {/* Hero */}
       <section className="bg-white border-b border-gray-100 py-12 px-4">
         <div className="max-w-3xl mx-auto text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">المقاييس النفسية والأسرية</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-3">
+            المقاييس النفسية والأسرية
+          </h1>
           <p className="text-gray-500 text-base leading-relaxed max-w-xl mx-auto">
-            أدوات تقييم موثوقة تساعدك على فهم نفسك ومشاعرك بشكل أعمق.
-            أجب على الأسئلة واكتشف نتيجتك فوراً ومجاناً.
+            أدوات تقييم موثوقة تساعدك على فهم نفسك ومشاعرك بشكل أعمق. أجب على
+            الأسئلة واكتشف نتيجتك فوراً ومجاناً.
           </p>
         </div>
       </section>
@@ -24,13 +26,15 @@ export default async function MaqayesPage() {
       {/* Grid */}
       <section className="max-w-4xl mx-auto px-4 py-10">
         {scales.length === 0 ? (
-          <p className="text-center text-gray-400 py-20">لا توجد مقاييس متاحة حالياً.</p>
+          <p className="text-center text-gray-400 py-20">
+            لا توجد مقاييس متاحة حالياً.
+          </p>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2">
             {scales.map((scale) => (
               <Link
                 key={scale.id}
-                href={`/مقاييس/${scale.slug}`}
+                href={`/scales/${scale.slug}`}
                 className="group bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200"
               >
                 <div className="flex items-start justify-between gap-3">
@@ -57,13 +61,20 @@ export default async function MaqayesPage() {
                       viewBox="0 0 24 24"
                       stroke="currentColor"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
                     </svg>
                   </div>
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2">
-                  <span className="text-xs text-blue-600 font-medium">ابدأ المقياس ←</span>
+                  <span className="text-xs text-blue-600 font-medium">
+                    ابدأ المقياس ←
+                  </span>
                 </div>
               </Link>
             ))}
