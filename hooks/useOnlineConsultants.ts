@@ -29,8 +29,10 @@ export function useOnlineConsultants() {
   }, []);
 
   useEffect(() => {
-    fetchList(false);
-
+    void (async () => {
+      await fetchList(false);
+    })();
+    
     const pusher = createPusherClient("guest");
     const channel = pusher.subscribe("public-consultant-status");
 

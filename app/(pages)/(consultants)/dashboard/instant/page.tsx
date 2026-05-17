@@ -26,11 +26,10 @@ const Page: React.FC = async () => {
   // if user not exist
   if (!owner) return <Error404 />;
 
-  return owner.statusA === ConsultantState.PUBLISHED ? (
-    <InstantDashboard userId={user?.id} />
-  ) : (
-    <OwnerIsDisabled owner={owner} />
-  );
+  if (owner.statusA === ConsultantState.PUBLISHED)
+    return <OwnerIsDisabled owner={owner} />;
+
+  return <InstantDashboard userId={user?.id} />;
 };
 
 export default Page;

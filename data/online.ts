@@ -48,6 +48,9 @@ export async function checkIsAnyConsultantOnline(): Promise<boolean> {
   const result = await prisma.$queryRawUnsafe<{ count: bigint }[]>(`
     SELECT COUNT(*) as count FROM consultants c
     WHERE c."online_status" = 'ONLINE'
+    AND c."statusA" = 'PUBLISHED'
+    AND c."approved" = 'APPROVED'
+    AND c."status" = true
     AND NOT ${BUSY_SUBQUERY}
   `);
   return Number(result[0]?.count ?? 0) > 0;
@@ -58,6 +61,9 @@ export async function getOnlineConsultantsList(): Promise<OnlineConsultant[]> {
     SELECT c."userId", c."cid", c."name", c."image", c."gender", c."category", c."rate", c."cost30"
     FROM consultants c
     WHERE c."online_status" = 'ONLINE'
+    AND c."statusA" = 'PUBLISHED'
+    AND c."approved" = 'APPROVED'
+    AND c."status" = true
     AND NOT ${BUSY_SUBQUERY}
   `);
 }
@@ -68,6 +74,9 @@ async function getAvailableCount(): Promise<number> {
   const result = await prisma.$queryRawUnsafe<{ count: bigint }[]>(`
     SELECT COUNT(*) as count FROM consultants c
     WHERE c."online_status" = 'ONLINE'
+    AND c."statusA" = 'PUBLISHED'
+    AND c."approved" = 'APPROVED'
+    AND c."status" = true
     AND NOT ${BUSY_SUBQUERY}
   `);
   return Number(result[0]?.count ?? 0);
