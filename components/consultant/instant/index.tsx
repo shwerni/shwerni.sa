@@ -18,20 +18,28 @@ export default function InstantDashboard({ userId }: { userId: string }) {
   const [countdown, setCountdown] = useState(30);
 
   const popupIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
   const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Clears all timers
   const clearAllTimers = () => {
     if (popupIntervalRef.current) clearInterval(popupIntervalRef.current);
-    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    if (countdownIntervalRef.current)
+      clearInterval(countdownIntervalRef.current);
     if (redirectTimeoutRef.current) clearTimeout(redirectTimeoutRef.current);
   };
 
-  // Opens popup and starts 30s countdown
+  // opens popup and starts 45s countdown
   const openPopup = () => {
+    // 1. Clear any existing timers first to prevent orphaned redirects
+    if (countdownIntervalRef.current)
+      clearInterval(countdownIntervalRef.current);
+    if (redirectTimeoutRef.current) clearTimeout(redirectTimeoutRef.current);
+
     setShowPopup(true);
-    setCountdown(30);
+    setCountdown(45);
 
     // Tick countdown every second
     countdownIntervalRef.current = setInterval(() => {
@@ -39,42 +47,52 @@ export default function InstantDashboard({ userId }: { userId: string }) {
         if (prev <= 1) {
           // Time's up — redirect
           clearAllTimers();
-          router.push("/");
+          router.push("/dashboard");
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
 
-    // Safety redirect after 30s
+    // safety redirect after 45s
     redirectTimeoutRef.current = setTimeout(() => {
       clearAllTimers();
-      router.push("/");
-    }, 30_000);
+      router.push("/dashboard");
+    }, 45_000);
   };
 
   // User confirmed presence
   const handleConfirm = () => {
     // Clear countdown/redirect timers
-    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    if (countdownIntervalRef.current)
+      clearInterval(countdownIntervalRef.current);
     if (redirectTimeoutRef.current) clearTimeout(redirectTimeoutRef.current);
+
+    // 2. CRITICAL FIX: Clear the old popup interval before starting a new one!
+    if (popupIntervalRef.current) clearInterval(popupIntervalRef.current);
 
     setShowPopup(false);
 
-    // Schedule next popup in 2 minutes
-    popupIntervalRef.current = setInterval(() => {
-      openPopup();
-    }, 2 * 60 * 1000);
+    // Schedule next popup in 10 minutes
+    popupIntervalRef.current = setInterval(
+      () => {
+        openPopup();
+      },
+      10 * 60 * 1000,
+    );
   };
 
-  // Start the 2-minute cycle once connected
+  // Start the 10-minute cycle once connected
   useEffect(() => {
     if (!connected) return;
 
-    // First popup after 2 minutes
-    popupIntervalRef.current = setInterval(() => {
-      openPopup();
-    }, 2 * 60 * 1000);
+    // First popup after 10 minutes
+    popupIntervalRef.current = setInterval(
+      () => {
+        openPopup();
+      },
+      10 * 60 * 1000,
+    );
 
     return () => clearAllTimers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,7 +137,9 @@ export default function InstantDashboard({ userId }: { userId: string }) {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
           <div className="flex flex-col items-center space-y-1">
             <Wifi className="w-6 h-6 text-green-500" />
-            <span className="text-sm font-medium text-gray-800">اتصال مباشر</span>
+            <span className="text-sm font-medium text-gray-800">
+              اتصال مباشر
+            </span>
             <p className="text-xs text-gray-500">العملاء يرونك متاحًا</p>
           </div>
 
@@ -217,7 +237,7 @@ export default function InstantDashboard({ userId }: { userId: string }) {
                     stroke="#22c55e"
                     strokeWidth="2.5"
                     strokeDasharray="100"
-                    strokeDashoffset={100 - (countdown / 30) * 100}
+                    strokeDashoffset={100 - (countdown / 45) * 100}
                     strokeLinecap="round"
                     style={{ transition: "stroke-dashoffset 1s linear" }}
                   />
