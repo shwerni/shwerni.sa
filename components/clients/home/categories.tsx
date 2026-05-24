@@ -89,9 +89,9 @@ const Categories = () => {
     <Section className="max-w-5xl mx-auto">
       {/* title */}
       <Title title="تلائم أهدافك وتحقق نتائجك" subTitle="مجالات واسعة" />
-      {/* event card 
-       <EventCard /> */}
-      <EventCardSN />
+      {/* event card */}
+      <EventCard />
+      {/* <EventCardSN /> */}
       {/* cards */}
       {/* handle better instead of just hide */}
       <div className="hidden md:block space-y-5">
@@ -374,8 +374,8 @@ function EventCardSN() {
 
           {/* price */}
           <p className="text-slate-700 text-sm">
-            <span className="text-slate-800 font-bold text-xl">69 ريال</span> فقط ·
-            شامل الضريبة
+            <span className="text-slate-800 font-bold text-xl">69 ريال</span>{" "}
+            فقط · شامل الضريبة
           </p>
         </div>
       </div>
