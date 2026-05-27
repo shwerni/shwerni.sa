@@ -10,6 +10,7 @@ import QuestionContent from "@/components/clients/sub-pages/questions/question";
 // prisma data
 import { getConsultant } from "@/data/consultant";
 import { getQuestionByQid } from "@/data/question";
+import { QuestionState } from "@/lib/generated/prisma/enums";
 
 interface Props {
   params: Promise<{ qid: string }>;
@@ -42,17 +43,14 @@ export default async function QuestionPage({ params }: Props) {
 
   const question = await getQuestionByQid(Number(qid));
 
-  if (!question || question.status !== "PUBLISHED") notFound();
-
-  // fetch consultant only if cid exists
-  const owner = question.cid ? await getConsultant(question.cid) : null;
+  if (!question || question.status !== QuestionState.PUBLISHED) notFound();
 
   return (
     <Section>
       <div className="w-11/12 max-w-3xl mx-auto mb-6">
         <BackButton />
       </div>
-      <QuestionContent question={question} owner={owner ?? undefined} />
+      <QuestionContent question={question} />
     </Section>
   );
 }

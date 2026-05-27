@@ -48,6 +48,16 @@ export const getQuestionByQid = async (qid: number) => {
   try {
     const question = await prisma.question.findFirst({
       where: { qid },
+      include: {
+        consultant: {
+          select: {
+            rate: true,
+            category: true,
+            cid: true,
+            name: true,
+          },
+        },
+      },
     });
     return question;
   } catch {

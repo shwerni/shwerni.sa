@@ -16,25 +16,28 @@ import { findCategory } from "@/utils";
 import { dateToString } from "@/utils/date";
 
 interface Props {
-  question: Question;
-  owner?: Consultant;
+  question: Question & {
+    consultant: Pick<Consultant, "category" | "rate" | "name" | "rate"> | null;
+  };
 }
 
-export default function QuestionContent({ question, owner }: Props) {
+export default function QuestionContent({ question }: Props) {
   // Derived Variables
   const isAnonymous = question.anonymous;
+  const consultant = question.consultant;
+
   const userName = isAnonymous ? "مستخدم مجهول" : question.name || "مستخدم";
   const userInitial = isAnonymous ? <User size={20} /> : userName.charAt(0);
   const questionCategory = question.category
     ? findCategory(question.category)?.category
     : "عام";
 
-  const consultantName = owner?.name || "مستشار غير معروف";
-  
+  const consultantName = consultant?.name || "مستشار غير معروف";
+
   const consultantInitial = consultantName.charAt(0);
 
-  const consultantCategory = owner?.category
-    ? findCategory(owner.category)?.label
+  const consultantCategory = consultant?.category
+    ? findCategory(consultant.category)?.label
     : "مستشار";
 
   return (
@@ -86,7 +89,7 @@ export default function QuestionContent({ question, owner }: Props) {
           {/* Consultant Info */}
           <div className="flex flex-wrap items-center justify-between gap-4 mb-5 pb-5 border-b border-gray-200">
             <Link
-              href={`/consultant/${question.cid}`}
+              href={`/consultant/${question.consultantId}`}
               className="group flex items-center gap-3 transition-opacity hover:opacity-80"
             >
               <div className="flex items-center justify-center w-12 h-12 bg-white border border-gray-200 text-zblue-200 rounded-full font-bold shadow-sm group-hover:border-zblue-200 transition-colors">
@@ -103,10 +106,10 @@ export default function QuestionContent({ question, owner }: Props) {
             </Link>
 
             {/* Consultant Rating */}
-            {!!owner?.rate && owner.rate > 0 && (
+            {!!consultant?.rate && consultant.rate > 0 && (
               <div className="flex flex-col gap-1 items-end">
                 <span className="text-xs text-gray-500">التقييم</span>
-                <Stars rate={owner.rate} />
+                <Stars rate={consultant.rate} />
               </div>
             )}
           </div>

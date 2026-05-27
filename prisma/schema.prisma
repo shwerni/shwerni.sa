@@ -239,6 +239,7 @@ model User {
   collaboration    Collaboration?
   articleLikes     ArticleLike[]
   articleComments  ArticleComment[]
+  questions        Question[]
 
   @@map("users")
 }
@@ -364,6 +365,7 @@ model Consultant {
   specialties              ConsultantSpecialty[]
   articleComments          ArticleComment[]
   packages                 Package[]
+  questions                Question[]
 
   @@index([sort_key])
   @@index([status, statusA, approved, sort_key])
@@ -486,20 +488,30 @@ model Review {
 }
 
 model Question {
-  id          String        @id @default(cuid())
-  qid         Int           @unique @default(autoincrement())
-  created_at  DateTime      @default(now())
-  answered_at DateTime      @default(now())
-  anonymous   Boolean
-  title       String?
+  id          String   @id @default(cuid())
+  qid         Int      @unique @default(autoincrement())
+  likes       Int      @default(0)
+  created_at  DateTime @default(now())
+  answered_at DateTime @default(now())
+
+  // question 
+  title       String
+  description String?
   question    String
-  category    Categories?
   answer      String?
-  cid         Int?
-  name        String?
-  author      String
-  status      QuestionState
-  likes       Int           @default(0)
+  category    Categories?
+
+  //  user
+  name      String?
+  anonymous Boolean
+  status    QuestionState
+
+  // @ relation
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  consultantId Int?
+  consultant   Consultant? @relation(fields: [consultantId], references: [cid], onDelete: SetNull)
 
   @@map("questions")
 }
