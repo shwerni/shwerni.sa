@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import Stars from "../../shared/stars";
 
 // icons
-import { ThumbsUp, User } from "lucide-react";
+import { Calendar, ThumbsUp, User, Users } from "lucide-react";
 
 // types & utils
 import { Consultant, Question } from "@/lib/generated/prisma/client";
@@ -119,10 +119,35 @@ export default function QuestionContent({ question }: Props) {
             <p className="whitespace-pre-line">{question.answer}</p>
           </div>
         </section>
+
+        <div className="mt-8 bg-blue-50/50 rounded-2xl border border-blue-100 p-6 text-center">
+          <h4 className="text-lg font-bold text-gray-900 mb-2">
+            هل تحتاج إلى استشارة مخصصة؟
+          </h4>
+          <p className="text-gray-600 mb-6 text-sm">
+            تحدث مع نخبة من الخبراء واحصل على إجابات وافية تناسب حالتك الخاصة.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/discover"
+              className="w-full sm:w-auto px-6 py-2.5 bg-zblue-200 text-white font-medium rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-sm"
+            >
+              <Calendar size={18} />
+              من متاح قريباً؟
+            </Link>
+            <Link
+              href="/consultants"
+              className="w-full sm:w-auto px-6 py-2.5 bg-white text-gray-700 font-medium rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 shadow-sm"
+            >
+              <Users size={18} />
+              تصفح جميع المستشارين
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* --- FOOTER --- */}
-      <footer className="bg-gray-50 border-t border-gray-100 px-5 py-4 md:px-8 flex flex-row justify-between items-center text-sm text-gray-500">
+      <div className="bg-gray-50 border-t border-gray-100 px-5 py-4 md:px-8 flex flex-row justify-between items-center text-sm text-gray-500">
         <button className="flex items-center gap-2 hover:text-gray-900 transition-colors group">
           <ThumbsUp className="w-5 h-5 text-gray-400 group-hover:text-zblue-200 transition-colors" />
           {question.likes > 0 && (
@@ -135,7 +160,7 @@ export default function QuestionContent({ question }: Props) {
         >
           {dateToString(question.created_at)}
         </time>
-      </footer>
+      </div>
     </article>
   );
 }
