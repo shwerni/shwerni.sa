@@ -79,7 +79,7 @@ export const subMenu: Link[] = [
     label: "سؤال و جواب",
     link: "/questions",
     icon: MessageCircleQuestionIcon,
-    status: false,
+    status: true,
   },
   {
     label: "مناسبات",

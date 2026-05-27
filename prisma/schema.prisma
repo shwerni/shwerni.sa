@@ -499,7 +499,7 @@ model Question {
   name        String?
   author      String
   status      QuestionState
-  likes       Int?          @default(0)
+  likes       Int           @default(0)
 
   @@map("questions")
 }
