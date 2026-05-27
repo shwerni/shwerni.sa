@@ -1,53 +1,46 @@
+// React & Next
 import { notFound } from "next/navigation";
-import { PaymentState } from "@/lib/generated/prisma/enums";
-import prisma from "@/lib/database/db";
+
+// componenets
 import ChatClient from "@/components/clients/chats/chat";
 
-interface PageProps {
+// prisma data
+import { getChatMeeting } from "@/data/chats";
+
+// prisma types
+import { PaymentState } from "@/lib/generated/prisma/enums";
+
+// props
+interface Props {
   params: Promise<{ mid: string }>;
   searchParams: Promise<{ participant?: string }>;
 }
 
-export default async function MeetingChatPage({
-  params,
-  searchParams,
-}: PageProps) {
+export default async function MeetingChatPage({ params, searchParams }: Props) {
+  // mid
   const { mid } = await params;
+
+  // participant id
   const participantId = (await searchParams).participant ?? "";
 
-  const meeting = await prisma.meeting.findUnique({
-    where: { mid },
-    include: {
-      participants: true,
-      orders: {
-        include: {
-          payment: {
-            select: { payment: true },
-          },
-          consultant: {
-            select: {
-              cid: true,
-              name: true,
-              title: true,
-              image: true,
-              gender: true,
-            },
-          },
-        },
-      },
-    },
-  });
+  // get meeting
+  const meeting = await getChatMeeting(mid);
 
+  // validate
   if (!meeting) notFound();
 
+  // validate
   if (meeting.orders.payment?.payment !== PaymentState.PAID) notFound();
 
+  // current participant
   const currentParticipant = meeting.participants.find(
     (p) => p.participant === participantId,
   );
+
+  // validate
   if (!currentParticipant) notFound();
 
-  // ── Shape props for client ────────────────────────────────────────────────
+  // consultant
   const consultant = meeting.orders.consultant;
 
   return (

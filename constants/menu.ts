@@ -38,7 +38,7 @@ import {
   CirclePercent,
   CheckCheck,
   LibraryBig,
-  LayoutGrid
+  LayoutGrid,
 } from "lucide-react";
 
 // react icons
@@ -207,6 +207,12 @@ export const cdashboard: Link[] = [
     label: "المستحقات",
     link: "/dues",
     icon: CreditCard,
+    status: true,
+  },
+  {
+    label: "المحادثات",
+    link: "/chats",
+    icon: MessageSquareMore,
     status: true,
   },
   {

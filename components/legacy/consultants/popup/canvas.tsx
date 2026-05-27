@@ -10,13 +10,19 @@ import { Gender } from "@/lib/generated/prisma/enums";
 // image sources to switch between
 const IMAGES = [
   {
-    src: "/other/ramadan-1447-1.png",
-    color: "black",
-    x: (w: number) => w /1.4,
+    src: "/other/eid1.png",
+    color: "white",
+    x: (w: number) => w / 2,
     y: (h: number) => h - 75,
   },
   {
-    src: "/other/ramadan-1447-2.png",
+    src: "/other/eid2.png",
+    color: "white",
+    x: (w: number) => w / 2,
+    y: (h: number) => h - 400,
+  },
+  {
+    src: "/other/eid3.png",
     color: "white",
     x: (w: number) => w / 2,
     y: (h: number) => h - 100,
@@ -47,28 +53,29 @@ const CanvasCenter: React.FC<Props> = ({ name, gender }) => {
         canvas.height = img.naturalHeight;
         ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
 
-        ctx.font = "bold 50px 'Baloo Bhaijaan 2', 'Poppins'";
+        ctx.font = "bold 75px 'Amiri', serif";
         ctx.strokeStyle = color;
         ctx.lineWidth = 1;
         ctx.fillStyle = color;
         ctx.textAlign = "center";
 
-        const line1 = "شركة المجد للمقاولات العمومية";
-const line2 = "احمد ابوالمجد"; // or just "امل" if you want only the name
+        const line1 =
+          (gender === Gender.MALE ? "المستشار / " : "المستشارة / ") + name;
+        const line2 = "";
 
-const baseX = x(canvas.width);
-const baseY = y(canvas.height);
+        const baseX = x(canvas.width);
+        const baseY = y(canvas.height);
 
-// spacing between lines
-const lineHeight = 60;
+        // spacing between lines
+        const lineHeight = 60;
 
-// first line
-ctx.strokeText(line1, baseX, baseY);
-ctx.fillText(line1, baseX, baseY);
+        // first line
+        ctx.strokeText(line1, baseX, baseY);
+        ctx.fillText(line1, baseX, baseY);
 
-// second line (under it)
-ctx.strokeText(line2, baseX, baseY + lineHeight);
-ctx.fillText(line2, baseX, baseY + lineHeight);
+        // second line (under it)
+        ctx.strokeText(line2, baseX, baseY + lineHeight);
+        ctx.fillText(line2, baseX, baseY + lineHeight);
       };
       img.src = src;
     },
@@ -86,13 +93,13 @@ ctx.fillText(line2, baseX, baseY + lineHeight);
     if (!canvas) return;
     const link = document.createElement("a");
     link.href = canvas.toDataURL("image/png");
-    link.download = `ramadan-kareem-${srcIndex + 1}.png`;
+    link.download = `eid-${srcIndex + 1}.png`;
     link.click();
   };
 
   // switch to next image
-  const handleSwitch = () => {
-    setSrcIndex((prev) => (prev + 1) % IMAGES.length);
+  const handleSwitch = (index: number) => {
+    setSrcIndex(index);
   };
 
   return (
@@ -105,21 +112,33 @@ ctx.fillText(line2, baseX, baseY + lineHeight);
       </div>
 
       <DialogFooter>
-        <div className="flex justify-center gap-3 sm:gap-5 max-w-80 mx-auto flex-wrap">
+        <div className="flex flex-col items-center justify-center gap-3">
           {/* switch image */}
-          <Button onClick={handleSwitch} className="w-32" variant="outline">
-            {srcIndex === 0 ? "التصميم الثاني" : "التصميم الأول"}
-          </Button>
+          <div className="grid grid-cols-3 gap-5">
+            {IMAGES.map((i, index) => (
+              <Button
+                onClick={() => handleSwitch(index)}
+                variant="secondary"
+                key={index}
+              >
+                {index === 0 && "التصميم الأول"}
+                {index === 1 && "التصميم الثاني"}
+                {index === 2 && "التصميم الثالث"}
+              </Button>
+            ))}
+          </div>
 
           {/* download */}
-          <Button onClick={handleDownload} className="w-32" variant="primary">
-            تحميل
-          </Button>
+          <div className="flex items-center gap-5">
+            <Button onClick={handleDownload} className="w-32" variant="primary">
+              تحميل
+            </Button>
 
-          {/* close */}
-          <DialogClose asChild>
-            <Button className="zgreyBtn w-32">غلق</Button>
-          </DialogClose>
+            {/* close */}
+            <DialogClose asChild>
+              <Button className="zgreyBtn w-32">غلق</Button>
+            </DialogClose>
+          </div>
         </div>
       </DialogFooter>
     </>

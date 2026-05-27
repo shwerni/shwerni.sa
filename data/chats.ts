@@ -4,10 +4,12 @@ import { checkMessageWithAI } from "@/lib/api/ai/chat-guard";
 import prisma from "@/lib/database/db";
 
 // prisma types
-import { UserRole } from "@/lib/generated/prisma/enums";
+import { PaymentState, UserRole } from "@/lib/generated/prisma/enums";
 
 // lib
 import { notificationNewChatMessage } from "@/lib/notifications";
+import { timeZone } from "@/lib/site/time";
+import { differenceInHours } from "date-fns";
 
 // create a new message
 interface NewMessage {
@@ -146,6 +148,37 @@ export async function createMeetingMessage(payload: NewMessage) {
   }
 }
 
+export async function getChatMeeting(mid: string) {
+  try {
+    const meeting = await prisma.meeting.findUnique({
+      where: { mid },
+      include: {
+        participants: true,
+        orders: {
+          include: {
+            payment: {
+              select: { payment: true },
+            },
+            consultant: {
+              select: {
+                cid: true,
+                name: true,
+                title: true,
+                image: true,
+                gender: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return meeting;
+  } catch {
+    return null;
+  }
+}
+
 export async function getMeetingData(mid: string) {
   try {
     if (!mid) return;
@@ -242,5 +275,107 @@ export async function toggleUserBlock(mid: string, shouldBlock: boolean) {
   } catch (err) {
     console.error("[TOGGLE_BLOCK]", err);
     return { error: "Internal error" };
+  }
+}
+
+export async function getChatList(author: string, role: UserRole) {
+  try {
+    const isOwner = role === UserRole.OWNER;
+
+    const meetings = await prisma.meeting.findMany({
+      where: {
+        // scope to this user's meetings based on their role
+        orders: isOwner
+          ? {
+              // OWNER → match via consultant's userId
+              consultant: { userId: author },
+              payment: { payment: PaymentState.PAID },
+            }
+          : {
+              // CLIENT → match via order.author
+              author,
+              payment: { payment: PaymentState.PAID },
+            },
+      },
+      include: {
+        participants: true,
+        orderMessages: {
+          where: { blocked: false },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
+        orders: {
+          include: {
+            payment: { select: { payment: true } },
+            consultant: {
+              select: {
+                cid: true,
+                name: true,
+                image: true,
+                gender: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { date: "desc" },
+    });
+
+    const { iso: nowInRiyadh } = timeZone();
+
+    // Keep only meetings within 72h of their scheduled date+time
+    const openMeetings = meetings.filter((m) => {
+      try {
+        const meetingDateTime = new Date(`${m.date}T${m.time}`);
+        if (isNaN(meetingDateTime.getTime())) return false;
+        const diffHours = differenceInHours(nowInRiyadh, meetingDateTime);
+        return diffHours < 100;
+      } catch {
+        return false;
+      }
+    });
+
+    const chats = await Promise.all(
+      openMeetings.map(async (m) => {
+        const unreadCount = await prisma.orderMessage.count({
+          where: {
+            meetingId: m.mid,
+            sender: { not: role },
+            blocked: false,
+          },
+        });
+
+        const lastMessage = m.orderMessages[0] ?? null;
+
+        // find the participant record that belongs to the current user's role
+        const myParticipant = m.participants.find((p) => p.role === role);
+        const otherParticipant = m.participants.find((p) => p.role !== role);
+
+        return {
+          mid: m.mid,
+          session: m.session,
+          date: m.date,
+          time: m.time,
+          orderOid: m.orders.oid,
+          clientName: m.orders.name,
+          consultant: m.orders.consultant,
+          unreadCount,
+          lastMessage: lastMessage
+            ? {
+                content: lastMessage.content,
+                fileType: lastMessage.fileType,
+                createdAt: lastMessage.createdAt,
+                sender: lastMessage.sender,
+              }
+            : null,
+          myParticipantId: myParticipant?.participant ?? null,
+          otherParticipantId: otherParticipant?.participant ?? null,
+        };
+      }),
+    );
+
+    return chats;
+  } catch {
+    return null;
   }
 }
