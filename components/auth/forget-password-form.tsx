@@ -56,7 +56,7 @@ export function ForgetPasswordForm() {
             إعادة تعيين كلمة المرور
           </h1>
           <p className="text-slate-600 text-sm">
-            أدخل بريدك الإلكتروني لإرسال رابط التحقق
+            أدخل رقم هاتفك لإرسال رابط التحقق
           </p>
         </div>
 
