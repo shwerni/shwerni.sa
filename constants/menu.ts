@@ -76,12 +76,6 @@ export const menu: Link[] = [
 // home pagaes
 export const subMenu: Link[] = [
   {
-    label: "سؤال و جواب",
-    link: "/questions",
-    icon: MessageCircleQuestionIcon,
-    status: true,
-  },
-  {
     label: "مناسبات",
     link: "/events",
     icon: CalendarDays,
@@ -146,21 +140,21 @@ export const mainLinks: Link[] = [
 // home sub pagaes
 export const subPages: Link[] = [
   {
-    label: "البرامج",
-    link: "/programs",
-    icon: NotebookText,
-    status: true,
-  },
-  {
     label: "حجز فوري",
     link: "/instant",
     icon: Zap,
     status: true,
   },
   {
-    label: "جلسة توجيهية",
-    link: "/preconsultation",
-    icon: MessageSquareWarning,
+    label: "البرامج",
+    link: "/programs",
+    icon: NotebookText,
+    status: true,
+  },
+  {
+    label: "سؤال و جواب",
+    link: "/questions",
+    icon: MessageCircleQuestionIcon,
     status: true,
   },
   {
@@ -173,6 +167,12 @@ export const subPages: Link[] = [
     label: "جلسة مجانية",
     link: "/freesessions",
     icon: Gift,
+    status: true,
+  },
+  {
+    label: "جلسة توجيهية",
+    link: "/preconsultation",
+    icon: MessageSquareWarning,
     status: true,
   },
 ];
