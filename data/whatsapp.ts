@@ -57,9 +57,7 @@ export async function getWhatsappContact() {
         name: true,
         waid: true,
       },
-      orderBy: {
-        updated_at: "asc",
-      },
+      orderBy: { last_message_at: "desc" },
     });
 
     // validate
@@ -76,16 +74,10 @@ export async function getWhatsappContact() {
 export async function getWhatsappChat(waid: string) {
   try {
     // chat
-    const chat = await prisma.message.findMany({
+    return await prisma.message.findMany({
       where: { chatId: waid },
       orderBy: { time: "asc" },
     });
-
-    // validate
-    if (!chat) return null;
-
-    // return
-    return chat;
   } catch {
     return null;
   }

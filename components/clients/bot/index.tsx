@@ -92,9 +92,26 @@ const MessageBubble = React.memo(({ message }: { message: Message }) => (
 MessageBubble.displayName = "MessageBubble";
 
 const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
+  // check old user
+  const getGuestId = () => {
+    // if cant access local storage
+    if (typeof window === "undefined") return `guest-${nanoid(7)}`;
+
+    // get
+    let id = localStorage.getItem("guest_bot_id");
+
+    // create
+    if (!id) {
+      id = `guest-${nanoid(7)}`;
+      localStorage.setItem("guest_bot_id", id);
+    }
+
+    return id;
+  };
+
   // from
-  const from = `guest-${nanoid(7)}`;
-  
+  const from = getGuestId();
+
   const endRef = useRef<HTMLDivElement | null>(null);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);

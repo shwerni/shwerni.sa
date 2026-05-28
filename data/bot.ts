@@ -8,12 +8,10 @@ import { calculateDues } from "../utils/admin/dues";
 
 export async function BotDetectUser(from: string) {
   try {
-    const data = await prisma.user.findUnique({
+    return await prisma.user.findUnique({
       where: { phone: from },
-      select: { id: true, name: true, role: true },
+      select: { id: true, name: true, role: true, phone: true },
     });
-    // return
-    return data;
   } catch {
     // return
     return null;
@@ -22,12 +20,10 @@ export async function BotDetectUser(from: string) {
 
 export async function BotGetConsultant(userId: string) {
   try {
-    const data = await prisma.consultant.findUnique({
+    return await prisma.consultant.findUnique({
       where: { userId },
       select: { cid: true, name: true, gender: true },
     });
-    // return
-    return data;
   } catch {
     // return
     return null;
@@ -39,9 +35,12 @@ export async function BotGetConsultantData(from: string) {
     // user
     const user = await BotDetectUser(from);
 
+    // validate
+    if (!user?.id) return null;
+
     // data
-    const data = await prisma.consultant.findUnique({
-      where: { userId: user?.id },
+    return await prisma.consultant.findUnique({
+      where: { userId: user.id },
       select: {
         cid: true,
         name: true,
@@ -50,9 +49,6 @@ export async function BotGetConsultantData(from: string) {
         statusA: true,
       },
     });
-
-    // return
-    return data;
   } catch {
     // return
     return null;
@@ -88,17 +84,15 @@ export async function BotConsultantOrder(
     });
 
     // sorted data
-    const sorted = data.sort((a, b) => {
-      const A = a.meeting[0];
-      const B = b.meeting[0];
-      if (!A || !B) return 0;
-      const dateA = `${A.date} ${A.time}`;
-      const dateB = `${B.date} ${B.time}`;
-      return dateA.localeCompare(dateB);
-    });
-
     // return first 3 upcoming
-    return sorted.slice(0, 3);
+    return data
+      .filter((m) => m.meeting[0])
+      .sort((a, b) => {
+        const dateA = `${a.meeting[0].date} ${a.meeting[0].time}`;
+        const dateB = `${b.meeting[0].date} ${b.meeting[0].time}`;
+        return dateA.localeCompare(dateB);
+      })
+      .slice(0, 3);
   } catch {
     // return
     return null;
@@ -111,7 +105,7 @@ export async function BotClientOrder(
   time: string,
 ) {
   try {
-    const data = await prisma.order.findFirst({
+    return await prisma.order.findFirst({
       where: {
         phone: from,
         payment: { payment: PaymentState.PAID },
@@ -132,25 +126,16 @@ export async function BotClientOrder(
       },
       orderBy: { created_at: "asc" },
     });
-
-    // return
-    return data;
   } catch {
     // return
     return null;
   }
 }
 
-export async function BotConsultantDues(from: string, date: string) {
+export async function BotConsultantDues(cid: number, date: string) {
   try {
-    // cid
-    const consultant = await BotGetConsultant(from);
-
-    // validate
-    if (!consultant) return null;
-
     // dues
-    const data = await getDuesOwnenByMonth(date, consultant.cid);
+    const data = await getDuesOwnenByMonth(date, cid);
 
     // validate
     if (!data) return null;
@@ -184,5 +169,19 @@ export async function BotConsultantDues(from: string, date: string) {
   } catch {
     // return
     return null;
+  }
+}
+
+// recent messages
+export async function getRecentMessages(waid: string, limit = 8) {
+  try {
+    return await prisma.message.findMany({
+      where: { chatId: waid },
+      orderBy: { time: "desc" },
+      select: { content: true, from: true, time: true },
+      take: limit,
+    });
+  } catch {
+    return [];
   }
 }

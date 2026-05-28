@@ -1,12 +1,9 @@
 // React & Next
 import { NextResponse } from "next/server";
 
-// lib
-import { AiBot } from "./setup";
-import { sendWhatsappText } from "@/lib/api/whatsapp";
-
 // utils
 import { meetingLabel } from "@/utils/time";
+import { findApprovalState, findConsultantState } from "@/utils";
 
 // prisma data
 import {
@@ -16,16 +13,22 @@ import {
   BotDetectUser,
   BotGetConsultant,
   BotGetConsultantData,
+  getRecentMessages,
 } from "@/data/bot";
-import { telegramAdmin } from "../../telegram/telegram";
+
 import { upsertWhatsappChat } from "@/data/whatsapp";
-import { Gender,  UserRole } from "@/lib/generated/prisma/client";
-import { findApprovalState, findConsultantState } from "@/utils";
-import { timeZone } from "@/lib/site/time";
+
+// auth
 import { User } from "next-auth";
 
-// types
-// type BotMessageType = "GREETING" | "INQUIRY" | "ENDING" | "ACTION";
+// lib
+import { AiBot } from "./setup";
+import { timeZone } from "@/lib/site/time";
+import { sendWhatsappText } from "@/lib/api/whatsapp";
+import { telegramAdmin } from "../../telegram/telegram";
+
+// prisma types
+import { UserRole } from "@/lib/generated/prisma/client";
 
 // actions
 type BotActions =
@@ -34,180 +37,60 @@ type BotActions =
   | "consultant_dues"
   | "consultant_info";
 
-// role session
-const sessionUser = new Map<string, Partial<User>>();
+// support link
+const support = "https://wa.me/966554117879";
 
-// consultant
-const sessionConsultant = new Map<
-  string,
-  { cid: number; name: string; gender: Gender }
->();
+// per-user processing lock — prevents race conditions on rapid messages
+// NOTE: use Redis (e.g. Upstash) instead if running on serverless/multi-instance
+const processingUsers = new Set<string>();
 
-// chat memory
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const userChatHistory = new Map<string, any[]>();
+// ─────────────────────────────────────────────
+// 🔧 SHARED HELPERS
+// ─────────────────────────────────────────────
 
-// max history
-const max = 6;
+// extract json safely from AI response string
+export const oExtractJson = async (text: string) => {
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) return null;
 
-export async function handleBotResponse(
-  fromId: string,
-  from: string,
-  fromName: string,
-  message: string,
-) {
   try {
-    // user
-    let user = sessionUser.get(from);
-
-    // check user
-    if (!user) {
-      // get new user
-      const newUser = await BotDetectUser(from);
-
-      // set new user
-      if (newUser) {
-        sessionUser.set(from, newUser);
-        user = newUser;
-      }
-    }
-
-    // check consultant
-    if (
-      user?.id &&
-      user.role === UserRole.OWNER &&
-      !sessionConsultant.get(from)
-    ) {
-      // get consultant
-      const consultant = await BotGetConsultant(user.id);
-
-      // set consultant
-      if (consultant)
-        sessionConsultant.set(from, {
-          cid: consultant.cid,
-          name: consultant.name,
-          gender: consultant.gender,
-        });
-    }
-
-    // display name
-    const displayName =
-      sessionConsultant.get(from)?.name ||
-      sessionUser.get(from)?.name ||
-      "مستخدم مجهول";
-
-    // store chat message in memory
-    let history = userChatHistory.get(from) || [];
-
-    // push new message
-    history.push({ sender: "user", message });
-
-    // trim old messages
-    if (history.length > max) history = history.slice(-max);
-
-    // save back
-    userChatHistory.set(from, history);
-
-    // build prompt for AI with context
-    const conversation = history
-      .map(
-        (m) =>
-          `${m.sender === "user" ? displayName : "شاورني - bot"}: ${m.message}`,
-      )
-      .join("\n");
-
-    // input
-    const input = JSON.stringify({
-      name: displayName,
-      message: message,
-      role:
-        sessionUser.get(from)?.role === UserRole.OWNER
-          ? UserRole.OWNER
-          : UserRole.USER,
-      conversationhistory: conversation,
-    });
-
-    // get ai replay
-    const botResponse = await AiBot(input);
-
-    // parsed
-    const parsed = (await oExtractJson(botResponse)) || {};
-
-    // replay
-    const { reply, messageType, actionName } = parsed;
-
-    // add bot message to history
-    if (reply) {
-      history.push({ sender: "bot", message: reply });
-      if (history.length > max) history = history.slice(-max);
-      userChatHistory.set(from, history);
-    }
-
-    // If normal message — just reply
-    if (messageType !== "ACTION") {
-      // here
-      await sendWhatsappText(from, reply);
-      // upsert bot message
-      await upsertWhatsappChat(fromId, "966553689116", fromName, reply);
-      // replay
-      return NextResponse.json({}, { status: 200 });
-    }
-
-    // actions
-    let actionResult = "ما فهمت الإجراء المطلوب 🤔";
-
-    // action handler
-    const handler = botActions[actionName as BotActions];
-
-    // get handler
-    if (handler) {
-      try {
-        actionResult = await handler(from);
-      } catch {
-        actionResult = "حدث خطأ أثناء تنفيذ العملية ⚠️";
-      }
-    }
-
-    // send bot reply
-    if (reply) {
-      // send whatsapp
-      await sendWhatsappText(from, reply);
-      // upseert bot message
-      await upsertWhatsappChat(fromId, "966553689116", fromName, reply);
-    }
-
-    if (actionResult) {
-      // send whatsapp
-      await sendWhatsappText(from, actionResult);
-      // upseert bot message
-      await upsertWhatsappChat(fromId, "966553689116", fromName, actionResult);
-    }
-
-    return NextResponse.json({}, { status: 200 });
+    return JSON.parse(match[0]);
   } catch (error) {
-    await sendWhatsappText(
-      from,
-      `حدث خطأ غير متوقع. يرجى المحاولة لاحقاً ⚙️\nالدعم الفني: https://wa.me/966554117879`,
-    );
-    await telegramAdmin(String(error));
-    return NextResponse.json({}, { status: 500 });
+    console.error("Failed to parse JSON from AI response:", error);
+    return null;
   }
+};
+
+// build conversation context string from DB messages
+function buildConversation(
+  messages: { content: string; from: string }[],
+  displayName: string,
+  botPhone = "966553689116",
+) {
+  return messages
+    .map((m) => {
+      const label = m.from === botPhone ? "شاورني - bot" : displayName;
+      return `${label}: ${m.content}`;
+    })
+    .join("\n");
 }
 
-// bot actions
-const botActions: Record<BotActions, (from: string) => Promise<string>> = {
+// ─────────────────────────────────────────────
+// 🤖 BOT ACTIONS (all DB-based, no Maps)
+// ─────────────────────────────────────────────
+
+// FIX: Added the missing `<` to complete the Record type definition
+const botActions: Record<
+  BotActions,
+  (from: string, role?: string, cid?: number) => Promise<string>
+> = {
   // 📅 user meetings
   async user_meeting(from) {
-    // date
     const { date, time } = timeZone();
-
-    // get meeting
     const meeting = await BotClientOrder(from, date, time);
 
-    // validate
     if (!meeting) return "ما عندك جلسات قادمة 📭";
 
-    // return
     return `الجلسات القادمة:\n🗓️ #${meeting.oid}\n${meetingLabel(
       meeting.meeting[0].time,
       meeting.meeting[0].date,
@@ -215,21 +98,14 @@ const botActions: Record<BotActions, (from: string) => Promise<string>> = {
   },
 
   // 💼 consultant meetings
-  async consultant_meetings(from) {
-    // get role
-    if (sessionUser.get(from)?.role !== UserRole.OWNER)
-      return "هذه المعلومات خاصة فقط بالمستشارين 🔒";
+  async consultant_meetings(from, role) {
+    if (role !== UserRole.OWNER) return "هذه المعلومات خاصة فقط بالمستشارين 🔒";
 
-    // date
     const { date, time } = timeZone();
-
-    // get meeting
     const meetings = await BotConsultantOrder(from, date, time);
 
-    // validate
     if (!meetings?.length) return "ما عندك جلسات مجدولة حالياً 📭";
 
-    // meetings lines
     const lines = meetings.map(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (m: any) =>
@@ -239,62 +115,140 @@ const botActions: Record<BotActions, (from: string) => Promise<string>> = {
         )}\n👥 العميل: ${m.name || m.phone}`,
     );
 
-    // return
     return "مواعيدك القادمة:\n" + lines.join("\n\n");
   },
 
-  // 💰 consultant dues
-  async consultant_dues(from) {
-    // get role
-    if (sessionUser.get(from)?.role !== UserRole.OWNER)
-      return "هذه المعلومات خاصة فقط بالمستشارين 🔒";
+  // 💰 consultant dues — cid passed directly, no extra DB lookup
+  async consultant_dues(_from, role, cid) {
+    if (role !== UserRole.OWNER) return "هذه المعلومات خاصة فقط بالمستشارين 🔒";
+    if (!cid) return "ما لقيت بياناتك حالياً ⚙️";
 
-    // date
     const { date } = timeZone();
+    const dues = await BotConsultantDues(cid, date);
 
-    // get dues
-    const dues = await BotConsultantDues(from, date);
-
-    // validate
     if (!dues) return "ما لقيت بياناتك حالياً ⚙️";
 
     return `💰 مستحقاتك لهذا الشهر: ${dues} ريال سعودي`;
   },
 
-  // 🧾 consultant info (placeholder)
-  async consultant_info(from) {
-    // get role
-    if (sessionUser.get(from)?.role !== UserRole.OWNER)
-      return "هذه المعلومات خاصة فقط بالمستشارين 🔒";
+  // 🧾 consultant info
+  async consultant_info(from, role) {
+    if (role !== UserRole.OWNER) return "هذه المعلومات خاصة فقط بالمستشارين 🔒";
 
-    // get data
     const consultant = await BotGetConsultantData(from);
-
-    // validate
     if (!consultant) return "ما لقيت بياناتك حالياً ⚙️";
 
-    // label
     const genderLabel = consultant.gender === "MALE" ? "المستشار" : "المستشارة";
-
-    // link
     const link = `https://shwerni.sa/consultant/${consultant.cid}`;
 
-    // return
-    return `${genderLabel} ${consultant.name}\nرقم المستشار: #${
-      consultant.cid
-    }\n🔗 رابط الملف:\n ${link}\n\n📁 حالة اعتماد الملف:\n ${
-      findApprovalState(consultant.approved)?.label
-    }\n\n⚙️ حالة الحساب:\n ${findConsultantState(consultant.statusA)?.label}`;
+    // FIX: Cleaned up the template literal formatting for better readability
+    return `${genderLabel} ${consultant.name}\nرقم المستشار: #${consultant.cid}\n🔗 رابط الملف:\n ${link}\n\n📁 حالة اعتماد الملف:\n ${findApprovalState(consultant.approved)?.label}\n\n⚙️ حالة الحساب:\n ${findConsultantState(consultant.statusA)?.label}`;
   },
 };
 
-// extract
-export const oExtractJson = async (text: string) => {
-  // match json
-  const match = text.match(/\{[\s\S]*\}/);
-  // extract json
-  return match ? JSON.parse(match[0]) : null;
-};
+// ─────────────────────────────────────────────
+// 📲 WHATSAPP BOT HANDLER
+// ─────────────────────────────────────────────
+
+export async function handleBotResponse(
+  fromId: string,
+  from: string,
+  fromName: string,
+  message: string,
+) {
+  // prevent duplicate processing if user sends rapidly
+  if (processingUsers.has(from)) return NextResponse.json({}, { status: 200 });
+
+  processingUsers.add(from);
+
+  try {
+    // detect user + consultant from DB on every request (no in-memory session)
+    const user = await BotDetectUser(from);
+
+    let consultant = null;
+    if (user?.id && user.role === UserRole.OWNER) {
+      // fetch in parallel with history load below
+      consultant = await BotGetConsultant(user.id);
+    }
+
+    // display name
+    const displayName =
+      consultant?.name || user?.name || fromName || "مستخدم مجهول";
+
+    // load recent history from DB
+    const rawMessages = await getRecentMessages(from, 8);
+
+    // reverse — DB returns desc, we need asc for conversation flow
+    const history = rawMessages.reverse();
+
+    // build conversation context for AI
+    const conversation = buildConversation(history, displayName);
+
+    // build AI input
+    const input = JSON.stringify({
+      name: displayName,
+      message,
+      role: user?.role === UserRole.OWNER ? UserRole.OWNER : UserRole.USER,
+      conversationhistory: conversation,
+    });
+
+    // get ai reply
+    const botResponse = await AiBot(input);
+
+    // parse safely
+    const parsed = (await oExtractJson(botResponse)) || {};
+    const { reply, messageType, actionName } = parsed;
+
+    // if normal message — just reply
+    if (messageType !== "ACTION") {
+      if (reply) {
+        await sendWhatsappText(from, reply);
+        await upsertWhatsappChat(fromId, "966553689116", fromName, reply);
+      }
+      return NextResponse.json({}, { status: 200 });
+    }
+
+    // handle action
+    let actionResult = "ما فهمت الإجراء المطلوب 🤔";
+    const handler = botActions[actionName as BotActions];
+
+    if (handler) {
+      try {
+        // pass role + cid so dues action avoids a redundant DB lookup
+        actionResult = await handler(from, user?.role, consultant?.cid);
+      } catch {
+        actionResult = "حدث خطأ أثناء تنفيذ العملية ⚠️";
+      }
+    }
+
+    // send bot reply + action result
+    if (reply) {
+      await sendWhatsappText(from, reply);
+      await upsertWhatsappChat(fromId, "966553689116", fromName, reply);
+    }
+
+    if (actionResult) {
+      await sendWhatsappText(from, actionResult);
+      await upsertWhatsappChat(fromId, "966553689116", fromName, actionResult);
+    }
+
+    return NextResponse.json({}, { status: 200 });
+  } catch (error) {
+    await sendWhatsappText(
+      from,
+      `حدث خطأ غير متوقع. يرجى المحاولة لاحقاً ⚙️\nالدعم الفني: ${support}`,
+    );
+    await telegramAdmin(String(error));
+    return NextResponse.json({}, { status: 500 });
+  } finally {
+    // always release the lock
+    processingUsers.delete(from);
+  }
+}
+
+// ─────────────────────────────────────────────
+// 💬 WEBSITE CHAT BOT HANDLER
+// ─────────────────────────────────────────────
 
 export async function handleBotReply(
   fromId: string,
@@ -302,82 +256,69 @@ export async function handleBotReply(
   user: User | undefined,
   displayName: string,
 ) {
+  // prevent duplicate processing if user sends rapidly
+  if (processingUsers.has(fromId)) return null;
+
+  processingUsers.add(fromId);
+
   try {
-    // store chat message in memory
-    let history = userChatHistory.get(fromId) || [];
+    // load recent history from DB (replaces in-memory Map)
+    const rawMessages = await getRecentMessages(fromId, 8);
 
-    // push new message
-    history.push({ sender: "user", message });
+    // reverse — DB returns desc, we need asc for conversation flow
+    const history = rawMessages.reverse();
 
-    // trim old messages
-    if (history.length > max) history = history.slice(-max);
+    // build conversation context for AI
+    const conversation = buildConversation(history, displayName);
 
-    // save back
-    userChatHistory.set(fromId, history);
-
-    // build prompt for AI with context
-    const conversation = history
-      .map(
-        (m) =>
-          `${m.sender === "user" ? displayName : "شاورني - bot"}: ${m.message}`,
-      )
-      .join("\n");
-
-    // input
+    // build AI input
     const input = JSON.stringify({
       name: displayName,
-      message: message,
+      message,
       role: user?.role === UserRole.OWNER ? UserRole.OWNER : UserRole.USER,
       conversationhistory: conversation,
     });
 
-    // get ai replay
+    // get ai reply
     const botResponse = await AiBot(input);
 
-    // parsed
+    // parse safely
     const parsed = (await oExtractJson(botResponse)) || {};
-
-    // replay
     const { reply, messageType, actionName } = parsed;
 
-    // add bot message to history
-    if (reply) {
-      history.push({ sender: "bot", message: reply });
-      if (history.length > max) history = history.slice(-max);
-      userChatHistory.set(fromId, history);
-    }
-
-    // If normal message — just reply
+    // if normal message — just reply
     if (messageType !== "ACTION") {
-      // upsert bot message
-      await upsertWhatsappChat(fromId, "966553689116", displayName, reply);
-      // replay
+      if (reply) {
+        await upsertWhatsappChat(fromId, "966553689116", displayName, reply);
+      }
       return reply;
     }
 
-    // actions
-    let actionResult = "ما فهمت الإجراء المطلوب 🤔";
+    // resolve consultant cid if OWNER (avoid redundant lookup in action)
+    let consultantCid: number | undefined;
+    if (user?.role === UserRole.OWNER && user?.id) {
+      const consultant = await BotGetConsultant(user.id);
+      consultantCid = consultant?.cid;
+    }
 
-    // action handler
+    // handle action
+    let actionResult = "ما فهمت الإجراء المطلوب 🤔";
     const handler = botActions[actionName as BotActions];
 
-    // get handler
     if (handler) {
       try {
-        actionResult = await handler(fromId);
+        actionResult = await handler(fromId, user?.role, consultantCid);
       } catch {
         actionResult = "حدث خطأ أثناء تنفيذ العملية ⚠️";
       }
     }
 
-    // send bot reply
+    // persist both messages
     if (reply) {
-      // upseert bot message
       await upsertWhatsappChat(fromId, "966553689116", displayName, reply);
     }
 
     if (actionResult) {
-      // upseert bot message
       await upsertWhatsappChat(
         fromId,
         "966553689116",
@@ -386,9 +327,13 @@ export async function handleBotReply(
       );
     }
 
-    return reply;
+    // return combined or action result if reply is empty
+    return reply ? `${reply}\n\n${actionResult}` : actionResult;
   } catch (error) {
     await telegramAdmin(String(error));
-    return `حدث خطأ غير متوقع. يرجى المحاولة لاحقاً ⚙️\nالدعم الفني: https://wa.me/966554117879`;
+    return `حدث خطأ غير متوقع. يرجى المحاولة لاحقاً ⚙️\nالدعم الفني: ${support}`;
+  } finally {
+    // always release the lock
+    processingUsers.delete(fromId);
   }
 }
