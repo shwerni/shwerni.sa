@@ -1,5 +1,4 @@
 "use server";
-import { nanoid } from "nanoid";
 import { checkBotLimit } from "@/data/admin/bot";
 import { upsertWhatsappChat } from "@/data/whatsapp";
 import { handleBotReply } from "./bot";
@@ -8,14 +7,15 @@ import { User } from "next-auth";
 
 export async function SendChatBot(
   message: string,
+  from: string,
   user?: User,
   consultant?: Pick<Consultant, "name" | "cid" | "gender">,
 ) {
-  // from
-  const from = user?.phone || `guest-${nanoid(7)}`;
+  // if user exist
+  if (user) from = user?.phone;
 
   // name
-  const name = consultant?.name || user?.name || "مستخدم مجهول";
+  const name = consultant?.name || user?.name || from || "ضيف جديد";
 
   // allowed
   const allowed = await checkBotLimit(from);

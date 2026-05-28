@@ -22,6 +22,7 @@ import { timeZone } from "@/lib/site/time";
 import { toast } from "@/components/shared/toast";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { verifyRecaptcha } from "@/lib/api/recaptcha";
+import { nanoid } from "nanoid";
 
 // linkify
 const linkifyOptions = {
@@ -91,6 +92,9 @@ const MessageBubble = React.memo(({ message }: { message: Message }) => (
 MessageBubble.displayName = "MessageBubble";
 
 const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
+  // from
+  const from = `guest-${nanoid(7)}`;
+  
   const endRef = useRef<HTMLDivElement | null>(null);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -170,7 +174,7 @@ const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
       setMessages((prev) => [...prev, userMessage, typingMessage]);
       setInput("");
 
-      const reply = await SendChatBot(input);
+      const reply = await SendChatBot(input, from);
       setMessages((prev) =>
         prev.map((m) =>
           m.loading
@@ -199,7 +203,7 @@ const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
     } finally {
       setIsSending(false);
     }
-  }, [executeRecaptcha, input, isSending, setMessages]);
+  }, [executeRecaptcha, from, input, isSending, setMessages]);
 
   // Allow Enter to send (Shift+Enter for newline)
   const handleKeyDown = React.useCallback(
