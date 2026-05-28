@@ -16,39 +16,29 @@ export async function upsertWhatsappChat(
     // time now
     const { iso: originDate } = timeZone();
 
-    // find existing chat by phone
-    const chat = await prisma.waChat.findUnique({
+    await prisma.waChat.upsert({
       where: { waid },
+      update: {
+        name,
+        last_message_at: originDate,
+      },
+      create: {
+        waid,
+        phone,
+        name,
+        last_message_at: originDate,
+      },
+      include: { messages: true },
     });
 
-    if (!chat) {
-      // if chat doesn't exist, create chat and message
-      await prisma.waChat.create({
-        data: {
-          waid,
-          phone,
-          name,
-          messages: {
-            create: {
-              content,
-              time: originDate,
-              from: phone,
-            },
-          },
-        },
-        include: { messages: true },
-      });
-    } else {
-      // if chat exists, just add message
-      await prisma.message.create({
-        data: {
-          chatId: waid,
-          time: originDate,
-          content,
-          from: phone,
-        },
-      });
-    }
+    await prisma.message.create({
+      data: {
+        chatId: waid,
+        time: originDate,
+        content,
+        from: phone,
+      },
+    });
 
     // return
     return true;

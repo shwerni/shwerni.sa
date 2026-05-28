@@ -653,15 +653,16 @@ model FreeSession {
 }
 
 model WaChat {
-  id         String    @id @default(cuid())
-  waid       String    @unique
-  name       String
-  phone      String    @unique
-  created_at DateTime  @default(now())
-  updated_at DateTime? @default(now()) @updatedAt
-
+  id              String    @id @default(cuid())
+  waid            String    @unique
+  name            String
+  phone           String    @unique
+  created_at      DateTime  @default(now())
+  updated_at      DateTime? @default(now()) @updatedAt
+  last_message_at DateTime  @default(now())
+  
   // @relations
-  messages Message[]
+  messages        Message[]
 
   @@map("wa_chats")
 }
