@@ -1139,4 +1139,5 @@ model WaDebounce {
   lastMsgAt BigInt
   queue     String   @default("[]")
   updatedAt DateTime @updatedAt
+  @@map("wa-debounce")
 }

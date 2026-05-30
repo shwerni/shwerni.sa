@@ -20,7 +20,7 @@ export async function enqueueMessage(
   // - If row exists: UPDATE lastMsgAt + APPEND text to existing queue array
   // PostgreSQL json_agg + json_array_elements_text handles the array merge
   await prisma.$executeRaw`
-    INSERT INTO "WhatsappDebounce" (phone, "lastMsgAt", queue, "updatedAt")
+    INSERT INTO "wa-debounce" (phone, "lastMsgAt", queue, "updatedAt")
     VALUES (
       ${safePhone},
       ${now},
@@ -33,7 +33,7 @@ export async function enqueueMessage(
       queue = (
         SELECT COALESCE(json_agg(val)::text, '[]')
         FROM (
-          SELECT json_array_elements_text("WhatsappDebounce".queue::json) AS val
+          SELECT json_array_elements_text("wa-debounce".queue::json) AS val
           UNION ALL
           SELECT ${safeText}
         ) combined
