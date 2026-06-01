@@ -289,7 +289,7 @@ export const defaultMetaApi: Metadata = {
   },
 
   verification: {
-    // google: "xxxx",
+    google: "OwpBXSWEIopyXXSocYuJQbFtuQcUNpfluL5M2SQNhk8",
     // yandex: "xxxx",
     other: {
       // "domain-verification": "",
