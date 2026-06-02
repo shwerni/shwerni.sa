@@ -88,7 +88,7 @@ export default async function Page({ searchParams }: Props) {
   const { search = "", page = "1", categories, gender } = await searchParams;
 
   // no event
-  // return <NoActiveEvents />;
+  return <NoActiveEvents />;
 
   return (
     <div>

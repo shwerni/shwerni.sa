@@ -90,7 +90,7 @@ const Categories = () => {
       {/* title */}
       <Title title="تلائم أهدافك وتحقق نتائجك" subTitle="مجالات واسعة" />
       {/* event card */}
-      <EventCard />
+      {/* <EventCard /> */}
       {/* <EventCardSN /> */}
       {/* cards */}
       {/* handle better instead of just hide */}
