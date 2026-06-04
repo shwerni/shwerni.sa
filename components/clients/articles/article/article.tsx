@@ -1,10 +1,14 @@
 // React & Next
+import Link from "next/link";
 import Image from "next/image";
 import { Suspense } from "react";
 
 // components
+import Stars from "../../shared/stars";
+import ArticleComments from "../comments";
 import { ArticleLikeButton } from "./like";
 import { Badge } from "@/components/ui/badge";
+import AddArticleComment from "../add-comments";
 import CopyButton from "@/components/shared/copy-button";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import ShareButtons from "@/components/shared/share-buttons";
@@ -16,12 +20,13 @@ import Recommendation from "@/components/clients/articles/article/recommendation
 import "@/styles/article.css";
 
 // utils
-import { minutesToRead } from "@/utils";
+import { consultantGenderLabel, minutesToRead } from "@/utils";
 import { dateToString } from "@/utils/time";
 
 // prisma types
 import {
   Article as ArticlePrisma,
+  Gender,
   Specialty,
 } from "@/lib/generated/prisma/client";
 
@@ -29,9 +34,7 @@ import {
 import { mainRoute } from "@/constants/links";
 
 // icons
-import { BookOpen, Calendar1, Eye, Newspaper } from "lucide-react";
-import ArticleComments from "../comments";
-import AddArticleComment from "../add-comments";
+import { BookOpen, Calendar1, ExternalLink, Eye, Newspaper, PenTool } from "lucide-react";
 
 type ArtilceType = ArticlePrisma & {
   // types
@@ -39,6 +42,8 @@ type ArtilceType = ArticlePrisma & {
 } & {
   consultant: {
     name: string;
+    rate: number;
+    gender: Gender;
   } | null;
 };
 
@@ -131,6 +136,11 @@ const Article = async ({
             dangerouslySetInnerHTML={{ __html: body }}
             className="article-content prose prose-sm max-w-none"
           />
+          {/* consultant */}
+          <ConsultantAuthor
+            consultant={article.consultant}
+            consultantId={article.consultantId}
+          />
           {/* share buttons */}
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2 py-4 px-2">
@@ -151,6 +161,7 @@ const Article = async ({
               iLikes={likes}
             />
           </div>
+          {/* consultant */}
         </div>
         {/* left side: desktop */}
         <div className="article-side hidden md:block col-span-3">
@@ -193,3 +204,43 @@ const Article = async ({
 };
 
 export default Article;
+
+const ConsultantAuthor = ({
+  consultant,
+  consultantId,
+}: {
+  consultantId: number | null;
+  consultant: {
+    name: string;
+    rate: number;
+    gender: Gender;
+  } | null;
+}) => {
+  // validate
+  if (!consultant || !consultantId) return null;
+
+  return (
+    <Link
+      href={`/consultants/${consultantId}`}
+      className="group flex flex-row justify-between items-center w-full p-3 rounded-xl bg-gray-50 border border-gray-100 hover:border-gray-200 hover:bg-gray-100 transition-all duration-200"
+    >
+      <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 group-hover:bg-theme/10 transition-colors duration-200">
+          <PenTool className="w-4 h-4 text-gray-500 group-hover:text-theme transition-colors" />
+        </div>
+
+        <div className="flex flex-col">
+          <span className="text-xs text-gray-500 font-medium mb-0.5">
+            إعداد ال{consultantGenderLabel(consultant.gender)}
+          </span>
+          <h6 className="text-sm font-bold text-theme">{consultant.name}</h6>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <Stars rate={consultant.rate} />
+        <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-theme transition-colors rtl:-scale-x-100" />
+      </div>
+    </Link>
+  );
+};

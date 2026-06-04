@@ -188,6 +188,7 @@ export const getConsultants = async (
       ${timingJoin}
       LEFT JOIN "reviews" r
         ON r."consultantId" = c."cid"
+        AND r."status" = 'PUBLISHED'
       WHERE 1 = 1
         AND c."status" = true
         AND c."statusA" = 'PUBLISHED'

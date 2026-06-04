@@ -231,7 +231,7 @@ export const getArticleByAid = async (aid: number) => {
     const article = await prisma.article.findUnique({
       where: { aid },
       include: {
-        consultant: { select: { name: true } },
+        consultant: { select: { name: true, rate: true, gender: true } },
         specialties: { select: { specialty: true } },
       },
     });

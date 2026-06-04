@@ -1,5 +1,6 @@
 // React & Next
 import { Metadata } from "next";
+import { connection } from "next/server";
 
 // components
 import Error404 from "@/components/shared/error-404";
@@ -12,14 +13,17 @@ import {
   incrementArticleRead,
 } from "@/data/article";
 
+// utils
+import { htmlToText } from "@/utils";
+
 // prisma data
 import { cacheLife } from "next/cache";
 
-// prisma types
-import { mainRoute } from "@/constants/links";
-import { connection } from "next/server";
-import { htmlToText } from "@/utils";
+// lib
 import { userServer } from "@/lib/auth/server";
+
+// constants
+import { mainRoute } from "@/constants/links";
 
 // props
 interface Props {
@@ -171,7 +175,7 @@ export default async function Page({ params }: Props) {
         body={result.body}
         side={result.side}
         userId={userId}
-        liked={like?.liked }
+        liked={like?.liked}
         likes={like?.count}
       />
     </>
@@ -198,7 +202,8 @@ function extractArticleSideFast(
 
     const afterH3 = html.slice(html.indexOf(match[0]) + match[0].length);
     const nextH3Index = afterH3.search(/<h3/i);
-    const content = nextH3Index === -1 ? afterH3 : afterH3.slice(0, nextH3Index);
+    const content =
+      nextH3Index === -1 ? afterH3 : afterH3.slice(0, nextH3Index);
 
     const text = content
       .replace(/<[^>]*>/g, " ")
