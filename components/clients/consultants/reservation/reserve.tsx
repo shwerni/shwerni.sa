@@ -13,8 +13,9 @@ import { getFinanceConfig } from "@/data/admin/settings/finance";
 
 // lib
 import { userServer } from "@/lib/auth/server";
-import Packages from "./packages";
 import { getConsultantsPackages } from "@/data/packages";
+
+// icons
 import { Clock, Tag } from "lucide-react";
 
 // props
@@ -72,12 +73,12 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
         cid={cid}
         cost={cost}
         user={user}
+        packages={packages}
         consultant={info?.name}
         finance={finance}
         unavailable={[...unavailable]}
         collaboration={collaboration}
       />
-      {/* <Packages packages={packages} costs={cost} /> */}
       {/* review */}
       <AddYourReview
         cid={cid}

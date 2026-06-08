@@ -3,7 +3,7 @@
 import React from "react";
 
 // packages
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
@@ -34,6 +34,8 @@ import { ReservationFormType, reservationSchema } from "@/schemas/index";
 
 // icons
 import { CalendarDays } from "lucide-react";
+import { Package } from "@/lib/generated/prisma/client";
+import Packages from "./packages";
 
 // props
 interface Props {
@@ -43,6 +45,7 @@ interface Props {
   finance: FinanceConfig;
   user?: User;
   consultant: string;
+  packages: Package[];
   collaboration?: string;
 }
 
@@ -52,6 +55,7 @@ export default function ReservationForm({
   cost,
   finance,
   consultant,
+  packages,
   unavailable,
   collaboration,
 }: Props) {
@@ -106,6 +110,12 @@ export default function ReservationForm({
     2: ["couponCode", "method", "acceptTerms"],
   };
 
+  const [selectedSessions, sessionType, selectedCost] = useWatch({
+    control: form.control,
+    name: ["sessions", "sessionType", "cost"],
+  });
+  const isPackageSelected = sessionType === "MULTIPLE";
+
   // handle next
   const handleNext = async (number: number) => {
     // if loading or sumbiting
@@ -142,6 +152,13 @@ export default function ReservationForm({
     reserveDiv?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  // cancel handler
+  const handleCancelPackage = () => {
+    form.setValue("cost", cost);
+    form.setValue("sessionType", "ONCE");
+    form.setValue("sessions", 1);
+  };
+
   async function onSubmit(data: ReservationFormType) {
     // recaptcha
     const token = await runRecaptcha(executeRecaptcha);
@@ -167,13 +184,38 @@ export default function ReservationForm({
 
   return (
     <div id="reserve" className="space-y-3">
+      {/* Packages */}
+      <Packages costs={cost} packages={packages} form={form} />
+      {/* reserve section */}
       <div className="w-fit mx-auto flex items-center gap-2 px-5 py-1.5 rounded-full bg-[#F1F8FE] border border-blue-100">
         <CalendarDays className="text-theme w-5" />
         <h3 className="text-base font-semibold">الحجز</h3>
       </div>
+      {/* main */}
       <div className="bg-[#F1F8FE] px-4 sm:px-5 pb-5">
         <div className="max-w-4xl mx-auto">
           <Stepper step={step} steps={steps} />
+
+          {/* package selection banner */}
+          {isPackageSelected && (
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-md bg-blue-50 border border-blue-200 mb-3">
+              <div>
+                <p className="text-sm font-semibold text-[#094577]">
+                  تم اختيار باقة {selectedSessions} جلسات
+                </p>
+                <p className="text-xs text-blue-400">
+                  الإجمالي: {selectedCost[30]} ريال · شامل الضريبة
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCancelPackage}
+                className="text-xs text-gray-400 hover:text-gray-600 underline whitespace-nowrap transition-colors"
+              >
+                إلغاء الباقة
+              </button>
+            </div>
+          )}
 
           <div className="bg-white py-10 px-3 sm:px-6 rounded-lg shadow">
             <form onSubmit={form.handleSubmit(onSubmit)}>

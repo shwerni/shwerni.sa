@@ -7,6 +7,7 @@ import {
   GenderPreference,
   OrderType,
   PaymentMethod,
+  SessionType,
   Weekday,
 } from "@/lib/generated/prisma/enums";
 
@@ -379,7 +380,8 @@ export const reservationSchema = z
       couponEnabled: z.boolean(),
     }),
     type: z.nativeEnum(OrderType).default(OrderType.SCHEDULED),
-
+    sessionType: z.nativeEnum(SessionType).default(SessionType.ONCE),
+    sessions: z.number().default(1),
     // step 1
     date: z.date({
       required_error: "التاريخ مطلوب",
