@@ -33,7 +33,7 @@ import { Cost, FinanceConfig } from "@/types/data";
 import { ReservationFormType, reservationSchema } from "@/schemas/index";
 
 // icons
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, CircleCheck } from "lucide-react";
 import { Package } from "@/lib/generated/prisma/client";
 import Packages from "./packages";
 
@@ -198,19 +198,17 @@ export default function ReservationForm({
 
           {/* package selection banner */}
           {isPackageSelected && (
-            <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-md bg-blue-50 border border-blue-200 mb-3">
-              <div>
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-md border border-theme mb-3">
+              <div className="inline-flex items-center gap-1.5">
+                <CircleCheck className="size-4 text-green-400" />
                 <p className="text-sm font-semibold text-[#094577]">
                   تم اختيار باقة {selectedSessions} جلسات
-                </p>
-                <p className="text-xs text-blue-400">
-                  الإجمالي: {selectedCost[30]} ريال · شامل الضريبة
                 </p>
               </div>
               <button
                 type="button"
                 onClick={handleCancelPackage}
-                className="text-xs text-gray-400 hover:text-gray-600 underline whitespace-nowrap transition-colors"
+                className="text-xs text-gray-600 hover:text-gray-700 underline whitespace-nowrap transition-colors"
               >
                 إلغاء الباقة
               </button>
