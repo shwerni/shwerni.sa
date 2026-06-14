@@ -231,7 +231,7 @@ const ConsultantAuthor = ({
 
         <div className="flex flex-col">
           <span className="text-xs text-gray-500 font-medium mb-0.5">
-            إعداد ال{consultantGenderLabel(consultant.gender)}
+            إعداد وكنابة ال{consultantGenderLabel(consultant.gender)}
           </span>
           <h6 className="text-sm font-bold text-theme">{consultant.name}</h6>
         </div>

@@ -146,7 +146,6 @@ export default async function Page({ params }: Props) {
 
   // seo
   const writer = result.article.consultant?.name ?? "مستشارين شاورني";
-
   // jsonLd
   const jsonLd = {
     "@context": "https://schema.org",
