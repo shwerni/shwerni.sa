@@ -216,6 +216,12 @@ enum RescheduleReason {
   OTHER
 }
 
+enum CampaignStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
 // models
 model User {
   id            String    @id @default(cuid())
@@ -660,9 +666,9 @@ model WaChat {
   created_at      DateTime  @default(now())
   updated_at      DateTime? @default(now()) @updatedAt
   last_message_at DateTime  @default(now())
-  
+
   // @relations
-  messages        Message[]
+  messages Message[]
 
   @@map("wa_chats")
 }
@@ -1139,5 +1145,26 @@ model WaDebounce {
   lastMsgAt BigInt
   queue     String   @default("[]")
   updatedAt DateTime @updatedAt
+
   @@map("wa-debounce")
+}
+
+model Campaign {
+  id   String @id @default(cuid())
+  name String
+
+  status         CampaignStatus @default(ACTIVE)
+  template       String
+  templateParams Json
+  language       String         @default("ar")
+  phones         String[]
+  sentIndex      Int            @default(0)
+  successCount   Int            @default(0)
+  failedCount    Int            @default(0)
+  ratePerRun     Int            @default(15)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([status])
+  @@map("wa-campaign")
 }
