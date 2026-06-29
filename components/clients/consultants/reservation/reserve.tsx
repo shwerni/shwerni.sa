@@ -50,22 +50,22 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
   if (!cost || !finance || !info) return;
 
   // discount // dynamic later
-  const isDiscount = info?.DiscountConsultant.some(
-   (i) => i.discountId === 3 && i.status,
-  );
+  // const isDiscount = info?.DiscountConsultant.some(
+  //  (i) => i.discountId === 3 && i.status,
+  // );
 
   // cost
-  if (isDiscount) cost[30] = 77.3;
-  if (cid === 36) cost[30] = 60;
+  // if (isDiscount) cost[30] = 77.3;
+  // if (cid === 36) cost[30] = 60;
 
   return (
     <div className="max-w-6xl mx-auto py-5 space-y-8">
       {/* discount badge  */}
-      {isDiscount && (
+      {/* {isDiscount && (
         <div className="w-fit mx-auto">
           <DiscountBadge />
         </div>
-      )}
+      )} */}
       {/* {cid === 36 && <SpecialOffer />} */}
 
       {/* reservation */}
