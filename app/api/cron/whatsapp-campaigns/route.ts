@@ -1,7 +1,11 @@
 import prisma from "@/lib/database/db";
 import { NextResponse } from "next/server";
 import { CampaignStatus } from "@/lib/generated/prisma/enums";
-import { sendWhatsappTemplate, type TemplateParams } from "@/lib/api/whatsapp";
+import {
+  sendWhatsappTemplate,
+  sendWhatsappText,
+  type TemplateParams,
+} from "@/lib/api/whatsapp";
 
 export const maxDuration = 60;
 
@@ -33,7 +37,16 @@ async function processCampaign(campaign: {
   failedCount: number;
   lastErrors?: unknown;
 }) {
-  const { id, phones, sentIndex, ratePerRun, template, templateParams, language, category } = campaign;
+  const {
+    id,
+    phones,
+    sentIndex,
+    ratePerRun,
+    template,
+    templateParams,
+    language,
+    category,
+  } = campaign;
   const isMarketing = category === "MARKETING";
 
   // Campaign already fully processed - just flip status, no sends.
@@ -41,6 +54,19 @@ async function processCampaign(campaign: {
   // real test message to a hardcoded number every time a campaign finished.
   // That's removed - this branch now ONLY updates status, no side effects.
   if (sentIndex >= phones.length) {
+    // test and check
+    await sendWhatsappText(
+      "201222166530",
+      `✅ اكتملت الحملة القالب: ${template}\nالإجمالي: ${phones.length}`,
+    );
+    // test template
+    await sendWhatsappTemplate(
+      "201222166530",
+      template,
+      templateParams as TemplateParams,
+      language,
+      isMarketing,
+    );
     await prisma.campaign.update({
       where: { id },
       data: { status: CampaignStatus.COMPLETED },
@@ -93,7 +119,10 @@ async function processCampaign(campaign: {
   const existingErrors = Array.isArray(campaign.lastErrors)
     ? (campaign.lastErrors as ErrorLogEntry[])
     : [];
-  const mergedErrors = [...newErrors, ...existingErrors].slice(0, MAX_ERROR_LOG_ENTRIES);
+  const mergedErrors = [...newErrors, ...existingErrors].slice(
+    0,
+    MAX_ERROR_LOG_ENTRIES,
+  );
 
   await prisma.campaign.update({
     where: { id },
@@ -142,6 +171,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, processed: results });
   } catch (err) {
     console.error("Campaign cron error:", err);
-    return NextResponse.json({ ok: false, error: "Internal error" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: "Internal error" },
+      { status: 500 },
+    );
   }
 }
