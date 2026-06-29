@@ -1167,6 +1167,7 @@ model Campaign {
   sentIndex      Int              @default(0)
   successCount   Int              @default(0)
   failedCount    Int              @default(0)
+  lastErrors     Json?
   ratePerRun     Int              @default(15)
   category       TemplateCategory @default(MARKETING)
   createdAt      DateTime         @default(now())

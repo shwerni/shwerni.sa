@@ -210,12 +210,12 @@ export const notificationNewOwner = async (
   name: string,
   cid: string,
 ) =>
-  notify(() =>
-    sendWhatsappTemplate(phone, "owner_new_approved", {
+  notify(async () => {
+    await sendWhatsappTemplate(phone, "owner_new_approved", {
       text: [name],
       url: [cid],
-    }),
-  );
+    });
+  });
 
 // new pre-consultation session
 export const notificationNewPreConsultation = async (
@@ -224,11 +224,11 @@ export const notificationNewPreConsultation = async (
   advisor: string,
   pid: number,
 ) =>
-  notify(() =>
-    sendWhatsappTemplate(phone, "preconsultation_new", {
+  notify(async () => {
+    await sendWhatsappTemplate(phone, "preconsultation_new", {
       text: [advisor, name, pid],
-    }),
-  );
+    });
+  });
 
 // new free session notification
 export const notificationNewFreeSession = async (
@@ -275,12 +275,14 @@ export const notificationPickNewSession = async (
   // zid
   const czid = encryptionDigitsToUrl(oid);
 
-  return notify(() =>
+  return notify(async () =>
     // send to client
-    sendWhatsappTemplate(phone, "program_session_select", {
-      text: [session, program, consultant, oid],
-      url: [`${czid}?session=${session}`],
-    }),
+    {
+      await sendWhatsappTemplate(phone, "program_session_select", {
+        text: [session, program, consultant, oid],
+        url: [`${czid}?session=${session}`],
+      });
+    },
   );
 };
 
