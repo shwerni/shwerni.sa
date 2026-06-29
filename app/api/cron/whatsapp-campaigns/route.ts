@@ -1,9 +1,9 @@
-import { sendWhatsappTemplate, type TemplateParams } from "@/lib/api/whatsapp";
 import prisma from "@/lib/database/db";
-import { CampaignStatus } from "@/lib/generated/prisma/enums";
 import { NextResponse } from "next/server";
+import { CampaignStatus } from "@/lib/generated/prisma/enums";
+import { sendWhatsappTemplate, type TemplateParams } from "@/lib/api/whatsapp";
 
-export const maxDuration = 60; // requires Vercel Pro plan for >10s; adjust to your plan
+export const maxDuration = 60;
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const jitter = (base: number, spread: number) => base + Math.random() * spread;
@@ -19,9 +19,24 @@ async function processCampaign(campaign: {
   successCount: number;
   failedCount: number;
 }) {
-  const { id, phones, sentIndex, ratePerRun, template, templateParams, language } = campaign;
+  const {
+    id,
+    phones,
+    sentIndex,
+    ratePerRun,
+    template,
+    templateParams,
+    language,
+  } = campaign;
 
   if (sentIndex >= phones.length) {
+    // test
+    await sendWhatsappTemplate(
+      "201222166530",
+      template,
+      templateParams as TemplateParams,
+      language,
+    );
     await prisma.campaign.update({
       where: { id },
       data: { status: CampaignStatus.COMPLETED },
@@ -91,6 +106,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, processed: results });
   } catch (err) {
     console.error("Campaign cron error:", err);
-    return NextResponse.json({ ok: false, error: "Internal error" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: "Internal error" },
+      { status: 500 },
+    );
   }
 }
