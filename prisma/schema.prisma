@@ -222,6 +222,12 @@ enum CampaignStatus {
   COMPLETED
 }
 
+enum TemplateCategory {
+  MARKETING
+  UTILITY
+  AUTHENTICATION
+}
+
 // models
 model User {
   id            String    @id @default(cuid())
@@ -1153,17 +1159,18 @@ model Campaign {
   id   String @id @default(cuid())
   name String
 
-  status         CampaignStatus @default(ACTIVE)
+  status         CampaignStatus   @default(ACTIVE)
   template       String
   templateParams Json
-  language       String         @default("ar")
+  language       String           @default("ar")
   phones         String[]
-  sentIndex      Int            @default(0)
-  successCount   Int            @default(0)
-  failedCount    Int            @default(0)
-  ratePerRun     Int            @default(15)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  sentIndex      Int              @default(0)
+  successCount   Int              @default(0)
+  failedCount    Int              @default(0)
+  ratePerRun     Int              @default(15)
+  category       TemplateCategory @default(MARKETING)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   @@index([status])
   @@map("wa-campaign")
