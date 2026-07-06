@@ -40,7 +40,7 @@ const Statistics = async () => {
       <DivMotion
         variant="blur-in"
         delay={0.5}
-        className="grid grid-cols-3 px-5 py-8 sm:px-10 sm:py-10 bg-linear-to-b from-[#F1F8FE] from-40% to-white rounded-2xl"
+        className="grid grid-cols-3 gap-2 sm:gap-6 px-3 py-6 sm:px-10 sm:py-10 bg-linear-to-b from-[#F1F8FE] from-40% to-white rounded-2xl"
       >
         <Suspense fallback={<SkeletonCounter />}>
           <StatisticsValues statistics={statistics} />
@@ -72,15 +72,19 @@ const StatisticsValues = async ({
       {statistics.map((i, index) => (
         <div
           key={index}
-          className="flex flex-col items-center justify-center gap-3"
+          className="flex flex-col items-center justify-center gap-1.5 sm:gap-3 min-w-0 px-1"
         >
-          <Counter
-            value={i.value}
-            duration={5000}
-            decimals={i.decimals}
-            suffix={i.suffix}
-          />
-          <h5 className="text-base sm:text-lg">{i.label}</h5>
+          <div className="text-xl sm:text-3xl font-bold">
+            <Counter
+              value={i.value}
+              duration={5000}
+              decimals={i.decimals}
+              suffix={i.suffix}
+            />
+          </div>
+          <h5 className="text-[11px] leading-snug sm:text-lg text-center break-words">
+            {i.label}
+          </h5>
         </div>
       ))}
     </>
