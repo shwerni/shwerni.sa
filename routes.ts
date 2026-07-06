@@ -45,6 +45,7 @@ export const DynamicpublicRoutes = [
   "/payment",
   "/meeting",
   "/meetings",
+  "/scales",
   "/rooms",
   "/questions",
   "/articles",
@@ -61,6 +62,7 @@ export const DynamicpublicRoutes = [
   "/api/whatsapp",
   "/api/uploadthing",
   "/api/cron",
+  "/api/mobile",
 ];
 
 /**

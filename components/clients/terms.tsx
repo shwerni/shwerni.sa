@@ -82,7 +82,7 @@ export const TermsContent = (consultant?: boolean) => {
         </div>
       )}
       {/* separator */}
-      <Separator className="w-11/12 max-w-[400px] mx-auto" />
+      <Separator className="w-11/12 max-w-100 mx-auto" />
       {/* refund terms */}
       <div className="space-y-5">
         <h3 className="text-lg font-semibold">سياسة الاسترجاع</h3>
@@ -117,7 +117,7 @@ export function TermsDialog(props: {
       <DialogTrigger asChild>
         <h3>{children}</h3>
       </DialogTrigger>
-      <DialogContent className="w-10/12 max-w-[425px] mx-auto rounded-2xl">
+      <DialogContent className="w-10/12 106.25 mx-auto rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-right">الشروط و الاحكام</DialogTitle>
           <DialogDescription className="text-right">

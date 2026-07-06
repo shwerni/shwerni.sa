@@ -1,46 +1,37 @@
 // React
-import Image from "next/image";
 import { Suspense } from "react";
 import { cacheLife } from "next/cache";
-
 // components
 import Title from "@/components/clients/shared/titles";
 import DivMotion from "@/components/shared/div-motion";
 import Section from "@/components/clients/shared/section";
-import { IconLabel } from "@/components/shared/icon-label";
-import { LinkButton } from "@/components/shared/link-button";
 import { Counter } from "@/components/clients/home/statistics/counter";
 import SkeletonCounter from "@/components/clients/home/statistics/skeleton";
-
 // prisma data
-import { getHomeStatistics } from "@/data/statistics";
-
-// icons
-import { ArrowLeft } from "lucide-react";
+import { getHomeSecondaryStatistics } from "@/data/statistics";
 
 const Statistics = async () => {
   // statistics
   const data = await getStatistics();
-
   // validate
   if (!data) return;
-
   // summary
   const statistics = [
     {
-      value: data.consultants || 200,
-      label: "مستشار خبير",
+      value: data.paidOrders || 200,
+      label: "مستفيد ومستفيدة",
     },
     {
-      value: data.orders || 15000,
-      label: "مستفيد سنوياً",
+      value: data.totalMinutes || 15000,
+      label: "دقيقة من الاستشارات الأسرية",
     },
     {
-      value: data.monthly || 500,
-      label: "حجز  شهري",
+      value: data.avgRate || 4.8,
+      label: "رضا المستشارين",
+      decimals: 1,
+      suffix: "/٥",
     },
   ];
-
   return (
     <Section className="w-11/12 space-y-8 mx-auto">
       {/* title */}
@@ -63,13 +54,18 @@ const getStatistics = async () => {
   // data
   "use cache";
   cacheLife("days");
-  return await getHomeStatistics();
+  return await getHomeSecondaryStatistics();
 };
 
 const StatisticsValues = async ({
   statistics,
 }: {
-  statistics: { value: number; label: string }[];
+  statistics: {
+    value: number;
+    label: string;
+    decimals?: number;
+    suffix?: string;
+  }[];
 }) => {
   return (
     <>
@@ -78,11 +74,17 @@ const StatisticsValues = async ({
           key={index}
           className="flex flex-col items-center justify-center gap-3"
         >
-          <Counter value={i.value} duration={5000} />
+          <Counter
+            value={i.value}
+            duration={5000}
+            decimals={i.decimals}
+            suffix={i.suffix}
+          />
           <h5 className="text-base sm:text-lg">{i.label}</h5>
         </div>
       ))}
     </>
   );
 };
+
 export default Statistics;

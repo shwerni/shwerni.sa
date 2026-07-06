@@ -10,6 +10,7 @@ import InstantList from "@/components/clients/home/instant/instant-list";
 import Statistics from "@/components/clients/home/statistics/statistics";
 import Consultants from "@/components/clients/home/consultant/consultants";
 import { OrderNotification } from "./notification/notification-lazy";
+import Podcast from "./youtube/youtube";
 
 const Home = async () => {
   return (
@@ -30,14 +31,16 @@ const Home = async () => {
       {/* <MarriageAwareness /> */}
       {/* programs */}
       {/* <Programs /> */}
-      {/* steps to use */}
-      <Steps />
       {/* coupons */}
       {/* <Coupons /> */}
-      {/* reviews */}
-      <Reviews />
       {/* statistics */}
       <Statistics />
+      {/* reviews */}
+      <Reviews />
+      {/* steps to use */}
+      <Steps />
+      {/* youtube */}
+      <Podcast />
       {/* benefits */}
       <Benefits />
       {/* join us */}

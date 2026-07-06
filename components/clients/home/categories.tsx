@@ -31,6 +31,7 @@ import { Categories as CategoriesType } from "@/lib/generated/prisma/enums";
 import Law from "@/public/svg/icons/categories-law.svg";
 import Family from "@/public/svg/icons/categories-family.svg";
 import Psychic from "@/public/svg/icons/categories-psychic.svg";
+import ScalesCta from "./scales";
 
 const Categories = () => {
   const url = (category: CategoriesType) => {
@@ -155,6 +156,8 @@ const Categories = () => {
             }
           />
         </DivMotion>
+        {/* scales */}
+        <ScalesCta />
       </div>
       {/* reserve */}
       <div className="md:hidden flex flex-col items-center gap-6 text-center">

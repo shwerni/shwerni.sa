@@ -2,11 +2,13 @@ import { getAllScales } from "@/data/scales";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { scalesListMetadata } from "./metadata";
+import { getScaleVisuals } from "./scale-visuals";
 
 export const metadata: Metadata = scalesListMetadata;
 
 export default async function MaqayesPage() {
   const scales = await getAllScales();
+  const visuals = getScaleVisuals(scales);
 
   return (
     <main className="min-h-screen bg-gray-50" dir="rtl">
@@ -31,53 +33,72 @@ export default async function MaqayesPage() {
           </p>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2">
-            {scales.map((scale) => (
-              <Link
-                key={scale.id}
-                href={`/scales/${scale.slug}`}
-                className="group bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
-                    <h2 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                      {scale.title}
-                    </h2>
-                    {scale.subtitle && (
-                      <span className="inline-block mt-1 text-xs font-medium text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">
-                        {scale.subtitle}
-                      </span>
-                    )}
-                    {scale.description && (
-                      <p className="mt-2 text-sm text-gray-500 line-clamp-2 leading-relaxed">
-                        {scale.description}
-                      </p>
-                    )}
-                  </div>
-                  {/* Arrow */}
-                  <div className="mt-1 shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-blue-600 flex items-center justify-center transition-colors">
-                    <svg
-                      className="w-4 h-4 text-gray-400 group-hover:text-white rotate-180 transition-colors"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </div>
-                </div>
+            {scales.map((scale) => {
+              const visual = visuals.get(scale.id)!;
+              const Icon = visual.icon;
 
-                <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2">
-                  <span className="text-xs text-blue-600 font-medium">
-                    ابدأ المقياس ←
-                  </span>
-                </div>
-              </Link>
-            ))}
+              return (
+                <Link
+                  key={scale.id}
+                  href={`/scales/${scale.slug}`}
+                  className={`group rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-200 ${visual.bg} ${visual.border}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className={`w-11 h-11 rounded-xl ${visual.iconBg} flex items-center justify-center mb-4`}
+                      >
+                        <Icon className={`w-5 h-5 ${visual.iconColor}`} />
+                      </div>
+
+                      {/* Title block */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-lg font-bold text-gray-900 tracking-tight leading-snug">
+                          {scale.title}
+                        </h2>
+                        {scale.subtitle && (
+                          <span className="inline-block text-[11px] font-semibold text-white px-2 py-0.5 rounded-full bg-[#094577]">
+                            {scale.subtitle}
+                          </span>
+                        )}
+                      </div>
+                      <span
+                        className="block w-8 h-[3px] rounded-full mt-2"
+                        style={{ backgroundColor: visual.accent }}
+                      />
+
+                      {scale.description && (
+                        <p className="mt-3 text-sm text-gray-500 line-clamp-2 leading-relaxed">
+                          {scale.description}
+                        </p>
+                      )}
+                    </div>
+                    {/* Arrow */}
+                    <div className="mt-1 shrink-0 w-8 h-8 rounded-full bg-white/70 group-hover:bg-[#094577] flex items-center justify-center transition-colors">
+                      <svg
+                        className="w-4 h-4 text-gray-400 group-hover:text-white rotate-180 transition-colors"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-gray-200/60 flex items-center gap-2">
+                    <span className="text-xs font-medium text-[#094577]">
+                      ابدأ المقياس ←
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </section>

@@ -11,6 +11,19 @@ export async function proxy(req: NextRequest) {
   const { nextUrl } = req;
   const pathname = nextUrl.pathname;
 
+  // 🛡️ MOBILE API GUARD
+  if (pathname.startsWith("/api/mobile")) {
+    const appSecret = req.headers.get("x-app-secret");
+
+    if (!appSecret || appSecret !== process.env.APP_SECRET) {
+      return NextResponse.json(
+        { error: "Unauthorized: Invalid App Secret" },
+        { status: 401 },
+      );
+    }
+    return NextResponse.next();
+  }
+  
   // ✅ 1. always allow auth API — no token check needed
   if (pathname.startsWith(apiAuthPrefix)) return NextResponse.next();
 
@@ -42,8 +55,7 @@ export async function proxy(req: NextRequest) {
   }
 
   // protected route — not logged in
-  if (!isLoggedIn)
-    return NextResponse.redirect(new URL("/login", nextUrl));
+  if (!isLoggedIn) return NextResponse.redirect(new URL("/login", nextUrl));
 
   return NextResponse.next();
 }

@@ -62,14 +62,14 @@ export default function Services() {
       desc: "اختبارات علمية دقيقة لتقييم حالتك النفسية والزوجية.",
       link: "/scales",
       icon: ClipboardCheck,
-      status: false,
+      status: true,
     },
     {
       label: "مقياس الاستعداد الواعي للزواج",
       desc: "اختبارات علمية دقيقة لتقييم حالتك النفسية والزوجية.",
       link: "/marriage-awareness",
       icon: RiDiamondRingFill,
-      status: true,
+      status: false,
     },
   ];
 

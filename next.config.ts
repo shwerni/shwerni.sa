@@ -8,9 +8,9 @@ const nextConfig: NextConfig = {
   },
   // reactCompiler: true,
   compiler: {
-    removeConsole: {
-      exclude: ["error", "warn"],
-    },
+    //removeConsole: {
+    //  exclude: ["error", "warn"],
+    // },
   },
   cacheComponents: true,
   compress: true,

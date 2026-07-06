@@ -1,58 +1,59 @@
 "use client";
 // React & Next
 import React from "react";
-
 // props
 interface Props {
   value: number;
   delay?: number;
   duration?: number;
+  decimals?: number;
+  suffix?: string;
 }
-
-export const Counter = ({ value, delay = 0, duration = 2000 }: Props) => {
+export const Counter = ({
+  value,
+  delay = 0,
+  duration = 2000,
+  decimals = 0,
+  suffix = "+",
+}: Props) => {
   const [count, setCount] = React.useState(0);
   const ref = React.useRef<HTMLHeadingElement | null>(null);
   const started = React.useRef(false);
-
   React.useEffect(() => {
     if (!ref.current) return;
-
     const el = ref.current;
-
+    const factor = Math.pow(10, decimals);
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting || started.current) return;
-
         started.current = true;
-
         let start: number | null = null;
-
         const step = (timestamp: number) => {
           if (!start) start = timestamp;
           const progress = timestamp - start;
           const current = Math.min(
-            Math.round((progress / duration) * value),
+            Math.round((progress / duration) * value * factor) / factor,
             value,
           );
           setCount(current);
           if (progress < duration) requestAnimationFrame(step);
         };
-
         setTimeout(() => {
           requestAnimationFrame(step);
         }, delay);
       },
       { threshold: 0.3 },
     );
-
     observer.observe(el);
-
     return () => observer.disconnect();
-  }, [value, delay, duration]);
-
+  }, [value, delay, duration, decimals]);
   return (
     <h5 className="text-[#117ED8] font-semibold text-2xl sm:text-4xl" ref={ref}>
-      {count.toLocaleString()}+
+      {count.toLocaleString(undefined, {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+      })}
+      {suffix}
     </h5>
   );
 };
