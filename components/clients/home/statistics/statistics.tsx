@@ -29,7 +29,7 @@ const Statistics = async () => {
       value: data.avgRate || 4.8,
       label: "رضا المستشارين",
       decimals: 1,
-      suffix: "/٥",
+      suffix: "/5",
     },
   ];
   return (
