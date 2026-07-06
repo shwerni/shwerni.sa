@@ -15,7 +15,7 @@ const Podcast = async () => {
   const liveVideos = await getYouTubeVideos(10);
 
   return (
-    <section className="relative bg-[#052A47] py-12 md:py-16 px-4 overflow-hidden">
+    <section className="relative bg-[#052A47] py-12 md:py-16 px-4 mb-5 overflow-hidden">
       <Image
         src="/layout/logo-sm.png"
         alt=""
