@@ -131,9 +131,13 @@ async function debouncedTextMessage(
     }
 
     // Google Meet link shortcut
-    if (from === "966554117879" && text === "رابط اجتماع جوجل جديد - zxsrexz") {
+    if (from === "966554117879" && text === "رابط اجتماع") {
       const url = await createGoogleMeeting();
-      if (url) await sendWhatsappText(from, url);
+      if (url) {
+        await sendWhatsappText(from, url);
+        return;
+      }
+      await sendWhatsappText(from, "خلل في انشاء الرابط");
       return;
     }
 
