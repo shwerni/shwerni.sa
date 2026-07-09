@@ -28,7 +28,7 @@ export const createRoom = async (
   roomId: string,
   meetingId: string,
   orderId: number,
-  url: string,
+  url: string | null,
   session: boolean = false,
 ) => {
   try {
@@ -115,10 +115,15 @@ export async function createNewMeeting(meeting: Meeting) {
     const url = await createGoogleMeeting();
 
     // validate
-    if (!url) return;
+    // if (!url) return;
 
     // create room
-    const room = await createRoom(roomName, meeting.mid, meeting.orderId, url);
+    const room = await createRoom(
+      roomName,
+      meeting.mid,
+      meeting.orderId,
+      url || null,
+    );
 
     // validate
     if (!room) return null;

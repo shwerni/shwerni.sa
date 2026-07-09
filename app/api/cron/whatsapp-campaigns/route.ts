@@ -6,6 +6,7 @@ import {
   sendWhatsappText,
   type TemplateParams,
 } from "@/lib/api/whatsapp";
+import { telegramAdmin } from "@/lib/api/telegram/telegram";
 
 export const maxDuration = 60;
 
@@ -60,6 +61,7 @@ async function processCampaign(campaign: {
       `✅ اكتملت الحملة القالب: ${template}\nالإجمالي: ${phones.length}`,
     );
     // test template
+    await telegramAdmin(`"201222166530", ${template}, ${templateParams}, ${language}, ${isMarketing}`)
     await sendWhatsappTemplate(
       "201222166530",
       template,
