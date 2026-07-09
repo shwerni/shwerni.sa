@@ -131,7 +131,10 @@ async function debouncedTextMessage(
     }
 
     // Google Meet link shortcut
-    if (from === "966554117879" && text === "رابط اجتماع") {
+    if (
+      (from === "201222166530" || from === "966554117879") &&
+      text === "رابط اجتماع"
+    ) {
       const url = await createGoogleMeeting();
       if (url) {
         await sendWhatsappText(from, url);
