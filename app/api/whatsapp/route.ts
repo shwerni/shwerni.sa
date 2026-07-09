@@ -68,6 +68,10 @@ export async function POST(request: NextRequest) {
     const fromId: string = value.contacts?.[0]?.wa_id ?? from;
     const fromName: string = value.contacts?.[0]?.profile?.name ?? "مجهول";
 
+    // ── Text messages: save → enqueue → debounce → process ──
+    const text = msg.text?.body;
+    await hardCodedReplies(from, text);
+
     // ── Non-text messages: handle immediately, no debounce needed ──
     if (msg.type !== "text") {
       after(async () => {
@@ -76,8 +80,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({}, { status: 200 });
     }
 
-    // ── Text messages: save → enqueue → debounce → process ──
-    const text = msg.text?.body;
     if (!text) return NextResponse.json({}, { status: 200 });
 
     // Snapshot timestamp BEFORE async work
@@ -114,6 +116,27 @@ export async function POST(request: NextRequest) {
   }
 }
 
+async function hardCodedReplies(from: string, text: string) {
+  // Admin shortcut
+  if (from === "201227502703") {
+    await sendWhatsappText(from, "بحب يا جنتي ❤️");
+    return;
+  }
+
+  // Google Meet link shortcut
+  if (
+    (from === "201222166530" || from === "966554117879") &&
+    text === "رابط اجتماع"
+  ) {
+    const url = await createGoogleMeeting();
+    if (url) {
+      await sendWhatsappText(from, url);
+      return;
+    }
+    await sendWhatsappText(from, "خلل في انشاء الرابط");
+    return;
+  }
+}
 // ─────────────────────────────────────────────
 // Bot pipeline — runs after debounce window
 // ─────────────────────────────────────────────
@@ -124,26 +147,6 @@ async function debouncedTextMessage(
   text: string,
 ) {
   try {
-    // Admin shortcut
-    if (from === "201227502703") {
-      await sendWhatsappText(from, "بحب يا جنتي ❤️");
-      return;
-    }
-
-    // Google Meet link shortcut
-    if (
-      (from === "201222166530" || from === "966554117879") &&
-      text === "رابط اجتماع"
-    ) {
-      const url = await createGoogleMeeting();
-      if (url) {
-        await sendWhatsappText(from, url);
-        return;
-      }
-      await sendWhatsappText(from, "خلل في انشاء الرابط");
-      return;
-    }
-
     // Rate limit check
     if (from !== "201222166530") {
       const allowed = await checkBotLimit(from);
