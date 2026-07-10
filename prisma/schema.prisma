@@ -1145,13 +1145,16 @@ model Reschedule {
   @@index([meetingId])
   @@map("reschedules")
 }
-
 model WaDebounce {
   phone     String   @id
   lastMsgAt BigInt
+  dueAt     BigInt
+  fromId    String
+  fromName  String
   queue     String   @default("[]")
   updatedAt DateTime @updatedAt
 
+  @@index([dueAt])
   @@map("wa-debounce")
 }
 

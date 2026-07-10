@@ -32,6 +32,7 @@ export async function createGoogleMeeting() {
       },
     },
   });
+  
   return response.data.meetingUri;
 }
 

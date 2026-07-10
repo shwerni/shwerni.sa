@@ -26,6 +26,10 @@
     {
       "path": "/api/cron/whatsapp-campaigns",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/wa-debounce-process",
+      "schedule": "* * * * *"
     }
   ]
 }
