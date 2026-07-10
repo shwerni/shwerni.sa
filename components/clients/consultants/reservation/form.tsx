@@ -114,6 +114,7 @@ export default function ReservationForm({
     control: form.control,
     name: ["sessions", "sessionType", "cost"],
   });
+
   const isPackageSelected = sessionType === "MULTIPLE";
 
   // handle next
@@ -157,6 +158,7 @@ export default function ReservationForm({
     form.setValue("cost", cost);
     form.setValue("sessionType", "ONCE");
     form.setValue("sessions", 1);
+    form.setValue("package", null);
   };
 
   async function onSubmit(data: ReservationFormType) {
@@ -168,7 +170,7 @@ export default function ReservationForm({
 
     // calculate total
     const payment = calculatePayment({
-      baseCost: cost[data.duration as keyof Cost],
+      baseCost: selectedCost[data.duration as keyof Cost],
       tax: finance.tax,
       discountPercent: data.couponPercent ?? 0,
     });

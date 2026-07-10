@@ -1,4 +1,3 @@
-
 // components
 import { Button } from "@/components/ui/button";
 import CurrencyLabel from "../../shared/currency-label";
@@ -17,7 +16,6 @@ import { Cost } from "@/types/data";
 
 // icons
 import { BadgePercent, Check } from "lucide-react";
-
 
 import { UseFormReturn } from "react-hook-form";
 
@@ -58,6 +56,7 @@ const Packages = ({ packages, costs, form }: Props) => {
                   form.setValue("cost", { "30": pkg.cost, "60": costs[60] });
                   form.setValue("sessionType", SessionType.MULTIPLE);
                   form.setValue("sessions", pkg.count);
+                  form.setValue("package", pkg.id);
                 }}
                 className={cn(
                   "flex flex-col justify-between sm:items-center sm:flex-row gap-5 max-w-10/12 sm:max-w-xl border rounded-md py-3 px-4 cursor-pointer transition-all duration-150",
@@ -121,6 +120,7 @@ const Packages = ({ packages, costs, form }: Props) => {
                       });
                       form.setValue("sessionType", SessionType.MULTIPLE);
                       form.setValue("sessions", pkg.count);
+                      form.setValue("package", pkg.id);
                     }}
                   >
                     {isActive ? "تم الاختيار" : "اختر الآن"}

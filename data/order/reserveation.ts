@@ -41,35 +41,35 @@ export const reserveConsultant = async (
 
     // validate
     if (!parsed.success) return null;
-
+    
     // data
     const data = parsed.data;
-
+    
     // check time conflict
     const conflict = await checkMeetingTimeConflict(
       data.cid,
       data.time,
       dateToString(data.date),
     );
-
+    
     // validate
     if (conflict) return null;
-
+    
     // get owner data
     const owner = await prisma.consultant.findFirst({
       where: { cid: data.cid },
       select: { name: true, commission: true },
     });
-
+    
     // if owner not exist
     if (!owner || !owner.name) return null;
-
+    
     // onwer name & commission
     const { name, commission } = owner;
-
+    
     // order commission if owner dont have specific commission set the default
     const oCommission = commission ? commission : data?.finance.commission;
-
+    
     // client name
     const clinetName =
       data.hasBeneficiary && data.beneficiaryName
@@ -96,6 +96,9 @@ export const reserveConsultant = async (
         name: clinetName,
         phone: clientPhone,
         type: data.type,
+        session: data.sessionType,
+        sessionCount: data.sessions,
+        packageId: data.package,
         meeting: {
           create: {
             session: 1,
@@ -152,7 +155,7 @@ export const reserveConsultant = async (
         },
       },
     });
-
+    
     if (data.notes && data.notes.trim().length > 0)
       await prisma.orderMessage.create({
         data: {

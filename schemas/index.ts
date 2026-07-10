@@ -382,6 +382,7 @@ export const reservationSchema = z
     type: z.nativeEnum(OrderType).default(OrderType.SCHEDULED),
     sessionType: z.nativeEnum(SessionType).default(SessionType.ONCE),
     sessions: z.number().default(1),
+    package: z.string().nullable(),
     // step 1
     date: z.date({
       required_error: "التاريخ مطلوب",
