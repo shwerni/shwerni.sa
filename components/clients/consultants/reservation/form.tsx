@@ -90,7 +90,7 @@ export default function ReservationForm({
       beneficiaryName: "",
       beneficiaryPhone: "",
       couponCode: "",
-      package: null,
+      package: null
     },
     mode: "onChange",
     reValidateMode: "onChange",
