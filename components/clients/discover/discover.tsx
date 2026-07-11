@@ -120,6 +120,7 @@ export default function Discover({ user, finance }: Props) {
       // step 3 / payment info
       couponCode: "",
       hasCoupon: false,
+      package: null,
     },
     mode: "onChange",
   });

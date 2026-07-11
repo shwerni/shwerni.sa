@@ -146,6 +146,7 @@ export default function AwarenessForm({
       unavailable,
       name: "",
       phone: "",
+      package: null
     },
     mode: "onChange",
     reValidateMode: "onChange",

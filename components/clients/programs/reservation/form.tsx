@@ -78,6 +78,7 @@ export default function ReservationForm({
       name: "",
       phone: "",
       couponCode: "",
+      package: null,
     },
     mode: "onChange",
     reValidateMode: "onChange",
