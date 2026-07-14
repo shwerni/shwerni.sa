@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { CampaignStatus } from "@/lib/generated/prisma/enums";
 import {
   sendWhatsappTemplate,
-  sendWhatsappText,
   type TemplateParams,
 } from "@/lib/api/whatsapp";
 import { telegramAdmin } from "@/lib/api/telegram/telegram";
@@ -13,20 +12,20 @@ export const maxDuration = 60;
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const jitter = (base: number, spread: number) => base + Math.random() * spread;
 
-// Keep a bounded log of the most recent failures per campaign so the admin
-// page can show *why* sends are failing instead of just a failed count.
 const MAX_ERROR_LOG_ENTRIES = 30;
+const ADMIN_PHONE = "201222166530";
 
 type ErrorLogEntry = {
   phone: string;
   httpStatus?: number;
   errorCode?: number;
   errorMessage: string;
-  at: string; // ISO timestamp
+  at: string;
 };
 
 async function processCampaign(campaign: {
   id: string;
+  name: string;
   phones: string[];
   sentIndex: number;
   ratePerRun: number;
@@ -40,6 +39,7 @@ async function processCampaign(campaign: {
 }) {
   const {
     id,
+    name,
     phones,
     sentIndex,
     ratePerRun,
@@ -50,29 +50,29 @@ async function processCampaign(campaign: {
   } = campaign;
   const isMarketing = category === "MARKETING";
 
-  // Campaign already fully processed - just flip status, no sends.
-  // NOTE: the previous version had a leftover debug line here that sent a
-  // real test message to a hardcoded number every time a campaign finished.
-  // That's removed - this branch now ONLY updates status, no side effects.
+  // Campaign done — send yourself the exact template clients got (once),
+  // then mark completed.
   if (sentIndex >= phones.length) {
-    // test and check
-    await sendWhatsappText(
-      "201222166530",
-      `✅ اكتملت الحملة القالب: ${template}\nالإجمالي: ${phones.length}`,
-    );
-    // test template
-    await telegramAdmin(`"201222166530", ${template}, ${templateParams}, ${language}, ${isMarketing}`)
-    await sendWhatsappTemplate(
-      "201222166530",
+    const testResult = await sendWhatsappTemplate(
+      ADMIN_PHONE,
       template,
       templateParams as TemplateParams,
       language,
       isMarketing,
     );
+
+    await telegramAdmin(
+      `✅ اكتملت الحملة: "${name}"\n` +
+      `القالب: ${template} | ${phones.length} رقم\n` +
+      `نسخة القالب إليك: ${testResult.ok ? "✅ أُرسلت" : `❌ ${testResult.errorMessage}${testResult.errorCode ? ` (code ${testResult.errorCode})` : ""}${testResult.httpStatus ? ` [HTTP ${testResult.httpStatus}]` : ""}`}\n` +
+      `المعاملات: ${JSON.stringify(templateParams, null, 2)}`,
+    );
+
     await prisma.campaign.update({
       where: { id },
       data: { status: CampaignStatus.COMPLETED },
     });
+
     return { id, sent: 0, completed: true };
   }
 
@@ -110,21 +110,16 @@ async function processCampaign(campaign: {
       );
     }
 
-    // pace ourselves between sends, with jitter so it's not a metronome
     await delay(jitter(1200, 500));
   }
 
   const newSentIndex = sentIndex + batch.length;
   const isDone = newSentIndex >= phones.length;
 
-  // merge new errors onto the existing log, keep only the most recent N
   const existingErrors = Array.isArray(campaign.lastErrors)
     ? (campaign.lastErrors as ErrorLogEntry[])
     : [];
-  const mergedErrors = [...newErrors, ...existingErrors].slice(
-    0,
-    MAX_ERROR_LOG_ENTRIES,
-  );
+  const mergedErrors = [...newErrors, ...existingErrors].slice(0, MAX_ERROR_LOG_ENTRIES);
 
   await prisma.campaign.update({
     where: { id },
@@ -137,11 +132,10 @@ async function processCampaign(campaign: {
     },
   });
 
-  if (failed > 0) {
-    console.warn(
-      `⚠️ Campaign ${id}: ${failed}/${batch.length} sends failed this run. See lastErrors on the campaign record.`,
-    );
-  }
+  // Telegram batch progress (no WhatsApp spam per batch)
+  await telegramAdmin(
+    `🚀 دفعة "${name}": ✅ ${success} / ❌ ${failed} | ${newSentIndex}/${phones.length}`,
+  ).catch(() => {});
 
   return { id, sent: batch.length, success, failed, completed: isDone };
 }
@@ -164,7 +158,6 @@ export async function GET(request: Request) {
         const result = await processCampaign(campaign as any);
         results.push(result);
       } catch (err) {
-        // don't let one broken campaign kill the whole cron run
         console.error(`🔥 Campaign ${campaign.id} threw unexpectedly:`, err);
         results.push({ id: campaign.id, error: String(err) });
       }
