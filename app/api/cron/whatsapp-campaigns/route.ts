@@ -23,6 +23,39 @@ type ErrorLogEntry = {
   at: string;
 };
 
+async function sendCompletionNotice(
+  name: string,
+  template: string,
+  templateParams: unknown,
+  language: string,
+  isMarketing: boolean,
+  totalPhones: number,
+  totalSuccess: number,
+  totalFailed: number,
+) {
+  const testResult = await sendWhatsappTemplate(
+    ADMIN_PHONE,
+    template,
+    templateParams as TemplateParams,
+    language,
+    isMarketing,
+  );
+
+  const templateStatus = testResult.ok
+    ? "✅ أُرسل القالب إليك"
+    : `❌ فشل إرسال القالب: ${testResult.errorMessage}` +
+      (testResult.errorCode ? ` (code ${testResult.errorCode})` : "") +
+      (testResult.httpStatus ? ` [HTTP ${testResult.httpStatus}]` : "");
+
+  await telegramAdmin(
+    `✅ اكتملت الحملة: "${name}"\n` +
+    `القالب: ${template} | ${totalPhones} رقم\n` +
+    `النتيجة: ✅ ${totalSuccess} / ❌ ${totalFailed}\n` +
+    `${templateStatus}\n` +
+    `المعاملات: ${JSON.stringify(templateParams, null, 2)}`,
+  ).catch(() => {});
+}
+
 async function processCampaign(campaign: {
   id: string;
   name: string;
@@ -50,29 +83,15 @@ async function processCampaign(campaign: {
   } = campaign;
   const isMarketing = category === "MARKETING";
 
-  // Campaign done — send yourself the exact template clients got (once),
-  // then mark completed.
+  // This branch only hits if a campaign was somehow left in ACTIVE state
+  // after already being fully sent (e.g. a previous DB update failed).
+  // Guard kept for safety but completion notice is now triggered below
+  // at the end of the batch that crosses the finish line.
   if (sentIndex >= phones.length) {
-    const testResult = await sendWhatsappTemplate(
-      ADMIN_PHONE,
-      template,
-      templateParams as TemplateParams,
-      language,
-      isMarketing,
-    );
-
-    await telegramAdmin(
-      `✅ اكتملت الحملة: "${name}"\n` +
-      `القالب: ${template} | ${phones.length} رقم\n` +
-      `نسخة القالب إليك: ${testResult.ok ? "✅ أُرسلت" : `❌ ${testResult.errorMessage}${testResult.errorCode ? ` (code ${testResult.errorCode})` : ""}${testResult.httpStatus ? ` [HTTP ${testResult.httpStatus}]` : ""}`}\n` +
-      `المعاملات: ${JSON.stringify(templateParams, null, 2)}`,
-    );
-
     await prisma.campaign.update({
       where: { id },
       data: { status: CampaignStatus.COMPLETED },
     });
-
     return { id, sent: 0, completed: true };
   }
 
@@ -132,10 +151,26 @@ async function processCampaign(campaign: {
     },
   });
 
-  // Telegram batch progress (no WhatsApp spam per batch)
-  await telegramAdmin(
-    `🚀 دفعة "${name}": ✅ ${success} / ❌ ${failed} | ${newSentIndex}/${phones.length}`,
-  ).catch(() => {});
+  if (isDone) {
+    // Fire completion notice in the same run as the finishing batch —
+    // the next cron tick won't see this campaign (status=COMPLETED,
+    // filtered out by the ACTIVE query), so this is the only chance.
+    await sendCompletionNotice(
+      name,
+      template,
+      templateParams,
+      language,
+      isMarketing,
+      phones.length,
+      campaign.successCount + success,
+      campaign.failedCount + failed,
+    );
+  } else {
+    // Batch progress to Telegram only (no WhatsApp spam mid-campaign)
+    await telegramAdmin(
+      `🚀 دفعة "${name}": ✅ ${success} / ❌ ${failed} | ${newSentIndex}/${phones.length}`,
+    ).catch(() => {});
+  }
 
   return { id, sent: batch.length, success, failed, completed: isDone };
 }
