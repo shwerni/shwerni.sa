@@ -91,7 +91,7 @@ const Categories = () => {
       {/* title */}
       <Title title="تلائم أهدافك وتحقق نتائجك" subTitle="مجالات واسعة" />
       {/* event card */}
-      {/* <EventCard /> */}
+      <EventCard />
       {/* <EventCardSN /> */}
       {/* cards */}
       {/* handle better instead of just hide */}
@@ -313,7 +313,7 @@ function EventCard() {
                     color: "#a5b4fc",
                   }}
                 >
-                  89 ريال
+                  99 ريال
                 </span>{" "}
                 <span style={{ color: "#94a3b8" }}>شامل الضريبة</span>
               </p>

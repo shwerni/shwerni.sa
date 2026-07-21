@@ -18,7 +18,7 @@ const DiscountBadge = () => {
             color: "#7dd3fc",
           }}
         >
-          89 ريال
+          99 ريال
         </span>
       </div>
   );
