@@ -13,7 +13,7 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const jitter = (base: number, spread: number) => base + Math.random() * spread;
 
 const MAX_ERROR_LOG_ENTRIES = 30;
-const ADMIN_PHONE = "201222166530";
+const ADMIN_PHONE = "966503071504";
 
 type ErrorLogEntry = {
   phone: string;
