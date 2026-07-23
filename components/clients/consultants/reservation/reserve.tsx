@@ -78,6 +78,7 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
         finance={finance}
         unavailable={[...unavailable]}
         collaboration={collaboration}
+        isDiscount={isDiscount}
       />
       {/* review */}
       <AddYourReview

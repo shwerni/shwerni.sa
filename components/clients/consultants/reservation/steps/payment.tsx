@@ -32,9 +32,10 @@ import CurrencyLabel from "@/components/clients/shared/currency-label";
 interface Props {
   onBack: () => void;
   form: UseFormReturn<ReservationFormType>;
+  isDiscount?: boolean;
 }
 
-export default function StepPayment({ form, onBack }: Props) {
+export default function StepPayment({ form, onBack, isDiscount }: Props) {
   const {
     formState: { isSubmitting, isLoading },
   } = form;
@@ -45,8 +46,11 @@ export default function StepPayment({ form, onBack }: Props) {
   // form data
   const { cost, finance } = form.getValues();
 
+  // duration
+  const duration = form.watch("duration");
+
   // initial cost
-  const initialCost = cost[form.getValues("duration") as keyof Cost];
+  const initialCost = cost[duration as keyof Cost];
 
   // summary
   const summary = [
@@ -150,7 +154,9 @@ export default function StepPayment({ form, onBack }: Props) {
             {/* methods */}
             <MethodForm form={form} />
             {/* coupon */}
-            {finance.couponEnabled && payment.total > 0 ? (
+            {finance.couponEnabled &&
+            payment.total > 0 &&
+            !(duration === "30" && isDiscount) ? (
               <CouponForm form={form} />
             ) : null}
             {/* terms */}

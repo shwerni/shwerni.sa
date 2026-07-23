@@ -47,6 +47,7 @@ interface Props {
   consultant: string;
   packages: Package[];
   collaboration?: string;
+  isDiscount?: boolean;
 }
 
 export default function ReservationForm({
@@ -58,6 +59,7 @@ export default function ReservationForm({
   packages,
   unavailable,
   collaboration,
+  isDiscount,
 }: Props) {
   // steps labels
   const steps = ["التاريخ والوقت", "بيانات الاستشارة", "التأكيد والدفع"];
@@ -90,7 +92,7 @@ export default function ReservationForm({
       beneficiaryName: "",
       beneficiaryPhone: "",
       couponCode: "",
-      package: null
+      package: null,
     },
     mode: "onChange",
     reValidateMode: "onChange",
@@ -236,7 +238,11 @@ export default function ReservationForm({
 
               {/* payment */}
               {step === 2 && (
-                <StepPayment form={form} onBack={() => handleNext(1)} />
+                <StepPayment
+                  form={form}
+                  onBack={() => handleNext(1)}
+                  isDiscount={isDiscount}
+                />
               )}
             </form>
           </div>
