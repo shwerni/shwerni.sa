@@ -90,6 +90,7 @@ export default function StepDateTime({ form, onNext }: Props) {
 
   // date
   const { iso: initial } = timeZone();
+  
   // time
   const {
     date: iso,
