@@ -14,7 +14,7 @@ const wa = (phone: string) => `https://wa.me/${phone}`;
 const getBookingTypeLabel = (
   session: SessionType,
   program?: unknown,
-  sessionCount?: number
+  sessionCount?: number,
 ) => {
   if (session === SessionType.MULTIPLE) {
     const label = program ? "برنامج" : "باقة";
@@ -36,6 +36,7 @@ const formatCommonFields = (data: Reservation) => ({
   method: data.payment?.method,
   session: data.session,
   meeting: data.meeting,
+  duration: (data.meeting?.[0]?.duration || "30") + " دقيقة",
   program: data.program,
   sessionCount: data.sessionCount ?? data.program?.sessions,
 });
@@ -73,25 +74,25 @@ export const serviceTelegramNewOrder = (data: Reservation) => {
 
   // base info (always included)
   const base = [
-    `🎉 <b>تم حجز ودفع استشارة جديدة على منصة شاورني</b>`,
+    `<b>تم حجز ودفع استشارة جديدة على منصة شاورني</b>`,
     ``,
     `📋 <b>بيانات الطلب:</b>`,
     `• <b>رقم الطلب:</b> #${orderNo}`,
     `• <b>نوع الحجز:</b> ${bookingType}`,
     `• <b>المستشار:</b> ${consultant.name}`,
-    `• <b>رقم المستشار:</b> <code>${consultant.phone}</code>`,
-    `• <a href="${wa(consultant.phone)}">📱 تواصل مع المستشار عبر واتساب</a>`,
+    `• <b>رقم المستشار:</b> ${consultant.phone}`,
+    `• <b>تواصل مع المستشار:</b> <a href="${wa(consultant.phone)}">${wa(consultant.phone)}</a>`,
     `• <b>اسم العميل:</b> ${name}`,
-    `• <b>رقم العميل:</b> <code>${phone}</code>`,
-    `• <a href="${wa(phone)}">📱 تواصل مع العميل عبر واتساب</a>`,
+    `• <b>رقم العميل:</b> ${phone}`,
+    `• <b>واتساب العميل:</b> <a href="${wa(phone)}">${wa(phone)}</a>`,
   ];
 
   // participants
   const user = meeting?.[0]?.participants?.find(
-    (i) => i.role === UserRole.USER
+    (i) => i.role === UserRole.USER,
   )?.participant;
   const owner = meeting?.[0]?.participants?.find(
-    (i) => i.role === UserRole.OWNER
+    (i) => i.role === UserRole.OWNER,
   )?.participant;
 
   // append meeting details if available
@@ -101,8 +102,8 @@ export const serviceTelegramNewOrder = (data: Reservation) => {
       `🗓️ <b>تفاصيل الجلسة:</b>`,
       `• <b>موعد الحجز:</b> ${meetingLabel(time, date)}`,
       `• <b>تاريخ الحجز:</b> ${dateToString(createdAt)}`,
-      `• <a href="${meetingUrl(meeting[0].mid, owner)}">🔗 رابط الاجتماع للمستشار</a>`,
-      `• <a href="${meetingUrl(meeting[0].mid, user)}">🔗 رابط الاجتماع للعميل</a>`
+      `• <b>رابط الاجتماع للمستشار:</b> <a href="${meetingUrl(meeting[0].mid, owner)}">${meetingUrl(meeting[0].mid, owner)}</a>`,
+      `• <b>رابط الاجتماع للعميل:</b> <a href="${meetingUrl(meeting[0].mid, user)}">${meetingUrl(meeting[0].mid, user)}</a>`,
     );
   }
 
@@ -119,6 +120,7 @@ export const managerTelegramNewOrder = (data: Reservation) => {
     method,
     time,
     date,
+    duration,
     createdAt,
     session,
     program,
@@ -140,6 +142,7 @@ export const managerTelegramNewOrder = (data: Reservation) => {
     `• <b>اسم العميل:</b> ${name}`,
     `• <b>رقم العميل:</b> <code>${phone}</code>`,
     `• <b>نوع الحجز:</b> ${bookingType}`,
+    `• <b>مدة الجلسة:</b> ${duration}`,
     `• <b>التكلفة:</b> ${total}`,
     `• <b>طريقة الدفع:</b> ${method}`,
     `• <b>موعد الحجز:</b> ${meetingLabel(time, date)}`,
