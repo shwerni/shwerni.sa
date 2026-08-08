@@ -228,7 +228,15 @@ enum TemplateCategory {
   AUTHENTICATION
 }
 
+enum NotificationAudience {
+  ALL
+  USER
+  OWNER
+}
+
 // models
+
+// auth
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -243,15 +251,21 @@ model User {
   role          UserRole  @default(USER)
 
   // @relations
-  accounts         Account[]
-  Wallet           Wallet[]
-  Favorite         Favorite[]
-  Consultant       Consultant[]
-  ConsultantTiming ConsultantTiming[]
-  collaboration    Collaboration?
-  articleLikes     ArticleLike[]
-  articleComments  ArticleComment[]
-  questions        Question[]
+  Wallet              Wallet[]
+  Favorite            Favorite[]
+  Consultant          Consultant[]
+  ConsultantTiming    ConsultantTiming[]
+  collaboration       Collaboration?
+  articleLikes        ArticleLike[]
+  articleComments     ArticleComment[]
+  questions           Question[]
+  // auth
+  accounts            Account[]
+  mobileSessions      MobileSession[]
+  mobileAccounts      MobileAccount[]
+  mobileEmailVerified Boolean            @default(false) @map("mobile_email_verified")
+  notifications       Notification[]
+  pushTokens          PushToken[]
 
   @@map("users")
 }
@@ -284,6 +298,55 @@ model VerificationToken {
 
   @@unique([phone, token])
   @@map("verification_tokens")
+}
+
+model MobileSession {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("mobile_sessions")
+}
+
+model MobileAccount {
+  id                    String    @id @default(cuid())
+  userId                String    @map("user_id")
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("mobile_accounts")
+}
+
+model MobileVerification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([identifier])
+  @@map("mobile_verifications")
 }
 
 model Setting {
@@ -978,6 +1041,7 @@ model Scale {
   id           String             @id @default(cuid())
   slug         String             @unique
   title        String
+  image        String?
   subtitle     String?
   description  String?            @db.Text
   whoNeedsIt   String?            @db.Text
@@ -1145,6 +1209,7 @@ model Reschedule {
   @@index([meetingId])
   @@map("reschedules")
 }
+
 model WaDebounce {
   phone     String   @id
   lastMsgAt BigInt
@@ -1178,4 +1243,65 @@ model Campaign {
 
   @@index([status])
   @@map("wa-campaign")
+}
+
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  title      String
+  message    String
+  timeToSend DateTime
+  sent       Boolean   @default(false)
+  read       Boolean   @default(false)
+  sentAt     DateTime?
+  readAt     DateTime?
+
+  // drives tap behavior on the client - null/missing type means readonly
+  type           String?
+  targetId       String?
+  ctaLabel       String?
+  actionCategory String?
+  createdAt      DateTime @default(now())
+
+  @@index([sent, timeToSend])
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+model PushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  platform  String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("push-tokens")
+}
+
+model NotificationCampaign {
+  id      String @id @default(cuid())
+  title   String
+  message String
+
+  audience   NotificationAudience @default(ALL)
+  timeToSend DateTime
+  sent       Boolean              @default(false)
+  sentAt     DateTime?
+  // how many individual Notification rows this fanned out into once sent
+  sentCount  Int?
+
+  // same tap-behavior fields as Notification, copied onto every fanned-out row
+  type           String?
+  targetId       String?
+  ctaLabel       String?
+  actionCategory String?
+
+  createdAt DateTime @default(now())
+
+  @@index([sent, timeToSend])
+  @@map("notification_campaigns")
 }

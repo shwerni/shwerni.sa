@@ -16,7 +16,7 @@ import { checkProgramNextSession } from "./programs";
 import {
   notificationConfirmRescheduling,
   notificationCheckRescheduling,
-} from "@/lib/notifications";
+} from "@/lib/notifications/site";
 
 // types
 import {

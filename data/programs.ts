@@ -17,7 +17,7 @@ import { Prisma } from "@/lib/generated/prisma/client";
 
 // schema
 import { ProgramSchema } from "@/schemas";
-import { notificationPickNewSession } from "@/lib/notifications";
+import { notificationPickNewSession } from "@/lib/notifications/site";
 
 // get programs
 type OrderBy = "newest" | "oldest" | "viral";
@@ -140,6 +140,22 @@ export const getAllPrograms = async () => {
   } catch {
     // return
     return null;
+  }
+};
+
+// get all program
+export const getProgramsForHome = async (limit: number = 8) => {
+  try {
+    // get program
+    return await prisma.$queryRaw<Program[]>`
+      SELECT * FROM "programs" 
+      WHERE status = CAST(${ProgramState.PUBLISHED} AS "ProgramState")
+      ORDER BY RANDOM() 
+      LIMIT ${limit};
+    `;
+  } catch {
+    // return
+    return [];
   }
 };
 

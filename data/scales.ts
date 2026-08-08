@@ -4,9 +4,10 @@ import {
   Scale,
   ScaleItem,
   ScaleResultRange,
+  ScaleState,
 } from "@/lib/generated/prisma/client";
 import prisma from "@/lib/database/db";
-import { notificationScaleReminder } from "@/lib/notifications";
+import { notificationScaleReminder } from "@/lib/notifications/site";
 
 type ScaleWithItems = Scale & {
   items: (ScaleItem & { options: ScaleAnswerOption[] })[];
@@ -297,3 +298,18 @@ export async function submitScaleResult({
     return { success: false, error: "حدث خطأ أثناء حفظ النتائج." };
   }
 }
+
+// get random scales for home
+export const getScalesForHome = async (limit: number = 8) => {
+  try {
+    return await prisma.$queryRaw<Scale[]>`
+      SELECT * FROM "scales" 
+      WHERE status = CAST(${ScaleState.PUBLISHED} AS "ScaleState")
+      ORDER BY RANDOM() 
+      LIMIT ${limit};
+    `;
+  } catch (error) {
+    console.error("Error fetching scales:", error);
+    return [];
+  }
+};

@@ -7,7 +7,7 @@ import prisma from "@/lib/database/db";
 import { PaymentState, UserRole } from "@/lib/generated/prisma/enums";
 
 // lib
-import { notificationNewChatMessage } from "@/lib/notifications";
+import { notificationNewChatMessage } from "@/lib/notifications/site";
 import { timeZone } from "@/lib/site/time";
 import { differenceInHours } from "date-fns";
 

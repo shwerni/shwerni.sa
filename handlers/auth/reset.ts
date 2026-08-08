@@ -13,7 +13,7 @@ import bcrypt from "bcryptjs";
 import { PhoneSchema, ResetSchema } from "@/schemas";
 
 // lib
-import { notificationSecurityOtp } from "@/lib/notifications";
+import { notificationSecurityOtp } from "@/lib/notifications/site";
 
 // prisma data
 import {

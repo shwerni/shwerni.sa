@@ -20,7 +20,7 @@ import { dateToString } from "@/utils/time";
 import { Reservation } from "@/types/admin";
 
 // lib
-import { notificationNewOrder } from "@/lib/notifications";
+import { notificationNewOrder } from "@/lib/notifications/site";
 import { createTabbyCheckout } from "@/lib/api/gatewaies/tabby";
 import { createMoyasarCheckout } from "@/lib/api/gatewaies/moyasar";
 

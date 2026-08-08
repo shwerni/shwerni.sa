@@ -304,3 +304,34 @@ export const acceptWhatsappReview = async (
     return null;
   }
 };
+
+interface ReviewsPage {
+  reviews: Review[];
+  nextCursor: string | null;
+}
+
+// paginated reviews for a consultant, newest first, cursor = last review id
+export const getConsultantPaginatedReviews = async (
+  cid: number,
+  cursor: string | null,
+  limit: number,
+): Promise<ReviewsPage> => {
+  try {
+    const reviews = await prisma.review.findMany({
+      where: { consultantId: cid, status: ReviewState.PUBLISHED },
+      orderBy: { created_at: "desc" },
+      take: limit + 1,
+      ...(cursor && { cursor: { id: cursor }, skip: 1 }),
+    });
+
+    const hasMore = reviews.length > limit;
+    const page = hasMore ? reviews.slice(0, limit) : reviews;
+
+    return {
+      reviews: page,
+      nextCursor: hasMore ? page[page.length - 1].id : null,
+    };
+  } catch {
+    return { reviews: [], nextCursor: null };
+  }
+};

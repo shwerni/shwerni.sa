@@ -15,7 +15,7 @@ import { UserRole } from "@/lib/generated/prisma/enums";
 
 // prisma data
 import { getUserById, getUsersByRole } from "./user";
-import { notificationNewPreConsultation } from "@/lib/notifications";
+import { notificationNewPreConsultation } from "@/lib/notifications/site";
 
 // get get pre consultation seassion
 export const getPreConsultationSeassion = async (id: string) => {

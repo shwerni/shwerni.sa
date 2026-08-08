@@ -5,7 +5,7 @@ import prisma from "@/lib/database/db";
 import { generateOtp } from "@/utils/auth";
 
 // prisma data
-import { notificationSecurityOtp } from "@/lib/notifications";
+import { notificationSecurityOtp } from "@/lib/notifications/site";
 
 export const getVerificationTokenByToken = async (token: string) => {
   try {

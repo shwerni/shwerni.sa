@@ -5,7 +5,7 @@ import { reserveReconciliation } from "@/data/reconciliation";
 
 // types
 import { Gender, PaymentState, Relation } from "@/lib/generated/prisma/client";
-import { notificationReviewReminder } from "@/lib/notifications";
+import { notificationReviewReminder } from "@/lib/notifications/site";
 import { zencryption } from "@/utils/admin/encryption";
 import { redirect } from "next/navigation";
 

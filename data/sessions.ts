@@ -9,7 +9,7 @@ import { SessionType } from "@/lib/generated/prisma/client";
 import { createNewMeeting } from "./rooms";
 
 // lib
-import { notificationSessionConfirm } from "@/lib/notifications";
+import { notificationSessionConfirm } from "@/lib/notifications/site";
 
 // session selection
 export const selectSession = async (

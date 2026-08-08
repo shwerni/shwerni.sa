@@ -64,14 +64,12 @@ export const notificationNewOrder = async (order: Reservation) => {
   // validate
   if (!meeting || !payment || (isProgram && !program)) return;
 
-  // zid
-  const zid = zencryption(order.oid);
   // meeting label
   const label = meetingLabel(meeting[0].time, meeting[0].date);
 
   return notify(async () => {
     // if program or single
-    if (isProgram && program) {
+    if (isProgram) {
       // owner
       await sendWhatsappTemplate(
         cophone,
@@ -79,13 +77,13 @@ export const notificationNewOrder = async (order: Reservation) => {
         {
           text: [
             coname,
-            program.title,
+            program ? program.title : "باقة",
             order.name,
             order.oid,
-            order.sessionCount,
+            program ? program.sessions : order.sessionCount,
             label,
           ],
-          url: [`${zid}?participant=owner&session=1`],
+          quick_reply: [`meeting-url:${meeting[0].mid}`],
         },
         "en_us",
       );
@@ -95,15 +93,15 @@ export const notificationNewOrder = async (order: Reservation) => {
         "program_session_confirm",
         {
           text: [
-            program.title,
+            program ? program.title : "باقة",
             order.name,
             coname,
             order.oid,
             1,
-            program.sessions,
+            program ? program.sessions : order.sessionCount,
             label,
           ],
-          url: [`${zid}?participant=client&session=1`],
+          quick_reply: [`meeting-url:${meeting[0].mid}`],
         },
         "en_us",
       );

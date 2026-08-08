@@ -7,7 +7,7 @@ import { checkMeetingTimeConflict } from "./order/reserveation";
 
 // lib
 import { timeZone } from "@/lib/site/time";
-import { notificationNewFreeSession } from "@/lib/notifications";
+import { notificationNewFreeSession } from "@/lib/notifications/site";
 
 // utils
 import {
