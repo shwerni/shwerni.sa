@@ -11,18 +11,33 @@ import { Reservation } from "@/types/admin";
 // helpers
 const wa = (phone: string) => `https://wa.me/${phone}`;
 
+const getBookingTypeLabel = (
+  session: SessionType,
+  program?: unknown,
+  sessionCount?: number
+) => {
+  if (session === SessionType.MULTIPLE) {
+    const label = program ? "برنامج" : "باقة";
+    const countText = sessionCount ? ` (${sessionCount} جلسات)` : "";
+    return `${label}${countText}`;
+  }
+  return "جلسة واحدة";
+};
+
 const formatCommonFields = (data: Reservation) => ({
   orderNo: data.oid,
   consultant: data.consultant,
   name: data.name,
   phone: data.phone,
-  date: data.meeting?.[0].date,
-  time: data.meeting?.[0].time,
+  date: data.meeting?.[0]?.date,
+  time: data.meeting?.[0]?.time,
   createdAt: data.created_at,
   total: data.payment?.total,
   method: data.payment?.method,
   session: data.session,
   meeting: data.meeting,
+  program: data.program,
+  sessionCount: data.sessionCount ?? data.program?.sessions,
 });
 
 // templates
@@ -30,47 +45,64 @@ export const adminTelegramNewOrder = (data: Reservation) => {
   const { orderNo, date, total } = formatCommonFields(data);
 
   return [
-    `ziad abolmajd`,
+    `<b>ziad abolmajd</b>`,
     `a new paid order for shwerni`,
     ``,
-    `orderNo:  ${orderNo}`,
-    `date:     ${date}`,
-    `price:    ${total}`,
+    `<b>orderNo:</b>  ${orderNo}`,
+    `<b>date:</b>     ${date}`,
+    `<b>price:</b>    ${total}`,
   ].join("\n");
 };
 
 export const serviceTelegramNewOrder = (data: Reservation) => {
-  const { orderNo, consultant, phone, name, time, date, createdAt, meeting } =
-    formatCommonFields(data);
+  const {
+    orderNo,
+    consultant,
+    phone,
+    name,
+    time,
+    date,
+    createdAt,
+    meeting,
+    session,
+    program,
+    sessionCount,
+  } = formatCommonFields(data);
+
+  const bookingType = getBookingTypeLabel(session, program, sessionCount);
 
   // base info (always included)
   const base = [
-    `تم حجز و دفع استشارة جديدة على المنصة`,
+    `🎉 <b>تم حجز ودفع استشارة جديدة على منصة شاورني</b>`,
     ``,
-    `رقم الطلب:               ${orderNo}`,
-    `المستشار:                ${consultant.name}`,
-    `رقم المستشار:            ${consultant.phone}`,
-    `تواصل مع المستشار:       ${wa(consultant.phone)}`,
-    `اسم العميل:              ${name}`,
-    `رقم العميل:              ${phone}`,
-    `واتساب العميل:           ${wa(phone)}`,
+    `📋 <b>بيانات الطلب:</b>`,
+    `• <b>رقم الطلب:</b> #${orderNo}`,
+    `• <b>نوع الحجز:</b> ${bookingType}`,
+    `• <b>المستشار:</b> ${consultant.name}`,
+    `• <b>رقم المستشار:</b> <code>${consultant.phone}</code>`,
+    `• <a href="${wa(consultant.phone)}">📱 تواصل مع المستشار عبر واتساب</a>`,
+    `• <b>اسم العميل:</b> ${name}`,
+    `• <b>رقم العميل:</b> <code>${phone}</code>`,
+    `• <a href="${wa(phone)}">📱 تواصل مع العميل عبر واتساب</a>`,
   ];
 
   // participants
-  const user = meeting?.[0].participants.find(
-    (i) => i.role === UserRole.USER,
+  const user = meeting?.[0]?.participants?.find(
+    (i) => i.role === UserRole.USER
   )?.participant;
-  const owner = meeting?.[0].participants.find(
-    (i) => i.role === UserRole.OWNER,
+  const owner = meeting?.[0]?.participants?.find(
+    (i) => i.role === UserRole.OWNER
   )?.participant;
 
   // append meeting details if available
-  if (time && date && meeting && user && owner) {
+  if (time && date && meeting?.[0] && user && owner) {
     base.push(
-      `رابط الاجتماع للمستشار:  ${meetingUrl(meeting[0].mid, owner)}`,
-      `رابط الاجتماع للعميل:    ${meetingUrl(meeting[0].mid, user)}`,
-      `موعد الحجز:              ${meetingLabel(time, date)}`,
-      `تاريخ الحجز:             ${dateToString(createdAt)}`,
+      ``,
+      `🗓️ <b>تفاصيل الجلسة:</b>`,
+      `• <b>موعد الحجز:</b> ${meetingLabel(time, date)}`,
+      `• <b>تاريخ الحجز:</b> ${dateToString(createdAt)}`,
+      `• <a href="${meetingUrl(meeting[0].mid, owner)}">🔗 رابط الاجتماع للمستشار</a>`,
+      `• <a href="${meetingUrl(meeting[0].mid, user)}">🔗 رابط الاجتماع للعميل</a>`
     );
   }
 
@@ -89,23 +121,28 @@ export const managerTelegramNewOrder = (data: Reservation) => {
     date,
     createdAt,
     session,
+    program,
+    sessionCount,
   } = formatCommonFields(data);
 
   // validate
   if (!time || !date) return "";
 
+  const bookingType = getBookingTypeLabel(session, program, sessionCount);
+
   return [
-    `مستشار يحيى`,
-    `تم حجز و دفع استشارة جديدة على منصة شاورني`,
+    `🌸 <b>مستشار يحيى</b>`,
+    `✨ <b>تم حجز ودفع استشارة جديدة على منصة شاورني</b>`,
     ``,
-    `رقم الطلب:    ${orderNo}`,
-    `المستشار:     ${consultant.name}`,
-    `اسم العميل:   ${name}`,
-    `رقم العميل:   ${phone}`,
-    `التكلفة:      ${total}`,
-    `طريقة الدفع:  ${method}`,
-    `نوع الحجز:    ${session === SessionType.MULTIPLE ? "برنامج" : "جلسة واحدة"}`,
-    `موعد الحجز:   ${meetingLabel(time, date)}`,
-    `تاريخ الحجز:  ${dateToString(createdAt)}`,
+    `📋 <b>بيانات الطلب:</b>`,
+    `• <b>رقم الطلب:</b> #${orderNo}`,
+    `• <b>المستشار:</b> ${consultant.name}`,
+    `• <b>اسم العميل:</b> ${name}`,
+    `• <b>رقم العميل:</b> <code>${phone}</code>`,
+    `• <b>نوع الحجز:</b> ${bookingType}`,
+    `• <b>التكلفة:</b> ${total}`,
+    `• <b>طريقة الدفع:</b> ${method}`,
+    `• <b>موعد الحجز:</b> ${meetingLabel(time, date)}`,
+    `• <b>تاريخ الحجز:</b> ${dateToString(createdAt)}`,
   ].join("\n");
 };

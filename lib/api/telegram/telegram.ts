@@ -30,7 +30,12 @@ const telegramFetch = (method: string, body: object) =>
 
 // send message helper
 const sendMessage = (chat_id: string, text: string) =>
-  telegramFetch("sendMessage", { chat_id, text });
+  telegramFetch("sendMessage", {
+    chat_id,
+    text,
+    parse_mode: "HTML",
+    link_preview_options: { is_disabled: true },
+  });
 
 // send document helper
 const sendDocument = (chat_id: string, document: string) =>
@@ -50,17 +55,23 @@ export const newOrdertelegram = async (data: Reservation) => {
 
     // notify admins
     await Promise.allSettled(
-      admins.map((admin) => sendMessage(String(admin), adminTelegramNewOrder(data)))
+      admins.map((admin) =>
+        sendMessage(String(admin), adminTelegramNewOrder(data)),
+      ),
     );
 
     // notify services
     await Promise.allSettled(
-      services.map((service) => sendMessage(String(service), serviceTelegramNewOrder(data)))
+      services.map((service) =>
+        sendMessage(String(service), serviceTelegramNewOrder(data)),
+      ),
     );
 
     // notify managers
     await Promise.allSettled(
-      managers.map((manager) => sendMessage(String(manager), managerTelegramNewOrder(data)))
+      managers.map((manager) =>
+        sendMessage(String(manager), managerTelegramNewOrder(data)),
+      ),
     );
 
     // return
@@ -76,7 +87,7 @@ export const telegramRefund = async (data: Reservation) => {
   try {
     // notify me telegram
     await telegram(
-      `ziad abolmajd\na shwerni's order has refunded \n\norderNo: ${data.oid}\nname: ${data.name}\nconsultant: ${data.consultant}\nprice: ${data.payment?.total}\nphone:${data.phone}`
+      `ziad abolmajd\na shwerni's order has refunded \n\norderNo: ${data.oid}\nname: ${data.name}\nconsultant: ${data.consultant}\nprice: ${data.payment?.total}\nphone:${data.phone}`,
     );
     // return
     return true;
