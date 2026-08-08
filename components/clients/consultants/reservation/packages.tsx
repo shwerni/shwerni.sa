@@ -53,7 +53,7 @@ const Packages = ({ packages, costs, form }: Props) => {
               <div
                 key={pkg.id}
                 onClick={() => {
-                  form.setValue("cost", { "30": pkg.cost, "60": costs[60] });
+                  form.setValue("cost", { "30": pkg.cost, "60": pkg.cost });
                   form.setValue("sessionType", SessionType.MULTIPLE);
                   form.setValue("sessions", pkg.count);
                   form.setValue("package", pkg.id);

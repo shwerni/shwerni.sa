@@ -7,11 +7,11 @@ const support = "https://wa.me/966554117879";
 
 // quick replies (keyword detection)
 const quickReplies: Record<string, string> = {
-  تسجيل: "✨ للتسجيل في المنصة تفضل من هنا:\nhttps://shwerni.sa/auth/register",
-  دخول: "🔐 لتسجيل الدخول استخدم الرابط التالي:\nhttps://shwerni.sa/auth/login",
+  تسجيل: "✨ للتسجيل في المنصة تفضل من هنا:\nhttps://shwerni.sa/register",
+  دخول: "🔐 لتسجيل الدخول استخدم الرابط التالي:\nhttps://shwerni.sa/login",
   "نسيت كلمة المرور":
-    "🔄 لاستعادة كلمة المرور تفضل من هنا:\nhttps://shwerni.sa/auth/forgetpassword",
-  حجز: "📅 لحجز موعد جديد، استخدم الرابط التالي:\nhttps://shwerni.sa/available",
+    "🔄 لاستعادة كلمة المرور تفضل من هنا:\nhttps://shwerni.sa/auth/forget-password",
+  حجز: "📅 لحجز موعد جديد، استخدم الرابط التالي:\nhttps://shwerni.sa/discover",
   تواصل: `💬 للتواصل مع خدمة العملاء مباشرة:\n${support}`,
 };
 
@@ -66,10 +66,10 @@ export const aiBot = async (message: string, chatContext: string) => {
     "عذرًا، لا أستطيع المساعدة في هذا الموضوع. يمكنك التواصل مع خدمة العملاء هنا: ${support}"
 
     ## Platform Knowledge:
-    - التسجيل: https://shwerni.sa/auth/register
-    - تسجيل الدخول: https://shwerni.sa/auth/login
-    - استعادة كلمة المرور: https://shwerni.sa/auth/forgetpassword
-    - حجز موعد: https://shwerni.sa/available
+    - التسجيل: https://shwerni.sa/register
+    - تسجيل الدخول: https://shwerni.sa/login
+    - استعادة كلمة المرور: https://shwerni.sa/forget-password
+    - حجز موعد: https://shwerni.sa/discover
     - الدعم الفني: ${support}
 
     ## Rules:

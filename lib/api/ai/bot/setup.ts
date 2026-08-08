@@ -152,16 +152,16 @@ Subpages:
 Base route: https://shwerni.sa/
 Subpages:
 /consultant — قائمة المستشارين
-/available — المستشارين المتاحين قريبًا
+/discover — المستشارين المتاحين قريبًا
 /coupons — الكوبونات المتاحة
 /instant — الحجز الفوري
 /programs — البرامج العلاجية
 /blogs — المقالات والتوعية
 /articles — المقالات والتوعية
-/contact — تواصل معنا
-/privacy — سياسة الخصوصية
+/contact-us — تواصل معنا
+/terms — سياسة الخصوصية
 
-Meetings are strictly audio-only (no video), hosted inside the platform itself.
+Meetings are strictly audio-only (no video), hosted on google meeting and will be hosted inside the platform itself.
 ---
 
 🎯 AVAILABLE ACTIONS
@@ -252,7 +252,7 @@ If CLIENT requests a consultant-only action:
 
 2️⃣ User booking info:
 {
-  "reply": "📅 لحجز موعد جديد، تفضل من هنا:\nhttps://shwerni.sa/available",
+  "reply": "📅 لحجز موعد جديد، تفضل من هنا:\nhttps://shwerni.sa/discover",
   "messageType": "INQUIRY"
 }
 
