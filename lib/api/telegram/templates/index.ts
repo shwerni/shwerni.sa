@@ -74,17 +74,19 @@ export const serviceTelegramNewOrder = (data: Reservation) => {
 
   // base info (always included)
   const base = [
-    `<b>تم حجز ودفع استشارة جديدة على منصة شاورني</b>`,
+    `🔔 <b>تم حجز ودفع استشارة جديدة على منصة شاورني</b>`,
     ``,
     `📋 <b>بيانات الطلب:</b>`,
     `• <b>رقم الطلب:</b> #${orderNo}`,
     `• <b>نوع الحجز:</b> ${bookingType}`,
     `• <b>المستشار:</b> ${consultant.name}`,
     `• <b>رقم المستشار:</b> ${consultant.phone}`,
-    `• <b>تواصل مع المستشار:</b> <a href="${wa(consultant.phone)}">${wa(consultant.phone)}</a>`,
+    `• <a href="${wa(consultant.phone)}">📱 تواصل مع المستشار عبر واتساب</a>`,
+    `${wa(consultant.phone)}`,
     `• <b>اسم العميل:</b> ${name}`,
     `• <b>رقم العميل:</b> ${phone}`,
-    `• <b>واتساب العميل:</b> <a href="${wa(phone)}">${wa(phone)}</a>`,
+    `• <a href="${wa(phone)}">📱 تواصل مع العميل عبر واتساب</a>`,
+    `${wa(phone)}`,
   ];
 
   // participants
@@ -96,15 +98,36 @@ export const serviceTelegramNewOrder = (data: Reservation) => {
   )?.participant;
 
   // append meeting details if available
-  if (time && date && meeting?.[0] && user && owner) {
-    base.push(
-      ``,
-      `🗓️ <b>تفاصيل الجلسة:</b>`,
-      `• <b>موعد الحجز:</b> ${meetingLabel(time, date)}`,
-      `• <b>تاريخ الحجز:</b> ${dateToString(createdAt)}`,
-      `• <b>رابط الاجتماع للمستشار:</b> <a href="${meetingUrl(meeting[0].mid, owner)}">${meetingUrl(meeting[0].mid, owner)}</a>`,
-      `• <b>رابط الاجتماع للعميل:</b> <a href="${meetingUrl(meeting[0].mid, user)}">${meetingUrl(meeting[0].mid, user)}</a>`,
-    );
+  // Build the meeting details block dynamically
+  const meetingDetails: string[] = [];
+
+  // 1. Add booking time if both time and date exist
+  if (time && date) {
+    meetingDetails.push(`• <b>موعد الحجز:</b> ${meetingLabel(time, date)}`);
+  }
+
+  // 2. Add creation date if it exists
+  if (createdAt) {
+    meetingDetails.push(`• <b>تاريخ الحجز:</b> ${dateToString(createdAt)}`);
+  }
+
+  // 3. Add meeting links individually if the meeting ID and respective tokens exist
+  if (meeting?.[0]?.mid) {
+    if (owner) {
+      meetingDetails.push(
+        `• <a href="${meetingUrl(meeting[0].mid, owner)}">🔗 رابط الاجتماع للمستشار</a>`,
+      );
+    }
+    if (user) {
+      meetingDetails.push(
+        `• <a href="${meetingUrl(meeting[0].mid, user)}">🔗 رابط الاجتماع للعميل</a>`,
+      );
+    }
+  }
+
+  // Append the block to the message only if there is at least one detail to show
+  if (meetingDetails.length > 0) {
+    base.push(``, `🗓️ <b>تفاصيل الجلسة:</b>`, ...meetingDetails);
   }
 
   return base.join("\n");
