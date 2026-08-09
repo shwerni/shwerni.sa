@@ -36,6 +36,7 @@ import { Cost } from "@/types/data";
 
 // icons
 import { CircleAlert, ChevronLeft, ChevronRight } from "lucide-react";
+import GiftForm from "./gift";
 
 // props
 interface Props {
@@ -181,7 +182,7 @@ export default function StepDetails({ form, onNext, onBack }: Props) {
         </div>
 
         {/* gift form */}
-        {/* <GiftForm form={form} /> */}
+        <GiftForm form={form} />
 
         {/* notes */}
         <Controller
