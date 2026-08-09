@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import PickDateTime from "../../shared/pick-date-time";
 
 // icons
-import { Ban, CircleAlert, CircleCheck, CheckCircle2 } from "lucide-react";
+import { Ban, CircleAlert, CircleCheck, CheckCircle2, CalendarClock } from "lucide-react";
 
 // utils
 import { findParticipant } from "@/utils";
@@ -45,9 +45,10 @@ const REASON_OPTIONS: { value: RescheduleReason; label: string }[] = [
 interface Props {
   meeting: Meeting & { participants: Participant[] };
   order: Reservation;
+  rescheduled: boolean;
 }
 
-const ReschedulePick = ({ meeting, order }: Props) => {
+const ReschedulePick = ({ meeting, order, rescheduled }: Props) => {
   // router
   const router = useRouter();
 
@@ -161,6 +162,47 @@ const ReschedulePick = ({ meeting, order }: Props) => {
           <p className="text-xs text-muted-foreground">
             لا يمكن إعادة جدولة جلسة منتهية
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (rescheduled) {
+    return (
+      <div className="max-w-3xl mx-auto px-3 sm:px-2 my-5 space-y-8">
+        <div className="flex flex-col items-center justify-center gap-1.5">
+          <h3 className="text-theme font-semibold text-lg">
+            إعادة جدولة الجلسة
+          </h3>
+          <p className="text-sm font-medium">
+            الموعد الحالي:{" "}
+            <span className="text-theme font-semibold">
+              {meeting.date} | {meeting.time}
+            </span>
+          </p>
+        </div>
+        <OrderTable order={order} />
+        <Separator className="w-10/12 max-w-xl mx-auto" />
+        <div className="flex flex-col items-center gap-2 text-center">
+          <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center">
+            <CalendarClock className="text-blue-500 w-8 h-8" />
+          </div>
+          <h3 className="text-sm font-medium text-foreground">
+            تمت إعادة جدولة هذه الجلسة بالفعل
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            لقد تمت إعادة جدولة هذه الجلسة مسبقاً، ولا يمكن إعادة جدولتها مرة أخرى.
+          </p>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() =>
+              router.push(`/meetings/${meeting.mid}?participant=${participant}`)
+            }
+            className="mt-2"
+          >
+            الذهاب إلى صفحة الجلسة
+          </Button>
         </div>
       </div>
     );

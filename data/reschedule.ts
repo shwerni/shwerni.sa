@@ -125,3 +125,15 @@ export const checkReschedule = async (mid: string) => {
   // send whatsapp notification asking if meeting was done
   await notificationCheckRescheduling(meeting.orders, meeting);
 };
+
+// is rescheduled before
+export const isRescheduled = async (mid: string, limit: number = 1) => {
+  // create rescheduling
+  const rescheduledCount = await prisma.reschedule.count({
+    where: {
+      meetingId: mid,
+    },
+  });
+  
+  return rescheduledCount >= limit;
+};

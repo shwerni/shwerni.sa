@@ -42,6 +42,11 @@ enum ReviewState {
   HIDDEN
 }
 
+enum OrderOrigin {
+  PLATFORM
+  APP
+}
+
 enum ConsultantState {
   PUBLISHED
   HOLD
@@ -496,6 +501,7 @@ model Order {
   scaleId        String?
   info           String[]
   packageId      String?
+  origin         OrderOrigin @default(PLATFORM)
 
   // @relations
   guest          Guest?

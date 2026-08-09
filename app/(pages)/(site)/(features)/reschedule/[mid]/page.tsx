@@ -11,6 +11,7 @@ import { PaymentState } from "@/lib/generated/prisma/enums";
 // prisma data
 import { getMeeting } from "@/data/meetings";
 import { getOwnerByCid } from "@/data/consultant";
+import { isRescheduled } from "@/data/reschedule";
 
 // meta data seo
 export const metadata: Metadata = {
@@ -35,6 +36,9 @@ export default async function Page({ params }: Props) {
   // get meeting with its order
   const meeting = await getMeeting(mid);
 
+  // rescheduled before
+  const rescheduled = await isRescheduled(mid);
+
   // validate meeting exists
   if (!meeting) return notFound();
 
@@ -44,7 +48,7 @@ export default async function Page({ params }: Props) {
     meeting: [meeting],
   };
 
-  // validate order is paid and is a multiple-session order
+  // validate order is paid
   if (!order || order.payment?.payment !== PaymentState.PAID) return notFound();
 
   // get consultant
@@ -54,5 +58,7 @@ export default async function Page({ params }: Props) {
   if (!consultant) return notFound();
 
   // return
-  return <ReschedulePick meeting={meeting} order={order} />;
+  return (
+    <ReschedulePick meeting={meeting} order={order} rescheduled={rescheduled} />
+  );
 }
