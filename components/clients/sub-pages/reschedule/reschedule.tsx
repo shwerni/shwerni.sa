@@ -11,7 +11,13 @@ import { Separator } from "@/components/ui/separator";
 import PickDateTime from "../../shared/pick-date-time";
 
 // icons
-import { Ban, CircleAlert, CircleCheck, CheckCircle2, CalendarClock } from "lucide-react";
+import {
+  Ban,
+  CircleAlert,
+  CircleCheck,
+  CheckCircle2,
+  CalendarClock,
+} from "lucide-react";
 
 // utils
 import { findParticipant } from "@/utils";
@@ -46,9 +52,10 @@ interface Props {
   meeting: Meeting & { participants: Participant[] };
   order: Reservation;
   rescheduled: boolean;
+  ireason?: boolean;
 }
 
-const ReschedulePick = ({ meeting, order, rescheduled }: Props) => {
+const ReschedulePick = ({ meeting, order, rescheduled, ireason }: Props) => {
   // router
   const router = useRouter();
 
@@ -62,7 +69,7 @@ const ReschedulePick = ({ meeting, order, rescheduled }: Props) => {
   const [time, setTime] = React.useState<string | undefined>(undefined);
   const [date, setDate] = React.useState<Date | undefined>(undefined);
   const [reason, setReason] = React.useState<RescheduleReason | undefined>(
-    undefined,
+    ireason ? RescheduleReason.MANAGEMENT : undefined,
   );
 
   // derive whether meeting time is still ahead (not yet started)
@@ -191,7 +198,8 @@ const ReschedulePick = ({ meeting, order, rescheduled }: Props) => {
             تمت إعادة جدولة هذه الجلسة بالفعل
           </h3>
           <p className="text-xs text-muted-foreground">
-            لقد تمت إعادة جدولة هذه الجلسة مسبقاً، ولا يمكن إعادة جدولتها مرة أخرى.
+            لقد تمت إعادة جدولة هذه الجلسة مسبقاً، ولا يمكن إعادة جدولتها مرة
+            أخرى.
           </p>
           <Button
             variant="primary"
@@ -283,31 +291,35 @@ const ReschedulePick = ({ meeting, order, rescheduled }: Props) => {
       </div>
 
       {/* reason select */}
-      <div className="flex flex-col gap-2 w-full max-w-sm mx-auto">
-        <label
-          htmlFor="reschedule-reason"
-          className="text-sm font-medium text-foreground"
-        >
-          سبب إعادة الجدولة
-        </label>
-        <Select
-          dir="rtl"
-          value={reason ?? undefined}
-          onValueChange={(value) => setReason(value as RescheduleReason)}
-        >
-          <SelectTrigger id="reschedule-reason" className="w-full max-w-xs">
-            <SelectValue placeholder="اختر السبب" />
-          </SelectTrigger>
+      {ireason && reason ? (
+        ""
+      ) : (
+        <div className="flex flex-col gap-2 w-full max-w-sm mx-auto">
+          <label
+            htmlFor="reschedule-reason"
+            className="text-sm font-medium text-foreground"
+          >
+            سبب إعادة الجدولة
+          </label>
+          <Select
+            dir="rtl"
+            value={reason ?? undefined}
+            onValueChange={(value) => setReason(value as RescheduleReason)}
+          >
+            <SelectTrigger id="reschedule-reason" className="w-full max-w-xs">
+              <SelectValue placeholder="اختر السبب" />
+            </SelectTrigger>
 
-          <SelectContent dir="rtl">
-            {REASON_OPTIONS.map(({ value, label }) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+            <SelectContent dir="rtl">
+              {REASON_OPTIONS.map(({ value, label }) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* pick form */}
       <PickDateTime

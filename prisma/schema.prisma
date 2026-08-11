@@ -218,6 +218,7 @@ enum ScaleType {
 enum RescheduleReason {
   CLIENT_NO_SHOW
   CONSULTANT_NO_SHOW
+  MANAGEMENT
   OTHER
 }
 

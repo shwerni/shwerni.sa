@@ -13,8 +13,8 @@ export const schemas = {
     .min(3, {
       message: "اسم المستخدم يجب ان يتكون من 3 احرف علي الاقل",
     })
-    .max(12, {
-      message: "12 حرف كحد اقصي",
+    .max(15, {
+      message: "15 حرف كحد اقصي",
     })
     .refine((val) => val.trim().length > 0, {
       message: "الاسم مطلوب",

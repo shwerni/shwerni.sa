@@ -45,6 +45,7 @@ export const DynamicpublicRoutes = [
   "/payment",
   "/meeting",
   "/meetings",
+  "/reschedule",
   "/scales",
   "/rooms",
   "/questions",

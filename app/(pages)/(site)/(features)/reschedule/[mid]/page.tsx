@@ -12,6 +12,7 @@ import { PaymentState } from "@/lib/generated/prisma/enums";
 import { getMeeting } from "@/data/meetings";
 import { getOwnerByCid } from "@/data/consultant";
 import { isRescheduled } from "@/data/reschedule";
+import { zdencryption } from "@/utils/admin/encryption";
 
 // meta data seo
 export const metadata: Metadata = {
@@ -23,12 +24,17 @@ export const metadata: Metadata = {
 // props
 type Props = {
   params: Promise<{ mid: string }>;
+  searchParams: Promise<{ limit: string; reason: string }>;
 };
 
 // default
-export default async function Page({ params }: Props) {
+export default async function Page({ params, searchParams }: Props) {
   // mid
   const { mid } = await params;
+  const { limit, reason } = await searchParams;
+
+  // limit to number
+  const limitN = zdencryption(limit);
 
   // validate
   if (!mid) return notFound();
@@ -37,7 +43,7 @@ export default async function Page({ params }: Props) {
   const meeting = await getMeeting(mid);
 
   // rescheduled before
-  const rescheduled = await isRescheduled(mid);
+  const rescheduled = await isRescheduled(mid, limitN || 1);
 
   // validate meeting exists
   if (!meeting) return notFound();
@@ -59,6 +65,11 @@ export default async function Page({ params }: Props) {
 
   // return
   return (
-    <ReschedulePick meeting={meeting} order={order} rescheduled={rescheduled} />
+    <ReschedulePick
+      meeting={meeting}
+      order={order}
+      rescheduled={rescheduled}
+      ireason={Boolean(reason)}
+    />
   );
 }

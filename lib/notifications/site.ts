@@ -62,7 +62,7 @@ export const notificationNewOrder = async (order: Reservation) => {
   const isProgram = order.session === SessionType.MULTIPLE;
 
   // validate
-  if (!meeting || !payment || (isProgram && !program)) return;
+  if (!meeting || !payment) return;
 
   // meeting label
   const label = meetingLabel(meeting[0].time, meeting[0].date);
@@ -93,8 +93,10 @@ export const notificationNewOrder = async (order: Reservation) => {
         "program_session_confirm",
         {
           text: [
-            program ? program.title : "باقة",
             order.name,
+            program
+              ? `برنامج ${program.title}`
+              : `باقة ${order.sessionCount} جلسات`,
             coname,
             order.oid,
             1,
@@ -162,7 +164,6 @@ export const notificationNewOrder = async (order: Reservation) => {
             meeting[0].session,
             label,
           ],
-          // later edit template to match quick reply
           quick_reply: [`meeting-url:${meeting[0].mid}`],
         },
         "en_us",

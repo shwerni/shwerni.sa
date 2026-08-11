@@ -374,8 +374,8 @@ export const reservationSchema = z
       })
       .partial(),
     finance: z.object({
-      tax: z.number().min(0),
-      commission: z.number().min(0),
+      tax: z.number().min(0).default(15),
+      commission: z.number().min(0).default(60),
       payments: z.array(z.nativeEnum(PaymentMethod)),
       couponEnabled: z.boolean(),
     }),
@@ -383,9 +383,7 @@ export const reservationSchema = z
     sessionType: z.nativeEnum(SessionType).default(SessionType.ONCE),
     sessions: z.number().default(1),
     package: z.string().nullable().default(null),
-    date: z.date({
-      required_error: "التاريخ مطلوب",
-    }),
+    date: z.coerce.date({ required_error: "التاريخ مطلوب" }),
 
     time: z
       .string({
