@@ -3,9 +3,9 @@ import { NextResponse } from "next/server";
 
 // auth
 import { roleServer } from "@/lib/auth/server";
+import { sendCampaign } from "@/lib/notifications/mobile/send-campaign";
 
 // utils
-import { sendCampaign } from "@/lib/notifications/send-campaign";
 
 // dashboard roles allowed to blast a mass notification
 const ALLOWED_ROLES = ["ADMIN"];

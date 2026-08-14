@@ -315,6 +315,7 @@ export const checkProgramNextSession = async (oid: number, session: number) => {
         payment: true,
         consultant: {
           select: {
+            userId: true,
             phone: true,
             name: true,
           },

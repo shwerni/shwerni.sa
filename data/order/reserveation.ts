@@ -298,6 +298,7 @@ export const getReservationByPid = async (pid: string) => {
         },
         consultant: {
           select: {
+            userId: true,
             phone: true,
             name: true,
           },
@@ -384,6 +385,7 @@ export const getAllOrdersByAuthor = async (author: string) => {
         payment: true,
         consultant: {
           select: {
+            userId: true,
             phone: true,
             name: true,
           },
@@ -465,6 +467,7 @@ export const getAllPaidOwnersOrdersByAuthor = async (author: string) => {
         },
         consultant: {
           select: {
+            userId: true,
             phone: true,
             name: true,
           },
@@ -509,6 +512,7 @@ export const getAllOrdersByAuthorAndMonth = async (
         payment: true,
         consultant: {
           select: {
+            userId: true,
             phone: true,
             name: true,
           },
@@ -608,6 +612,7 @@ export const getPaidOwnersOrdersByAuthorAndMonth = async (
         },
         consultant: {
           select: {
+            userId: true,
             phone: true,
             name: true,
           },

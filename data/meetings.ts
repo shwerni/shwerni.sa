@@ -130,7 +130,7 @@ export const getMeeting = async (mid: string) => {
         orders: {
           include: {
             payment: true,
-            consultant: { select: { name: true, phone: true, image: true } },
+            consultant: { select: { userId: true, name: true, phone: true, image: true } },
           },
         },
       },

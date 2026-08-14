@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     include: {
       payment: true,
       meeting: { include: { participants: true } },
-      consultant: { select: { name: true, phone: true } },
+      consultant: { select: { userId: true, name: true, phone: true } },
     },
   });
 

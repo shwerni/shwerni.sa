@@ -17,6 +17,12 @@ export const TEST_CATEGORIES: Record<string, TestCategoryPreset> = {
     description:
       "تم تحديث سياسة الخصوصية الخاصة بنا. يمكنك الاطلاع على التفاصيل من داخل التطبيق.",
   },
+  READ_ONLY_TEST: {
+    title: "اختبار القراءة",
+    description:
+      "هذا إشعار تجريبي، اضغط زر تم فقط للتأكد أنه يعلم كمقروء دون فتح أي صفحة.",
+    actionCategory: "mark-done-only",
+  },
   SESSION_REMINDER: {
     title: "تذكير بالجلسة",
     description:
