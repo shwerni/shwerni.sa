@@ -32,7 +32,7 @@ export const getAllDuesOwner = async (cid: number) => {
           },
         },
         consultant: {
-          select: {
+          select: {userId: true,
             name: true,
             phone: true,
           },
@@ -83,7 +83,7 @@ export const getDuesOwnenByMonth = async (range: string, cid: number) => {
           },
         },
         consultant: {
-          select: {
+          select: {userId: true,
             name: true,
             phone: true,
           },

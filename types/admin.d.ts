@@ -104,6 +104,7 @@ export interface zUsers {
 // reservation
 export type Reservation = Order & {
   consultant: {
+    userId: string;
     name: string;
     phone: string;
   };

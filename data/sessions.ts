@@ -26,7 +26,7 @@ export const selectSession = async (
       include: {
         program: true,
         consultant: {
-          select: {
+          select: {userId: true,
             name: true,
             phone: true,
           },

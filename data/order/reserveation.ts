@@ -26,7 +26,11 @@ import { orderInfoLabel } from "@/utils";
 import { dateToString } from "@/utils/date";
 import { aboveAndLowerTime, dateTimeToString } from "@/utils/time";
 
-import { PaymentState, UserRole } from "@/lib/generated/prisma/enums";
+import {
+  OrderOrigin,
+  PaymentState,
+  UserRole,
+} from "@/lib/generated/prisma/enums";
 
 import { ReservationFormType, reservationSchema } from "@/schemas";
 
@@ -34,42 +38,45 @@ import { ReservationFormType, reservationSchema } from "@/schemas";
 export const reserveConsultant = async (
   formdata: ReservationFormType,
   total: number,
+  origin: OrderOrigin = OrderOrigin.PLATFORM,
 ) => {
   try {
     // parse
     const parsed = reservationSchema.safeParse(formdata);
 
     // validate
-    if (!parsed.success) return null;
-    
+    if (!parsed.success)
+      // stop execution
+      return;
+
     // data
     const data = parsed.data;
-    
+
     // check time conflict
     const conflict = await checkMeetingTimeConflict(
       data.cid,
       data.time,
       dateToString(data.date),
     );
-    
+
     // validate
     if (conflict) return null;
-    
+
     // get owner data
     const owner = await prisma.consultant.findFirst({
       where: { cid: data.cid },
       select: { name: true, commission: true },
     });
-    
+
     // if owner not exist
     if (!owner || !owner.name) return null;
-    
+
     // onwer name & commission
     const { name, commission } = owner;
-    
+
     // order commission if owner dont have specific commission set the default
     const oCommission = commission ? commission : data?.finance.commission;
-    
+
     // client name
     const clinetName =
       data.hasBeneficiary && data.beneficiaryName
@@ -91,6 +98,7 @@ export const reserveConsultant = async (
     // create new reservation
     const order = await prisma.order.create({
       data: {
+        origin,
         author: data.user,
         consultantId: data.cid,
         name: clinetName,
@@ -148,14 +156,14 @@ export const reserveConsultant = async (
           include: { participants: true },
         },
         consultant: {
-          select: {
+          select: {userId: true,
             name: true,
             phone: true,
           },
         },
       },
     });
-    
+
     if (data.notes && data.notes.trim().length > 0)
       await prisma.orderMessage.create({
         data: {
@@ -252,7 +260,7 @@ export const getReservationByOid = async (oid: number) => {
         },
         guest: true,
         consultant: {
-          select: {
+          select: {userId: true,
             name: true,
             phone: true,
           },
@@ -723,6 +731,11 @@ export const getReservationPaymentByOid = async (oid: number) => {
 // update payment status
 export const updateOrderStatus = async (pid: string, status: PaymentState) => {
   try {
+    console.log("test here");
+    console.log("status");
+    console.log(status);
+    console.log(pid);
+
     // current order payment state
     const order = await prisma.payment.findUnique({
       where: { pid },
@@ -737,6 +750,8 @@ export const updateOrderStatus = async (pid: string, status: PaymentState) => {
 
     // if paid
     if (status == PaymentState.PAID) {
+      console.log("here paid");
+      
       // update order
       const success = await orderStatusPaid(pid);
       // return success
@@ -807,6 +822,7 @@ export const orderStatusPaid = async (pid: string) => {
         guest: true,
         consultant: {
           select: {
+            userId: true,
             name: true,
             phone: true,
           },
@@ -921,7 +937,7 @@ export const orderStatusRefund = async (pid: string) => {
           include: { participants: true },
         },
         consultant: {
-          select: {
+          select: {userId: true,
             name: true,
             phone: true,
           },

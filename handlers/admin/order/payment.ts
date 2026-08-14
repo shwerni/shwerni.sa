@@ -3,7 +3,11 @@
 import { redirect } from "next/navigation";
 
 // prima types
-import { Order, PaymentMethod } from "@/lib/generated/prisma/client";
+import {
+  Order,
+  OrderOrigin,
+  PaymentMethod,
+} from "@/lib/generated/prisma/client";
 
 // lib
 import {
@@ -38,6 +42,7 @@ import { CheckIsBlocked } from "@/data/blocked";
 import { createNewMeeting } from "@/data/rooms";
 import { reserveProgram } from "@/data/order/program";
 import { reserveConsultant } from "@/data/order/reserveation";
+import { mobileNotifyOrderConfirmed } from "@/lib/notifications/mobile/notify/reservation";
 
 // on payment success
 export const onPaymentSuccess = async (order: Reservation) => {
@@ -54,7 +59,14 @@ export const onPaymentSuccess = async (order: Reservation) => {
       };
     }
     // send order notify
-    await notificationNewOrder(order);
+    if (order.origin === OrderOrigin.APP) {
+      await mobileNotifyOrderConfirmed(order);
+      // could remove later keep only app
+      // await notificationNewOrder(order);
+    } else {
+      await notificationNewOrder(order);
+    }
+
     // send telegram notify
     await newOrdertelegram(order);
   } catch {
@@ -101,7 +113,7 @@ export async function Pay(
 
   // order
   let order;
-  
+
   // program or consultant
   if (data?.order === "consultant")
     // create consultant order

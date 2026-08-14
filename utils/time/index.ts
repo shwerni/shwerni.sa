@@ -16,7 +16,7 @@ import {
   subDays,
 } from "date-fns";
 import { ar } from "date-fns/locale";
-import { toZonedTime } from "date-fns-tz";
+import { fromZonedTime, toZonedTime } from "date-fns-tz";
 
 // lib
 import { timeZone } from "@/lib/site/time";
@@ -34,6 +34,17 @@ const parseDateTime = (date: string, time: string) =>
   parse(`${date} ${time}`, "yyyy-MM-dd HH:mm", new Date());
 
 // ─── functions ───────────────────────────────────────────────────────────────
+
+/**
+ * combines a meeting's separate date + time strings, interpreted as
+ * asia/riyadh local time, into a correct utc Date — mirrors the inverse
+ * of the existing timeZone() utility (toZonedTime) for consistency
+ */
+export function meetingDateTime(date: string, time: string): Date {
+  // assumes date: "YYYY-MM-DD", time: "HH:mm" (24h) — matches the format
+  // timeZone() itself produces via format(zone, "HH:mm" / "yyyy-MM-dd")
+  return fromZonedTime(`${date}T${time}:00`, "Asia/Riyadh");
+}
 
 // is this time and date still
 export const isStillTime = async (

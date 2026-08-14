@@ -46,6 +46,7 @@ export const DynamicpublicRoutes = [
   "/meeting",
   "/meetings",
   "/reschedule",
+  "/sessions",
   "/scales",
   "/rooms",
   "/questions",
@@ -54,7 +55,6 @@ export const DynamicpublicRoutes = [
   "/freesession",
   "/freesessions",
   "/programs",
-  "/sessions",
   "/chats",
   // site map
   "/sitemap",

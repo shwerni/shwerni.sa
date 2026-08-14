@@ -71,7 +71,7 @@ export const applyCoupon = async (user: string, code: string, cid: number) => {
         return { state: false, message: "انتهت صلاحية الكوبون" };
     }
 
-    // user limits
+    // user limits // later vip
     const userUsageCount = coupon.users.filter((u) => u === user).length;
 
     // if limits exceeded

@@ -153,7 +153,7 @@ export const getProgramsForHome = async (limit: number = 8) => {
       ORDER BY RANDOM() 
       LIMIT ${limit};
     `;
-  } catch {
+  } catch{
     // return
     return [];
   }

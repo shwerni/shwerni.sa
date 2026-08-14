@@ -103,7 +103,7 @@ export const getMeetingsByCidAndRange = async (
           },
         },
         consultant: {
-          select: {
+          select: {userId: true,
             name: true,
             phone: true,
           },

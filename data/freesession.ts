@@ -83,7 +83,7 @@ export const getFreeSessionByFid = async (fid: number) => {
       where: { fid },
       include: {
         consultant: {
-          select: {
+          select: {userId: true,
             name: true,
             phone: true,
           },

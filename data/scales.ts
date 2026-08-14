@@ -261,7 +261,7 @@ export async function submitScaleResult({
       select: {
         name: true,
         consultant: {
-          select: {
+          select: {userId: true,
             name: true,
             phone: true,
           },

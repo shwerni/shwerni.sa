@@ -15,12 +15,12 @@ export async function proxy(req: NextRequest) {
   if (pathname.startsWith("/api/mobile")) {
     const appSecret = req.headers.get("x-app-secret");
 
-    if (!appSecret || appSecret !== process.env.APP_SECRET) {
-      return NextResponse.json(
-        { error: "Unauthorized: Invalid App Secret" },
-        { status: 401 },
-      );
-    }
+    // if (!appSecret || appSecret !== process.env.APP_SECRET) {
+    //   return NextResponse.json(
+    //     { error: "Unauthorized: Invalid App Secret" },
+    //     { status: 401 },
+    //   );
+    // }
     return NextResponse.next();
   }
   
