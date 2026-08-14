@@ -10,7 +10,7 @@ import { zencryption } from "@/utils/admin/encryption";
 
 // moyasar api config
 const MOYASAR_ENDPOINT = process.env.MOYASAR_ENDPOINT as string;
-const MOYASAR_SECRET = "pk_test_G3YiR6TsnAneDKp7foy1Mu79WbZzdsxcQmNTM2nj"; // later test process.env.MOYASAR_SECRET as string;
+const MOYASAR_SECRET = process.env.MOYASAR_SECRET as string;
 
 // basic auth header
 const basicAuth = `Basic ${Buffer.from(`${MOYASAR_SECRET}:`).toString("base64")}`;
