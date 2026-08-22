@@ -64,6 +64,8 @@ export const DynamicpublicRoutes = [
   "/api/uploadthing",
   "/api/cron",
   "/api/mobile",
+  "/api/realtime-token",
+  "/api/online",
 ];
 
 /**
