@@ -121,6 +121,7 @@ export const reserveConsultant = async (
             commission: oCommission,
             tax: data.finance.tax,
             payment: PaymentState.NEW,
+            ...(origin === OrderOrigin.APP && { method: data.method }),
           },
         },
         info: [
@@ -156,10 +157,7 @@ export const reserveConsultant = async (
           include: { participants: true },
         },
         consultant: {
-          select: {userId: true,
-            name: true,
-            phone: true,
-          },
+          select: { userId: true, name: true, phone: true },
         },
       },
     });
@@ -260,10 +258,7 @@ export const getReservationByOid = async (oid: number) => {
         },
         guest: true,
         consultant: {
-          select: {userId: true,
-            name: true,
-            phone: true,
-          },
+          select: { userId: true, name: true, phone: true },
         },
       },
     });
@@ -736,11 +731,6 @@ export const getReservationPaymentByOid = async (oid: number) => {
 // update payment status
 export const updateOrderStatus = async (pid: string, status: PaymentState) => {
   try {
-    console.log("test here");
-    console.log("status");
-    console.log(status);
-    console.log(pid);
-
     // current order payment state
     const order = await prisma.payment.findUnique({
       where: { pid },
@@ -755,8 +745,6 @@ export const updateOrderStatus = async (pid: string, status: PaymentState) => {
 
     // if paid
     if (status == PaymentState.PAID) {
-      console.log("here paid");
-      
       // update order
       const success = await orderStatusPaid(pid);
       // return success
@@ -942,10 +930,7 @@ export const orderStatusRefund = async (pid: string) => {
           include: { participants: true },
         },
         consultant: {
-          select: {userId: true,
-            name: true,
-            phone: true,
-          },
+          select: { userId: true, name: true, phone: true },
         },
       },
     });

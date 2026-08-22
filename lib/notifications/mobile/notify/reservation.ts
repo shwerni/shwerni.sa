@@ -4,8 +4,6 @@ import { Reservation } from "@/types/admin";
 import { meetingLabel } from "@/utils/date";
 import { meetingDateTime } from "@/utils/time";
 
-// prisma types
-
 const REMINDER_MINUTES_BEFORE = 5;
 
 /**
@@ -29,7 +27,7 @@ export async function mobileNotifyOrderConfirmed(order: Reservation) {
     userId: order.author,
     type: "instant",
     title: "🔔 تم تأكيد حجزك",
-    description: `حياك الله ${order.name} 🌿، تم تأكيد جلستك مع ${order.consultant.name} بنجاح. الجلسة ${meetingLine}، ونتمنى لك جلسة مفيدة ✨`,
+    description: `حياك الله ${order.name} 🌿، تم تأكيد جلستك مع المستشار ${order.consultant.name} بنجاح. رقم الطلب #${order.oid}، الجلسة ${meetingLine}، ونتمنى لك جلسة مفيدة ✨`,
     category: "ORDER_CONFIRMED",
     targetId: String(order.oid),
     actionCategory: "order-confirmed",
@@ -40,7 +38,7 @@ export async function mobileNotifyOrderConfirmed(order: Reservation) {
     userId: order.author,
     type: "scheduled",
     title: "🔔 تذكير بجلستك",
-    description: `جلستك مع ${order.consultant.name} تبدأ خلال ${REMINDER_MINUTES_BEFORE} دقائق، نتمنى لك حضورًا موفقًا 🌸`,
+    description: `جلستك مع المستشار ${order.consultant.name} تبدأ خلال ${REMINDER_MINUTES_BEFORE} دقائق، رقم الطلب #${order.oid}، نتمنى لك حضورًا موفقًا 🌸`,
     category: "SESSION_REMINDER",
     targetId: String(order.oid),
     actionCategory: "reservation-reminder",
@@ -53,7 +51,7 @@ export async function mobileNotifyOrderConfirmed(order: Reservation) {
       userId: order.consultant.userId,
       type: "instant",
       title: "🔔 حجز جديد",
-      description: `أهلاً بك مستشارنا الفاضل ${order.consultant.name} ✨، تم تأكيد حجز جلسة جديدة مع ${order.name}. الجلسة ${meetingLine}، نسأل الله لك التوفيق`,
+      description: `أهلاً بك مستشارنا الفاضل ${order.consultant.name} ✨، تم تأكيد حجز جلسة جديدة مع العميل ${order.name}. رقم الطلب #${order.oid}، الجلسة ${meetingLine}، نسأل الله لك التوفيق`,
       category: "NEW_BOOKING",
       targetId: String(order.oid),
     });
@@ -63,7 +61,7 @@ export async function mobileNotifyOrderConfirmed(order: Reservation) {
       userId: order.consultant.userId,
       type: "scheduled",
       title: "🔔 تذكير بجلستك القادمة",
-      description: `جلستك مع ${order.name} تبدأ خلال ${REMINDER_MINUTES_BEFORE} دقائق، نتمنى لك جلسة موفقة 🌿`,
+      description: `جلستك مع العميل ${order.name} تبدأ خلال ${REMINDER_MINUTES_BEFORE} دقائق، رقم الطلب #${order.oid}، نتمنى لك جلسة موفقة 🌿`,
       category: "SESSION_REMINDER",
       targetId: String(order.oid),
       actionCategory: "reservation-reminder",

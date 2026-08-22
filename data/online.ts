@@ -318,3 +318,44 @@ export const reserveInstant = async (
 //     onlineCount,
 //   });
 // }
+
+// sets a consultant online in the db, called right before the socket
+// emits consultant-online so the two stay in sync
+export async function setConsultantOnline(userId: string) {
+  await prisma.consultant.update({
+    where: { userId },
+    data: { online_status: OnlineStatus.ONLINE, online_at: new Date() },
+  });
+}
+
+// sets a consultant offline, called on manual toggle or via the
+// internal reconcile route when a connection drops unexpectedly
+export async function setConsultantOffline(userId: string) {
+  await prisma.consultant.update({
+    where: { userId },
+    data: { online_status: OnlineStatus.OFFLINE },
+  });
+}
+
+// full profile data for consultants currently online, keyed by the
+// live id list nest already holds in memory
+export async function getConsultantsByUserIds(userIds: string[]) {
+  if (userIds.length === 0) return [];
+
+  return prisma.consultant.findMany({
+    where: {
+      userId: { in: userIds },
+      approved: "APPROVED",
+      status: true,
+    },
+    select: {
+      userId: true,
+      cid: true,
+      name: true,
+      title: true,
+      image: true,
+      gender: true,
+      category: true,
+    },
+  });
+}
