@@ -55,7 +55,7 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
   );
 
   // cost
-  // if (isDiscount) cost[30] = 86.5;
+  if (isDiscount) cost[30] = 86.5;
   // if (cid === 36) cost[30] = 60;
 
   return (
