@@ -3,10 +3,7 @@ import { NextRequest } from "next/server";
 
 // utils
 import { requireMobileUser } from "@/lib/auth/require-mobile-user";
-import {
-  createGetRoute,
-  createPostRoute,
-} from "@/lib/api/routes/route-factory";
+import { createPostRoute } from "@/lib/api/routes/route-factory";
 import prisma from "@/lib/database/db";
 
 // prisma types
@@ -26,6 +23,13 @@ interface PaymentResultResponse {
   date: string | undefined;
   time: string | undefined;
   failureReason: string | null;
+}
+
+// maps internal payment state to the three-way status the result screen understands
+function toResultStatus(state: PaymentState): "success" | "pending" | "failed" {
+  if (state === PaymentState.PAID) return "success";
+  if (state === PaymentState.NEW) return "pending";
+  return "failed";
 }
 
 /**
@@ -67,7 +71,7 @@ export const POST = createPostRoute<PaymentResultResponse, { oid: string }>(
         data: { pid },
       });
     } else if (order.payment.pid !== pid) {
-      return { state: false, message: "بيانات الدفع غير متطابقة" };
+      throw new Error("payment_mismatch");
     }
 
     let state = order.payment.payment;
@@ -95,6 +99,17 @@ export const POST = createPostRoute<PaymentResultResponse, { oid: string }>(
       }
     }
 
-    return { state: true, oid: Number(oid) };
+    return {
+      oid: order.oid,
+      cid: order.consultantId,
+      status: toResultStatus(state),
+      method: order.payment.method,
+      amountSar: order.payment.total,
+      consultantName: order.consultant.name,
+      consultantImage: order.consultant.image,
+      date: order.meeting[0]?.date,
+      time: order.meeting[0]?.time,
+      failureReason,
+    };
   },
 );

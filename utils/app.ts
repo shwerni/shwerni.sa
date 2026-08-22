@@ -8,12 +8,12 @@ import { NextResponse } from "next/server";
  */
 export async function requireAppSecret(req: Request) {
   const appSecret = req.headers.get("x-app-secret");
-
-  // Compare the header from the mobile app to your Next.js .env variable
+  
+  // mobile app to your Next.js .env variable
   if (!appSecret || appSecret !== process.env.APP_SECRET) {
     return NextResponse.json(
       { error: "Unauthorized: Invalid App Secret" },
-      { status: 401 }
+      { status: 401 },
     );
   }
 

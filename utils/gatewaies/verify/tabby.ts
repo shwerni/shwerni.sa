@@ -2,7 +2,7 @@
 import { PaymentState } from "@/lib/generated/prisma/enums";
 
 const TABBY_ENDPOINT = process.env.TABBY_ENDPOINT as string;
-const TABBY_SECRET =  process.env.TABBY_SECRET as string;
+const TABBY_SECRET = process.env.TABBY_SECRET as string;
 
 interface VerifyResult {
   state: PaymentState;
