@@ -6,11 +6,24 @@ import { useEffect, useRef, useState } from "react";
 // packages
 import { io, Socket } from "socket.io-client";
 
+type Counts = {
+  owners: number;
+  clients: number;
+  guests: number;
+  total: number;
+};
+
 export function useConsultantPresence({ userId }: { userId: string }) {
   const socketRef = useRef<Socket | null>(null);
   const connectingRef = useRef(false);
   const [connected, setConnected] = useState(false);
   const [onlineCount, setOnlineCount] = useState(0);
+  const [counts, setCounts] = useState<Counts>({
+    owners: 0,
+    clients: 0,
+    guests: 0,
+    total: 0,
+  });
 
   useEffect(() => {
     if (!userId) return;
@@ -20,27 +33,21 @@ export function useConsultantPresence({ userId }: { userId: string }) {
     let mounted = true;
 
     async function connect() {
-      console.log("[presence] fetching realtime token...");
       const res = await fetch("/api/realtime-token");
-      console.log("[presence] token endpoint responded with status:", res.status);
 
       const { token } = await res.json();
-      console.log("[presence] token received:", token ? "present" : "missing");
 
       if (!mounted) return;
 
       const socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL!;
-      console.log("[presence] connecting socket to:", socketUrl);
 
       const socket = io(socketUrl, { auth: { token } });
       socketRef.current = socket;
 
       socket.on("connect", () => {
-        console.log("[presence] socket connected:", socket.id);
         if (!mounted) return;
         setConnected(true);
         socket.emit("consultant-online");
-        console.log("[presence] emitted consultant-online");
       });
 
       socket.on("connect_error", (err) => {
@@ -48,17 +55,21 @@ export function useConsultantPresence({ userId }: { userId: string }) {
       });
 
       socket.on("disconnect", (reason) => {
-        console.log("[presence] socket disconnected:", reason);
         if (!mounted) return;
         setConnected(false);
       });
 
       socket.on(
         "presence-changed",
-        (payload: { consultantId: string; online: boolean; onlineCount: number }) => {
-          console.log("[presence] presence-changed received:", payload);
+        (payload: {
+          consultantId: string;
+          online: boolean;
+          onlineCount: number;
+          counts: Counts;
+        }) => {
           if (!mounted) return;
           setOnlineCount(payload.onlineCount);
+          setCounts(payload.counts);
         },
       );
     }
@@ -74,5 +85,5 @@ export function useConsultantPresence({ userId }: { userId: string }) {
     };
   }, [userId]);
 
-  return { connected, onlineCount };
+  return { connected, onlineCount, counts };
 }

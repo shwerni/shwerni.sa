@@ -1312,3 +1312,15 @@ model NotificationCampaign {
   @@index([sent, timeToSend])
   @@map("notification_campaigns")
 }
+
+model Instant {
+  id               String   @id @default(cuid())
+  date             DateTime @db.Date
+  consultantsPeak  Int      @default(0)
+  clientsPeak      Int      @default(0)
+  consultantsTotal Int      @default(0)
+  clientsTotal     Int      @default(0)
+
+  @@unique([date])
+  @@map("instants")
+}
