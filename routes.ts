@@ -17,6 +17,9 @@ export const publicRoutes = [
   "/reels",
   "/discover",
   "/event/eid",
+  // public files
+  "apple-developer-merchantid-domain-association",
+  ".well-known/apple-developer-merchantid-domain-association",
   // site map
   "/sitemap",
   // apis
