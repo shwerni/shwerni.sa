@@ -1,18 +1,37 @@
 // packages
-import { NextResponse } from "next/server";
+import { createGetRoute } from "@/lib/api/routes/create-get-route";
+import type { NextRequest } from "next/server";
 
 // utils
-import { getConsultantsByUserIds } from "@/data/online";
+import { getConsultantsOnline } from "@/data/online";
 
-const REALTIME_URL = process.env.BACKEND_URL!;
+// types
+import { ConsultantCard } from "@/types/layout";
 
-export async function GET() {
-  // ask nest for the live snapshot first, it's instant and needs no db hit
-  const res = await fetch(`${REALTIME_URL}/presence/online`, {
-    cache: "no-store",
-  });
-  const { onlineIds } = await res.json();
+const BACKEND_URL = process.env.BACKEND_URL!;
 
-  const consultants = await getConsultantsByUserIds(onlineIds);
-  return NextResponse.json({ consultants });
+interface OnlineConsultantsResponse {
+  consultants: ConsultantCard[];
 }
+
+export const GET = createGetRoute<OnlineConsultantsResponse>(
+  async (request: NextRequest) => {
+    const { searchParams } = request.nextUrl;
+    const search = searchParams.get("search") ?? undefined;
+    const categories =
+      searchParams.get("categories")?.split(",").filter(Boolean) ?? [];
+    const gender = searchParams.get("gender") ?? undefined;
+
+    const res = await fetch(`${BACKEND_URL}/presence/online`, {
+      cache: "no-store",
+    });
+    const { onlineIds } = await res.json();
+
+    const consultants = await getConsultantsOnline(onlineIds, {
+      search,
+      categories,
+      gender,
+    });
+    return { consultants };
+  },
+);

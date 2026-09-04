@@ -64,7 +64,10 @@ export async function POST(request: NextRequest) {
 
   // reuses web's exact order-creation logic — order starts as PaymentState.NEW,
   // same abandonment trail web already keeps if payment never completes
-  const order = await reserveConsultant(data, total);
+  const result = await reserveConsultant(data, total);
+
+  if (!result || result.state === false) return;
+  const order = result.order;
 
   if (!order || !order.payment) {
     return NextResponse.json({ state: false, message: "حدث خطأ ما" });

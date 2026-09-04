@@ -19,7 +19,7 @@ import { PaymentState } from "@/lib/generated/prisma/browser";
 // an abandoned NEW order older than this no longer holds the slot
 const PENDING_ORDER_TTL_MINUTES = 15;
 // generous for legitimate retries, tight enough to make order-spam pointless
-const MAX_ORDERS_PER_WINDOW = 8;
+const MAX_ORDERS_PER_WINDOW = 10;
 const RATE_WINDOW_MINUTES = 10;
 
 export async function POST(request: NextRequest) {
@@ -44,12 +44,11 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  if (recentCount >= MAX_ORDERS_PER_WINDOW) {
+  if (recentCount >= MAX_ORDERS_PER_WINDOW)
     return NextResponse.json({
       state: false,
       message: "عدد كبير من المحاولات، حاول لاحقاً",
     });
-  }
 
   // reuse an in-flight order for the same slot instead of creating a
   // duplicate — covers back+retry taps, double taps, and app relaunches.
@@ -81,8 +80,11 @@ export async function POST(request: NextRequest) {
 
   // order starts as PaymentState.NEW, exactly like web — oid is available
   // immediately, before any payment attempt happens
-  const order = await reserveConsultant(data, total, OrderOrigin.APP);
+  const result = await reserveConsultant(data, total, OrderOrigin.APP);
 
+  if (!result || result.state === false) return;
+  const order = result.order;
+  
   if (!order || !order.payment) {
     return NextResponse.json({ state: false, message: "حدث خطأ ما" });
   }
