@@ -14,5 +14,5 @@ export default async function Page({ params, searchParams }: Props) {
   // params
   const { participant } = await searchParams;
 
-  permanentRedirect(`/freesessions/rooms/${zid}?participant=${participant}`);
+  permanentRedirect(`/freesessions/${zid}?participant=${participant}`);
 }
