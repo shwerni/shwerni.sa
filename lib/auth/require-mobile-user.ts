@@ -13,7 +13,16 @@ import { HttpError } from "@/lib/api/http-error";
  * route uses this instead of trusting a client-supplied userId
  */
 export async function requireMobileUser(request: NextRequest) {
-  const session = await mobileAuth.api.getSession({ headers: request.headers });
+  const sessionTokenHeader = request.headers.get("x-session-token");
+  // console.log("[requireMobileUser] x-session-token present:", !!sessionTokenHeader);
+
+  const headers = new Headers(request.headers);
+  if (sessionTokenHeader) {
+    headers.set("cookie", sessionTokenHeader);
+  }
+
+  const session = await mobileAuth.api.getSession({ headers });
+  // console.log("[requireMobileUser] session result:", session ? `user=${session.user?.id}` : "null");
 
   if (!session?.user) {
     throw new HttpError("unauthorized", 401);

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 // utils
 import { requireAppSecret } from "@/utils/app";
+import { HttpError } from "@/lib/api/http-error";
 
 type Fetcher<T> = (request: NextRequest) => Promise<T>;
 
@@ -33,6 +34,15 @@ export function createPostRoute<T>(
       });
     } catch (error) {
       console.error("[api-route-error]", error);
+
+      // preserve the real status/message for known http errors instead of
+      // flattening everything into a generic 500
+      if (error instanceof HttpError) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: error.status },
+        );
+      }
 
       return NextResponse.json(
         { error: options?.errorMessage ?? "failed to process request" },

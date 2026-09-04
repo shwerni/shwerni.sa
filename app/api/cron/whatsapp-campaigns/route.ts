@@ -1,10 +1,7 @@
 import prisma from "@/lib/database/db";
 import { NextResponse } from "next/server";
 import { CampaignStatus } from "@/lib/generated/prisma/enums";
-import {
-  sendWhatsappTemplate,
-  type TemplateParams,
-} from "@/lib/api/whatsapp";
+import { sendWhatsappTemplate, type TemplateParams } from "@/lib/api/whatsapp";
 import { telegramAdmin } from "@/lib/api/telegram/telegram";
 
 export const maxDuration = 60;
@@ -49,10 +46,10 @@ async function sendCompletionNotice(
 
   await telegramAdmin(
     `✅ اكتملت الحملة: "${name}"\n` +
-    `القالب: ${template} | ${totalPhones} رقم\n` +
-    `النتيجة: ✅ ${totalSuccess} / ❌ ${totalFailed}\n` +
-    `${templateStatus}\n` +
-    `المعاملات: ${JSON.stringify(templateParams, null, 2)}`,
+      `القالب: ${template} | ${totalPhones} رقم\n` +
+      `النتيجة: ✅ ${totalSuccess} / ❌ ${totalFailed}\n` +
+      `${templateStatus}\n` +
+      `المعاملات: ${JSON.stringify(templateParams, null, 2)}`,
   ).catch(() => {});
 }
 
@@ -138,7 +135,10 @@ async function processCampaign(campaign: {
   const existingErrors = Array.isArray(campaign.lastErrors)
     ? (campaign.lastErrors as ErrorLogEntry[])
     : [];
-  const mergedErrors = [...newErrors, ...existingErrors].slice(0, MAX_ERROR_LOG_ENTRIES);
+  const mergedErrors = [...newErrors, ...existingErrors].slice(
+    0,
+    MAX_ERROR_LOG_ENTRIES,
+  );
 
   await prisma.campaign.update({
     where: { id },

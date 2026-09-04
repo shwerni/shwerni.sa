@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 // utils
 import { requireAppSecret } from "@/utils/app";
+import { HttpError } from "@/lib/api/http-error";
 
 // route context carrying next.js dynamic segment params
 interface RouteContext<P = Record<string, string>> {
@@ -23,7 +24,10 @@ function buildHandler<T, P>(
   fetcher: Fetcher<T, P>,
   options?: CreateRouteOptions,
 ) {
-  return async function handler(request: NextRequest, context: RouteContext<P>) {
+  return async function handler(
+    request: NextRequest,
+    context: RouteContext<P>,
+  ) {
     const auth = await requireAppSecret(request);
 
     if (auth instanceof Response) return auth;
@@ -41,6 +45,15 @@ function buildHandler<T, P>(
       });
     } catch (error) {
       console.error("[api-route-error]", error);
+
+      // preserve the real status/message for known http errors instead of
+      // flattening everything into a generic 500
+      if (error instanceof HttpError) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: error.status },
+        );
+      }
 
       return NextResponse.json(
         { error: options?.errorMessage ?? "failed to process request" },

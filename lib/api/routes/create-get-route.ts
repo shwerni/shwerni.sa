@@ -34,7 +34,17 @@ export function createGetRoute<T>(
       });
     } catch (error) {
       console.error("[api-route-error]", error);
-      
+
+      // preserve the real status/message for known http errors instead of
+      // flattening everything into a generic 500 — this is what lets the
+      // client tell "not logged in" apart from "server actually broke"
+      if (error instanceof HttpError) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: error.status },
+        );
+      }
+
       return NextResponse.json(
         { error: options?.errorMessage ?? "failed to fetch" },
         { status: 500 },

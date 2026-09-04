@@ -765,14 +765,16 @@ model Message {
 }
 
 model Meeting {
-  id       String  @id @unique @default(cuid())
-  mid      String  @unique @default(nanoid(10))
-  time     String
-  done     Boolean @default(false)
-  date     String
-  duration String
-  session  Int
-  checked  Boolean @default(false)
+  id         String    @id @unique @default(cuid())
+  mid        String    @unique @default(nanoid(10))
+  time       String
+  done       Boolean   @default(false)
+  date       String
+  duration   String
+  session    Int
+  checked    Boolean   @default(false)
+  ringedAt   DateTime?
+  recalledAt DateTime?
 
   // @relations
   orderId       Int
@@ -784,6 +786,7 @@ model Meeting {
   blocked       Boolean        @default(false)
 
   @@unique([orderId, session])
+  @@index([date, time])
   @@map("meetings")
 }
 
@@ -1031,17 +1034,32 @@ model Participant {
   role        UserRole
   participant String
   isActive    Boolean  @default(true)
-  attended    Boolean  @default(false)
-  time        String?
-  createdAt   DateTime @default(now())
+
+  time     String?
+  attended Boolean @default(false)
+  duration Int     @default(0)
+
+  createdAt DateTime @default(now())
 
   // @ relation
   meetingId String
-  meeting   Meeting @relation(fields: [meetingId], references: [mid])
+  meeting   Meeting              @relation(fields: [meetingId], references: [mid])
+  logs      ParticipantSession[]
 
   @@unique([meetingId, participant])
   @@index([participant])
   @@map("participants")
+}
+
+model ParticipantSession {
+  id            String      @id @default(cuid())
+  joinedAt      DateTime
+  leftAt        DateTime?
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id])
+
+  @@index([participantId])
+  @@map("participant_sessions")
 }
 
 model Scale {
@@ -1323,4 +1341,28 @@ model Instant {
 
   @@unique([date])
   @@map("instants")
+}
+
+enum VoipTokenType {
+  APNS_VOIP
+  FCM
+}
+
+model VoipPushToken {
+  id        String        @id @default(cuid())
+  userId    String        @unique
+  token     String
+  type      VoipTokenType
+  updatedAt DateTime      @updatedAt
+
+  @@map("voip_push_tokens")
+}
+
+model UserPresence {
+  userId     String   @id
+  lastSeenAt DateTime @default(now())
+  meetingMid String?
+
+  @@index([meetingMid])
+  @@map("user_presence")
 }

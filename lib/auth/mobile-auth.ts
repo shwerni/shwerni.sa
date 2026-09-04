@@ -16,8 +16,8 @@ import { legacyPasswordLogin } from "./legacy-password-login";
  * but writes to its own session/account/verification tables
  */
 export const mobileAuth = betterAuth({
+  baseURL: process.env.BETTER_AUTH_URL,
   basePath: "/api/mobile/auth",
-
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
@@ -126,5 +126,10 @@ export const mobileAuth = betterAuth({
     }),
   ],
 
-  trustedOrigins: ["shwerni://", "exp://"],
+  trustedOrigins: [
+    "shwerni://",
+    "exp://",
+    "http://192.168.1.4:3000",
+    "http://localhost:3000",
+  ],
 });

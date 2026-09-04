@@ -1,11 +1,21 @@
+// packages
+import { NextResponse } from "next/server";
+
 // utils
 import prisma from "@/lib/database/db";
-import { sendPushNotifications, type PushMessage } from "@/lib/notifications/mobile/mobile-push";
+import {
+  sendPushNotifications,
+  type PushMessage,
+} from "@/lib/notifications/mobile/mobile-push";
 import { fanOutCampaign } from "@/lib/notifications/mobile/campaign-fanout";
 
 // caps how many notifications one cron tick claims, so a large backlog
 // spreads across runs instead of one oversized batch
 const DISPATCH_BATCH_SIZE = 500;
+
+// verify cron secret (protect the endpoint)
+const isAuthorized = (req: Request) =>
+  req.headers.get("authorization") === `Bearer ${process.env.CRON_SECRET}`;
 
 /**
  * claims and fans out any campaigns whose timeToSend has passed - same
@@ -47,10 +57,9 @@ async function dispatchDueCampaigns() {
 // shared by both GET (vercel cron always invokes via GET) and POST
 // (manual testing / external schedulers that send POST)
 async function dispatchDueNotifications(req: Request) {
-  const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response("unauthorized", { status: 401 });
-  }
+  // guard
+  if (!isAuthorized(req))
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const dispatchedCampaigns = await dispatchDueCampaigns();
 
@@ -61,7 +70,7 @@ async function dispatchDueNotifications(req: Request) {
   });
 
   if (due.length === 0) {
-    return Response.json({ dispatched: 0, dispatchedCampaigns });
+    return NextResponse.json({ dispatched: 0, dispatchedCampaigns });
   }
 
   const dueIds = due.map((n) => n.id);
@@ -74,7 +83,7 @@ async function dispatchDueNotifications(req: Request) {
   });
 
   if (claimed.count === 0) {
-    return Response.json({ dispatched: 0, dispatchedCampaigns });
+    return NextResponse.json({ dispatched: 0, dispatchedCampaigns });
   }
 
   const notifications = await prisma.notification.findMany({
@@ -104,7 +113,10 @@ async function dispatchDueNotifications(req: Request) {
 
   await sendPushNotifications(messages);
 
-  return Response.json({ dispatched: notifications.length, dispatchedCampaigns });
+  return NextResponse.json({
+    dispatched: notifications.length,
+    dispatchedCampaigns,
+  });
 }
 
 export const GET = dispatchDueNotifications;
