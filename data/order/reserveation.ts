@@ -47,7 +47,11 @@ export const reserveConsultant = async (
     // validate
     if (!parsed.success)
       // stop execution
-      return;
+      return {
+        state: false,
+        code: "invalid",
+        message: "بيانات النموذج غير صالحة، برجاء مراجعتها والمحاولة مرة أخرى",
+      };
 
     // data
     const data = parsed.data;
@@ -60,7 +64,12 @@ export const reserveConsultant = async (
     );
 
     // validate
-    if (conflict) return null;
+    if (conflict)
+      return {
+        state: false,
+        code: "conflict",
+        message: `هذا الموعد (${dateToString(data.date)} - ${data.time}) تم حجزه بالفعل، برجاء اختيار وقت آخر`,
+      };
 
     // get owner data
     const owner = await prisma.consultant.findFirst({
@@ -69,7 +78,12 @@ export const reserveConsultant = async (
     });
 
     // if owner not exist
-    if (!owner || !owner.name) return null;
+    if (!owner || !owner.name)
+      return {
+        state: false,
+        code: "owner_missing",
+        message: "هذا المستشار غير متاح حالياً",
+      };
 
     // onwer name & commission
     const { name, commission } = owner;
@@ -173,10 +187,14 @@ export const reserveConsultant = async (
       });
 
     // return
-    return order;
+    return { state: true, order };
   } catch {
     // return
-    return null;
+    return {
+      state: false,
+      code: "error",
+      message: "حدث خطأ أثناء إنشاء الطلب، برجاء المحاولة مرة أخرى",
+    };
   }
 };
 
@@ -217,6 +235,37 @@ export const checkMeetingTimeConflict = async (
 
     // no conflict
     return conflict[0].exists || free[0].exists;
+  } catch {
+    return false;
+  }
+};
+
+// checks if this consultant has a paid session starting within the next
+// 30 minutes, used to block them from going online for instant bookings
+export const checkUpcomingPaidSession = async (cid: number) => {
+  try {
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+
+    const nowHHMM = now.toTimeString().slice(0, 5);
+    const in30 = new Date(now.getTime() + 30 * 60 * 1000);
+    const in30HHMM = in30.toTimeString().slice(0, 5);
+
+    const result = await prisma.$queryRaw<{ exists: boolean }[]>`
+      SELECT EXISTS (
+        SELECT 1
+        FROM orders o
+        JOIN meetings m ON o.oid = m."orderId"
+        JOIN payments p ON p."orderId" = o.oid
+        WHERE o."consultantId" = ${cid}
+          AND m.date = ${today}
+          AND m.time >= ${nowHHMM}
+          AND m.time <= ${in30HHMM}
+          AND p.payment = 'PAID'
+      ) as exists
+    `;
+
+    return result[0]?.exists ?? false;
   } catch {
     return false;
   }

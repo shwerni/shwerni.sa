@@ -100,6 +100,15 @@ export const onPaymentHold = async (order: Order) => {
   );
 };
 
+// discriminated result
+type ReserveResult<T> =
+  | { state: true; order: T }
+  | {
+      state: false;
+      code: "invalid" | "conflict" | "owner_missing" | "error";
+      message: string;
+    };
+
 export async function Pay(
   data: ReservationFormType | ProgramReservationFormType | InstantFormType,
   cost: number,
@@ -111,21 +120,32 @@ export async function Pay(
   // vakidate
   if (isBLocked) return { state: false, message: "هذا الحساب محظور" };
 
+  // results type
+  type ConsultantResult = Awaited<ReturnType<typeof reserveConsultant>>;
+  type ProgramResult = Awaited<ReturnType<typeof reserveProgram>>;
+  type InstantResult = Awaited<ReturnType<typeof reserveInstant>>;
+
   // order
-  let order;
+  let result: ConsultantResult | ProgramResult | InstantResult | undefined;
 
   // program or consultant
   if (data?.order === "consultant")
     // create consultant order
-    order = await reserveConsultant(data as ReservationFormType, cost);
+    result = await reserveConsultant(data as ReservationFormType, cost);
 
   if (data?.order === "program")
     // create program order
-    order = await reserveProgram(data as ProgramReservationFormType, cost);
+    result = await reserveProgram(data as ProgramReservationFormType, cost);
 
   if (data?.order === "instant")
     // create instant order
-    order = await reserveInstant(data as InstantFormType, cost);
+    result = await reserveInstant(data as InstantFormType, cost);
+
+  if (!result) return { state: false, message: "نوع الطلب غير صالح" };
+  if (result.state === false) return result;
+
+  // order
+  const order = result.order;
 
   // todo
   // if user will pay full price with wallet credit
@@ -186,4 +206,7 @@ export async function Pay(
     // redirect
     redirect(tabby);
   }
+
+  // No matching payment method — order was created but never charged.
+  return { state: false, message: "طريقة الدفع غير مدعومة" };
 }

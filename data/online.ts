@@ -2,17 +2,22 @@
 import prisma from "@/lib/database/db";
 import { pusherServer } from "@/lib/api/pusher/pusher-server";
 import {
+  ApprovalState,
   Categories,
   Gender,
   OnlineStatus,
+  OrderOrigin,
   OrderType,
   PaymentState,
+  ReviewState,
   UserRole,
 } from "@/lib/generated/prisma/enums";
 import { InstantFormType, instantSchema } from "@/schemas";
 import { checkMeetingTimeConflict } from "./order/reserveation";
 import { dateToString } from "@/utils/time";
 import { orderInfoLabel } from "@/utils";
+import { ConsultantCard } from "@/types/layout";
+import { ReserveResult } from "@/types/admin";
 
 const BUSY_SUBQUERY = `
   EXISTS (
@@ -173,13 +178,20 @@ export async function broadcastConsultantBusy(userId: string) {
 export const reserveInstant = async (
   formdata: InstantFormType,
   total: number,
+  origin: OrderOrigin = OrderOrigin.PLATFORM,
 ) => {
   try {
     // parse
     const parsed = instantSchema.safeParse(formdata);
 
     // validate
-    if (!parsed.success) return null;
+    if (!parsed.success) {
+      return {
+        state: false,
+        code: "info",
+        message: "بيانات النموذج غير صالحة، برجاء مراجعتها والمحاولة مرة أخرى",
+      } satisfies ReserveResult<never>;
+    }
 
     // data
     const data = parsed.data;
@@ -192,7 +204,12 @@ export const reserveInstant = async (
     );
 
     // validate
-    if (conflict) return null;
+    if (conflict)
+      return {
+        state: false,
+        code: "info",
+        message: `هذا الموعد (${dateToString(data.date)} - ${data.time}) تم حجزه بالفعل، برجاء اختيار وقت آخر`,
+      } satisfies ReserveResult<never>;
 
     // get owner data
     const owner = await prisma.consultant.findFirst({
@@ -201,7 +218,12 @@ export const reserveInstant = async (
     });
 
     // if owner not exist
-    if (!owner || !owner.name) return null;
+    if (!owner || !owner.name)
+      return {
+        state: false,
+        code: "error",
+        message: "هذا المستشار غير متاح حالياً",
+      } satisfies ReserveResult<never>;
 
     // onwer name & commission
     const { name, commission } = owner;
@@ -212,6 +234,7 @@ export const reserveInstant = async (
     // create new reservation
     const order = await prisma.order.create({
       data: {
+        origin,
         author: data.user,
         consultantId: data.cid,
         name: data.name,
@@ -252,11 +275,7 @@ export const reserveInstant = async (
           include: { participants: true },
         },
         consultant: {
-          select: {
-            name: true,
-            userId: true,
-            phone: true,
-          },
+          select: { name: true, userId: true, phone: true },
         },
       },
     });
@@ -275,10 +294,14 @@ export const reserveInstant = async (
     await broadcastConsultantBusy(order.consultant.userId);
 
     // return
-    return order;
-  } catch {
-    // return
-    return null;
+    return { state: true, order } satisfies ReserveResult<typeof order>;
+  } catch (err) {
+    console.error("reserveInstant:", err);
+    return {
+      state: false,
+      code: "error",
+      message: "حدث خطأ أثناء إنشاء الطلب، برجاء المحاولة مرة أخرى",
+    } satisfies ReserveResult<never>;
   }
 };
 
@@ -339,23 +362,52 @@ export async function setConsultantOffline(userId: string) {
 
 // full profile data for consultants currently online, keyed by the
 // live id list nest already holds in memory
-export async function getConsultantsByUserIds(userIds: string[]) {
+export async function getConsultantsOnline(
+  userIds: string[],
+  filters: { search?: string; categories?: string[]; gender?: string } = {},
+) {
   if (userIds.length === 0) return [];
 
-  return prisma.consultant.findMany({
-    where: {
-      userId: { in: userIds },
-      approved: "APPROVED",
-      status: true,
-    },
-    select: {
-      userId: true,
-      cid: true,
-      name: true,
-      title: true,
-      image: true,
-      gender: true,
-      category: true,
-    },
-  });
+  try {
+    const consultants = await prisma.$queryRaw<ConsultantCard[]>`
+      SELECT
+        c.cid,
+        c."userId",
+        c.name,
+        c.title,
+        c.image,
+        c.category,
+        c.rate,
+        c.gender,
+        c.created_at,
+        c."cost30",
+        (
+          SELECT COUNT(*)
+          FROM "reviews" r
+          WHERE r."consultantId" = c.cid AND r.status = ${ReviewState.PUBLISHED}::"ReviewState"
+        ) AS reviews,
+        GREATEST(DATE_PART('year', AGE(NOW(), c.seniority))::int, 1) AS years,
+        COALESCE(
+          (SELECT ARRAY_AGG(s.name) FROM "consultant_specialties" cs
+           JOIN "specialties" s ON s.id = cs."specialtyId"
+           WHERE cs."consultantId" = c.cid),
+          ARRAY[]::text[]
+        ) AS specialties
+
+      FROM "consultants" c
+      WHERE
+        c."userId" = ANY(${userIds}::text[])
+        AND c.status = true
+        AND c.approved = ${ApprovalState.APPROVED}::"ApprovalState"
+        AND (${filters.categories?.length ?? 0} = 0 OR c.category = ANY(${filters.categories ?? []}::"Categories"[]))
+        AND (${filters.gender ?? null}::text IS NULL OR c.gender = ${filters.gender ?? null}::"Gender")
+        AND (${filters.search ?? null}::text IS NULL OR c.name ILIKE '%' || ${filters.search ?? null} || '%' OR c.title ILIKE '%' || ${filters.search ?? null} || '%')
+
+      ORDER BY c.rate DESC;
+    `;
+
+    return consultants;
+  } catch {
+    return [];
+  }
 }

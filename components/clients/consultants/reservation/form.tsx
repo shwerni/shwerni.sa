@@ -169,7 +169,10 @@ export default function ReservationForm({
     const token = await runRecaptcha(executeRecaptcha);
 
     // validate
-    if (!token) return;
+    if (!token) {
+      toast.error({ message: "فشل التحقق الأمني، برجاء إعادة المحاولة" });
+      return;
+    }
 
     // calculate total
     const payment = calculatePayment({
@@ -184,7 +187,11 @@ export default function ReservationForm({
       data.beneficiaryPhone && phoneNumber(data.beneficiaryPhone);
 
     // pay
-    await Pay(data, payment.total, payment.totalWTax);
+    const result = await Pay(data, payment.total, payment.totalWTax);
+
+    if (!result || result.state === false) {
+      toast.error(result?.message ?? "حدث خطأ ما، برجاء المحاولة مرة أخرى");
+    }
   }
 
   return (

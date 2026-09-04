@@ -155,3 +155,12 @@ export type Times = {
 
 // type
 type TimeMeta = Omit<Times, "value">;
+
+// handler reserve results
+export type ReserveResult<T> =
+  | { state: true; order: T }
+  | {
+      state: false;
+      code: "info" | "error";
+      message: string;
+    };

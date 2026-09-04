@@ -18,6 +18,7 @@ import {
   ProgramReservationFormType,
   programReservationSchema,
 } from "@/schemas";
+import { ReserveResult } from "@/types/admin";
 
 // reserve a program order (meeting) with owner
 export const reserveProgram = async (
@@ -29,7 +30,12 @@ export const reserveProgram = async (
     const parsed = programReservationSchema.safeParse(formdata);
 
     // validate
-    if (!parsed.success) return null;
+    if (!parsed.success)
+      return {
+        state: false,
+        code: "info",
+        message: "بيانات النموذج غير صالحة، برجاء مراجعتها والمحاولة مرة أخرى",
+      } satisfies ReserveResult<never>;
 
     // data
     const data = parsed.data;
@@ -80,18 +86,19 @@ export const reserveProgram = async (
           include: { participants: true },
         },
         consultant: {
-          select: {userId: true,
-            name: true,
-            phone: true,
-          },
+          select: { userId: true, name: true, phone: true },
         },
       },
     });
 
     // return
-    return order;
-  } catch {
-    // return
-    return null;
+    return { state: true, order } satisfies ReserveResult<typeof order>;
+  } catch (err) {
+    console.error("reserveProgram:", err);
+    return {
+      state: false,
+      code: "error",
+      message: "حدث خطأ أثناء إنشاء الطلب، برجاء المحاولة مرة أخرى",
+    } satisfies ReserveResult<never>;
   }
 };
