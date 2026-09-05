@@ -200,6 +200,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ ok: true, processed: results });
   } catch (err) {
+    telegramAdmin("🔥 Campaign cron error: " + String(err));
     console.error("Campaign cron error:", err);
     return NextResponse.json(
       { ok: false, error: "Internal error" },

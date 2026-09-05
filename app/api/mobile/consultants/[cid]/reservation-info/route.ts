@@ -36,6 +36,8 @@ export const GET = createGetRoute<unknown, { cid: string }>(
 
     return {
       consultant: info.name,
+      category: info.category,
+      image: info.image,
       cost,
       finance,
       unavailable: [...unavailable],

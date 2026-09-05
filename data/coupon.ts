@@ -289,12 +289,10 @@ export async function getAvailableCoupons(
   }
 }
 
-export const getCoupons = async (
-  page: number = 1,
-  search: string = "",
-) => {
+export const getCoupons = async (page: number = 1, search: string = "") => {
   try {
     const pageSize = 12;
+    const now = new Date();
 
     const where = {
       status: CouponState.PUBLISHED,
@@ -302,6 +300,12 @@ export const getCoupons = async (
       consultant: search
         ? { name: { contains: search, mode: "insensitive" as const } }
         : undefined,
+      AND: [
+        // starts_at null or in the past means it has started
+        { OR: [{ starts_at: null }, { starts_at: { lte: now } }] },
+        // expires_at null or in the future means it hasn't expired
+        { OR: [{ expires_at: null }, { expires_at: { gte: now } }] },
+      ],
     };
 
     const [total, coupons] = await Promise.all([
