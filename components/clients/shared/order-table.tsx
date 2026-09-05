@@ -23,28 +23,33 @@ import {
 } from "lucide-react";
 
 // types
-import type { Reservation } from "@/types/admin";
+import type { MeetingWithOrder, Reservation } from "@/types/admin";
 
 // props
 interface Props {
-  order: Reservation;
+  order: Reservation | MeetingWithOrder;
   session?: number;
 }
 
-export default function OrderTable({ order, session }: Props) {
-  // early return if order is entirely undefined/null
-  if (!order) return null;
+// narrow between the two shapes
+function isMeetingCentric(
+  data: Reservation | MeetingWithOrder,
+): data is MeetingWithOrder {
+  return "orders" in data && "mid" in data;
+}
 
-  // fallback string for missing data
+export default function OrderTable({ order: rawData, session }: Props) {
+  if (!rawData) return null;
+
   const FALLBACK = "—";
 
-  // meeting
-  const meeting = order?.meeting?.[session || 0];
-
-  // payment
+  // normalize both shapes into one common view
+  const order = isMeetingCentric(rawData) ? rawData.orders : rawData;
+  const meeting = isMeetingCentric(rawData)
+    ? rawData
+    : rawData?.meeting?.[session || 0];
   const payment = order?.payment;
-
-  // label
+  const consultant = order?.consultant;
   const label = meeting ? meetingLabel(meeting?.date, meeting?.time) : null;
 
   type RowItem = {
@@ -66,7 +71,7 @@ export default function OrderTable({ order, session }: Props) {
     },
     {
       title: "اسم المستشار",
-      value: order?.consultant?.name || FALLBACK, // safely optional chained
+      value: consultant?.name || FALLBACK,
       icon: <UserCheck size={15} />,
     },
     {
@@ -120,7 +125,6 @@ export default function OrderTable({ order, session }: Props) {
     icon: <CalendarDays size={15} />,
   });
 
-  // return
   return (
     <div className="max-w-3xl w-11/12 p-5 mx-auto border border-border/40  rounded-xl shadow-sm">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-1">
@@ -132,20 +136,16 @@ export default function OrderTable({ order, session }: Props) {
               "flex items-center gap-2.5 py-3 border-b border-border/30 last:border-b-0",
             )}
           >
-            {/* icon */}
             <span className="text-muted-foreground/50 shrink-0">
               {row.icon}
             </span>
 
-            {/* title */}
             <span className="text-xs text-muted-foreground shrink-0">
               {row.title}
             </span>
 
-            {/* spacer */}
             <span className="flex-1" />
 
-            {/* value */}
             <span className="text-sm font-semibold text-foreground truncate">
               {row.value}
             </span>

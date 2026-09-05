@@ -19,7 +19,7 @@ import {
 } from "@/utils/date";
 
 // types
-import { Reservation } from "@/types/admin";
+import { MeetingWithOrder, Reservation } from "@/types/admin";
 
 // prisma types
 import { Meeting, Participant, UserRole } from "@/lib/generated/prisma/client";
@@ -41,9 +41,7 @@ interface Props {
   mid: string;
   date: string;
   time: string;
-  meeting: Meeting & { rooms: { url: string | null } | null } & {
-    participants: Participant[];
-  };
+  meeting: MeetingWithOrder;
   order: Reservation;
   participant: string;
 }
@@ -98,7 +96,7 @@ export default async function Meetings({
 
         {/* order table */}
         <div className="my-4">
-          <OrderTable order={order} />
+          <OrderTable order={meeting} />
         </div>
       </div>
 

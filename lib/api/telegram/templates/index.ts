@@ -68,6 +68,7 @@ export const serviceTelegramNewOrder = (data: Reservation) => {
     session,
     program,
     sessionCount,
+    duration,
   } = formatCommonFields(data);
 
   const bookingType = getBookingTypeLabel(session, program, sessionCount);
@@ -81,6 +82,7 @@ export const serviceTelegramNewOrder = (data: Reservation) => {
     `• <b>نوع الحجز:</b> ${bookingType}`,
     `• <b>المستشار:</b> ${consultant.name}`,
     `• <b>رقم المستشار:</b> ${consultant.phone}`,
+    `• <b>مدة الجلسة:</b> ${duration}`,
     `• <a href="${wa(consultant.phone)}">📱 تواصل مع المستشار عبر واتساب</a>`,
     `${wa(consultant.phone)}`,
     `• <b>اسم العميل:</b> ${name}`,

@@ -41,7 +41,7 @@ export default async function Page({ params, searchParams }: Props) {
 
   // get consultant
   const meeting = await getMeeting(mid);
-
+  
   // validate
   if (!meeting) return <Error404 />;
 

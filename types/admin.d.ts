@@ -164,3 +164,19 @@ export type ReserveResult<T> =
       code: "info" | "error";
       message: string;
     };
+
+// the "meeting-centric" shape: meeting is root, order nested under `orders`
+export type MeetingWithOrder = Meeting & {
+  participants: Participant[];
+  rooms?: { url: string | null } | null;
+  orders: Order & {
+    payment?: Payment | null;
+    consultant?: {
+      userId: string;
+      name: string;
+      phone: string;
+      image?: string | null;
+    } | null;
+    program?: Program | null;
+  };
+};
