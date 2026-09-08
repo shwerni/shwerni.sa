@@ -72,7 +72,13 @@ const colors: Record<
 };
 
 const createToast = (type: "success" | "error" | "info" | "warning") => {
-  return ({ title, message, description, duration }: ToastParams) => {
+  return (input: string | ToastParams) => {
+    // normalize: a bare string becomes { message: string }
+    const params: ToastParams =
+      typeof input === "string" ? { message: input } : input;
+
+    const { title, message, description, duration } = params;
+
     const Icon = icons[type];
     const color = colors[type];
     const Title = title ?? defaultTitles[type];
@@ -96,11 +102,15 @@ const createToast = (type: "success" | "error" | "info" | "warning") => {
             <h3 className={`${color.text} font-bold text-sm`}>{Title}</h3>
 
             {/* optional message */}
-            {message && <p className="text-sm text-black font-medium">{message}</p>}
+            {message && (
+              <p className="text-sm text-black font-medium">{message}</p>
+            )}
 
             {/* optional description */}
             {description && (
-              <p className="text-xs text-muted-foreground font-medium">{description}</p>
+              <p className="text-xs text-muted-foreground font-medium">
+                {description}
+              </p>
             )}
           </div>
           <X

@@ -32,8 +32,12 @@
       "schedule": "* * * * *"
     },
     {
-      "path": "/api/mobile/notifications/dispatch",
+      "path": "/api/cron/notifications/dispatch",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/room/call",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

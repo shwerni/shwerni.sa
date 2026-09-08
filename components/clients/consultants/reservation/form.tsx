@@ -190,7 +190,9 @@ export default function ReservationForm({
     const result = await Pay(data, payment.total, payment.totalWTax);
 
     if (!result || result.state === false) {
-      toast.error(result?.message ?? "حدث خطأ ما، برجاء المحاولة مرة أخرى");
+      toast.error({
+        message: result?.message ?? "حدث خطأ ما، برجاء المحاولة مرة أخرى",
+      });
     }
   }
 
