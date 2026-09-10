@@ -23,7 +23,7 @@ import { Pay } from "@/handlers/admin/order/payment";
 import { runRecaptcha } from "@/handlers/admin/recaptcha";
 
 // prisma types
-import { Weekday } from "@/lib/generated/prisma/enums";
+import { SessionType, Weekday } from "@/lib/generated/prisma/enums";
 
 // types
 import { User } from "next-auth";
@@ -42,24 +42,26 @@ interface Props {
   cid: number;
   unavailable: Weekday[];
   cost: Cost;
+  original?: Cost;
+  discount?: { did: number; label: string } | null;
   finance: FinanceConfig;
   user?: User;
   consultant: string;
   packages: Package[];
   collaboration?: string;
-  isDiscount?: boolean;
 }
 
 export default function ReservationForm({
   cid,
   user,
   cost,
+  original,
+  discount,
   finance,
   consultant,
   packages,
   unavailable,
   collaboration,
-  isDiscount,
 }: Props) {
   // steps labels
   const steps = ["التاريخ والوقت", "بيانات الاستشارة", "التأكيد والدفع"];
@@ -159,9 +161,10 @@ export default function ReservationForm({
   // cancel handler
   const handleCancelPackage = () => {
     form.setValue("cost", cost);
-    form.setValue("sessionType", "ONCE");
+    form.setValue("sessionType", SessionType.ONCE);
     form.setValue("sessions", 1);
     form.setValue("package", null);
+    form.setValue("duration", "30", { shouldValidate: true });
   };
 
   async function onSubmit(data: ReservationFormType) {
@@ -240,6 +243,7 @@ export default function ReservationForm({
               {step === 1 && (
                 <StepDetails
                   form={form}
+                  original={original}
                   onNext={() => handleNext(2)}
                   onBack={() => handleNext(0)}
                 />
@@ -250,7 +254,7 @@ export default function ReservationForm({
                 <StepPayment
                   form={form}
                   onBack={() => handleNext(1)}
-                  isDiscount={isDiscount}
+                  isDiscount={!!discount}
                 />
               )}
             </form>

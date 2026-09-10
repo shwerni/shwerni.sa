@@ -362,6 +362,7 @@ export const reservationSchema = z
     unavailable: z.array(z.nativeEnum(Weekday)),
     cost: z.object({
       30: z.number().positive(),
+      45: z.number().positive(),
       60: z.number().positive(),
     }),
     scale: z.string().nullish().or(z.literal("")),

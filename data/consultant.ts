@@ -525,6 +525,7 @@ export const getConsultantCost = async (cid: number) => {
       },
       select: {
         cost30: true,
+        cost45: true,
         cost60: true,
       },
     });
@@ -532,7 +533,7 @@ export const getConsultantCost = async (cid: number) => {
     // validate
     if (!cost) return null;
 
-    return { 30: cost.cost30, 60: cost.cost60 };
+    return { 30: cost.cost30, 45: cost.cost45, 60: cost.cost60 };
   } catch {
     return null;
   }

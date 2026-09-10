@@ -167,6 +167,7 @@ enum PaymentState {
 enum DiscountType {
   PERCENT
   FIXED
+  OVERRIDE
 }
 
 enum DiscountState {
@@ -240,8 +241,21 @@ enum NotificationAudience {
   OWNER
 }
 
-// models
+enum PriceMode {
+  PERCENT // % off consultant cost
+  FIXED_AMOUNT // subtract N from cost
+  OVERRIDE // final price, ignore cost
+}
 
+enum Placement {
+  HOME_CARD // categories.tsx, after hero
+  CONSULTANT_BADGE // reserve section
+  CONSULTANT_CARD // listing cards
+  EVENT_PAGE
+  GLOBAL_BANNER
+}
+
+// models
 // auth
 model User {
   id            String    @id @default(cuid())
@@ -878,22 +892,31 @@ model ConsultantOath {
 }
 
 model Discount {
-  id          String       @id @default(uuid())
-  did         Int          @unique @default(autoincrement())
-  name        String
-  title       String
-  description String
-  image       String?
-  discount    Float
-  type        DiscountType
-  status      Boolean
-  visibility  Boolean
-  limit       Int?
-  users       String[]
-  startDate   DateTime
-  endDate     DateTime
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @default(now()) @updatedAt
+  id            String          @id @default(uuid())
+  did           Int             @unique @default(autoincrement())
+  name          String
+  title         String
+  description   String
+  image         String?
+  discount      Float
+  type          DiscountType
+  status        Boolean
+  visibility    Boolean
+  limit         Int?
+  users         String[]
+  startDate     DateTime
+  endDate       DateTime
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @default(now()) @updatedAt
+  // info
+  // mode          PriceMode       @default(PERCENT)
+  durations     Int[]           @default([30, 45, 60])
+  maxUses       Int?
+  usedCount     Int             @default(0)
+  allCategories Boolean         @default(false)
+  categories    Categories[]
+  events        EventCampaign[]
+  overrides     Json?
 
   // @relations
   DiscountConsultant DiscountConsultant[]
@@ -1365,4 +1388,53 @@ model UserPresence {
 
   @@index([meetingMid])
   @@map("user_presence")
+}
+
+model EventCampaign {
+  id     String  @id @default(cuid())
+  eid    Int     @unique @default(autoincrement())
+  slug   String  @unique
+  active Boolean @default(false)
+
+  // badge (small surfaces)
+  badgeLabel String? // "عرض لفترة محدودة"
+  badgeIcon  String? // lucide icon name
+  badgeNote  String? // "شامل الضريبة"
+
+  // event page content
+  title       String?
+  subtitle    String?
+  description String? @db.Text
+  ctaLabel    String?
+  ctaHref     String?
+  image       String?
+  priceLabel  String? // "سعر الجلسة"
+  priceValue  String? // "99 ريال"  — String, not Float
+  priceNote   String? // "شامل الضريبة"
+  
+  // empty-state copy (your NoActiveEvents)
+  emptyTitle  String?
+  emptyBody   String? @db.Text
+
+  // theme preset key + overrides
+  themeKey  String @default("midnight")
+  themeVars Json? // { from, via, to, accent, orb }
+
+  placements Placement[]
+  priority   Int         @default(0)
+
+  // escape hatch
+  renderKey String? // maps to a code-registered custom component
+  custom    Json? // arbitrary props for that component
+
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  discountId Int?
+  discount   Discount? @relation(fields: [discountId], references: [did])
+
+  @@index([active, startDate, endDate])
+  @@map("event_campaigns")
 }

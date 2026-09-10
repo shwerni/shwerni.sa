@@ -2,27 +2,18 @@
 import Image from "next/image";
 
 // components
+import ScalesCta from "./scales";
 import { Button } from "@/components/ui/button";
 import Card from "@/components/clients/shared/card";
-import Title from "@/components/clients/shared/titles";
 import DivMotion from "@/components/shared/div-motion";
+import Title from "@/components/clients/shared/titles";
 import Section from "@/components/clients/shared/section";
-import { IconLabel } from "@/components/shared/icon-label";
-import { LinkButton } from "@/components/shared/link-button";
 
 // icons
-import {
-  ArrowLeft,
-  Award,
-  Brain,
-  Clock,
-  Goal,
-  Scale,
-  ShieldCheck,
-  Sparkles,
-  Users,
-  Zap,
-} from "lucide-react";
+import { Award, Brain, Goal, Scale, Users } from "lucide-react";
+
+// prisma data
+import { getCampaignFor } from "@/data/event";
 
 // prisma types
 import { Categories as CategoriesType } from "@/lib/generated/prisma/enums";
@@ -31,18 +22,15 @@ import { Categories as CategoriesType } from "@/lib/generated/prisma/enums";
 import Law from "@/public/svg/icons/categories-law.svg";
 import Family from "@/public/svg/icons/categories-family.svg";
 import Psychic from "@/public/svg/icons/categories-psychic.svg";
-import ScalesCta from "./scales";
+import { EventCard } from "../sub-pages/event/event-card";
 
-const Categories = () => {
+const Categories = async () => {
   const url = (category: CategoriesType) => {
     return `/consultants?categories=${category}`;
   };
 
-  const trust = [
-    { icon: Zap, label: "جلسة فورية خلال دقائق" },
-    { icon: ShieldCheck, label: "خصوصية تامة مضمونة" },
-    { icon: Clock, label: "متاح 24/ 7" },
-  ];
+  const campaign = await getCampaignFor("HOME_CARD");
+
   const categories = [
     {
       id: CategoriesType.FAMILY,
@@ -91,8 +79,7 @@ const Categories = () => {
       {/* title */}
       <Title title="تلائم أهدافك وتحقق نتائجك" subTitle="مجالات واسعة" />
       {/* event card */}
-      {/* <EventCard /> */}
-      {/* <EventCardSN /> */}
+      {campaign && <EventCard campaign={campaign} />}
       {/* cards */}
       {/* handle better instead of just hide */}
       <div className="hidden md:block space-y-5">
@@ -202,195 +189,9 @@ const Categories = () => {
             ))}
           </div>
         </div>
-        {/* <LinkButton
-          size="lg"
-          variant="primary"
-          className="px-10 rounded-xl"
-          href="/instant"
-        >
-          <IconLabel Icon={ArrowLeft} label="المستشارون المتاحون الآن" />
-        </LinkButton> */}
-
-        {/* <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
-          {trust.map(({ icon: Icon, label }) => (
-            <span
-              key={label}
-              className="flex items-center gap-1 sm:gap-1.5 text-xs font-meduim text-gray-400"
-            >
-              <Icon className="h-3.5 w-3.5 text-gray-300" strokeWidth={2.8} />
-              {label}
-            </span>
-          ))}
-        </div> */}
       </div>
     </Section>
   );
 };
 
 export default Categories;
-
-function EventCard() {
-  return (
-    <div className="relative overflow-hidden rounded-2xl mx-5">
-      {/* rich gradient background */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #312e81 70%, #4c1d95 100%)",
-        }}
-      />
-
-      {/* subtle noise texture overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-        }}
-      />
-
-      {/* glowing orb top-left */}
-      <div
-        className="absolute -top-10 -right-10 w-48 h-48 rounded-full opacity-20 blur-3xl"
-        style={{ background: "#818cf8" }}
-      />
-      {/* glowing orb bottom-right */}
-      <div
-        className="absolute -bottom-8 -left-8 w-40 h-40 rounded-full opacity-15 blur-2xl"
-        style={{ background: "#c084fc" }}
-      />
-
-      {/* decorative geometric ring */}
-      <div
-        className="absolute top-4 left-4 w-20 h-20 rounded-full opacity-10 border-2"
-        style={{ borderColor: "#818cf8" }}
-      />
-      <div
-        className="absolute top-6 left-6 w-16 h-16 rounded-full opacity-10 border"
-        style={{ borderColor: "#c084fc" }}
-      />
-
-      {/* content */}
-      <div className="relative z-10 px-6 py-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
-        {/* text block */}
-        <div className="space-y-3 flex-1">
-          {/* badge */}
-          <div
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wide"
-            style={{
-              background: "rgba(129,140,248,0.15)",
-              color: "#a5b4fc",
-              border: "1px solid rgba(129,140,248,0.25)",
-            }}
-          >
-            <span>🔥</span>
-            <span>عرض لمدة محدودة</span>
-          </div>
-
-          {/* headline */}
-          {/* <h3
-            className="text-xl sm:text-2xl font-bold leading-snug"
-            style={{ color: "#f1f5f9" }}
-          >
-            عرض شاورني
-          </h3> */}
-
-          {/* body lines */}
-          <div className="space-y-1.5">
-            {/* <p
-              className="text-sm font-medium leading-relaxed"
-              style={{ color: "#cbd5e1" }}
-            >
-              نقدّم خصمًا خاصًا لعملائنا
-            </p> */}
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-medium" style={{ color: "#e2e8f0" }}>
-                سعر الجلسة{" "}
-                <span
-                  className="text-lg font-bold px-2 py-0.5 rounded-lg"
-                  style={{
-                    background: "rgba(129,140,248,0.2)",
-                    color: "#a5b4fc",
-                  }}
-                >
-                  99 ريال
-                </span>{" "}
-                <span style={{ color: "#94a3b8" }}>شامل الضريبة</span>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* cta button */}
-        <div className="shrink-0">
-          <LinkButton
-            href="/event"
-            className="font-semibold px-6 py-2.5 rounded-xl transition-all duration-200 shadow-lg hover:shadow-indigo-500/30 hover:scale-105"
-            style={{
-              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-              color: "#fff",
-              border: "none",
-            }}
-          >
-            احجز الآن
-          </LinkButton>
-        </div>
-      </div>
-
-      {/* bottom shimmer line */}
-      <div
-        className="absolute bottom-0 left-0 right-0 h-px"
-        style={{
-          background:
-            "linear-gradient(90deg, transparent, #6366f1, transparent)",
-        }}
-      />
-    </div>
-  );
-}
-
-function EventCardSN() {
-  return (
-    <div
-      className="mx-5 rounded-2xl bg-[#0794551a] px-6 py-5 flex items-center justify-between gap-4"
-      dir="rtl"
-    >
-      {/* icon + text */}
-      <div className="flex items-center gap-4">
-        <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
-          <Sparkles className="w-6 h-6 text-slate-800" />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          {/* badge */}
-          <div className="flex items-center gap-1.5 bg-gray-100 rounded-full px-3 py-0.5 w-fit">
-            <Clock className="w-3 h-3 text-slate-800" />
-            <span className="text-xs font-medium text-slate-800">
-              عرض لفترة محدودة
-            </span>
-          </div>
-
-          {/* title */}
-          <p className="text-slate-800 font-semibold text-base leading-tight">
-            استشارتك مع الدكتورة عفاف
-          </p>
-
-          {/* price */}
-          <p className="text-slate-700 text-sm">
-            <span className="text-slate-800 font-bold text-xl">69 ريال</span>{" "}
-            فقط · شامل الضريبة
-          </p>
-        </div>
-      </div>
-
-      {/* CTA */}
-      <LinkButton
-        href="/consultants/36"
-        className="shrink-0 flex items-center gap-1.5 bg-[#34BE8F] text-white font-semibold text-sm px-5 py-2.5 rounded-xl"
-      >
-        احجز الآن
-        <ArrowLeft className="w-4 h-4" />
-      </LinkButton>
-    </div>
-  );
-}

@@ -100,6 +100,7 @@ export default function Discover({ user, finance }: Props) {
       time: "",
       cost: {
         30: 0,
+        45: 0,
         60: 0,
       },
       times: {
@@ -244,6 +245,7 @@ export default function Discover({ user, finance }: Props) {
               onNext={(selectedConsultant: ReelConsultant) => {
                 form.setValue("cost", {
                   "30": selectedConsultant.cost30,
+                  "45": selectedConsultant.cost45,
                   "60": selectedConsultant.cost60,
                 });
 

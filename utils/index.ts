@@ -128,7 +128,7 @@ export const consultantGenderLabel = (gender: Gender) => {
 // total after tax
 export const totalAfterTax = (
   cost: number,
-  tax: number,
+  tax: number = 15,
   type: "string" | "number" = "string",
 ) => {
   // calculate

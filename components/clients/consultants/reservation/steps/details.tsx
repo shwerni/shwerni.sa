@@ -35,17 +35,19 @@ import { meetingLabel } from "@/utils/date";
 import { Cost } from "@/types/data";
 
 // icons
-import { CircleAlert, ChevronLeft, ChevronRight } from "lucide-react";
+import { CircleAlert, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import GiftForm from "./gift";
+import { SessionType } from "@/lib/generated/prisma/enums";
 
 // props
 interface Props {
   form: UseFormReturn<ReservationFormType>;
+  original?: Cost;
   onNext: () => void;
   onBack: () => void;
 }
 
-export default function StepDetails({ form, onNext, onBack }: Props) {
+export default function StepDetails({ form, original, onNext, onBack }: Props) {
   // form contorl
   const { control } = form;
 
@@ -54,6 +56,16 @@ export default function StepDetails({ form, onNext, onBack }: Props) {
 
   // duration
   const duration = form.watch("duration");
+
+  // is package
+  const sessions = form.watch("sessionType");
+  const isPackage = sessions === SessionType.MULTIPLE;
+
+  // original
+  const showOriginal =
+    !isPackage &&
+    original &&
+    original[duration as keyof Cost] !== cost[duration as keyof Cost];
 
   return (
     <div className="space-y-6">
@@ -130,39 +142,54 @@ export default function StepDetails({ form, onNext, onBack }: Props) {
 
         {/* duration */}
         <div className="space-y-2">
-          <Controller
-            name="duration"
-            control={control}
-            render={({ field, fieldState }) => (
-              <Field
-                className="w-full max-w-xs"
-                data-invalid={fieldState.invalid}
-              >
-                <FieldLabel htmlFor="duration-pick">مدة الاستشارة</FieldLabel>
-                <Select
-                  value={String(field.value)}
-                  onValueChange={field.onChange}
-                  dir="rtl"
+          {isPackage ? (
+            <Field className="w-full max-w-xs">
+              <FieldLabel>مدة الاستشارة</FieldLabel>
+              <div className="flex items-center gap-2 rounded-md border border-blue-100 bg-[#F1F8FE] px-3 py-2">
+                <Clock className="w-4 h-4 text-theme shrink-0" />
+                <span className="text-sm font-semibold text-[#094577]">
+                  45 دقيقة
+                </span>
+                <span className="ms-auto rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-gray-500 border border-blue-100">
+                  ضمن الباقة
+                </span>
+              </div>
+            </Field>
+          ) : (
+            <Controller
+              name="duration"
+              control={control}
+              render={({ field, fieldState }) => (
+                <Field
+                  className="w-full max-w-xs"
+                  data-invalid={fieldState.invalid}
                 >
-                  <SelectTrigger
-                    aria-invalid={fieldState.invalid}
-                    id="duration-pick"
+                  <FieldLabel htmlFor="duration-pick">مدة الاستشارة</FieldLabel>
+                  <Select
+                    value={String(field.value)}
+                    onValueChange={field.onChange}
+                    dir="rtl"
                   >
-                    <SelectValue placeholder="اختر المدة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="30">30 دقيقة</SelectItem>
-                      <SelectItem value="60">60 دقيقة</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
+                    <SelectTrigger
+                      aria-invalid={fieldState.invalid}
+                      id="duration-pick"
+                    >
+                      <SelectValue placeholder="اختر المدة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="30">30 دقيقة</SelectItem>
+                        <SelectItem value="60">60 دقيقة</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+          )}
 
           <div className="inline-flex items-center gap-1.5">
             <CircleAlert className="w-4 text-gray-800" />
@@ -170,6 +197,15 @@ export default function StepDetails({ form, onNext, onBack }: Props) {
             <p className="text-xs text-gray-800">
               مدة الجلسة <span className="font-bold"> {duration} </span> دقيقة |
               تكلفة الجلسة{" "}
+              {showOriginal && (
+                <span className="line-through text-gray-400 mx-1">
+                  <CurrencyLabel
+                    amount={original[duration as keyof Cost]}
+                    size="xs"
+                    tax={15}
+                  />
+                </span>
+              )}
               <CurrencyLabel
                 amount={cost[duration as keyof Cost]}
                 size="xs"

@@ -1,4 +1,4 @@
-export type Cost = Record<"30" | "60", number>;
+export type Cost = Record<"30" | "45" | "60", number>;
 
 // types
 export type FinanceConfig = {

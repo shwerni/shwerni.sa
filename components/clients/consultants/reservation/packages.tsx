@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { Cost } from "@/types/data";
 
 // icons
-import { BadgePercent, Check } from "lucide-react";
+import { BadgePercent, Check, Clock } from "lucide-react";
 
 import { UseFormReturn } from "react-hook-form";
 
@@ -35,11 +35,18 @@ const Packages = ({ packages, costs, form }: Props) => {
 
   return (
     <div className="mx-3 space-y-4 mb-10">
-      <div className="inline-flex items-center gap-2">
-        <BadgePercent className="w-5 h-5 text-theme" />
-        <h4 className="text-[#094577] text-base font-semibold">
-          الباقات التوفيرية
-        </h4>
+      <div className="space-y-1">
+        <div className="inline-flex items-center gap-2">
+          <BadgePercent className="w-5 h-5 text-theme" />
+          <h4 className="text-[#094577] text-base font-semibold">
+            الباقات التوفيرية
+          </h4>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <p className="text-xs text-gray-500">جميع جلسات الباقات مدتها</p>
+          <span className="text-xs font-semibold text-gray-500">45 دقيقة</span>
+          <Clock className="text-gray-500 w-3" />
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 mx-auto">
@@ -53,10 +60,15 @@ const Packages = ({ packages, costs, form }: Props) => {
               <div
                 key={pkg.id}
                 onClick={() => {
-                  form.setValue("cost", { "30": pkg.cost, "60": pkg.cost });
+                  form.setValue("cost", {
+                    "30": pkg.cost,
+                    "45": pkg.cost,
+                    "60": pkg.cost,
+                  });
                   form.setValue("sessionType", SessionType.MULTIPLE);
                   form.setValue("sessions", pkg.count);
                   form.setValue("package", pkg.id);
+                  form.setValue("duration", "45", { shouldValidate: true });
                 }}
                 className={cn(
                   "flex flex-col justify-between sm:items-center sm:flex-row gap-5 max-w-10/12 sm:max-w-xl border rounded-md py-3 px-4 cursor-pointer transition-all duration-150",
@@ -115,7 +127,8 @@ const Packages = ({ packages, costs, form }: Props) => {
                     onClick={(e) => {
                       e.stopPropagation();
                       form.setValue("cost", {
-                        "30": pkg.cost,
+                        "30": costs[30],
+                        "45": pkg.cost,
                         "60": costs[60],
                       });
                       form.setValue("sessionType", SessionType.MULTIPLE);

@@ -160,13 +160,7 @@ const ConsultantsList = async ({
   const safe = n > 0 && Number.isInteger(n) ? n : 1;
 
   // get consultants — arrays passed directly, no split() needed
-  const data = await getConsultants(
-    safe,
-    search,
-    "random",
-    categories,
-    gender,
-  );
+  const data = await getConsultants(safe, search, "random", categories, gender);
 
   return (
     <>

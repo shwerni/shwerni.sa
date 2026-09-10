@@ -60,15 +60,6 @@ export const categories: Category[] = [
     status: true,
     style: "bg-amber-50 text-amber-600",
   },
-  // {
-  //   id: Categories.MEDICINE,
-  //   label: "طبيب",
-  //   category: "طب",
-  //   link: "",
-  //   icon: "/svg/doctor.svg",
-  //   status: false,
-  //   style: "bg-orange-50 text-orange-600",
-  // },
 ];
 
 // consultant status

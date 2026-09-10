@@ -13,6 +13,7 @@ import { getConsultantsPackages } from "@/data/packages";
 
 // lib
 import { userServer } from "@/lib/auth/server";
+import { Clock } from "lucide-react";
 
 // Packages you want to enforce/allow
 const STANDARD_PACKAGES = [3, 4, 5, 6, 8, 10];
@@ -56,9 +57,18 @@ export default async function ConsultantPricingDashboard() {
 
       {/* Packages Section */}
       <section className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-        <h2 className="text-lg font-semibold mb-4 text-gray-800">
-          باقات الجلسات المتعددة
-        </h2>
+        <div className="space-y-1 mb-4">
+          <h2 className="text-lg font-semibold text-gray-800">
+            باقات الجلسات المتعددة
+          </h2>
+          <div className="flex items-center gap-1.5">
+            <p className="text-base text-gray-600">جميع جلسات الباقات مدتها</p>
+            <span className="text-base text-gray-600 font-semibold">
+              45 دقيقة
+            </span>
+            <Clock className="text-gray-600 w-4" />
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {STANDARD_PACKAGES.map((sessionCount) => {
             const existingPkg = packagesMap.get(sessionCount);

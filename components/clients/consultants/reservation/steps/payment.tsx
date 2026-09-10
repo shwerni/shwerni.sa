@@ -154,9 +154,7 @@ export default function StepPayment({ form, onBack, isDiscount }: Props) {
             {/* methods */}
             <MethodForm form={form} />
             {/* coupon */}
-            {finance.couponEnabled &&
-            payment.total > 0 &&
-            !(duration === "30" && isDiscount) ? (
+            {finance.couponEnabled && payment.total > 0 && !isDiscount ? (
               <CouponForm form={form} />
             ) : null}
             {/* terms */}
