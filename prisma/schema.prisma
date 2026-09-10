@@ -1411,10 +1411,10 @@ model EventCampaign {
   priceLabel  String? // "سعر الجلسة"
   priceValue  String? // "99 ريال"  — String, not Float
   priceNote   String? // "شامل الضريبة"
-  
+
   // empty-state copy (your NoActiveEvents)
-  emptyTitle  String?
-  emptyBody   String? @db.Text
+  emptyTitle String?
+  emptyBody  String? @db.Text
 
   // theme preset key + overrides
   themeKey  String @default("midnight")
@@ -1437,4 +1437,14 @@ model EventCampaign {
 
   @@index([active, startDate, endDate])
   @@map("event_campaigns")
+}
+
+model CampaignContact {
+  phone      String   @id
+  lastRound  Int      @default(0)
+  timesSent  Int      @default(0)
+  lastSentAt DateTime @default(now())
+
+  @@index([lastRound])
+  @@map("campaign_contacts")
 }
