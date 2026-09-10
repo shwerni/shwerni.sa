@@ -157,7 +157,7 @@ export const zdencrypt: any = {
 const siteName = "شاورني";
 const siteHandle = "@shwernisa";
 const siteUrl = mainRoute;
-const ogImage = `${siteUrl}layout/shwerni.jpg`;
+const ogImage = `${siteUrl}meta/shwerni.jpeg`;
 
 const title = "شاورني | منصة الاستشارات النفسية والأسرية";
 const description =

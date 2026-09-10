@@ -22,6 +22,14 @@ import { getConsultants } from "@/data/consultant";
 import { mainRoute } from "@/constants/links";
 
 // meta data seo
+const ogImage = {
+  url: `${mainRoute}meta/consultants.jpeg`,
+  alt: "شاورني - المستشارون",
+  type: "image/jpeg",
+  width: 1200,
+  height: 630,
+};
+
 export const metadata: Metadata = {
   title: "شاورني - المستشارون",
   description:
@@ -43,22 +51,18 @@ export const metadata: Metadata = {
     "خبير نفسي",
     "استشارة فورية",
   ],
+  alternates: {
+    canonical: `${mainRoute}consultants`,
+  },
   openGraph: {
     title: "شاورني - المستشارون",
     type: "website",
-    url: `${mainRoute}/consultant`,
-    siteName: "شاورني - المستشارون",
+    url: `${mainRoute}consultants`,
+    siteName: "شاورني | Shwerni",
+    locale: "ar_SA",
     description:
       "احجز جلساتك مع أخصائيين نفسيين موثوقين عبر شاورني بسرية تامة وأسعار مناسبة. دعم نفسي بجودة عالية في أي وقت ومن أي مكان.",
-    images: [
-      {
-        url: `${mainRoute}other/owners.jpeg`,
-        alt: "shwerni",
-        type: "image/jpg",
-        width: 1200,
-        height: 630,
-      },
-    ],
+    images: [ogImage],
   },
   twitter: {
     card: "summary_large_image",
@@ -66,15 +70,7 @@ export const metadata: Metadata = {
     description:
       "احجز جلساتك مع أخصائيين نفسيين موثوقين عبر شاورني بسرية تامة وأسعار مناسبة. دعم نفسي بجودة عالية في أي وقت ومن أي مكان.",
     creator: "@shwernisa",
-    images: [
-      {
-        url: `${mainRoute}other/owners.jpeg`,
-        alt: "shwerni",
-        type: "image/jpg",
-        width: 1200,
-        height: 630,
-      },
-    ],
+    images: [ogImage],
   },
   icons: `${mainRoute}favicon.ico`,
 };
