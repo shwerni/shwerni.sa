@@ -1,9 +1,9 @@
-import { cacheTag } from "next/cache";
 import { getConsultantCost } from "./consultant";
 import prisma from "@/lib/database/db";
 import { Placement } from "@/lib/generated/prisma/enums";
 import { timeZone } from "@/lib/site/time";
 import { applyRule } from "@/utils/event";
+import { cacheLife, cacheTag } from "next/cache";
 
 // data/pricing.ts
 export type Costs = Record<30 | 45 | 60, number>;
@@ -11,7 +11,7 @@ export type Costs = Record<30 | 45 | 60, number>;
 export type PricingResult = {
   cost: Costs;
   original: Costs;
-  discount: { did: number; label: string } | null;
+  discount: { did: number; label: string; durations: number[] } | null;
 };
 
 export type ResolvedPrice = PricingResult | null;
@@ -33,7 +33,7 @@ export const resolveConsultantPricing = async (
   return {
     cost,
     original: base,
-    discount: { did: rule.did, label: rule.name },
+    discount: { did: rule.did, label: rule.name, durations: rule.durations },
   };
 };
 
@@ -41,12 +41,13 @@ export const resolveConsultantPricing = async (
 export const getCampaignFor = async (placement: Placement) => {
   "use cache";
   cacheTag("event-campaigns");
+  cacheLife("hours");
+
   return prisma.eventCampaign.findFirst({
     where: {
       active: true,
       placements: { has: placement },
-      OR: [{ startDate: null }, { startDate: { lte: new Date() } }],
-      AND: [{ OR: [{ endDate: null }, { endDate: { gte: new Date() } }] }],
+      // no date filter here — see note below
     },
     orderBy: { priority: "desc" },
     include: { discount: true },
@@ -76,4 +77,16 @@ export const getActiveDiscountFor = async (cid: number) => {
   } catch {
     return null;
   }
+};
+
+export const getActiveCampaignFor = async (placement: Placement) => {
+  // cached
+  const campaign = await getCampaignFor(placement);
+  if (!campaign) return null;
+
+  const now = Date.now();
+  const started = !campaign.startDate || campaign.startDate.getTime() <= now;
+  const notEnded = !campaign.endDate || campaign.endDate.getTime() >= now;
+
+  return started && notEnded ? campaign : null;
 };

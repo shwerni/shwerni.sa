@@ -43,7 +43,7 @@ interface Props {
   unavailable: Weekday[];
   cost: Cost;
   original?: Cost;
-  discount?: { did: number; label: string } | null;
+  discount?: { did: number; label: string; durations: number[] } | null;
   finance: FinanceConfig;
   user?: User;
   consultant: string;
@@ -254,7 +254,7 @@ export default function ReservationForm({
                 <StepPayment
                   form={form}
                   onBack={() => handleNext(1)}
-                  isDiscount={!!discount}
+                  discountDurations={discount?.durations}
                 />
               )}
             </form>

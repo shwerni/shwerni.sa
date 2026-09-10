@@ -25,6 +25,7 @@ export const publicRoutes = [
   // apis
   "/api/hotline",
   "/api/timezone",
+  "/api/revalidate",
   "/api/whatsapp",
   "/api/instant",
   "/api/pusher/webhook",

@@ -83,7 +83,7 @@ export const EventCard = ({ campaign, variant = "banner" }: Props) => {
             <p className="text-sm font-medium" style={{ color: "#e2e8f0" }}>
               {campaign.priceLabel && <>{campaign.priceLabel} </>}
               <span
-                className="text-lg font-bold px-2 py-0.5 rounded-lg"
+                className="text-lg font-bold px-3 py-0.5 rounded-lg"
                 style={{ background: `${v.accent}33`, color: v.glow }}
               >
                 {campaign.priceValue}

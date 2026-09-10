@@ -13,7 +13,7 @@ import Section from "@/components/clients/shared/section";
 import { Award, Brain, Goal, Scale, Users } from "lucide-react";
 
 // prisma data
-import { getCampaignFor } from "@/data/event";
+import { getActiveCampaignFor, getCampaignFor } from "@/data/event";
 
 // prisma types
 import { Categories as CategoriesType } from "@/lib/generated/prisma/enums";
@@ -29,7 +29,7 @@ const Categories = async () => {
     return `/consultants?categories=${category}`;
   };
 
-  const campaign = await getCampaignFor("HOME_CARD");
+  const campaign = await getActiveCampaignFor("HOME_CARD");
 
   const categories = [
     {
