@@ -4,6 +4,7 @@ import { Placement } from "@/lib/generated/prisma/enums";
 import { timeZone } from "@/lib/site/time";
 import { applyRule } from "@/utils/event";
 import { cacheLife, cacheTag } from "next/cache";
+import { connection } from "next/server";
 
 // data/pricing.ts
 export type Costs = Record<30 | 45 | 60, number>;
@@ -80,11 +81,13 @@ export const getActiveDiscountFor = async (cid: number) => {
 };
 
 export const getActiveCampaignFor = async (placement: Placement) => {
-  // cached
-  const campaign = await getCampaignFor(placement);
+  const campaign = await getCampaignFor(placement); // cached — fine at build time
   if (!campaign) return null;
 
+  // opt this part out of static prerender
+  await connection();
   const now = Date.now();
+
   const started = !campaign.startDate || campaign.startDate.getTime() <= now;
   const notEnded = !campaign.endDate || campaign.endDate.getTime() >= now;
 
