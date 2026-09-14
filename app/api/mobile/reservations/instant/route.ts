@@ -9,6 +9,7 @@ import { calculatePayment } from "@/utils/admin/payments";
 import { reserveInstant } from "@/data/online";
 import { OrderOrigin } from "@/lib/generated/prisma/enums";
 import prisma from "@/lib/database/db";
+import { NextResponse } from "next/server";
 
 interface InstantReservationBody {
   cid: number;
@@ -39,64 +40,67 @@ interface InstantReservationResponse {
 const MAX_ORDERS_PER_WINDOW = 10;
 const RATE_WINDOW_MINUTES = 10;
 
-export const POST = createPostRoute<InstantReservationResponse>(
-  async (request) => {
-    const user = await requireMobileUser(request);
+// export const POST = createPostRoute<InstantReservationResponse>();
+// async (request) => {
+//   const user = await requireMobileUser(request);
 
-    const body: InstantReservationBody = await request.json();
+//   const body: InstantReservationBody = await request.json();
 
-    const isBlocked = await CheckIsBlocked(body.phone);
+//   const isBlocked = await CheckIsBlocked(body.phone);
 
-    if (isBlocked) throw new HttpError("هذا الحساب محظور", 403);
-    const recentCount = await prisma.order.count({
-      where: {
-        author: user.id,
-        created_at: {
-          gte: new Date(Date.now() - RATE_WINDOW_MINUTES * 60_000),
-        },
-      },
-    });
+//   if (isBlocked) throw new HttpError("هذا الحساب محظور", 403);
+//   const recentCount = await prisma.order.count({
+//     where: {
+//       author: user.id,
+//       created_at: {
+//         gte: new Date(Date.now() - RATE_WINDOW_MINUTES * 60_000),
+//       },
+//     },
+//   });
 
-    if (recentCount >= MAX_ORDERS_PER_WINDOW) {
-      throw new HttpError("عدد كبير من المحاولات، حاول لاحقاً", 429);
-    }
-    const payment = calculatePayment({
-      baseCost: body.cost,
-      tax: body.finance.tax,
-      discountPercent: body.couponPercent ?? 0,
-    });
+//   if (recentCount >= MAX_ORDERS_PER_WINDOW) {
+//     throw new HttpError("عدد كبير من المحاولات، حاول لاحقاً", 429);
+//   }
+//   const payment = calculatePayment({
+//     baseCost: body.cost,
+//     tax: body.finance.tax,
+//     discountPercent: body.couponPercent ?? 0,
+//   });
 
-    const result = await reserveInstant(
-      {
-        order: "instant",
-        user: user.id,
-        cid: body.cid,
-        consultant: body.consultant,
-        cost: body.cost,
-        duration: body.duration,
-        date: new Date(),
-        time: new Date().toTimeString().slice(0, 5),
-        finance: body.finance,
-        name: body.name,
-        phone: phoneNumber(body.phone),
-        notes: body.notes,
-        method: body.method,
-        couponCode: body.couponCode,
-        couponPercent: body.couponPercent,
-        hasCoupon: !!body.couponCode,
-        acceptTerms: true,
-      } as InstantFormType,
-      payment.total,
-      OrderOrigin.APP,
-    );
+//   const result = await reserveInstant(
+//     {
+//       order: "instant",
+//       user: user.id,
+//       cid: body.cid,
+//       consultant: body.consultant,
+//       cost: body.cost,
+//       duration: body.duration,
+//       date: new Date(),
+//       time: new Date().toTimeString().slice(0, 5),
+//       finance: body.finance,
+//       name: body.name,
+//       phone: phoneNumber(body.phone),
+//       notes: body.notes,
+//       method: body.method,
+//       couponCode: body.couponCode,
+//       couponPercent: body.couponPercent,
+//       hasCoupon: !!body.couponCode,
+//       acceptTerms: true,
+//     } as InstantFormType,
+//     payment.total,
+//     OrderOrigin.APP,
+//   );
 
-    if (!result || result.state === false)
-      throw new HttpError("نوع الطلب غير صالح", 400);
+//   if (!result || result.state === false)
+//     throw new HttpError("نوع الطلب غير صالح", 400);
 
-    const order = result.order;
+//   const order = result.order;
 
-    if (!order?.payment) throw new HttpError("حدث خطأ ما", 500);
+//   if (!order?.payment) throw new HttpError("حدث خطأ ما", 500);
 
-    return { oid: order.oid, total: payment.totalWTax, method: body.method };
-  },
-);
+//   return { oid: order.oid, total: payment.totalWTax, method: body.method };
+// },
+
+export async function GET(request: Request) {
+  return NextResponse.json({ sucess: true });
+}

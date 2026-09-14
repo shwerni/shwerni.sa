@@ -395,7 +395,9 @@ export const reservationSchema = z
     duration: z
       .string()
       .default("30")
-      .refine((v) => ["30", "60"].includes(v), { message: "مدة غير صالحة" }),
+      .refine((v) => ["30", "45", "60"].includes(v), {
+        message: "مدة غير صالحة",
+      }),
 
     // basic info
     name: schemas.name,

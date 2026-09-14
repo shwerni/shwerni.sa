@@ -1,102 +1,107 @@
-"use server";
+// "use server";
 
-// React & Next
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
-// utils
-import { requireMobileUser } from "@/lib/auth/require-mobile-user";
-import prisma from "@/lib/database/db";
+// // React & Next
+// import { NextResponse, type NextRequest } from "next/server";
 
-// actions — reused as-is from web
-import { CheckIsBlocked } from "@/data/blocked";
-import { saveACoupon } from "@/data/coupon";
-import { reserveConsultant } from "@/data/order/reserveation";
+// // utils
+// import { requireMobileUser } from "@/lib/auth/require-mobile-user";
+// import prisma from "@/lib/database/db";
 
-// prisma types
-import { OrderOrigin } from "@/lib/generated/prisma/enums";
-import { PaymentState } from "@/lib/generated/prisma/browser";
+// // actions — reused as-is from web
+// import { CheckIsBlocked } from "@/data/blocked";
+// import { saveACoupon } from "@/data/coupon";
+// import { reserveConsultant } from "@/data/order/reserveation";
 
-// an abandoned NEW order older than this no longer holds the slot
-const PENDING_ORDER_TTL_MINUTES = 15;
-// generous for legitimate retries, tight enough to make order-spam pointless
-const MAX_ORDERS_PER_WINDOW = 10;
-const RATE_WINDOW_MINUTES = 10;
+// // prisma types
+// import { OrderOrigin } from "@/lib/generated/prisma/enums";
+// import { PaymentState } from "@/lib/generated/prisma/browser";
 
-export async function POST(request: NextRequest) {
-  const user = await requireMobileUser(request);
+// // an abandoned NEW order older than this no longer holds the slot
+// const PENDING_ORDER_TTL_MINUTES = 15;
+// // generous for legitimate retries, tight enough to make order-spam pointless
+// const MAX_ORDERS_PER_WINDOW = 10;
+// const RATE_WINDOW_MINUTES = 10;
 
-  const raw = await request.json();
-  const data = { ...raw, user: user.id };
+// export async function POST(request: NextRequest) {
+//   const user = await requireMobileUser(request);
 
-  const isBlocked = await CheckIsBlocked(data.phone);
-  if (isBlocked) {
-    return NextResponse.json({ state: false, message: "هذا الحساب محظور" });
-  }
+//   const raw = await request.json();
+//   const data = { ...raw, user: user.id };
 
-  if (data.order !== "consultant") {
-    return NextResponse.json({ state: false, message: "نوع الحجز غير مدعوم" });
-  }
+//   const isBlocked = await CheckIsBlocked(data.phone);
+//   if (isBlocked) {
+//     return NextResponse.json({ state: false, message: "هذا الحساب محظور" });
+//   }
 
-  const recentCount = await prisma.order.count({
-    where: {
-      author: user.id,
-      created_at: { gte: new Date(Date.now() - RATE_WINDOW_MINUTES * 60_000) },
-    },
-  });
+//   if (data.order !== "consultant") {
+//     return NextResponse.json({ state: false, message: "نوع الحجز غير مدعوم" });
+//   }
 
-  if (recentCount >= MAX_ORDERS_PER_WINDOW)
-    return NextResponse.json({
-      state: false,
-      message: "عدد كبير من المحاولات، حاول لاحقاً",
-    });
+//   const recentCount = await prisma.order.count({
+//     where: {
+//       author: user.id,
+//       created_at: { gte: new Date(Date.now() - RATE_WINDOW_MINUTES * 60_000) },
+//     },
+//   });
 
-  // reuse an in-flight order for the same slot instead of creating a
-  // duplicate — covers back+retry taps, double taps, and app relaunches.
-  // assumes reserveConsultant creates the meeting row up front to lock
-  // the slot, even before payment — confirm this holds true
-  const existing = await prisma.order.findFirst({
-    where: {
-      author: user.id,
-      consultantId: data.cid,
-      payment: { is: { payment: PaymentState.NEW } },
-      created_at: {
-        gte: new Date(Date.now() - PENDING_ORDER_TTL_MINUTES * 60_000),
-      },
-      meeting: { some: { date: data.date, time: data.time } },
-    },
-    include: { payment: true },
-  });
+//   if (recentCount >= MAX_ORDERS_PER_WINDOW)
+//     return NextResponse.json({
+//       state: false,
+//       message: "عدد كبير من المحاولات، حاول لاحقاً",
+//     });
 
-  if (existing && existing.payment) {
-    return NextResponse.json({
-      state: true,
-      oid: existing.oid,
-      paymentId: existing.payment.id,
-      total: existing.payment.total,
-    });
-  }
+//   // reuse an in-flight order for the same slot instead of creating a
+//   // duplicate — covers back+retry taps, double taps, and app relaunches.
+//   // assumes reserveConsultant creates the meeting row up front to lock
+//   // the slot, even before payment — confirm this holds true
+//   const existing = await prisma.order.findFirst({
+//     where: {
+//       author: user.id,
+//       consultantId: data.cid,
+//       payment: { is: { payment: PaymentState.NEW } },
+//       created_at: {
+//         gte: new Date(Date.now() - PENDING_ORDER_TTL_MINUTES * 60_000),
+//       },
+//       meeting: { some: { date: data.date, time: data.time } },
+//     },
+//     include: { payment: true },
+//   });
 
-  const total = data.cost[data.duration] * data.sessions;
+//   if (existing && existing.payment) {
+//     return NextResponse.json({
+//       state: true,
+//       oid: existing.oid,
+//       paymentId: existing.payment.id,
+//       total: existing.payment.total,
+//     });
+//   }
 
-  // order starts as PaymentState.NEW, exactly like web — oid is available
-  // immediately, before any payment attempt happens
-  const result = await reserveConsultant(data, total, OrderOrigin.APP);
+//   const total = data.cost[data.duration] * data.sessions;
 
-  if (!result || result.state === false) return;
-  const order = result.order;
-  
-  if (!order || !order.payment) {
-    return NextResponse.json({ state: false, message: "حدث خطأ ما" });
-  }
+//   // order starts as PaymentState.NEW, exactly like web — oid is available
+//   // immediately, before any payment attempt happens
+//   const result = await reserveConsultant(data, total, OrderOrigin.APP);
 
-  if (data.couponPercent && data.couponCode) {
-    await saveACoupon(data.user, data.couponCode, order.payment.id);
-  }
+//   if (!result || result.state === false) return;
+//   const order = result.order;
 
-  return NextResponse.json({
-    state: true,
-    oid: order.oid,
-    paymentId: order.payment.id,
-    total,
-  });
+//   if (!order || !order.payment) {
+//     return NextResponse.json({ state: false, message: "حدث خطأ ما" });
+//   }
+
+//   if (data.couponPercent && data.couponCode) {
+//     await saveACoupon(data.user, data.couponCode, order.payment.id);
+//   }
+
+//   return NextResponse.json({
+//     state: true,
+//     oid: order.oid,
+//     paymentId: order.payment.id,
+//     total,
+//   });
+// }
+export async function GET(request: Request) {
+  return NextResponse.json({ sucess: true });
 }

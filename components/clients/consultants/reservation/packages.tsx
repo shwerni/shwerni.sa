@@ -33,6 +33,14 @@ const Packages = ({ packages, costs, form }: Props) => {
   const sessionType = form.watch("sessionType");
   const isPackageSelected = sessionType === SessionType.MULTIPLE;
 
+  const selectPackage = (pkg: Package) => {
+    form.setValue("cost", { "30": pkg.cost, "45": pkg.cost, "60": pkg.cost });
+    form.setValue("sessionType", SessionType.MULTIPLE);
+    form.setValue("sessions", pkg.count);
+    form.setValue("package", pkg.id);
+    form.setValue("duration", "45", { shouldValidate: true });
+  };
+
   return (
     <div className="mx-3 space-y-4 mb-10">
       <div className="space-y-1">
@@ -51,8 +59,9 @@ const Packages = ({ packages, costs, form }: Props) => {
 
       <div className="flex flex-col gap-3 mx-auto">
         {packages.slice(0, 3).map((pkg, index) => {
-          const percent = (1 - pkg.cost / (costs[30] * pkg.count)) * 100;
-          const savingsAmount = costs[30] * pkg.count - pkg.cost;
+          const base = costs[30] * pkg.count;
+          const percent = Math.round((1 - pkg.cost / base) * 100);
+          const savingsAmount = Math.round(base - pkg.cost);
           const isActive = isPackageSelected && selectedSessions === pkg.count;
 
           return (
@@ -60,15 +69,7 @@ const Packages = ({ packages, costs, form }: Props) => {
               <div
                 key={pkg.id}
                 onClick={() => {
-                  form.setValue("cost", {
-                    "30": pkg.cost,
-                    "45": pkg.cost,
-                    "60": pkg.cost,
-                  });
-                  form.setValue("sessionType", SessionType.MULTIPLE);
-                  form.setValue("sessions", pkg.count);
-                  form.setValue("package", pkg.id);
-                  form.setValue("duration", "45", { shouldValidate: true });
+                  selectPackage(pkg);
                 }}
                 className={cn(
                   "flex flex-col justify-between sm:items-center sm:flex-row gap-5 max-w-10/12 sm:max-w-xl border rounded-md py-3 px-4 cursor-pointer transition-all duration-150",
@@ -126,14 +127,7 @@ const Packages = ({ packages, costs, form }: Props) => {
                     className="px-8"
                     onClick={(e) => {
                       e.stopPropagation();
-                      form.setValue("cost", {
-                        "30": costs[30],
-                        "45": pkg.cost,
-                        "60": costs[60],
-                      });
-                      form.setValue("sessionType", SessionType.MULTIPLE);
-                      form.setValue("sessions", pkg.count);
-                      form.setValue("package", pkg.id);
+                      selectPackage(pkg);
                     }}
                   >
                     {isActive ? "تم الاختيار" : "اختر الآن"}

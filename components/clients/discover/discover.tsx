@@ -31,9 +31,8 @@ import { Categories, Gender, OrderType } from "@/lib/generated/prisma/enums";
 import { ReservationFormType, reservationSchema } from "@/schemas";
 
 // types
-import { Cost, FinanceConfig } from "@/types/data";
+import { FinanceConfig } from "@/types/data";
 import { User } from "next-auth";
-import { calculatePayment } from "@/utils/admin/payments";
 import { runRecaptcha } from "@/handlers/admin/recaptcha";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { phoneNumber } from "@/utils";
@@ -129,7 +128,6 @@ export default function Discover({ user, finance }: Props) {
   // watch values directly from the form instead of using useState
   const selectedDate = form.watch("date");
   const selectedTime = form.watch("time");
-  const cost = form.watch("cost");
 
   // handle date select
   async function handleDateSelect(dateStr: string) {
@@ -162,24 +160,15 @@ export default function Discover({ user, finance }: Props) {
   async function onSubmit(data: ReservationFormType) {
     // recaptcha
     const token = await runRecaptcha(executeRecaptcha);
-
-    // validate
     if (!token) return;
-
-    // calculate total
-    const payment = calculatePayment({
-      baseCost: cost[data.duration as keyof Cost],
-      tax: finance.tax,
-      discountPercent: data.couponPercent ?? 0,
-    });
 
     // validate phones
     data.phone = phoneNumber(data.phone);
     data.beneficiaryPhone =
       data.beneficiaryPhone && phoneNumber(data.beneficiaryPhone);
 
-    // pay
-    await Pay(data, payment.total, payment.totalWTax);
+    // pay — Pay computes the price server-side
+    await Pay(data);
   }
 
   const stepOrder = ["date", "time", "reel", "info", "payment"];

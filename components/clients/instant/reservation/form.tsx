@@ -111,22 +111,13 @@ export default function InstantReservationForm({ user, finance }: Props) {
   async function onSubmit(data: InstantFormType) {
     // recaptcha
     const token = await runRecaptcha(executeRecaptcha);
-
-    // validate
     if (!token) return;
-
-    // calculate total
-    const payment = calculatePayment({
-      baseCost: form.getValues("cost"),
-      tax: finance.tax,
-      discountPercent: data.couponPercent ?? 0,
-    });
 
     // validate phones
     data.phone = phoneNumber(data.phone);
 
     // pay
-    await Pay(data, payment.total, payment.totalWTax);
+    await Pay(data);
   }
 
   return (

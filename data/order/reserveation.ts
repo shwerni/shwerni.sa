@@ -38,6 +38,8 @@ import { ReservationFormType, reservationSchema } from "@/schemas";
 export const reserveConsultant = async (
   formdata: ReservationFormType,
   total: number,
+  tax: number, // server-resolved — do not read from formdata.finance
+  commissionRate: number, // server-resolved platform default commission
   origin: OrderOrigin = OrderOrigin.PLATFORM,
 ) => {
   try {
@@ -46,7 +48,6 @@ export const reserveConsultant = async (
 
     // validate
     if (!parsed.success)
-      // stop execution
       return {
         state: false,
         code: "invalid",
@@ -63,7 +64,6 @@ export const reserveConsultant = async (
       dateToString(data.date),
     );
 
-    // validate
     if (conflict)
       return {
         state: false,
@@ -77,7 +77,6 @@ export const reserveConsultant = async (
       select: { name: true, commission: true },
     });
 
-    // if owner not exist
     if (!owner || !owner.name)
       return {
         state: false,
@@ -85,11 +84,11 @@ export const reserveConsultant = async (
         message: "هذا المستشار غير متاح حالياً",
       };
 
-    // onwer name & commission
     const { name, commission } = owner;
 
-    // order commission if owner dont have specific commission set the default
-    const oCommission = commission ? commission : data?.finance.commission;
+    // commission: consultant's own rate, falling back to the SERVER default —
+    // never the client's claimed rate
+    const oCommission = commission ? commission : commissionRate;
 
     // client name
     const clinetName =
@@ -120,7 +119,7 @@ export const reserveConsultant = async (
         type: data.type,
         session: data.sessionType,
         sessionCount: data.sessions,
-        packageId: data.package,
+        packageId: data.package, // Pay() already validated ownership/activity
         meeting: {
           create: {
             session: 1,
@@ -133,7 +132,7 @@ export const reserveConsultant = async (
           create: {
             total,
             commission: oCommission,
-            tax: data.finance.tax,
+            tax, // server-resolved, matches what `total` was computed with
             payment: PaymentState.NEW,
             ...(origin === OrderOrigin.APP && { method: data.method }),
           },
@@ -144,7 +143,7 @@ export const reserveConsultant = async (
             "new",
             PaymentState.NEW,
             total,
-            data.finance.tax,
+            tax,
             oCommission,
             name,
             data.cid,
@@ -186,10 +185,9 @@ export const reserveConsultant = async (
         },
       });
 
-    // return
     return { state: true, order };
-  } catch {
-    // return
+  } catch (err) {
+    console.error("reserveConsultant:", err);
     return {
       state: false,
       code: "error",

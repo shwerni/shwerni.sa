@@ -146,7 +146,7 @@ export default function AwarenessForm({
       unavailable,
       name: "",
       phone: "",
-      package: null
+      package: null,
     },
     mode: "onChange",
     reValidateMode: "onChange",
@@ -171,7 +171,7 @@ export default function AwarenessForm({
     setLoadingTimes(true);
     console.log(date);
     console.log(cid);
-    
+
     const data = await getConsultantAvailableTimes(
       cid,
       dateToString(date),
@@ -205,32 +205,16 @@ export default function AwarenessForm({
   }
 
   async function onSubmit(data: AwarenessFormType) {
-    // recaptcha
     const token = await runRecaptcha(executeRecaptcha);
-
-    // validate
     if (!token) return;
 
-    // fixed 60-min duration for this product
-    const payment = calculatePayment({
-      baseCost: cost,
-      tax: finance.tax,
-      discountPercent: 0,
-    });
-
     data.phone = phoneNumber(data.phone);
-
-    // scale // later daynmic
     data.scale =
       form.getValues("gender") === Gender.MALE
         ? "735e8e69-fcf7-47ff-a3ec-e8302bb2985f"
         : "763594ee-8459-4339-a5dc-4184dd1efdfb";
 
-    await Pay(
-      { ...data, gender: data.gender },
-      payment.total,
-      payment.totalWTax,
-    );
+    await Pay({ ...data, gender: data.gender });
   }
 
   return (

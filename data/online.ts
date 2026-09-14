@@ -174,17 +174,17 @@ export async function broadcastConsultantBusy(userId: string) {
   await trigger(userId, false, consultant);
 }
 
-// reserve a new order (meeting) with owner
+// reserve a new order (meeting) with owner — instant flow
 export const reserveInstant = async (
   formdata: InstantFormType,
   total: number,
+  tax: number, // server-resolved
+  commissionRate: number, // server-resolved
   origin: OrderOrigin = OrderOrigin.PLATFORM,
 ) => {
   try {
-    // parse
     const parsed = instantSchema.safeParse(formdata);
 
-    // validate
     if (!parsed.success) {
       return {
         state: false,
@@ -193,17 +193,14 @@ export const reserveInstant = async (
       } satisfies ReserveResult<never>;
     }
 
-    // data
     const data = parsed.data;
 
-    // check time conflict
     const conflict = await checkMeetingTimeConflict(
       data.cid,
       data.time,
       dateToString(data.date),
     );
 
-    // validate
     if (conflict)
       return {
         state: false,
@@ -211,13 +208,11 @@ export const reserveInstant = async (
         message: `هذا الموعد (${dateToString(data.date)} - ${data.time}) تم حجزه بالفعل، برجاء اختيار وقت آخر`,
       } satisfies ReserveResult<never>;
 
-    // get owner data
     const owner = await prisma.consultant.findFirst({
       where: { cid: data.cid },
       select: { name: true, commission: true },
     });
 
-    // if owner not exist
     if (!owner || !owner.name)
       return {
         state: false,
@@ -225,13 +220,11 @@ export const reserveInstant = async (
         message: "هذا المستشار غير متاح حالياً",
       } satisfies ReserveResult<never>;
 
-    // onwer name & commission
     const { name, commission } = owner;
 
-    // order commission if owner dont have specific commission set the default
-    const oCommission = commission ? commission : data?.finance.commission;
+    // server default, never the client's claimed rate
+    const oCommission = commission ? commission : commissionRate;
 
-    // create new reservation
     const order = await prisma.order.create({
       data: {
         origin,
@@ -252,7 +245,7 @@ export const reserveInstant = async (
           create: {
             total,
             commission: oCommission,
-            tax: data.finance.tax,
+            tax,
             payment: PaymentState.NEW,
           },
         },
@@ -262,7 +255,7 @@ export const reserveInstant = async (
             "new",
             PaymentState.NEW,
             total,
-            data.finance.tax,
+            tax,
             oCommission,
             name,
             data.cid,
@@ -293,7 +286,6 @@ export const reserveInstant = async (
     // deactivate online state
     await broadcastConsultantBusy(order.consultant.userId);
 
-    // return
     return { state: true, order } satisfies ReserveResult<typeof order>;
   } catch (err) {
     console.error("reserveInstant:", err);

@@ -52,8 +52,8 @@ export default function StepDetails({ form, original, onNext, onBack }: Props) {
   const { control } = form;
 
   // cost
-  const cost = form.getValues("cost");
-
+  const cost = form.watch("cost");
+  
   // duration
   const duration = form.watch("duration");
 

@@ -50,7 +50,10 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
     <div className="max-w-6xl mx-auto py-5 space-y-8">
       {discount && (
         <div className="w-fit mx-auto">
-          <DiscountBadge campaign={campaign} price={cost[30]} />
+          <DiscountBadge
+            campaign={campaign}
+            price={cost[discount.durations[0] as keyof typeof cost]}
+          />
         </div>
       )}
 

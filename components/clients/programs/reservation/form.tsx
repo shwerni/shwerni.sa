@@ -77,7 +77,7 @@ export default function ReservationForm({
       // form
       name: "",
       phone: "",
-      couponCode: ""
+      couponCode: "",
     },
     mode: "onChange",
     reValidateMode: "onChange",
@@ -128,18 +128,11 @@ export default function ReservationForm({
   };
 
   async function onSubmit(data: ProgramReservationFormType) {
-    // calculate total
-    const payment = calculatePayment({
-      baseCost: cost,
-      tax: finance.tax,
-      discountPercent: data.couponPercent ?? 0,
-    });
-
     // validate phones
     data.phone = phoneNumber(data.phone);
 
-    // pay
-    await Pay(data, payment.total, payment.totalWTax);
+    // pay — Pay resolves the program's price server-side
+    await Pay(data);
   }
 
   return (

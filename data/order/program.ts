@@ -24,12 +24,11 @@ import { ReserveResult } from "@/types/admin";
 export const reserveProgram = async (
   formdata: ProgramReservationFormType,
   total: number,
+  tax: number, // server-resolved — do not read from formdata.finance
 ) => {
   try {
-    // parse
     const parsed = programReservationSchema.safeParse(formdata);
 
-    // validate
     if (!parsed.success)
       return {
         state: false,
@@ -37,10 +36,13 @@ export const reserveProgram = async (
         message: "بيانات النموذج غير صالحة، برجاء مراجعتها والمحاولة مرة أخرى",
       } satisfies ReserveResult<never>;
 
-    // data
     const data = parsed.data;
 
-    // create new reservation
+    // commission for programs is a fixed platform rate — already server-side,
+    // left as a literal rather than threaded through Pay since it never
+    // varies by consultant the way session commission does
+    const PROGRAM_COMMISSION = 70;
+
     const order = await prisma.order.create({
       data: {
         author: data.user,
@@ -62,8 +64,8 @@ export const reserveProgram = async (
         payment: {
           create: {
             total: Number(total),
-            commission: 70,
-            tax: data.finance.tax,
+            commission: PROGRAM_COMMISSION,
+            tax,
             payment: PaymentState.PROCESSING,
           },
         },
@@ -73,8 +75,8 @@ export const reserveProgram = async (
             `new program #${data.prid}`,
             PaymentState.PROCESSING,
             total,
-            data.finance.tax,
-            70,
+            tax,
+            PROGRAM_COMMISSION,
             data.consultant,
             data.cid,
           ),
@@ -91,7 +93,6 @@ export const reserveProgram = async (
       },
     });
 
-    // return
     return { state: true, order } satisfies ReserveResult<typeof order>;
   } catch (err) {
     console.error("reserveProgram:", err);

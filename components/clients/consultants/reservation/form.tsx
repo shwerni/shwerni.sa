@@ -177,20 +177,13 @@ export default function ReservationForm({
       return;
     }
 
-    // calculate total
-    const payment = calculatePayment({
-      baseCost: selectedCost[data.duration as keyof Cost],
-      tax: finance.tax,
-      discountPercent: data.couponPercent ?? 0,
-    });
-
     // validate phones
     data.phone = phoneNumber(data.phone);
     data.beneficiaryPhone =
       data.beneficiaryPhone && phoneNumber(data.beneficiaryPhone);
 
     // pay
-    const result = await Pay(data, payment.total, payment.totalWTax);
+    const result = await Pay(data);
 
     if (!result || result.state === false) {
       toast.error({
@@ -202,7 +195,7 @@ export default function ReservationForm({
   return (
     <div id="reserve" className="space-y-3">
       {/* Packages */}
-      <Packages costs={cost} packages={packages} form={form} />
+      <Packages costs={original ?? cost} packages={packages} form={form} />
       {/* reserve section */}
       <div className="w-fit mx-auto flex items-center gap-2 px-5 py-1.5 rounded-full bg-[#F1F8FE] border border-blue-100">
         <CalendarDays className="text-theme w-5" />
