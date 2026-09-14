@@ -70,6 +70,7 @@ export const DynamicpublicRoutes = [
   "/api/mobile",
   "/api/realtime-token",
   "/api/internal",
+  "/api/revalidate",
   "/api/online",
 ];
 
