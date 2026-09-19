@@ -1,0 +1,12 @@
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum Categories {
+  FAMILY
+  PSYCHIC
+  LAW
+  PERSONAL
+  // MEDICINE
+}

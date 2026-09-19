@@ -1,0 +1,158 @@
+// enums
+enum UserRole {
+  ADMIN
+  USER
+  OWNER
+  GROUP
+  COORDINATOR
+  MANAGER
+  MARKETER
+  SERVICE
+  COLLABORATOR
+  DESIGNER
+  ACCOUNTANT
+}
+
+// auth
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  phone         String?   @unique
+  email         String?   @unique
+  emailVerified DateTime? @map("email_verified")
+  phoneVerified DateTime? @map("phone_verified")
+  image         String?
+  password      String?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  role          UserRole  @default(USER)
+
+  // @relations
+  Wallet              Wallet[]
+  Favorite            Favorite[]
+  Consultant          Consultant[]
+  ConsultantTiming    ConsultantTiming[]
+  collaboration       Collaboration?
+  articleLikes        ArticleLike[]
+  articleComments     ArticleComment[]
+  questions           Question[]
+  // auth
+  accounts            Account[]
+  mobileSessions      MobileSession[]
+  mobileAccounts      MobileAccount[]
+  mobileEmailVerified Boolean            @default(false) @map("mobile_email_verified")
+  notifications       Notification[]
+  pushTokens          PushToken[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model VerificationToken {
+  id     String   @id @default(cuid())
+  phone  String
+  token  String   @unique
+  otp    String
+  expire DateTime
+
+  @@unique([phone, token])
+  @@map("verification_tokens")
+}
+
+model MobileSession {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("mobile_sessions")
+}
+
+model MobileAccount {
+  id                    String    @id @default(cuid())
+  userId                String    @map("user_id")
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("mobile_accounts")
+}
+
+model MobileVerification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([identifier])
+  @@map("mobile_verifications")
+}
+
+model Guest {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  createdAt DateTime @default(now())
+
+  // @relations
+  orderId Int   @unique
+  order   Order @relation(fields: [orderId], references: [oid])
+
+  @@map("guests")
+}
+
+model Blocked {
+  id         String   @id @default(cuid())
+  phone      String   @unique
+  reason     String?
+  created_at DateTime @default(now())
+
+  @@map("blocked")
+}
+
+model UserPresence {
+  userId     String   @id
+  lastSeenAt DateTime @default(now())
+  meetingMid String?
+
+  @@index([meetingMid])
+  @@map("user_presence")
+}

@@ -1,0 +1,198 @@
+enum Weekday {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+enum ConsultantState {
+  PUBLISHED
+  HOLD
+  HIDDEN
+}
+
+enum ApprovalState {
+  APPROVED
+  PENDING
+  FLAGGED
+  REJECTED
+}
+
+enum TimingType {
+  ONLINE
+  ONSITE
+}
+
+enum OnlineStatus {
+  ONLINE
+  BUSY
+  OFFLINE
+}
+
+enum ProgramEnrollState {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Consultant {
+  id            String           @id @default(cuid())
+  userId        String           @unique
+  type          OwnerType        @default(INDEPENDENT)
+  cid           Int              @unique @default(autoincrement())
+  status        Boolean
+  statusA       ConsultantState  @default(HIDDEN)
+  approved      ApprovalState    @default(PENDING)
+  gender        Gender           @default(MALE)
+  phone         String
+  name          String
+  title         String
+  neducation    String[]
+  nexperiences  String[]
+  nabout        String           @default("")
+  preference    GenderPreference @default(BOTH)
+  seniority     DateTime         @default(now())
+  cost30        Float
+  cost45        Float
+  cost60        Float
+  iban          String
+  bankName      String
+  category      Categories
+  image         String?
+  cv            String?
+  edu           String?
+  cert          String?
+  commission    Float?
+  rate          Float            @default(0)
+  adminNote     String?
+  info          String?
+  created_at    DateTime         @default(now())
+  updated_at    DateTime         @default(now()) @updatedAt
+  online_at     DateTime?
+  online_status OnlineStatus     @default(OFFLINE)
+  sort_key      Float            @default(0)
+
+  // @relations
+  user                     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders                   Order[]
+  articles                 Article[]
+  Coupon                   Coupon[]
+  reviews                  Review[]
+  favorites                Favorite[]
+  freeTimings              FreeTimings[]
+  freeSessions             FreeSession[]
+  ConsultantOathAcceptance ConsultantOath?
+  consultantTiming         ConsultantTiming[]
+  programs                 ProgramConsultant[]
+  DiscountConsultant       DiscountConsultant[]
+  specialties              ConsultantSpecialty[]
+  articleComments          ArticleComment[]
+  packages                 Package[]
+  questions                Question[]
+
+  @@index([sort_key])
+  @@index([status, statusA, approved, sort_key])
+  @@map("consultants")
+}
+
+model ConsultantTiming {
+  id   Int        @id @default(autoincrement())
+  day  Weekday
+  time String
+  type TimingType @default(ONLINE)
+
+  // @relations
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consultantId Int
+  consultant   Consultant @relation(fields: [consultantId], references: [cid])
+
+  @@unique([consultantId, day, time])
+  @@index([day, time])
+  @@index([consultantId, day])
+  @@map("consultant_timings")
+}
+
+model FreeTimings {
+  id         String    @id @default(cuid())
+  activeWeek DateTime?
+  status     Boolean   @default(false)
+
+  // @relations
+  consultantId Int        @unique
+  consultant   Consultant @relation(fields: [consultantId], references: [cid])
+
+  @@map("free_timings")
+}
+
+model Specialty {
+  id        String     @id @default(cuid())
+  name      String
+  category  Categories
+  createdAt DateTime   @default(now())
+
+  // @ relations
+  consultants ConsultantSpecialty[]
+  articles    ArticleSpecialty[]
+
+  @@unique([name, category])
+  @@map("specialties")
+}
+
+model ConsultantSpecialty {
+  consultantId Int
+  specialtyId  String
+
+  // @ relations
+  consultant Consultant @relation(fields: [consultantId], references: [cid], onDelete: Cascade)
+  specialty  Specialty  @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+
+  @@id([consultantId, specialtyId])
+  @@index([consultantId])
+  @@index([specialtyId])
+  @@map("consultant_specialties")
+}
+
+model DiscountConsultant {
+  id        String   @id @default(cuid())
+  status    Boolean
+  createdAt DateTime @default(now())
+
+  // @relations
+  consultant   Consultant @relation(fields: [consultantId], references: [cid])
+  consultantId Int
+  discount     Discount   @relation(fields: [discountId], references: [did])
+  discountId   Int
+
+  @@unique([consultantId, discountId])
+  @@map("discount_consultants")
+}
+
+model ProgramConsultant {
+  id        String             @id @default(cuid())
+  active    Boolean            @default(false)
+  status    ProgramEnrollState @default(PENDING)
+  createdAt DateTime           @default(now())
+
+  // @relations
+  consultant   Consultant @relation(fields: [consultantId], references: [cid])
+  consultantId Int
+  program      Program    @relation(fields: [programId], references: [prid])
+  programId    Int
+
+  @@unique([consultantId, programId])
+  @@map("program_consultants")
+}
+
+model ConsultantOath {
+  consultantId Int      @id @unique
+  acceptedAt   DateTime @default(now())
+
+  // @relations
+  consultant Consultant @relation(fields: [consultantId], references: [cid])
+
+  @@map("consultant_oaths")
+}

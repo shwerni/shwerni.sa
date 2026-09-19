@@ -7,7 +7,11 @@ import { Prisma } from "@/lib/generated/prisma/client";
 import { ArticleItem } from "@/types/layout";
 
 // prisma types
-import { BlogState, CommentState, Gender } from "@/lib/generated/prisma/enums";
+import {
+  ArticleState,
+  CommentState,
+  Gender,
+} from "@/lib/generated/prisma/enums";
 import { Categories } from "@/lib/generated/prisma/enums";
 
 // get all published questions
@@ -191,7 +195,7 @@ export const getRecommendedConsultants = async () => {
 export const getAllPublishedArticles = async () => {
   try {
     const Articles = await prisma.article.findMany({
-      where: { status: BlogState.PUBLISHED },
+      where: { status: ArticleState.PUBLISHED },
     });
     return Articles;
   } catch {
@@ -203,7 +207,7 @@ export const getAllPublishedArticles = async () => {
 export const getAllPublishedArticlesIds = async () => {
   try {
     const Articles = await prisma.article.findMany({
-      where: { status: BlogState.PUBLISHED },
+      where: { status: ArticleState.PUBLISHED },
       select: { aid: true },
     });
     return Articles;

@@ -1,0 +1,199 @@
+
+
+enum RefundRequestState {
+    PENDING
+    APPROVED
+    REJECTED
+    REFUNDED
+}
+
+enum RefundChannel {
+    GATEWAY
+    BANK_TRANSFER
+    WALLET
+    CASH
+}
+
+enum FinanceEntryType {
+    INCOME
+    EXPENSE
+}
+
+enum FinanceCategory {
+    SALARY
+    RENT
+    MARKETING
+    SOFTWARE
+    OPERATIONS
+    GATEWAY_FEES
+    TAX
+    CONSULTANT_PAYOUT
+    SALES
+    INVESTMENT
+    OTHER
+}
+
+enum FinanceLogEntity {
+    ORDER
+    REFUND
+    REFUND_REQUEST
+    ENTRY
+}
+
+enum FinanceLogAction {
+    CREATE
+    UPDATE
+    DELETE
+    APPROVE
+    REJECT
+    PROCESS
+}
+
+enum InsightTrigger {
+  SCHEDULED // 24h staleness check on page load
+  BIG_CHANGE // a tracked metric moved past its threshold since the last report
+  MANUAL // someone clicked "regenerate" by hand
+}
+
+// refund ticket — can be opened by admin, manager, accountant or customer service
+model RefundRequest {
+    id     String             @id @default(cuid())
+    rid    Int                @unique @default(autoincrement())
+    amount Float
+    reason String             @db.Text
+    state  RefundRequestState @default(PENDING)
+
+    // actor snapshots (kept as plain values so history survives user changes)
+    requestedById   String
+    requestedByName String
+    requestedByRole UserRole
+
+    reviewedById   String?
+    reviewedByName String?
+    reviewedByRole UserRole?
+    reviewedAt     DateTime?
+    reviewNote     String?   @db.Text
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // @relations
+    orderId Int
+    order   Order   @relation(fields: [orderId], references: [oid])
+    refund  Refund?
+
+    @@index([state, createdAt])
+    @@index([orderId])
+    @@map("refund_requests")
+}
+
+// money actually returned — one order can have several partial refunds
+model Refund {
+    id        String        @id @default(cuid())
+    rfid      Int           @unique @default(autoincrement())
+    amount    Float
+    channel   RefundChannel
+    reference String?
+    note      String?       @db.Text
+    proofUrl  String?
+    proofKey  String?
+    proofName String?
+
+    refundedAt     DateTime @default(now())
+    refundedById   String
+    refundedByName String
+    refundedByRole UserRole
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // @relations
+    orderId   Int
+    order     Order          @relation(fields: [orderId], references: [oid])
+    paymentId String
+    payment   Payment        @relation(fields: [paymentId], references: [id])
+    requestId String?        @unique
+    request   RefundRequest? @relation(fields: [requestId], references: [id])
+
+    @@index([refundedAt])
+    @@index([orderId])
+    @@map("refunds")
+}
+
+// manual ledger: salaries, rent, income outside orders, …
+model FinanceEntry {
+    id          String           @id @default(cuid())
+    fid         Int              @unique @default(autoincrement())
+    type        FinanceEntryType
+    category    FinanceCategory
+    title       String
+    description String?          @db.Text
+    amount      Float
+    date        DateTime
+    proofUrl    String?
+    proofKey    String?
+    proofName   String?
+
+    createdById   String
+    createdByName String
+    createdByRole UserRole
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([date])
+    @@index([type, category])
+    @@map("finance_entries")
+}
+
+// audit trail for every finance form / edit
+model FinanceLog {
+    id       String           @id @default(cuid())
+    entity   FinanceLogEntity
+    entityId String
+    action   FinanceLogAction
+    // [{ field, from, to }]
+    changes  Json
+    note     String?          @db.Text
+
+    // plain oid (no relation) so order history is easy to list and logs are never cascaded away
+    orderId Int?
+
+    actorId   String
+    actorName String
+    actorRole UserRole
+
+    createdAt DateTime @default(now())
+
+    @@index([entity, entityId])
+    @@index([orderId])
+    @@index([createdAt])
+    @@map("finance_logs")
+}
+
+
+model FinanceInsightReport {
+  id          String         @id @default(cuid())
+  iid         Int            @unique @default(autoincrement())
+  // the period the report analyzed, mirroring the rest of the finance
+  // dashboard's period/date convention (e.g. period="month", date="2026-09")
+  period      String
+  date        String
+  trigger     InsightTrigger
+
+  // AI's own structured output — kept as JSON so the page never needs to
+  // re-parse free text, and so the exact shape can evolve without a migration
+  summary     String // short plain-language paragraph, shown in the table row preview
+  insights    Json // [{ title, description }]
+  suggestions Json // [{ type, title, description, reason }]
+  plan        Json // [{ step, description }]
+
+  // the pre-digested numbers actually sent to the model — kept for
+  // debugging / audit, so you can see exactly what the AI was told
+  dataBundle  Json
+
+  generatedAt DateTime       @default(now())
+
+  @@index([generatedAt])
+  @@map("finance_insight_reports")
+}

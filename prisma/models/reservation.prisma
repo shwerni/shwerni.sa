@@ -1,0 +1,175 @@
+enum OrderOrigin {
+  PLATFORM
+  APP
+}
+
+enum OrderType {
+  SCHEDULED
+  INSTANT
+}
+
+enum SessionType {
+  ONCE
+  MULTIPLE
+}
+
+enum RoomType {
+  ORDER
+  INTERNAL
+  DIRECT
+}
+
+enum RescheduleReason {
+  CLIENT_NO_SHOW
+  CONSULTANT_NO_SHOW
+  MANAGEMENT
+  OTHER
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  oid            Int         @unique @default(autoincrement())
+  author         String
+  type           OrderType   @default(SCHEDULED)
+  name           String
+  phone          String
+  gender         Gender?
+  consultantId   Int
+  programId      Int?
+  collaboratorId String?
+  gift           Boolean     @default(false)
+  session        SessionType @default(ONCE)
+  sessionCount   Int         @default(1)
+  due_at         DateTime    @default(now())
+  created_at     DateTime    @default(now())
+  scaleId        String?
+  info           String[]
+  packageId      String?
+  origin         OrderOrigin @default(PLATFORM)
+
+  // @relations
+  guest          Guest?
+  payment        Payment?
+  meeting        Meeting[]
+  program        Program?        @relation(fields: [programId], references: [prid])
+  consultant     Consultant      @relation(fields: [consultantId], references: [cid])
+  collaboration  Collaboration?  @relation(fields: [collaboratorId], references: [id])
+  reconciliation Reconciliation?
+  scaleResult    ScaleResult?
+  scale          Scale?          @relation(fields: [scaleId], references: [id])
+  scaleResponses ScaleResponse[]
+  package        Package?        @relation(fields: [packageId], references: [id])
+  orderMessages  OrderMessage[]
+  reschedules    Reschedule[]
+  refundRequests RefundRequest[]
+  refunds        Refund[]
+
+  @@map("orders")
+}
+
+model Meeting {
+  id         String    @id @unique @default(cuid())
+  mid        String    @unique @default(nanoid(10))
+  time       String
+  done       Boolean   @default(false)
+  date       String
+  duration   String
+  session    Int
+  checked    Boolean   @default(false)
+  ringedAt   DateTime?
+  recalledAt DateTime?
+
+  // @relations
+  orderId       Int
+  orders        Order          @relation(fields: [orderId], references: [oid])
+  participants  Participant[]
+  rooms         Room?
+  reschedules   Reschedule[]
+  orderMessages OrderMessage[]
+  blocked       Boolean        @default(false)
+
+  @@unique([orderId, session])
+  @@index([date, time])
+  @@map("meetings")
+}
+
+model Room {
+  id String @id @default(cuid())
+
+  // 100ms identifiers
+  roomId   String   @unique
+  roomName String   @unique
+  type     RoomType @default(ORDER)
+
+  duration Int @default(60)
+
+  url       String?
+  password  Int?
+  orderId   Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // @relation
+  meetingId String?      @unique
+  meeting   Meeting?     @relation(fields: [meetingId], references: [mid])
+  sessionId String?      @unique
+  session   FreeSession? @relation(fields: [sessionId], references: [id])
+
+  @@index([orderId])
+  @@map("rooms")
+}
+
+model Participant {
+  id String @id @default(cuid())
+
+  role        UserRole
+  participant String
+  isActive    Boolean  @default(true)
+
+  time     String?
+  attended Boolean @default(false)
+  duration Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  // @ relation
+  meetingId String
+  meeting   Meeting              @relation(fields: [meetingId], references: [mid])
+  logs      ParticipantSession[]
+
+  @@unique([meetingId, participant])
+  @@index([participant])
+  @@map("participants")
+}
+
+model ParticipantSession {
+  id            String      @id @default(cuid())
+  joinedAt      DateTime
+  leftAt        DateTime?
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id])
+
+  @@index([participantId])
+  @@map("participant_sessions")
+}
+
+model Reschedule {
+  id        String @id @default(cuid())
+  orderId   Int
+  meetingId String
+
+  reason RescheduleReason
+
+  oldDate DateTime
+  newDate DateTime?
+
+  createdAt DateTime @default(now())
+
+  // relations
+  order   Order   @relation(fields: [orderId], references: [oid])
+  meeting Meeting @relation(fields: [meetingId], references: [mid])
+
+  @@index([orderId])
+  @@index([meetingId])
+  @@map("reschedules")
+}

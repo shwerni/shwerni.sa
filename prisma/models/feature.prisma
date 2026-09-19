@@ -1,0 +1,187 @@
+enum QuestionState {
+  PUBLISHED
+  HOLD
+  HIDDEN
+}
+
+enum ProgramState {
+  PUBLISHED
+  HOLD
+  HIDDEN
+}
+
+enum Relation {
+  SPOUSE
+  PARENT
+  SIBLING
+  CHILD
+  RELATIVE
+  FRIEND
+  COLLEAGUE
+  OTHER
+}
+
+enum GenderPreference {
+  MEN_ONLY
+  WOMEN_ONLY
+  BOTH
+}
+
+model Favorite {
+  id String @id @default(cuid())
+
+  userId       String
+  consultantId Int
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consultant Consultant @relation(fields: [consultantId], references: [cid], onDelete: Cascade)
+
+  created_at DateTime @default(now())
+
+  @@unique([userId, consultantId])
+  @@index([consultantId])
+  @@map("favorites")
+}
+
+model Question {
+  id          String   @id @default(cuid())
+  qid         Int      @unique @default(autoincrement())
+  likes       Int      @default(0)
+  created_at  DateTime @default(now())
+  answered_at DateTime @default(now())
+
+  // question 
+  title       String
+  description String?
+  question    String
+  answer      String?
+  category    Categories?
+
+  //  user
+  name      String?
+  anonymous Boolean
+  status    QuestionState
+
+  // @ relation
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  consultantId Int?
+  consultant   Consultant? @relation(fields: [consultantId], references: [cid], onDelete: SetNull)
+
+  @@map("questions")
+}
+
+model FreeSession {
+  id           String   @id @default(cuid())
+  fid          Int      @unique @default(autoincrement())
+  author       String
+  name         String
+  phone        String
+  time         String
+  date         String
+  duration     String
+  ownerAttend  Boolean?
+  clientAttend Boolean?
+  clientATime  String?
+  ownerATime   String?
+  url          String?
+  info         String[]
+  created_at   DateTime @default(now())
+
+  // @relations
+  consultantId Int
+  consultant   Consultant @relation(fields: [consultantId], references: [cid])
+  room         Room?
+
+  @@map("free_sessions")
+}
+
+model Reconciliation {
+  id String @id @default(cuid())
+
+  name        String
+  phone       String
+  description String   @db.Text
+  relation    Relation
+  gender      Gender
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  orderId String? @unique
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("reconciliations")
+}
+
+model Instant {
+  id               String   @id @default(cuid())
+  date             DateTime @db.Date
+  consultantsPeak  Int      @default(0)
+  clientsPeak      Int      @default(0)
+  consultantsTotal Int      @default(0)
+  clientsTotal     Int      @default(0)
+
+  @@unique([date])
+  @@map("instants")
+}
+
+model Package {
+  id       String  @id @default(cuid())
+  count    Int
+  cost     Int
+  isActive Boolean @default(false)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // @relations
+  consultantId Int
+  consultant   Consultant? @relation(fields: [consultantId], references: [cid], onDelete: Cascade)
+  orders       Order[]
+
+  @@unique([consultantId, count])
+  @@index([consultantId])
+  @@map("packages")
+}
+
+model Program {
+  id          String       @id @default(uuid())
+  prid        Int          @unique @default(autoincrement())
+  title       String
+  summary     String
+  duration    Int          @default(60)
+  commission  Int          @default(70)
+  description String
+  image       String
+  category    Categories
+  price       Float
+  sessions    Int
+  features    String[]
+  mastered    String[]
+  rate        Float?
+  status      ProgramState @default(HOLD)
+  orders      Order[]
+  created_at  DateTime     @default(now())
+  updated_at  DateTime     @default(now()) @updatedAt
+
+  // @relations
+  ProgramConsultant ProgramConsultant[]
+
+  @@map("programs")
+}
+
+model PreConsultation {
+  id           String    @id @default(cuid())
+  pid          Int       @unique @default(autoincrement())
+  author       String
+  name         String
+  phone        String
+  issue        String
+  advisor      String?
+  response     String?
+  responded_at DateTime?
+  created_at   DateTime  @default(now())
+
+  @@map("pre_consultations")
+}

@@ -1,0 +1,111 @@
+enum ScaleState {
+  PUBLISHED
+  HOLD
+  HIDDEN
+}
+
+enum ScaleType {
+  PUBLIC
+  PRIVATE
+}
+
+model Scale {
+  id           String             @id @default(cuid())
+  slug         String             @unique
+  title        String
+  image        String?
+  subtitle     String?
+  description  String?            @db.Text
+  whoNeedsIt   String?            @db.Text
+  howItWorks   String?            @db.Text
+  isActive     Boolean            @default(true)
+  order        Int                @default(0)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  type         ScaleType          @default(PUBLIC)
+  status       ScaleState         @default(HOLD)
+  items        ScaleItem[]
+  resultRanges ScaleResultRange[]
+  orders       Order[]
+  scaleResults ScaleResult[]
+
+  @@map("scales")
+}
+
+model ScaleItem {
+  id             String              @id @default(cuid())
+  scaleId        String
+  scale          Scale               @relation(fields: [scaleId], references: [id], onDelete: Cascade)
+  text           String              @db.Text
+  order          Int
+  createdAt      DateTime            @default(now())
+  reversed       Boolean
+  options        ScaleAnswerOption[]
+  scaleResponses ScaleResponse[]
+
+  @@index([scaleId])
+  @@index([scaleId, order])
+  @@map("scale_items")
+}
+
+model ScaleAnswerOption {
+  id        String    @id @default(cuid())
+  itemId    String
+  item      ScaleItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  label     String
+  value     Int
+  order     Int
+  createdAt DateTime  @default(now())
+
+  @@index([itemId])
+  @@map("scale_answer_options")
+}
+
+model ScaleResultRange {
+  id          String  @id @default(cuid())
+  scaleId     String
+  scale       Scale   @relation(fields: [scaleId], references: [id], onDelete: Cascade)
+  label       String
+  minScore    Int
+  maxScore    Int
+  description String? @db.Text
+  severity    String?
+
+  @@index([scaleId])
+  @@map("scale_result_ranges")
+}
+
+model ScaleResult {
+  id String @id @default(cuid())
+
+  orderId Int   @unique
+  order   Order @relation(fields: [orderId], references: [oid], onDelete: Cascade)
+
+  scaleId String
+  scale   Scale  @relation(fields: [scaleId], references: [id])
+
+  score   Int
+  rangeId String?
+
+  createdAt DateTime @default(now())
+
+  @@map("scale_results")
+}
+
+model ScaleResponse {
+  id String @id @default(cuid())
+
+  orderId Int
+  order   Order @relation(fields: [orderId], references: [oid], onDelete: Cascade)
+
+  itemId String
+  item   ScaleItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  value Int
+
+  createdAt DateTime @default(now())
+
+  @@unique([orderId, itemId])
+  @@index([orderId])
+  @@map("scale_responses")
+}

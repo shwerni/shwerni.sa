@@ -1,0 +1,78 @@
+enum VoipTokenType {
+  APNS_VOIP
+  FCM
+}
+
+enum NotificationAudience {
+  ALL
+  USER
+  OWNER
+}
+
+model VoipPushToken {
+  id        String        @id @default(cuid())
+  userId    String        @unique
+  token     String
+  type      VoipTokenType
+  updatedAt DateTime      @updatedAt
+
+  @@map("voip_push_tokens")
+}
+
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  title      String
+  message    String
+  timeToSend DateTime
+  sent       Boolean   @default(false)
+  read       Boolean   @default(false)
+  sentAt     DateTime?
+  readAt     DateTime?
+
+  // drives tap behavior on the client - null/missing type means readonly
+  type           String?
+  targetId       String?
+  ctaLabel       String?
+  actionCategory String?
+  createdAt      DateTime @default(now())
+
+  @@index([sent, timeToSend])
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+model PushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  platform  String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("push-tokens")
+}
+
+model NotificationCampaign {
+  id      String @id @default(cuid())
+  title   String
+  message String
+
+  audience   NotificationAudience @default(ALL)
+  timeToSend DateTime
+  sent       Boolean              @default(false)
+  sentAt     DateTime?
+  sentCount  Int?
+  type           String?
+  targetId       String?
+  ctaLabel       String?
+  actionCategory String?
+
+  createdAt DateTime @default(now())
+
+  @@index([sent, timeToSend])
+  @@map("notification_campaigns")
+}

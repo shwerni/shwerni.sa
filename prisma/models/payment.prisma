@@ -1,0 +1,156 @@
+enum PaymentState {
+  NEW
+  PROCESSING
+  HOLD
+  PAID
+  REFUND
+  REFUSED
+  CANCELED
+  STALL
+}
+
+enum PaymentMethod {
+  transaction
+  wallet
+  visaMoyasar
+  tabby
+}
+
+enum CouponState {
+  PUBLISHED
+  HIDDEN
+}
+
+enum CouponType {
+  GENERAL
+  PLATFORM
+  CONSULTANT
+  CENTER
+}
+
+enum CouponVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum OwnerType {
+  INDEPENDENT
+  Center
+}
+
+enum DiscountType {
+  PERCENT
+  FIXED
+  OVERRIDE
+}
+
+enum DiscountState {
+  PENDING
+  ACTIVE
+  EXPIRED
+}
+
+model Payment {
+  id           String         @id @default(cuid())
+  pid          String?        @unique
+  commission   Int
+  total        Float
+  tax          Float
+  payment      PaymentState
+  method       PaymentMethod?
+  paid         Float?
+  credit       Float?         @default(0)
+  wallet       Float?
+  cancelled_at DateTime?
+
+  // @relations
+  orderId    Int?        @unique
+  order      Order?      @relation(fields: [orderId], references: [oid])
+  usedCoupon UsedCoupon?
+  refunds Refund[]
+  
+  @@map("payments")
+}
+
+model UsedCoupon {
+  id       String     @id @default(cuid())
+  code     String
+  discount Float
+  type     CouponType
+  usedAt   DateTime   @default(now())
+
+  // @relations
+  paymentId String  @unique
+  payment   Payment @relation(fields: [paymentId], references: [id])
+
+  @@map("used_coupons")
+}
+
+model Wallet {
+  id           String   @id @default(cuid())
+  status       Boolean  @default(true)
+  credit       Int
+  info         String[]
+  transactions Int[]
+  oids         Int[]
+  created_at   DateTime @default(now())
+
+  // @relations
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+model Coupon {
+  id         String           @id @default(cuid())
+  status     CouponState
+  code       String           @unique
+  discount   Float
+  visibility CouponVisibility @default(PUBLIC)
+  type       CouponType       @default(PLATFORM)
+  starts_at  DateTime?        @default(now())
+  expires_at DateTime?
+  users      String[]
+  limits     Int?
+  created_at DateTime         @default(now())
+
+  // @relations
+  consultantId Int? // optional field
+  consultant   Consultant? @relation(fields: [consultantId], references: [cid])
+
+  @@map("coupons")
+}
+
+model Discount {
+  id            String          @id @default(uuid())
+  did           Int             @unique @default(autoincrement())
+  name          String
+  title         String
+  description   String
+  image         String?
+  discount      Float
+  type          DiscountType
+  status        Boolean
+  visibility    Boolean
+  limit         Int?
+  users         String[]
+  startDate     DateTime
+  endDate       DateTime
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @default(now()) @updatedAt
+  // info
+  // mode          PriceMode       @default(PERCENT)
+  durations     Int[]           @default([30, 45, 60])
+  maxUses       Int?
+  usedCount     Int             @default(0)
+  allCategories Boolean         @default(false)
+  categories    Categories[]
+  events        EventCampaign[]
+  overrides     Json?
+
+  // @relations
+  DiscountConsultant DiscountConsultant[]
+
+  @@map("discounts")
+}

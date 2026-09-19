@@ -1,0 +1,77 @@
+model WaChat {
+  id              String    @id @default(cuid())
+  waid            String    @unique
+  name            String
+  phone           String    @unique
+  created_at      DateTime  @default(now())
+  updated_at      DateTime? @default(now()) @updatedAt
+  last_message_at DateTime  @default(now())
+
+  // @relations
+  messages Message[]
+
+  @@map("wa_chats")
+}
+
+model Message {
+  id      String   @id @default(cuid())
+  chatId  String
+  time    DateTime
+  content String
+  from    String
+
+  // @relations
+  chat WaChat @relation(fields: [chatId], references: [waid])
+
+  @@index([chatId])
+  @@index([time])
+  @@map("messages")
+}
+
+model botUsage {
+  id        String   @id @default(cuid())
+  phone     String
+  date      DateTime
+  count     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([phone, date])
+  @@map("bot_usages")
+}
+
+model OrderMessage {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  sender    UserRole
+  createdAt DateTime @default(now())
+
+  orderId   Int
+  meetingId String
+
+  fileUrl  String?
+  fileType String?
+  fileName String?
+  blocked  Boolean @default(false)
+
+  // @relations
+  order   Order   @relation(fields: [orderId], references: [oid], onDelete: Cascade)
+  meeting Meeting @relation(fields: [meetingId], references: [mid], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([meetingId])
+  @@map("order_messages")
+}
+
+model WaDebounce {
+  phone     String   @id
+  lastMsgAt BigInt
+  dueAt     BigInt
+  fromId    String
+  fromName  String
+  queue     String   @default("[]")
+  updatedAt DateTime @updatedAt
+
+  @@index([dueAt])
+  @@map("wa-debounce")
+}

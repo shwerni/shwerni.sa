@@ -1,0 +1,31 @@
+model Setting {
+  id        Int      @id @default(autoincrement())
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  category  String
+  subKey    String
+
+  @@unique([category, subKey])
+  @@map("settings")
+}
+
+model Image {
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+  key        String
+  url        String?
+  title      String?
+
+  @@map("images")
+}
+
+model File {
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+  key        String
+  url        String?
+  title      String?
+
+  @@map("files")
+}

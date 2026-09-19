@@ -1,0 +1,29 @@
+enum ReviewState {
+  PUBLISHED
+  HOLD
+  HIDDEN
+}
+
+enum CommentState {
+  PUBLISHED
+  HOLD
+  HIDDEN
+}
+
+model Review {
+  id         String      @id @default(cuid())
+  author     String
+  verified   Boolean     @default(false)
+  name       String
+  comment    String
+  rate       Float
+  info       String[]
+  status     ReviewState
+  created_at DateTime    @default(now())
+
+  // @relations
+  consultantId Int
+  consultant   Consultant @relation(fields: [consultantId], references: [cid])
+
+  @@map("reviews")
+}

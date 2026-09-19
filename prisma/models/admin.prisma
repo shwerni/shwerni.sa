@@ -1,0 +1,103 @@
+enum CampaignStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+enum Placement {
+  // categories.tsx, after hero
+  HOME_CARD
+  // reserve section
+  CONSULTANT_BADGE
+  // listing cards
+  CONSULTANT_CARD
+  EVENT_PAGE
+  GLOBAL_BANNER
+}
+
+enum TemplateCategory {
+  MARKETING
+  UTILITY
+  AUTHENTICATION
+}
+
+model Campaign {
+  id   String @id @default(cuid())
+  name String
+
+  status         CampaignStatus   @default(ACTIVE)
+  template       String
+  templateParams Json
+  language       String           @default("ar")
+  phones         String[]
+  sentIndex      Int              @default(0)
+  successCount   Int              @default(0)
+  failedCount    Int              @default(0)
+  lastErrors     Json?
+  ratePerRun     Int              @default(15)
+  category       TemplateCategory @default(MARKETING)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([status])
+  @@map("wa-campaign")
+}
+
+model EventCampaign {
+  id     String  @id @default(cuid())
+  eid    Int     @unique @default(autoincrement())
+  slug   String  @unique
+  active Boolean @default(false)
+
+  // badge (small surfaces)
+  badgeLabel String? // "عرض لفترة محدودة"
+  badgeIcon  String? // lucide icon name
+  badgeNote  String? // "شامل الضريبة"
+
+  // event page content
+  title       String?
+  subtitle    String?
+  description String? @db.Text
+  ctaLabel    String?
+  ctaHref     String?
+  image       String?
+  priceLabel  String? // "سعر الجلسة"
+  priceValue  String? // "99 ريال"  — String, not Float
+  priceNote   String? // "شامل الضريبة"
+
+  // empty-state copy (your NoActiveEvents)
+  emptyTitle String?
+  emptyBody  String? @db.Text
+
+  // theme preset key + overrides
+  themeKey  String @default("midnight")
+  themeVars Json? // { from, via, to, accent, orb }
+
+  placements Placement[]
+  priority   Int         @default(0)
+
+  // escape hatch
+  renderKey String? // maps to a code-registered custom component
+  custom    Json? // arbitrary props for that component
+
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  discountId Int?
+  discount   Discount? @relation(fields: [discountId], references: [did])
+
+  @@index([active, startDate, endDate])
+  @@map("event_campaigns")
+}
+
+model CampaignContact {
+  phone      String   @id
+  lastRound  Int      @default(0)
+  timesSent  Int      @default(0)
+  lastSentAt DateTime @default(now())
+
+  @@index([lastRound])
+  @@map("campaign_contacts")
+}

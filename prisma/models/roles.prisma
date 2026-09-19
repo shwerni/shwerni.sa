@@ -1,0 +1,28 @@
+enum CenterState {
+  PUBLISHED
+  HOLD
+  HIDDEN
+}
+
+model Center {
+  id String @id @default(cuid())
+
+  @@map("centers")
+}
+
+model Collaboration {
+  id         String   @id @unique @default(cuid())
+  name       String
+  image      String
+  status     Boolean  @default(false)
+  commission Float?   @default(50)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // @ relations
+  userId String  @unique
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@map("collaborations")
+}
