@@ -27,6 +27,7 @@ enum FinanceCategory {
     OPERATIONS
     GATEWAY_FEES
     TAX
+    GATEWAY_PAYOUT
     CONSULTANT_PAYOUT
     SALES
     INVESTMENT

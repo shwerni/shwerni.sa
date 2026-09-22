@@ -15,6 +15,38 @@ const MOYASAR_SECRET = process.env.MOYASAR_SECRET as string;
 // basic auth header
 const basicAuth = `Basic ${Buffer.from(`${MOYASAR_SECRET}:`).toString("base64")}`;
 
+// types — payment attempt inside an invoice's `payments` array
+interface MoyasarInvoicePayment {
+  id: string;
+  status: string;
+  amount: number;
+  refunded: number;
+  refunded_at: string | null;
+  invoice_id: string;
+}
+
+// types — full invoice object returned by GET /v1/invoices/:id
+interface MoyasarInvoiceDetails {
+  id: string;
+  status: string;
+  amount: number;
+  currency: string;
+  payments: MoyasarInvoicePayment[];
+}
+
+// types — full settlement object returned by GET /v1/settlements/:id
+interface MoyasarSettlementDetails {
+  id: string;
+  currency: string;
+  amount: number;
+  fee: number;
+  tax: number;
+  settlement_count: number;
+  invoice_url: string | null;
+  csv_list_url: string | null;
+  created_at: string;
+}
+
 // moyasra api config
 const moayasar = (path: string, options: RequestInit = {}) =>
   fetch(`${MOYASAR_ENDPOINT}${path}`, {
@@ -78,4 +110,51 @@ export async function moyasarPaymentDetails(pid: string) {
     amount: number;
     metadata?: Record<string, unknown>;
   }>;
+}
+
+// full invoice (with its `payments` array) — used to re-verify a payment_refunded
+// webhook against the specific payment id before trusting anything it claims.
+// explicit return type (rather than an inline `as Promise<...>` cast) avoids the
+// "implicitly has type 'any' because it does not have a type annotation and is
+// referenced in its own initializer" (TS7022) error at call sites
+export async function moyasarInvoiceDetails(
+  invoiceId: string,
+): Promise<MoyasarInvoiceDetails | null> {
+  const response = await moayasar(`/${invoiceId}`);
+  if (!response.ok) return null;
+  const data: MoyasarInvoiceDetails = await response.json();
+  return data;
+}
+
+// settlements live under /v1/settlements, not /v1/invoices — derive the API root
+// from MOYASAR_ENDPOINT's origin so we don't need a second env var
+const MOYASAR_API_ROOT = (() => {
+  try {
+    return new URL(MOYASAR_ENDPOINT).origin + "/v1";
+  } catch {
+    return MOYASAR_ENDPOINT;
+  }
+})();
+
+const moyasarRoot = (path: string, options: RequestInit = {}) =>
+  fetch(`${MOYASAR_API_ROOT}${path}`, {
+    ...options,
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: basicAuth,
+      ...options.headers,
+    },
+  });
+
+// re-fetch the settlement server-to-server — the balance_transferred webhook body
+// doesn't include invoice_url, and we never trust webhook amounts without verifying.
+// explicit return type here too, for the same TS7022 reason as moyasarInvoiceDetails
+export async function moyasarSettlementDetails(
+  id: string,
+): Promise<MoyasarSettlementDetails | null> {
+  const response = await moyasarRoot(`/settlements/${id}`);
+  if (!response.ok) return null;
+  const data: MoyasarSettlementDetails = await response.json();
+  return data;
 }
