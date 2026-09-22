@@ -602,7 +602,7 @@ export const freeSessionSchema = z.object({
   }),
 });
 
-export type freeSessionSchemaType = z.infer<typeof reservationSchema>;
+export type freeSessionSchemaType = z.infer<typeof freeSessionSchema>;
 
 // instant
 export const instantSchema = z

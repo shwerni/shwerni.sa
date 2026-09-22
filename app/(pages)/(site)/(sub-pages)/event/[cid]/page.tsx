@@ -5,7 +5,6 @@ import { Suspense } from "react";
 import Error404 from "@/components/shared/error-404";
 import CardSkeleton from "@/components/clients/shared/card-skeleton";
 import SkeletonConsultant from "@/components/clients/consultants/consultant/skeleton";
-import FreeSessionReserve from "@/components/clients/freesessions/reservation/reserve";
 import FressSessionConsultant from "@/components/clients/freesessions/consultant/consultant";
 
 // prisma data
@@ -17,6 +16,7 @@ import { ApprovalState, ConsultantState } from "@/lib/generated/prisma/client";
 // constants
 import { EVENT_MAX_RESERVATIONS_PER_CONSULTANT } from "@/components/clients/event/constant";
 import { getEventReservedCount, isEventConsultant } from "@/data/temp-event";
+import FreeSessionReserve from "@/components/clients/event/reserve";
 
 // props
 type Props = {
@@ -58,7 +58,7 @@ const Page = async ({ params }: Props) => {
         <FressSessionConsultant cid={cidN} />
       </Suspense>
       <Suspense fallback={<CardSkeleton count={1} className="w-full" />}>
-        {consultant.status && <FreeSessionReserve cid={cidN} />}
+        {consultant.status && <FreeSessionReserve cid={cidN} event />}
       </Suspense>
     </div>
   );

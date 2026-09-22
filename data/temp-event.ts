@@ -1,8 +1,5 @@
 import "server-only";
 
-// Next
-import { revalidateTag } from "next/cache";
-
 // constants
 import {
   EVENT_DATE,
@@ -18,23 +15,26 @@ import {
   ReviewState,
 } from "@/lib/generated/prisma/enums";
 
+// lib
+import { timeZone } from "@/lib/site/time";
+
 // types
 import { ConsultantCard } from "@/types/layout";
 
-type EventFreeSessionInput = {
-  author: string;
-  name: string;
-  phone: string;
-  time: string;
-  duration: string;
-  info: string[];
-};
+export type EventBookingReason =
+  | "OUTSIDE_WINDOW"
+  | "NOT_IN_EVENT"
+  | "ALREADY_BOOKED"
+  | "CONSULTANT_FULL"
+  | "SLOT_TAKEN";
 
-export type CreateEventFreeSessionResult =
-  | { ok: true; fid: number }
-  | { ok: false; reason: "CONSULTANT_FULL" };
+// same client = same phone, or same logged-in account ("temp" = guest, never matched)
+const sameClientWhere = (phone: string, author: string) => ({
+  date: EVENT_DATE,
+  OR: [{ phone }, ...(author && author !== "temp" ? [{ author }] : [])],
+});
 
-// event consultants — excludes anyone who already hit the daily cap
+// event consultants — enrolled in the event discount, excluding anyone at the daily cap
 export const getEventConsultants = async () => {
   try {
     const consultants = await prisma.$queryRaw<ConsultantCard[]>`
@@ -97,37 +97,8 @@ export const getEventConsultants = async () => {
     return [];
   }
 };
-// atomic capped booking — call ONLY from a validated "use server" action
-export async function createEventFreeSession(
-  cid: number,
-  data: EventFreeSessionInput,
-): Promise<CreateEventFreeSessionResult> {
-  const result = await prisma.$transaction(async (tx) => {
-    // serialize concurrent bookings for this consultant only
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${cid})`;
 
-    const reservedCount = await tx.freeSession.count({
-      where: { consultantId: cid, date: EVENT_DATE },
-    });
-
-    if (reservedCount >= EVENT_MAX_RESERVATIONS_PER_CONSULTANT) {
-      return { ok: false as const, reason: "CONSULTANT_FULL" as const };
-    }
-
-    const session = await tx.freeSession.create({
-      data: { ...data, date: EVENT_DATE, consultantId: cid },
-      select: { fid: true },
-    });
-
-    return { ok: true as const, fid: session.fid };
-  });
-
-  // purge event carousel/list only after a real booking
-  if (result.ok) revalidateTag("event-consultants", "max");
-
-  return result;
-}
-
+// how many event sessions this consultant already has on the event day
 export const getEventReservedCount = async (cid: number) => {
   return prisma.freeSession.count({
     where: { consultantId: cid, date: EVENT_DATE },
@@ -148,3 +119,76 @@ export const isEventConsultant = async (cid: number) => {
 
   return !!row?.status;
 };
+
+// pre-insert checks — fast rejection with a clear reason
+export async function checkEventBooking(
+  cid: number,
+  time: string,
+  phone: string,
+  author: string,
+): Promise<EventBookingReason | null> {
+  // event day in Riyadh
+  if (timeZone().date !== EVENT_DATE) return "OUTSIDE_WINDOW";
+
+  const [enrolled, sessions, previous] = await Promise.all([
+    isEventConsultant(cid),
+    prisma.freeSession.findMany({
+      where: { consultantId: cid, date: EVENT_DATE },
+      select: { time: true },
+    }),
+    prisma.freeSession.findFirst({
+      where: sameClientWhere(phone, author),
+      select: { fid: true },
+    }),
+  ]);
+
+  if (!enrolled) return "NOT_IN_EVENT";
+  if (previous) return "ALREADY_BOOKED";
+  if (sessions.length >= EVENT_MAX_RESERVATIONS_PER_CONSULTANT)
+    return "CONSULTANT_FULL";
+  if (sessions.some((s) => s.time === time)) return "SLOT_TAKEN";
+
+  return null;
+}
+// post-insert guard — race-safe: the earliest fids win, a losing booking is removed
+export async function enforceEventLimits(
+  cid: number,
+  fid: number,
+  time: string,
+  phone: string,
+  author: string,
+): Promise<EventBookingReason | null> {
+  const [clientSessions, consultantSessions] = await Promise.all([
+    prisma.freeSession.findMany({
+      where: sameClientWhere(phone, author),
+      select: { fid: true },
+      orderBy: { fid: "asc" },
+    }),
+    prisma.freeSession.findMany({
+      where: { consultantId: cid, date: EVENT_DATE },
+      select: { fid: true, time: true },
+      orderBy: { fid: "asc" },
+    }),
+  ]);
+
+  // same phone/account already booked first (double submit, two tabs)
+  const alreadyBooked =
+    clientSessions.length > 0 && clientSessions[0].fid !== fid;
+
+  // someone booked the same slot first
+  const firstInSlot = consultantSessions.find((s) => s.time === time);
+  const slotTaken = !!firstInSlot && firstInSlot.fid !== fid;
+
+  // not among the first N bookings of the day
+  const withinCap = consultantSessions
+    .slice(0, EVENT_MAX_RESERVATIONS_PER_CONSULTANT)
+    .some((s) => s.fid === fid);
+
+  if (alreadyBooked || slotTaken || !withinCap) {
+    await prisma.freeSession.delete({ where: { fid } });
+    if (alreadyBooked) return "ALREADY_BOOKED";
+    return slotTaken ? "SLOT_TAKEN" : "CONSULTANT_FULL";
+  }
+
+  return null;
+}

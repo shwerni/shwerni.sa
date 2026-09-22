@@ -24,7 +24,7 @@ import { Controller, type UseFormReturn } from "react-hook-form";
 import { cn } from "@/lib/utils";
 
 // schema
-import { ReservationFormType } from "@/schemas";
+import { freeSessionSchemaType } from "@/schemas";
 
 // utils
 import { timeOptions } from "@/utils";
@@ -47,8 +47,9 @@ import {
 
 // props
 interface Props {
-  form: UseFormReturn<ReservationFormType>;
+  form: UseFormReturn<freeSessionSchemaType>;
   onNext: () => void;
+  backHref?: string;
 }
 
 // phase meta data
@@ -79,7 +80,11 @@ const phaseMeta = {
   },
 } as const;
 
-export default function StepDateTime({ form, onNext }: Props) {
+export default function StepDateTime({
+  form,
+  onNext,
+  backHref = "/freesessions",
+}: Props) {
   // control
   const { control } = form;
 
@@ -112,6 +117,7 @@ export default function StepDateTime({ form, onNext }: Props) {
 
   // open active grouped selected time accordion for ui/ux
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!selectedTime) return setOpen(undefined);
 
     setOpen(timeByValue[selectedTime]?.phase);
@@ -142,6 +148,7 @@ export default function StepDateTime({ form, onNext }: Props) {
 
   // open active grouped selected time accordion for ui/ux
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTimes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -237,7 +244,7 @@ export default function StepDateTime({ form, onNext }: Props) {
 
       <div className="flex items-center justify-center sm:justify-start gap-5">
         <LinkButton
-          href="/freesessions"
+          href={backHref}
           variant="secondary"
           className="items-center"
         >

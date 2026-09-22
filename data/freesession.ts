@@ -83,10 +83,7 @@ export const getFreeSessionByFid = async (fid: number) => {
       where: { fid },
       include: {
         consultant: {
-          select: {userId: true,
-            name: true,
-            phone: true,
-          },
+          select: { userId: true, name: true, phone: true },
         },
       },
     });
@@ -128,8 +125,8 @@ export const reserveFreeSession = async (formdata: freeSessionSchemaType) => {
     // check conflict
     const check = await checkMeetingTimeConflict(
       data.cid,
-      dateToString(data.date),
       data.time,
+      dateToString(data.date),
     );
 
     // validate
@@ -225,7 +222,7 @@ export const freeSessionMeetingUrl = async (fid: number) => {
       where: { fid },
       select: { url: true, duration: true },
     });
-    
+
     // return
     if (meeting?.url) return meeting.url;
 
