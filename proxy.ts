@@ -9,7 +9,7 @@ import {
 
 // 🎉 EVENT MODE — client site restricted to the allowlist below
 const EVENT_ALLOWED_EXACT = ["/", "/contact-us", "/terms", "/event"];
-const EVENT_ALLOWED_PREFIXES = ["/event/", "/freesessions/"];
+const EVENT_ALLOWED_PREFIXES = ["/event/", "freesession", "/freesessions/"];
 
 // strip trailing slash so "/event/" and "/terms/" match the exact list
 const normalize = (pathname: string) =>
