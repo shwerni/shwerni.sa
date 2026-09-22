@@ -57,7 +57,7 @@ export default async function MaqayesPage() {
                           {scale.title}
                         </h2>
                         {scale.subtitle && (
-                          <span className="inline-block text-[11px] font-semibold text-white px-2 py-0.5 rounded-full bg-[#094577]">
+                          <span className="inline-block text-[11px] font-semibold text-white px-2 py-0.5 rounded-full bg-theme-700">
                             {scale.subtitle}
                           </span>
                         )}
@@ -74,7 +74,7 @@ export default async function MaqayesPage() {
                       )}
                     </div>
                     {/* Arrow */}
-                    <div className="mt-1 shrink-0 w-8 h-8 rounded-full bg-white/70 group-hover:bg-[#094577] flex items-center justify-center transition-colors">
+                    <div className="mt-1 shrink-0 w-8 h-8 rounded-full bg-white/70 group-hover:bg-theme-700 flex items-center justify-center transition-colors">
                       <svg
                         className="w-4 h-4 text-gray-400 group-hover:text-white rotate-180 transition-colors"
                         fill="none"
@@ -92,7 +92,7 @@ export default async function MaqayesPage() {
                   </div>
 
                   <div className="mt-4 pt-4 border-t border-gray-200/60 flex items-center gap-2">
-                    <span className="text-xs font-medium text-[#094577]">
+                    <span className="text-xs font-medium text-theme-700">
                       ابدأ المقياس ←
                     </span>
                   </div>

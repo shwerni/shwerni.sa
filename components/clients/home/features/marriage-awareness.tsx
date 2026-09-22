@@ -25,7 +25,7 @@ export default async function MarriageAwarenessSlimCard() {
             </span>
 
             {/* title */}
-            <h2 className="text-sm sm:text-lg font-bold text-[#094577] leading-snug">
+            <h2 className="text-sm sm:text-lg font-bold text-theme-700 leading-snug">
               المقياس وتحليله مع{" "}
               <span className="text-theme">د. عبدالرحمن العازمي</span>
             </h2>

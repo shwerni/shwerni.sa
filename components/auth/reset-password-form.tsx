@@ -107,7 +107,7 @@ const ResetPasswordForm: React.FC<Props> = ({ name, phone, otp }: Props) => {
 
         <div className="flex items-center justify-between w-full">
           <div className="space-y-3">
-            <h2 className="text-2xl font-bold text-[#094577]">
+            <h2 className="text-2xl font-bold text-theme-700">
               التحقق من رقم الهاتف
             </h2>
             <h5 className="text-slate-600 text-sm">

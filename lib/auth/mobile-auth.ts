@@ -2,13 +2,24 @@
 import bcrypt from "bcryptjs";
 import { betterAuth } from "better-auth";
 import { phoneNumber } from "better-auth/plugins";
-import { createAuthMiddleware } from "better-auth/api";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import {
+  APIError,
+  createAuthMiddleware,
+  getSessionFromCtx,
+} from "better-auth/api";
 
 // utils
 import prisma from "../database/db";
 import { notificationSecurityOtp } from "../notifications/site";
 import { legacyPasswordLogin } from "./legacy-password-login";
+import { cooldownDays, cooldownMessage } from "@/utils/user";
+
+// true when the request updates the phone of the signed in user
+const isPhoneChange = (ctx: { path?: string; body?: unknown }) =>
+  ctx.path === "/phone-number/verify" &&
+  (ctx.body as { updatePhoneNumber?: boolean } | undefined)
+    ?.updatePhoneNumber === true;
 
 /**
  * isolated better auth instance for the mobile app
@@ -67,7 +78,50 @@ export const mobileAuth = betterAuth({
     modelName: "MobileVerification",
   },
   hooks: {
+    // block phone changes during the cooldown
+    before: createAuthMiddleware(async (ctx) => {
+      if (!isPhoneChange(ctx)) return;
+
+      const session = await getSessionFromCtx(ctx);
+      // unauthenticated calls are rejected by the endpoint itself
+      if (!session) return;
+
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { phoneChangedAt: true },
+      });
+
+      const days = cooldownDays(user?.phoneChangedAt ?? null);
+      if (days > 0) {
+        throw new APIError("FORBIDDEN", {
+          message: cooldownMessage("رقم الجوال", days),
+        });
+      }
+    }),
     after: createAuthMiddleware(async (ctx) => {
+      if (isPhoneChange(ctx)) {
+        // failed verification (wrong otp, number taken) must not start the cooldown
+        if (ctx.context.returned instanceof APIError) return;
+
+        const session = await getSessionFromCtx(ctx);
+        if (!session) return;
+
+        const { phoneNumber: next } = ctx.body as { phoneNumber: string };
+        const user = await prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: { phone: true },
+        });
+
+        // stamp only when the phone really changed
+        if (user?.phone === next) {
+          await prisma.user.update({
+            where: { id: session.user.id },
+            data: { phoneChangedAt: new Date() },
+          });
+        }
+        return;
+      }
+
       if (ctx.path !== "/phone-number/reset-password") return;
 
       const { phoneNumber, newPassword } = ctx.body as {

@@ -40,8 +40,8 @@ const Recommendation = async () => {
       {/* consultant */}
       <div>
         <div className="inline-flex items-center gap-1.5">
-          <UsersRound className="text-[#094577] w-4" />
-          <h3 className="text-[#094577] font-semibold">
+          <UsersRound className="text-theme-700 w-4" />
+          <h3 className="text-theme-700 font-semibold">
             مستشارون مقترحون لإرشادك
           </h3>
         </div>
@@ -72,7 +72,7 @@ const Recommendation = async () => {
                   </div>
                   {/* title & category */}
                   <div className="flex flex-col gap-2">
-                    <h3 className="text-sm text-[#094577] font-semibold">
+                    <h3 className="text-sm text-theme-700 font-semibold">
                       {i.name}
                     </h3>
                     <CategoryBadge category={i.category} size="sm" />
@@ -95,8 +95,8 @@ const Recommendation = async () => {
       {/* articles */}
       <div>
         <div className="inline-flex items-center gap-1.5">
-          <Newspaper className="text-[#094577] w-4" />
-          <h3 className="text-[#094577] font-semibold">مقالات قد تعجبك</h3>
+          <Newspaper className="text-theme-700 w-4" />
+          <h3 className="text-theme-700 font-semibold">مقالات قد تعجبك</h3>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-4">
           {articles.map((i) => (
@@ -127,7 +127,7 @@ const Recommendation = async () => {
                         <h6>{minutesToRead(i.length)} دقائق للقراءة</h6>
                       </div>
                     </div>
-                    <h3 className="text-base text-[#094577] font-medium">
+                    <h3 className="text-base text-theme-700 font-medium">
                       {i.title}
                     </h3>
                   </div>

@@ -211,7 +211,7 @@ export default function ReservationForm({
             <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-md border border-theme mb-3">
               <div className="inline-flex items-center gap-1.5">
                 <CircleCheck className="size-4 text-green-400" />
-                <p className="text-sm font-semibold text-[#094577]">
+                <p className="text-sm font-semibold text-theme-700">
                   تم اختيار باقة {selectedSessions} جلسات
                 </p>
               </div>

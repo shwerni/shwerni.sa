@@ -19,7 +19,7 @@ const Error404 = () => {
             className="w-full h-auto"
           />
         </div>
-        <h3 className="text-[#094577] text-3xl text-center font-medium">
+        <h3 className="text-theme-700 text-3xl text-center font-medium">
           يبدو أن هناك خطأ...
         </h3>
         <Button variant="primary" size="lg" className="w-full">

@@ -183,7 +183,7 @@ export const FilterContent = () => {
         defaultValue="item-2"
       >
         <AccordionItem value="item-2">
-          <AccordionTrigger className="text-[#094577] text-base font-medium">
+          <AccordionTrigger className="text-theme-700 text-base font-medium">
             التخصص
           </AccordionTrigger>
           <AccordionContent className="">
@@ -222,7 +222,7 @@ export const FilterContent = () => {
         defaultValue="item-3"
       >
         <AccordionItem value="item-3">
-          <AccordionTrigger className="text-[#094577] text-base font-medium">
+          <AccordionTrigger className="text-theme-700 text-base font-medium">
             الجنس
           </AccordionTrigger>
           <AccordionContent className="flex flex-col gap-4 text-balance">

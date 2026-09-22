@@ -1,0 +1,3 @@
+export const EVENT_DATE = "2026-09-23";
+
+export const EVENT_MAX_RESERVATIONS_PER_CONSULTANT = 3;

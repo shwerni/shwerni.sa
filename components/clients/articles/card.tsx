@@ -65,7 +65,7 @@ const ArticleCard = ({ item }: { item: ArticleItem }) => {
                 <h6>{minutes} دقائق للقراءة</h6>
               </div>
             </div>
-            <h3 className="text-base text-[#094577] font-medium">
+            <h3 className="text-base text-theme-700 font-medium">
               {item.title}
             </h3>
             <p className="text-xs text-gray-500 line-clamp-2">{sanitized}</p>

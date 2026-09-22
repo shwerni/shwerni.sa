@@ -42,7 +42,7 @@ const ReviewCard: React.FC<Props> = ({ review, className }: Props) => {
             <span>{review.rate.toFixed(1)}</span>
           </div>
           <div className="space-y-2">
-            <h4 className="text-[#094577] text-lg font-medium">
+            <h4 className="text-theme-700 text-lg font-medium">
               {review.comment.split(" ").slice(0, 3).join(" ")}...
             </h4>
             <p className="text-sm font-medium text-gray-500 line-clamp-4">{`"${review.comment}"`}</p>
@@ -66,7 +66,7 @@ const ReviewCard: React.FC<Props> = ({ review, className }: Props) => {
 
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-[#094577]">{review.name}</DialogTitle>
+          <DialogTitle className="text-theme-700">{review.name}</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-gray-600 leading-relaxed">{`"${review.comment}"`}</p>
         <DialogFooter>

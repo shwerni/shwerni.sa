@@ -66,7 +66,7 @@ export default async function Page({ searchParams }: Props) {
           className="absolute top-10 right-2"
         />
         {/* content */}
-        <h3 className="text-[#094577] text-3xl text-center font-semibold">
+        <h3 className="text-theme-700 text-3xl text-center font-semibold">
           مدونة شاورني – أفكار ومعرفة تلامس حياتك
         </h3>
         <p className="text-gray-800 text-base text-center max-w-xl mx-auto">

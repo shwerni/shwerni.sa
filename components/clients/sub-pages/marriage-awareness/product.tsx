@@ -30,7 +30,7 @@ export default function ProductCard() {
         <span className="text-xs font-medium text-blue-500 bg-blue-50 px-3 py-1 rounded-full">
           حزمة متكاملة
         </span>
-        <h1 className="text-xl font-bold text-[#094577] mt-2">
+        <h1 className="text-xl font-bold text-theme-700 mt-2">
           مقياس جاهزية الوعي للزواج
         </h1>
         <p className="text-sm text-gray-500">

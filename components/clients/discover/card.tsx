@@ -123,7 +123,7 @@ export default function ConsultantCard({
       >
         {/* name & title & category */}
         <div className="text-center">
-          <h2 className="text-xl font-bold text-[#094577]">
+          <h2 className="text-xl font-bold text-theme-700">
             {consultant.name}
           </h2>
           <p className="text-sm text-gray-500 mt-0.5">{consultant.title}</p>
@@ -140,7 +140,7 @@ export default function ConsultantCard({
         {/* stats */}
         <div className="flex items-center justify-center gap-6 text-xs text-gray-600">
           <div className="flex items-center gap-1.5">
-            <Briefcase className="w-3.5 h-3.5 text-[#094577]/40" />
+            <Briefcase className="w-3.5 h-3.5 text-theme-700/40" />
             <span>
               {consultant.years}{" "}
               {consultant.years === 1 ? "سنة خبرة" : "سنوات خبرة"}
@@ -148,7 +148,7 @@ export default function ConsultantCard({
           </div>
           {consultant.review_count > 0 && (
             <div className="flex items-center gap-1.5">
-              <Star className="w-3.5 h-3.5 text-[#094577]/40" />
+              <Star className="w-3.5 h-3.5 text-theme-700/40" />
               <span>{consultant.review_count} تقييم</span>
             </div>
           )}
@@ -174,9 +174,9 @@ export default function ConsultantCard({
                 key={label}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-100 bg-gray-50/50 text-xs text-gray-700"
               >
-                <Clock className="w-3 h-3 text-[#094577]/40" />
+                <Clock className="w-3 h-3 text-theme-700/40" />
                 <span>{label}</span>
-                <span className="font-bold text-[#094577]">{value} ر.س</span>
+                <span className="font-bold text-theme-700">{value} ر.س</span>
               </div>
             ) : null,
           )}

@@ -198,7 +198,7 @@ export default function Reels({
           <ArrowRight className="w-4 h-4 text-gray-600" />
         </button>
         <div className="text-center">
-          <p className="text-[13px] font-semibold text-[#094577]">
+          <p className="text-[13px] font-semibold text-theme-700">
             {timeLabel(selectedTime)}
           </p>
           <p className="text-[11px] text-gray-400">
@@ -219,7 +219,7 @@ export default function Reels({
 
         {initialLoading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-            <div className="w-11 h-11 rounded-full border-4 border-[#094577]/15 border-t-[#094577] animate-spin" />
+            <div className="w-11 h-11 rounded-full border-4 border-theme-700/15 border-t-theme-700 animate-spin" />
             <p className="text-sm text-gray-400">جاري البحث عن مستشارين…</p>
           </div>
         )}
@@ -256,7 +256,7 @@ export default function Reels({
                 />
               ))}
               {hasMore && (
-                <div className="w-1.75 h-1.75 rounded-full bg-[#094577]/10 shrink-0" />
+                <div className="w-1.75 h-1.75 rounded-full bg-theme-700/10 shrink-0" />
               )}
             </div>
           </div>
@@ -295,8 +295,8 @@ export default function Reels({
 
         {loadingMore && (
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 bg-white/95 backdrop-blur-sm shadow-[0_4px_12px_rgba(0,0,0,0.1)] border border-gray-200 rounded-full px-5 py-2.5 flex items-center gap-3 transition-all">
-            <div className="w-4 h-4 rounded-full border-2 border-[#094577]/20 border-t-[#094577] animate-spin" />
-            <p className="text-xs font-semibold text-[#094577]">
+            <div className="w-4 h-4 rounded-full border-2 border-theme-700/20 border-t-theme-700 animate-spin" />
+            <p className="text-xs font-semibold text-theme-700">
               تحميل المزيد…
             </p>
           </div>
@@ -322,8 +322,8 @@ const DotItem = React.memo(function DotItem({
       className={cn(
         "w-1.75 rounded-full cursor-pointer transition-all duration-200 shrink-0",
         active
-          ? "h-6 bg-[#094577]"
-          : "h-1.75 bg-[#094577]/20 hover:bg-[#094577]/35",
+          ? "h-6 bg-theme-700"
+          : "h-1.75 bg-theme-700/20 hover:bg-theme-700/35",
       )}
     />
   );

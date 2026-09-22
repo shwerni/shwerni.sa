@@ -47,7 +47,7 @@ export default function StepDetails({ form, onBack }: Props) {
     <div className="space-y-6">
       {/* selected date & time summary */}
       <div className="space-y-3">
-        <h5 className="text-sm font-medium text-[#094577]">
+        <h5 className="text-sm font-medium text-theme-700">
           {meetingLabel(iso, form.getValues("time"))}
         </h5>
         <Separator className="w-11/12 mx-auto" />
@@ -56,7 +56,7 @@ export default function StepDetails({ form, onBack }: Props) {
       {/* client info */}
       <FieldGroup>
         <div className="space-y-5">
-          <h3 className="text-[#094577] text-sm font-medium">بيانات العميل</h3>
+          <h3 className="text-theme-700 text-sm font-medium">بيانات العميل</h3>
           {/* time & date */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* name */}

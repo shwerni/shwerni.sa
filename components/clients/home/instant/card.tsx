@@ -65,7 +65,7 @@ export default function OnlineConsultantCard({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <h2 className="text-[#094577] font-bold text-lg leading-tight">
+          <h2 className="text-theme-700 font-bold text-lg leading-tight">
             {consultant.name}
           </h2>
 

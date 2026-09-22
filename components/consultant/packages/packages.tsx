@@ -57,7 +57,7 @@ export function BaseCostsForm({ consultant }: { consultant: Consultant }) {
             onChange={(e) =>
               setCosts({ ...costs, cost30: Number(e.target.value) })
             }
-            className="w-full p-2 border rounded-md outline-none focus:border-[#094577]"
+            className="w-full p-2 border rounded-md outline-none focus:border-theme-700"
             required
           />
         </div>
@@ -72,7 +72,7 @@ export function BaseCostsForm({ consultant }: { consultant: Consultant }) {
             onChange={(e) =>
               setCosts({ ...costs, cost45: Number(e.target.value) })
             }
-            className="w-full p-2 border rounded-md outline-none focus:border-[#094577]"
+            className="w-full p-2 border rounded-md outline-none focus:border-theme-700"
             required
           />
         </div>
@@ -87,14 +87,14 @@ export function BaseCostsForm({ consultant }: { consultant: Consultant }) {
             onChange={(e) =>
               setCosts({ ...costs, cost60: Number(e.target.value) })
             }
-            className="w-full p-2 border rounded-md outline-none focus:border-[#094577]"
+            className="w-full p-2 border rounded-md outline-none focus:border-theme-700"
             required
           />
         </div>
         <button
           type="submit"
           disabled={loading}
-          className="px-6 py-2 bg-[#094577] text-white rounded-md hover:bg-opacity-90 disabled:opacity-50 transition-colors w-full sm:w-auto h-10"
+          className="px-6 py-2 bg-theme-700 text-white rounded-md hover:bg-opacity-90 disabled:opacity-50 transition-colors w-full sm:w-auto h-10"
         >
           {loading ? "جاري الحفظ..." : "حفظ الأسعار"}
         </button>
@@ -173,7 +173,7 @@ export function PackageForm({
               onChange={(e) => setIsActive(e.target.checked)}
               className="sr-only peer"
             />
-            <div className="relative w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:inset-s-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#094577]"></div>
+            <div className="relative w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:inset-s-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-theme-700"></div>
             <span className="ms-3 text-sm font-medium text-gray-600">
               {isActive ? "مفعل" : "معطل"}
             </span>
@@ -188,7 +188,7 @@ export function PackageForm({
               min={100}
               value={cost}
               onChange={(e) => setCost(Number(e.target.value))}
-              className="w-24 p-1.5 border rounded text-center outline-none focus:border-[#094577]"
+              className="w-24 p-1.5 border rounded text-center outline-none focus:border-theme-700"
               disabled={!isActive}
             />
           </div>

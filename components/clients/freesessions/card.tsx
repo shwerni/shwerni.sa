@@ -50,7 +50,7 @@ const ConsultantCard = ({ consultant }: Props) => {
           </div>
           {/* name & category */}
           <div className="flex flex-col items-center gap-2">
-            <h3 className="text-[1.1rem] text-[#094577] font-medium">
+            <h3 className="text-[1.1rem] text-theme-700 font-medium">
               {consultant.name}
             </h3>
             {/* category badge */}

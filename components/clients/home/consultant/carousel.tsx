@@ -34,6 +34,7 @@ const ConsultantsCarousel = ({ consultants }: Props) => {
 
   return (
     <Carousel
+      // eslint-disable-next-line react-hooks/refs
       plugins={[plugin.current]}
       opts={{ loop: true, direction: "rtl" }}
     >
@@ -41,7 +42,7 @@ const ConsultantsCarousel = ({ consultants }: Props) => {
         {consultants.map((i, index) => (
           <CarouselItem key={index} className="max-w-76.25">
             {/* conultant card data  */}
-            <Link href={`/consultants/${i.cid}`}>
+            <Link href={`/event/${i.cid}`}>
               <ConsultantCard
                 consultant={i}
                 //   favorites={favorites}

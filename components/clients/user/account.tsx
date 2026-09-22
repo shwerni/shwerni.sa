@@ -59,7 +59,7 @@ const UserAccount = ({ user }: Props) => {
         <FieldSet disabled={true} className="space-y-8">
           <FieldGroup>
             <div className="space-y-5">
-              <h3 className="text-[#094577] text-sm font-medium">
+              <h3 className="text-theme-700 text-sm font-medium">
                 بيانات العميل
               </h3>
               {/* time & date */}

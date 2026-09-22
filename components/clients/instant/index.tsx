@@ -22,7 +22,7 @@ const Instant: React.FC = async () => {
       {/* instant title */}
       <div className="max-w-md mx-auto space-y-4">
         <div className="flex flex-col items-center gap-y-3">
-          <h3 className="text-[#094577] text-xl sm:text-2xl font-semibold">
+          <h3 className="text-theme-700 text-xl sm:text-2xl font-semibold">
             استشارة مباشرة وسريعة
           </h3>
           <div className="w-10/12 h-1 max-w-40 bg-gray-200 rouneded" />

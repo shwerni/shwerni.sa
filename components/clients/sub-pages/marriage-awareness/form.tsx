@@ -256,7 +256,7 @@ export default function AwarenessForm({
             <div className="space-y-6">
               {/* gender */}
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-[#094577]">
+                <p className="text-sm font-semibold text-theme-700">
                   <span className="text-red-500">* </span>الجنس
                 </p>
                 <Controller
@@ -308,7 +308,7 @@ export default function AwarenessForm({
 
               {/* date picker */}
               <div className="space-y-3">
-                <p className="text-sm font-semibold text-[#094577]">
+                <p className="text-sm font-semibold text-theme-700">
                   <span className="text-red-500">* </span>التاريخ
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-2">
@@ -343,7 +343,7 @@ export default function AwarenessForm({
                   ))}
                 </div>
                 {selectedDate && (
-                  <p className="text-sm font-medium text-[#094577]">
+                  <p className="text-sm font-medium text-theme-700">
                     {format(selectedDate, "EEEE، d MMMM yyyy", { locale: ar })}
                   </p>
                 )}
@@ -351,7 +351,7 @@ export default function AwarenessForm({
 
               {/* time slots */}
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-[#094577]">
+                <p className="text-sm font-semibold text-theme-700">
                   <span className="text-red-500">* </span>الوقت
                 </p>
                 <Controller
@@ -544,7 +544,7 @@ export default function AwarenessForm({
                   <CurrencyLabel
                     amount={cost}
                     tax={15}
-                    textStyle="text-xl font-bold text-[#094577]"
+                    textStyle="text-xl font-bold text-theme-700"
                   />
                 </div>
                 <div className="text-xs text-gray-400 text-left">

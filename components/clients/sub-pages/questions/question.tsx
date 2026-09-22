@@ -120,7 +120,7 @@ export default function QuestionContent({ question }: Props) {
           </div>
         </section>
 
-        <div className="mt-8 bg-blue-50/50 rounded-2xl border border-blue-100 p-6 text-center">
+        <div className="mt-8 bg-theme-50 rounded-2xl border border-blue-100 p-6 text-center">
           <h4 className="text-lg font-bold text-gray-900 mb-2">
             هل تحتاج إلى استشارة مخصصة؟
           </h4>

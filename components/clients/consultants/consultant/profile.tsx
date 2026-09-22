@@ -79,7 +79,7 @@ const ConsultantProfile: React.FC<Props> = ({
         {/* name & category & rate */}
         <div className="flex flex-col items-center sm:items-start gap-3 sm:gap-1.5">
           {/* name */}
-          <h2 className="text-[#094577] font-semibold text-3xl sm:text-4xl">
+          <h2 className="text-theme-700 font-semibold text-3xl sm:text-4xl">
             {consultant.name}
           </h2>
           {/* category & rate */}
@@ -132,7 +132,7 @@ const ConsultantProfile: React.FC<Props> = ({
             <div key={i.label} className="flex items-center gap-2">
               <i.icon className="w-4 h-4 text-400" />
               <h6 className="text-gray-700 text-sm">{i.label}</h6>
-              <h6 className="text-[#094577] text-sm font-bold">{i.value}</h6>
+              <h6 className="text-theme-700 text-sm font-bold">{i.value}</h6>
             </div>
           ) : null,
         )}
@@ -209,7 +209,7 @@ function Title({
   return (
     <div className="inline-flex items-center gap-2">
       <Icon className="w-5 h-5 text-theme" />
-      <h4 className="text-[#094577] text-base font-semibold">{label}</h4>
+      <h4 className="text-theme-700 text-base font-semibold">{label}</h4>
     </div>
   );
 }

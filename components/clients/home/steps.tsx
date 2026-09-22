@@ -51,7 +51,7 @@ const Steps = () => {
                   key={index}
                   className="flex flex-col items-center gap-2 max-w-60"
                 >
-                  <h4 className="text-[#094577] text-lg text-center font-semibold">
+                  <h4 className="text-theme-700 text-lg text-center font-semibold">
                     {i.title}
                   </h4>
                   <p className="text-base text-center">{i.description}</p>
@@ -74,7 +74,7 @@ const Steps = () => {
               key={index}
               className="flex flex-col items-center gap-2 max-w-60"
             >
-              <h4 className="text-[#094577] text-lg text-center font-semibold">
+              <h4 className="text-theme-700 text-lg text-center font-semibold">
                 {i.title}
               </h4>
               <p className="text-base text-center">{i.description}</p>

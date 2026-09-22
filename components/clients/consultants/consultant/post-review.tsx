@@ -108,7 +108,7 @@ export default function AddYourReview({
       {/* header — matches ConsultantReviews title style */}
       <div className="inline-flex items-center gap-2 mb-3">
         <Send className="w-4 h-4 text-theme" />
-        <h4 className="text-[#094577] text-base font-semibold">أضف تقييمك</h4>
+        <h4 className="text-theme-700 text-base font-semibold">أضف تقييمك</h4>
       </div>
 
       <Form {...form}>

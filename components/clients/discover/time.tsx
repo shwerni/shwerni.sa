@@ -125,7 +125,7 @@ export default function TimeStep({
                       key={t}
                       type="button"
                       onClick={() => onSelect(t)}
-                      className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:border-[#094577]/50 hover:text-[#094577] active:scale-95 transition-all duration-150"
+                      className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:border-theme-700/50 hover:text-theme-700 active:scale-95 transition-all duration-150"
                     >
                       {timeLabel(t)}
                     </button>

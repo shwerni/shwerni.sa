@@ -10,33 +10,60 @@ import { ArrowLeft } from "lucide-react";
 
 const Hero = () => {
   return (
+    <div className="relative w-full aspect-square sm:aspect-video overflow-hidden">
+      {/* Mobile Image: Shows on mobile, hides on small screens and up (sm:hidden) */}
+      <Image
+        src="/other/event/banner-mobile.png"
+        alt="hero background (mobile)"
+        priority
+        fetchPriority="high"
+        fill
+        className="object-cover sm:hidden"
+        sizes="100vw"
+      />
+
+      {/* Desktop Image: Hides on mobile, shows on small screens and up (hidden sm:block) */}
+      <Image
+        src="/other/event/banner.png"
+        alt="hero background (desktop)"
+        priority
+        fetchPriority="high"
+        fill
+        className="hidden sm:block object-cover"
+        sizes="100vw"
+      />
+    </div>
+  );
+
+  return (
     <div className="relative w-full min-h-[60vh] flex items-center justify-center sm:justify-start">
       {/* desktop background image */}
       <Image
-        src="/layout/hero-desktop.png"
+        src="/other/event/banner.png"
         alt="hero background"
         fill
         priority
         fetchPriority="high"
-        className="hidden sm:block object-cover"
+        className="aspect-[19:6]"
+        // className="hidden sm:block object-cover"
         sizes="100vw"
       />
       {/* mobile background image */}
-      <Image
-        src="/layout/hero-mobile.png"
+      {/* <Image
+        src="/other/event/banner.png"
         alt="hero background"
         fill
         priority
         fetchPriority="high"
         className="sm:hidden object-cover"
         sizes="100vw"
-      />
+      /> */}
 
       {/* overlay */}
-      <div className="absolute inset-0 bg-black/40" />
+      {/* <div className="absolute inset-0 bg-black/40" /> */}
 
       {/* content */}
-      <div className="relative flex flex-col items-center sm:items-start gap-5 max-w-xl px-4 sm:mx-5 z-10">
+      {/* <div className="relative flex flex-col items-center sm:items-start gap-5 max-w-xl px-4 sm:mx-5 z-10">
         <div className="inline-flex items-center mb-4 gap-2">
           <Image
             src="/svg/shwerni-logo-icon.svg"
@@ -68,7 +95,7 @@ const Hero = () => {
             اطلع على كافة المستشارين
           </LinkButton>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

@@ -68,7 +68,7 @@ const ConsultantCard = ({ form, consultant, official, onNext }: Props) => {
           <div className="flex flex-col items-center gap-4 mt-2">
             {/* title and category */}
             <div className="space-y-1.5">
-              <h3 className="text-[#094577] font-semibold mr-1">
+              <h3 className="text-theme-700 font-semibold mr-1">
                 {official ? "مستشار شاورني" : consultant.name}
               </h3>
               <CategoryBadge category={consultant.category} size="xs" />

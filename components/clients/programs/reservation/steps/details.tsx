@@ -56,7 +56,7 @@ export default function StepDetails({ form, consultants, onNext }: Props) {
       {/* client info */}
       <FieldGroup>
         <div className="space-y-5">
-          <h3 className="text-[#094577] text-sm font-medium">بيانات العميل</h3>
+          <h3 className="text-theme-700 text-sm font-medium">بيانات العميل</h3>
           {/* name & phone */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* name */}
@@ -165,7 +165,7 @@ export default function StepDetails({ form, consultants, onNext }: Props) {
                         ""
                       )}
                     </div>
-                    <h3 className="text-base font-semibold text-[#094577]">
+                    <h3 className="text-base font-semibold text-theme-700">
                       {consultant.name}
                     </h3>
                     <CategoryBadge size="sm" category={consultant.category} />

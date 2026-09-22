@@ -41,7 +41,7 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="relative bg-[#052A47] pt-10 pb-40 px-3 sm:px-5 mx-auto space-y-5 rounded">
+    <footer className="relative bg-theme-900 pt-10 pb-40 px-3 sm:px-5 mx-auto space-y-5 rounded">
       {/* about */}
       <div className="grid grid-cols-1 md:grid-cols-2 items-center sm:gap-8">
         <div className="flex flex-col gap-3">

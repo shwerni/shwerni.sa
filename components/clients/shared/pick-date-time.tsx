@@ -246,7 +246,7 @@ export default function PickDateTime({
 
       {/* date label */}
       {selectedDate && (
-        <h5 className="text-sm font-medium text-[#094577]">
+        <h5 className="text-sm font-medium text-theme-700">
           {format(selectedDate, "EEEE، d MMMM yyyy", {
             locale: ar,
           })}

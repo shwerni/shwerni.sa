@@ -74,7 +74,7 @@ const Article = async ({
       <div className="flex flex-col md:grid grid-cols-8 gap-x-2 gap-y-5">
         {/* right side */}
         <div className="md:col-span-5 space-y-5">
-          <h1 className="text-[#094577] text-2xl sm:text-3xl font-semibold">
+          <h1 className="text-theme-700 text-2xl sm:text-3xl font-semibold">
             {article.title}
           </h1>
           {/* image */}
@@ -190,8 +190,8 @@ const Article = async ({
       {/* article info: mobile */}
       <div className="md:hidden space-y-5">
         <div className="inline-flex items-center gap-1.5">
-          <Newspaper className="w-4 text-[#094577]" />
-          <h3 className="text-[#094577] font-semibold">معلومات قد تهمك</h3>
+          <Newspaper className="w-4 text-theme-700" />
+          <h3 className="text-theme-700 font-semibold">معلومات قد تهمك</h3>
         </div>
         {side.length > 0 && (
           <div className="article-side">

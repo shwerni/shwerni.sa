@@ -19,7 +19,7 @@ const Reviews = async () => {
   if (!reviews) return;
 
   return (
-    <Section className="space-y-10 py-10 bg-[#052A47]">
+    <Section className="space-y-10 py-10 bg-theme-900">
       <Title
         title="تجارب حقيقية ملهمة"
         subTitle="آراء تثق بها"

@@ -28,7 +28,7 @@ const LogOut = ({ user }: Props) => {
         <div className="flex justify-center">
           <Logo width={200} height={200} />
         </div>
-        <h1 className="text-3xl text-[#094577] font-bold">تسجيل الخروج</h1>
+        <h1 className="text-3xl text-theme-700 font-bold">تسجيل الخروج</h1>
         <p className="text-sm text-slate-600 font-medium">
           هل أنت متأكد من رغبتك في تسجيل الخروج من حسابك؟
         </p>

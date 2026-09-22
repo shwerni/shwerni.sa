@@ -51,7 +51,7 @@ export default function DateStep({
                 "px-6 py-2 rounded-xl border transition-all duration-150 active:scale-95 shadow-sm text-sm font-medium",
                 gender === null
                   ? "bg-theme text-white"
-                  : "bg-white border-gray-200 text-gray-600 hover:border-[#094577]/40",
+                  : "bg-white border-gray-200 text-gray-600 hover:border-theme-700/40",
               )}
             >
               الكل
@@ -69,7 +69,7 @@ export default function DateStep({
                       ? opt.value === Gender.MALE
                         ? "bg-blue-200 border-blue-200"
                         : "bg-pink-200 border-pink-2000"
-                      : "bg-white border-gray-200 hover:border-[#094577]/40",
+                      : "bg-white border-gray-200 hover:border-theme-700/40",
                   )}
                 >
                   {opt.label}
@@ -92,7 +92,7 @@ export default function DateStep({
                 "px-4 py-2 rounded-xl border text-sm font-medium transition-all duration-150 active:scale-95 shadow-sm",
                 category === null
                   ? "bg-theme text-white"
-                  : "bg-white border-gray-200 text-gray-600 hover:border-[#094577]/40",
+                  : "bg-white border-gray-200 text-gray-600 hover:border-theme-700/40",
               )}
             >
               الكل
@@ -109,7 +109,7 @@ export default function DateStep({
 
                     isActive
                       ? opt.style
-                      : "bg-white border-gray-200 text-gray-600 hover:border-[#094577]/40",
+                      : "bg-white border-gray-200 text-gray-600 hover:border-theme-700/40",
                   )}
                 >
                   {opt.label}
@@ -144,13 +144,13 @@ export default function DateStep({
                   "transition-all duration-200 active:scale-95",
                   disabled
                     ? "opacity-30 pointer-events-none bg-gray-50 border-gray-100"
-                    : "bg-white border-gray-200 hover:border-[#094577]/40 hover:shadow-sm",
+                    : "bg-white border-gray-200 hover:border-theme-700/40 hover:shadow-sm",
                 )}
               >
                 <span className="text-xs text-gray-400 font-medium">
                   {format(dateObj, "EEE", { locale: ar })}
                 </span>
-                <span className="text-3xl font-bold text-[#094577] my-1 leading-none">
+                <span className="text-3xl font-bold text-theme-700 my-1 leading-none">
                   {format(dateObj, "d")}
                 </span>
                 <span className="text-[11px] text-gray-400">

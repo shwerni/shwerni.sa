@@ -22,7 +22,7 @@ export default function TopBar({
         </button>
       )}
       <div>
-        <h1 className="text-[15px] font-bold text-[#094577]">{title}</h1>
+        <h1 className="text-[15px] font-bold text-theme-700">{title}</h1>
         {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
       </div>
     </div>

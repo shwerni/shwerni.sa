@@ -97,7 +97,7 @@ export default function AddArticleComment({ aid, name, author }: Props) {
       {/* header */}
       <div className="inline-flex items-center gap-2 mb-3">
         <MessageSquarePlus className="w-4 h-4 text-theme" />
-        <h4 className="text-[#094577] text-base font-semibold">أضف تعليقك</h4>
+        <h4 className="text-theme-700 text-base font-semibold">أضف تعليقك</h4>
       </div>
 
       <Form {...form}>

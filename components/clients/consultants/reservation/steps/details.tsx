@@ -71,7 +71,7 @@ export default function StepDetails({ form, original, onNext, onBack }: Props) {
     <div className="space-y-6">
       {/* selected date & time summary */}
       <div className="space-y-3">
-        <h5 className="text-sm font-medium text-[#094577]">
+        <h5 className="text-sm font-medium text-theme-700">
           {meetingLabel(form.getValues("date"), form.getValues("time"))}
         </h5>
         <Separator className="w-11/12 mx-auto" />
@@ -80,7 +80,7 @@ export default function StepDetails({ form, original, onNext, onBack }: Props) {
       {/* client info */}
       <FieldGroup>
         <div className="space-y-5">
-          <h3 className="text-[#094577] text-sm font-medium">بيانات العميل</h3>
+          <h3 className="text-theme-700 text-sm font-medium">بيانات العميل</h3>
           {/* time & date */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* name */}
@@ -147,7 +147,7 @@ export default function StepDetails({ form, original, onNext, onBack }: Props) {
               <FieldLabel>مدة الاستشارة</FieldLabel>
               <div className="flex items-center gap-2 rounded-md border border-blue-100 bg-[#F1F8FE] px-3 py-2">
                 <Clock className="w-4 h-4 text-theme shrink-0" />
-                <span className="text-sm font-semibold text-[#094577]">
+                <span className="text-sm font-semibold text-theme-700">
                   45 دقيقة
                 </span>
                 <span className="ms-auto rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-gray-500 border border-blue-100">

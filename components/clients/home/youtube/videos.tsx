@@ -95,7 +95,7 @@ export default function ShawerniVideos({ videos }: { videos: Video[] }) {
               <span className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent" />
               <span className="absolute inset-0 flex items-center justify-center">
                 <span className="w-12 h-12 rounded-full bg-white/90 backdrop-blur flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-                  <Play className="w-4 h-4 text-[#094577] ml-0.5 fill-current" />
+                  <Play className="w-4 h-4 text-theme-700 ml-0.5 fill-current" />
                 </span>
               </span>
             </button>
@@ -149,7 +149,7 @@ export default function ShawerniVideos({ videos }: { videos: Video[] }) {
                   <>
                     <span className="absolute inset-0 flex items-center justify-center bg-black/20">
                       <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center">
-                        <Play className="w-2 h-2 text-[#094577] fill-current" />
+                        <Play className="w-2 h-2 text-theme-700 fill-current" />
                       </span>
                     </span>
                     <span className="absolute inset-y-0 right-0 w-0.75 bg-white/90 hidden lg:block" />

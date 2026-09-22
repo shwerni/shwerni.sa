@@ -52,7 +52,7 @@ function initials(name: string) {
 
 function ConsultantCommentCard({ comment }: { comment: ConsultantComment }) {
   return (
-    <div className="relative rounded-xl border border-[#094577]/20 bg-linear-to-br from-[#f0f6ff] to-[#e8f1fb] dark:from-[#0d1f38] dark:to-[#0a1a30] p-4 space-y-4 shadow-sm border-r-4 border-r-[#34BE8F] overflow-hidden">
+    <div className="relative rounded-xl border border-theme-700/20 bg-linear-to-br from-[#f0f6ff] to-[#e8f1fb] dark:from-[#0d1f38] dark:to-[#0a1a30] p-4 space-y-4 shadow-sm border-r-4 border-r-[#34BE8F] overflow-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start justify-between gap-0.5 sm:gap-3">
         <div className="flex items-center gap-3">
@@ -64,10 +64,10 @@ function ConsultantCommentCard({ comment }: { comment: ConsultantComment }) {
           <div className="flex flex-col gap-0.5">
             <Link
               href={`/consultants/${comment.consultant.cid}`}
-              className="inline-flex items-center gap-1 text-sm font-bold text-[#094577] hover:underline underline-offset-2"
+              className="inline-flex items-center gap-1 text-sm font-bold text-theme-700 hover:underline underline-offset-2"
             >
               {comment.consultant.name}
-              <BadgeCheck className="w-4 h-4 text-[#094577]" />
+              <BadgeCheck className="w-4 h-4 text-theme-700" />
             </Link>
             {/* Green visual indicator for Answer */}
             <div className="flex items-center gap-1">
@@ -82,14 +82,14 @@ function ConsultantCommentCard({ comment }: { comment: ConsultantComment }) {
         {/* Rating */}
         <div className="flex items-center gap-1.5 shrink-0">
           <Stars rate={comment.rate} />
-          <span className="text-xs text-[#094577] font-bold">
+          <span className="text-xs text-theme-700 font-bold">
             {comment.rate.toFixed(1)}
           </span>
         </div>
       </div>
 
       {/* Comment Body */}
-      <div className="bg-white dark:bg-slate-900/50 rounded-lg p-3.5 border border-[#094577]/5">
+      <div className="bg-white dark:bg-slate-900/50 rounded-lg p-3.5 border border-theme-700/5">
         <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
           {comment.comment}
         </p>
@@ -104,7 +104,7 @@ function ConsultantCommentCard({ comment }: { comment: ConsultantComment }) {
           <LinkButton
             href={`/consultants/${comment.consultant.cid}`}
             variant="default"
-            className="w-full sm:w-auto bg-[#094577] hover:bg-[#07355c] text-white shadow-md shadow-[#094577]/20 transition-all gap-2 py-2"
+            className="w-full sm:w-auto bg-theme-700 hover:bg-[#07355c] text-white shadow-md shadow-theme-700/20 transition-all gap-2 py-2"
           >
             <CalendarCheckIcon className="w-4 h-4" />
             ناقش حالتك مع ال{consultantGenderLabel(
@@ -171,7 +171,7 @@ export default async function ArticleComments({ aid }: { aid: number }) {
     <div className="space-y-3">
       <div className="inline-flex items-center gap-2">
         <MessageSquare className="w-4 h-4 text-theme" />
-        <h4 className="text-[#094577] text-base font-semibold">
+        <h4 className="text-theme-700 text-base font-semibold">
           التعليقات
           {total > 0 && (
             <span className="mr-1.5 text-sm font-normal text-slate-400">

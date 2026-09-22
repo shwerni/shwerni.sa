@@ -22,7 +22,7 @@ const Page = () => {
       {/* frequent questions */}
       <div className="space-y-4">
         <div className="flex flex-col items-center gap-5">
-          <h3 className="text-[#094577] text-xl sm:text-2xl font-semibold">
+          <h3 className="text-theme-700 text-xl sm:text-2xl font-semibold">
             الأسئلة الشائعة
           </h3>
           <div className="h-1 w-28 bg-gray-200 rounded" />
@@ -39,7 +39,7 @@ const Page = () => {
                   <span className="text-xl sm:text-2xl font-semibold text-[#AAD6F8]">
                     0{index + 1}
                   </span>
-                  <span className="text-[#094577] text-base sm:text-lg font-semibold">
+                  <span className="text-theme-700 text-base sm:text-lg font-semibold">
                     {i.title}
                   </span>
                 </div>
@@ -54,7 +54,7 @@ const Page = () => {
       {/* contact */}
       <div className="py-6 space-y-8">
         <div className="flex flex-col items-center gap-5">
-          <h3 className="text-[#094577] text-xl sm:text-2xl font-semibold">
+          <h3 className="text-theme-700 text-xl sm:text-2xl font-semibold">
             تواصل معنا
           </h3>
           <h5 className="text-sm text-gray-500 font-medium">

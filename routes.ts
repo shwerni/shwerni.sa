@@ -60,6 +60,7 @@ export const DynamicpublicRoutes = [
   "/freesessions",
   "/programs",
   "/chats",
+  "/event",
   // site map
   "/sitemap",
   // apis

@@ -32,7 +32,7 @@ export default async function RootLayout({
     <div className="space-y-8">
       <div className="relative flex flex-col items-center gap-5 text-center bg-linear-to-b from-[#34068312] to-[#7E91FF47] mx-auto py-14">
         {/* content */}
-        <h3 className="text-[#094577] text-3xl lg:text-4xl font-semibold">
+        <h3 className="text-theme-700 text-3xl lg:text-4xl font-semibold">
           جرّب شاورني مجانًا{" "}
         </h3>
         <p className="max-w-2xl text-gray-800 text-base font-medium leading-8">

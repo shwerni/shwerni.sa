@@ -25,7 +25,7 @@ export default function Header({ user }: { user?: User }) {
         <HeaderLinks path={path} />
 
         {/* actions */}
-        <HeaderSheet user={user} path={path} />
+        {/* <HeaderSheet user={user} path={path} /> */}
       </div>
     </header>
   );

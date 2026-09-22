@@ -71,8 +71,8 @@ function DayPill({
         "flex flex-col items-center justify-center rounded-2xl px-3 py-2 min-w-[52px] shrink-0",
         "border transition-all duration-200 select-none",
         selected
-          ? "bg-[#094577] text-white border-[#094577] shadow-sm"
-          : "bg-white text-gray-700 border-gray-200 hover:border-[#094577]/40",
+          ? "bg-theme-700 text-white border-theme-700 shadow-sm"
+          : "bg-white text-gray-700 border-gray-200 hover:border-theme-700/40",
         disabled && "opacity-30 pointer-events-none",
       )}
     >
@@ -103,8 +103,8 @@ function TimePill({
         "px-4 py-1.5 rounded-full text-sm font-medium border shrink-0",
         "transition-all duration-200 whitespace-nowrap",
         selected
-          ? "bg-[#094577] text-white border-[#094577]"
-          : "bg-white text-gray-700 border-gray-200 hover:border-[#094577]/40",
+          ? "bg-theme-700 text-white border-theme-700"
+          : "bg-white text-gray-700 border-gray-200 hover:border-theme-700/40",
       )}
     >
       {timeLabel(value)}
@@ -142,18 +142,18 @@ function EmptyState({
       <div
         className={cn(
           "w-16 h-16 rounded-full flex items-center justify-center",
-          danger ? "bg-red-50" : "bg-[#094577]/8",
+          danger ? "bg-red-50" : "bg-theme-700/8",
         )}
       >
         <Icon
           className={cn(
             "w-8 h-8",
-            danger ? "text-red-300" : "text-[#094577]/40",
+            danger ? "text-red-300" : "text-theme-700/40",
           )}
         />
       </div>
       <div>
-        <p className={cn("font-semibold text-lg", danger ? "text-gray-700" : "text-[#094577]")}>
+        <p className={cn("font-semibold text-lg", danger ? "text-gray-700" : "text-theme-700")}>
           {title}
         </p>
         <p className="text-gray-400 text-sm mt-1 leading-relaxed">{sub}</p>
@@ -217,7 +217,7 @@ function ConsultantCard({
         className={cn(
           "absolute left-1/2 -translate-x-1/2",
           "w-[110px] h-[110px] rounded-full flex items-center justify-center",
-          "text-[38px] font-bold text-[#094577] border-4 border-white shadow-lg",
+          "text-[38px] font-bold text-theme-700 border-4 border-white shadow-lg",
           "transition-transform duration-500",
           isActive ? "scale-100" : "scale-95 opacity-80",
         )}
@@ -249,9 +249,9 @@ function ConsultantCard({
       >
         {/* name / title / category */}
         <div className="text-center">
-          <h2 className="text-xl font-bold text-[#094577]">{consultant.name}</h2>
+          <h2 className="text-xl font-bold text-theme-700">{consultant.name}</h2>
           <p className="text-sm text-gray-500 mt-0.5">{consultant.title}</p>
-          <span className="mt-2 inline-block px-3 py-0.5 rounded-full text-xs font-semibold bg-[#094577]/10 text-[#094577]">
+          <span className="mt-2 inline-block px-3 py-0.5 rounded-full text-xs font-semibold bg-theme-700/10 text-theme-700">
             {categoryLabels[consultant.category] ?? consultant.category}
           </span>
         </div>
@@ -259,14 +259,14 @@ function ConsultantCard({
         {/* stats */}
         <div className="flex items-center justify-center gap-6 text-sm text-gray-600">
           <div className="flex items-center gap-1.5">
-            <Briefcase className="w-4 h-4 text-[#094577]/50" />
+            <Briefcase className="w-4 h-4 text-theme-700/50" />
             <span>
               {consultant.years} {consultant.years === 1 ? "سنة" : "سنوات"}
             </span>
           </div>
           {consultant.review_count > 0 && (
             <div className="flex items-center gap-1.5">
-              <MessageCircle className="w-4 h-4 text-[#094577]/50" />
+              <MessageCircle className="w-4 h-4 text-theme-700/50" />
               <span>{consultant.review_count} تقييم</span>
             </div>
           )}
@@ -293,9 +293,9 @@ function ConsultantCard({
                 key={label}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-gray-50 text-xs text-gray-700"
               >
-                <Clock className="w-3 h-3 text-[#094577]/40" />
+                <Clock className="w-3 h-3 text-theme-700/40" />
                 <span>{label}</span>
-                <span className="font-bold text-[#094577]">{value} ر.س</span>
+                <span className="font-bold text-theme-700">{value} ر.س</span>
               </div>
             ) : null,
           )}
@@ -304,7 +304,7 @@ function ConsultantCard({
         {/* CTA */}
         <Link
           href={href}
-          className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-[#094577] text-white text-sm font-semibold hover:bg-[#0a5291] active:scale-[0.98] transition-all duration-150"
+          className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-theme-700 text-white text-sm font-semibold hover:bg-[#0a5291] active:scale-[0.98] transition-all duration-150"
         >
           <ChevronLeft className="w-4 h-4" />
           احجز الآن – {timeLabel(selectedTime)}
@@ -341,8 +341,8 @@ function DotRail({
           className={cn(
             "w-[7px] rounded-full cursor-pointer transition-all duration-200",
             active === i
-              ? "h-6 bg-[#094577]"
-              : "h-[7px] bg-[#094577]/20 hover:bg-[#094577]/40",
+              ? "h-6 bg-theme-700"
+              : "h-[7px] bg-theme-700/20 hover:bg-theme-700/40",
           )}
         />
       ))}
@@ -510,7 +510,7 @@ export default function ConsultantReelPage() {
         {/* loading consultants */}
         {loadingConsultants && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-            <div className="w-11 h-11 rounded-full border-4 border-[#094577]/15 border-t-[#094577] animate-spin" />
+            <div className="w-11 h-11 rounded-full border-4 border-theme-700/15 border-t-theme-700 animate-spin" />
             <p className="text-sm text-gray-400">جاري البحث عن مستشارين…</p>
           </div>
         )}

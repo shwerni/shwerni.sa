@@ -23,7 +23,7 @@ type ScaleVisual = {
 };
 
 const PALETTE: ScaleVisual[] = [
-  { icon: ScaleIcon,          bg: "bg-[#094577]/5",  iconBg: "bg-[#094577]/10", iconColor: "text-[#094577]", border: "hover:border-[#094577]/40", accent: "#094577" },
+  { icon: ScaleIcon,          bg: "bg-theme-700/5",  iconBg: "bg-theme-700/10", iconColor: "text-theme-700", border: "hover:border-theme-700/40", accent: "#094577" },
   { icon: HeartHandshake,     bg: "bg-rose-50",       iconBg: "bg-rose-100",     iconColor: "text-rose-600",  border: "hover:border-rose-300",      accent: "#e11d48" },
   { icon: Users,              bg: "bg-violet-50",     iconBg: "bg-violet-100",   iconColor: "text-violet-600",border: "hover:border-violet-300",    accent: "#7c3aed" },
   { icon: Baby,               bg: "bg-amber-50",      iconBg: "bg-amber-100",    iconColor: "text-amber-600", border: "hover:border-amber-300",     accent: "#d97706" },

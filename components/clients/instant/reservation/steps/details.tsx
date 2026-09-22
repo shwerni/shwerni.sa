@@ -44,7 +44,7 @@ export default function ReservationInstant({ form, onNext }: Props) {
     <div className="mx-5 space-y-10">
       <FieldGroup className="bg-[#F9FAFB] py-4 px-5 border  border-[#E5E7EB] rounded-md">
         <div className="space-y-5">
-          <h3 className="text-[#094577] text-sm font-medium">بيانات العميل</h3>
+          <h3 className="text-theme-700 text-sm font-medium">بيانات العميل</h3>
           {/* time & date */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {/* name */}

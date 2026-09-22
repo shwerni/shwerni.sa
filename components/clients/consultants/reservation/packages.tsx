@@ -46,7 +46,7 @@ const Packages = ({ packages, costs, form }: Props) => {
       <div className="space-y-1">
         <div className="inline-flex items-center gap-2">
           <BadgePercent className="w-5 h-5 text-theme" />
-          <h4 className="text-[#094577] text-base font-semibold">
+          <h4 className="text-theme-700 text-base font-semibold">
             الباقات التوفيرية
           </h4>
         </div>
@@ -74,7 +74,7 @@ const Packages = ({ packages, costs, form }: Props) => {
                 className={cn(
                   "flex flex-col justify-between sm:items-center sm:flex-row gap-5 max-w-10/12 sm:max-w-xl border rounded-md py-3 px-4 cursor-pointer transition-all duration-150",
                   isActive
-                    ? "border-[#094577] bg-blue-50 ring-1 ring-[#094577]/20"
+                    ? "border-theme-700 bg-blue-50 ring-1 ring-theme-700/20"
                     : index % 2 === 0
                       ? "bg-[#F1F8FE] border-[#E5E7EB]"
                       : "bg-[#F9FAFB] border-[#E5E7EB]",
@@ -84,7 +84,7 @@ const Packages = ({ packages, costs, form }: Props) => {
                   {/* selector circle / checkmark */}
                   <div className="flex items-center gap-2.5">
                     {isActive ? (
-                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#094577] shrink-0">
+                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-theme-700 shrink-0">
                         <Check className="w-3 h-3 text-white" strokeWidth={3} />
                       </span>
                     ) : (
@@ -93,7 +93,7 @@ const Packages = ({ packages, costs, form }: Props) => {
                     <h3
                       className={cn(
                         "text-base lg:text-lg font-bold w-22",
-                        isActive ? "text-[#094577]" : "text-gray-700",
+                        isActive ? "text-theme-700" : "text-gray-700",
                       )}
                     >
                       {pkg.count} جلسات
@@ -105,7 +105,7 @@ const Packages = ({ packages, costs, form }: Props) => {
                     tax={15}
                     className={cn(
                       "text-lg font-bold",
-                      isActive ? "text-[#094577]" : "text-[#094577]",
+                      isActive ? "text-theme-700" : "text-theme-700",
                     )}
                     size="lg"
                   />

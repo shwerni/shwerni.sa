@@ -50,7 +50,7 @@ const FreeSessionProfile: React.FC<Props> = ({ consultant }: Props) => {
         </div>
         {/* name & category & rate */}
         <div className="flex flex-col items-center gap-2">
-          <h3 className="text-[1.1rem] text-[#094577] font-medium">
+          <h3 className="text-[1.1rem] text-theme-700 font-medium">
             {consultant.name}
           </h3>
           {/* category badge */}
@@ -81,7 +81,7 @@ const FreeSessionProfile: React.FC<Props> = ({ consultant }: Props) => {
       <div className="space-y-3">
         <div className="inline-flex items-center gap-2.5">
           <TbBulb className="text-theme w-6 h-6" />
-          <h3 className="text-lg font-semibold text-[#094577]">
+          <h3 className="text-lg font-semibold text-theme-700">
             نبذة عن الاستشاري
           </h3>
         </div>

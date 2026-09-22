@@ -9,11 +9,11 @@ const ScalesCta = () => {
     <DivMotion variant="blur-in" delay={0.3}>
       <Link
         href="/scales"
-        className="group flex items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white px-5 py-4 sm:px-6 sm:py-5 shadow-sm hover:shadow-md hover:border-[#094577]/40 transition-all duration-200"
+        className="group flex items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white px-5 py-4 sm:px-6 sm:py-5 shadow-sm hover:shadow-md hover:border-theme-700/40 transition-all duration-200"
       >
         <div className="flex items-center gap-3 min-w-0">
-          <div className="shrink-0 w-10 h-10 rounded-xl bg-[#094577]/10 flex items-center justify-center">
-            <ClipboardList className="w-5 h-5 text-[#094577]" />
+          <div className="shrink-0 w-10 h-10 rounded-xl bg-theme-700/10 flex items-center justify-center">
+            <ClipboardList className="w-5 h-5 text-theme-700" />
           </div>
           <div className="min-w-0">
             <h3 className="text-sm sm:text-base font-bold text-gray-900 truncate">
@@ -25,7 +25,7 @@ const ScalesCta = () => {
           </div>
         </div>
 
-        <span className="shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-[#094577] flex items-center justify-center transition-colors">
+        <span className="shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-theme-700 flex items-center justify-center transition-colors">
           <ArrowLeft className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
         </span>
       </Link>

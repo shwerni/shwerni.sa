@@ -29,7 +29,7 @@ const ConsultantReviews = async ({ cid }: Props) => {
       {/* title */}
       <div className="inline-flex items-center gap-2">
         <CiStar className="w-5 h-5 text-theme" />
-        <h4 className="text-[#094577] text-base font-semibold">
+        <h4 className="text-theme-700 text-base font-semibold">
           التقييمات ({reviews.length})
         </h4>
       </div>

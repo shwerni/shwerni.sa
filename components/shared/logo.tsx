@@ -21,15 +21,16 @@ const Logo: React.FC<Props> = ({
 }: Props) => {
   // source
   const src = {
-    default: "logo.png",
-    white: "logo-white.png",
-    blue: "logo-blue.png",
+    default: "/other/event/logo.png",// "logo.png",
+    white: "/layout/" + "logo-white.png",
+    blue: "/layout/" + "logo-blue.png",
   };
 
   return (
     <Link href="/" className="block relative" style={{ width, height: height / 2 }}>
       <Image
-        src={"/layout/" + src[variant]}
+        // src={"/layout/" + src[variant]}
+        src={src[variant]}
         alt="shwerni-logo"
         fill
         className={cn("object-contain", className)}

@@ -25,7 +25,7 @@ const iconWrapperVariants = cva(
 const iconVariants = cva("w-6 h-6", {
   variants: {
     variant: {
-      blue: "text-[#094577]",
+      blue: "text-theme-700",
       green: "text-green-600",
       yellow: "text-yellow-600",
     },
@@ -40,7 +40,7 @@ const accentVariants = cva(
   {
     variants: {
       variant: {
-        blue: "bg-[#094577]",
+        blue: "bg-theme-700",
         green: "bg-green-600",
         yellow: "bg-yellow-600",
       },
@@ -66,7 +66,7 @@ const CardColors = ({ title, p, Icon, variant }: Props) => {
         </div>
       </div>
 
-      <h4 className="text-[#094577] text-2xl font-medium">{title}</h4>
+      <h4 className="text-theme-700 text-2xl font-medium">{title}</h4>
       <p className="text-base sm:text-sm text-gray-800 leading-relaxed">
         {p
           .split(".")

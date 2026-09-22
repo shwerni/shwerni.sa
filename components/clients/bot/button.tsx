@@ -132,7 +132,7 @@ const ChatButton = () => {
           "
         >
           {/* brand accent bar */}
-          <span className="absolute top-0 right-0 w-1 h-full bg-[#094577] rounded-r-2xl" />
+          <span className="absolute top-0 right-0 w-1 h-full bg-theme-700 rounded-r-2xl" />
 
           <p>{GREETINGS[greetingIndex]}</p>
 

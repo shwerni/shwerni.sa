@@ -72,9 +72,9 @@ const Benefits = () => {
                 <i.icon className="text-blue-400 w-6 h-6" />
               </div>
             </div>
-            <h4 className="text-[#094577] text-2xl font-medium">{i.title}</h4>
+            <h4 className="text-theme-700 text-2xl font-medium">{i.title}</h4>
             <p className="text-sm text-gray-800">{i.p}</p>
-            <div className="absolute bottom-0 inset-x-0 mx-auto w-11/12 h-2 rounded-xl bg-[#094577]" />
+            <div className="absolute bottom-0 inset-x-0 mx-auto w-11/12 h-2 rounded-xl bg-theme-700" />
           </div>
         ))}
       </div>

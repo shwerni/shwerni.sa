@@ -28,7 +28,7 @@ const ConsultantCoupons = async ({ cid }: Props) => {
       {/* title */}
       <div className="inline-flex items-center gap-2">
         <RiCouponLine className="w-5 h-5 text-theme" />
-        <h4 className="text-[#094577] text-base font-semibold">
+        <h4 className="text-theme-700 text-base font-semibold">
           كوبونات الخصم
         </h4>
       </div>
