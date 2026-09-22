@@ -1,6 +1,13 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 @plugin "tailwindcss-animate";
 
+/* scan only real source folders — never .next / build output */
+@source "../app";
+@source "../components";
+@source "../constants";
+@source "../lib";
+@source "../utils";
+@source "../hooks";
 /* ============================================================
    THEME
    ============================================================ */
