@@ -186,3 +186,50 @@ export const tabbyPreScoring = async (order: Reservation) => {
     return tabbyError;
   }
 };
+
+// GET-only fetcher — the existing `tabby()` helper always POSTs a JSON body,
+// which retrieve-a-payment doesn't need
+const tabbyGet = (path: string) =>
+  fetch(`${TABBY_ENDPOINT}${path}`, {
+    method: "GET",
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${TABBY_SECRET}`,
+    },
+  });
+
+interface TabbyRefundEntry {
+  id: string;
+  amount: string;
+  created_at: string;
+  reference_id: string;
+  reason: string;
+}
+
+interface TabbyPaymentDetails {
+  id: string;
+  status: string;
+  amount: string;
+  currency: string;
+  order: { reference_id: string };
+  captures: Array<{
+    id: string;
+    amount: string;
+    created_at: string;
+    reference_id: string;
+  }>;
+  refunds: TabbyRefundEntry[];
+  meta: { order_id: string | null; customer: string | null };
+}
+
+// re-fetch the payment server-to-server — Tabby's own docs say webhooks are
+// notification-only and to verify via GET /payments/{id} before trusting anything
+export async function tabbyPaymentDetails(
+  pid: string,
+): Promise<TabbyPaymentDetails | null> {
+  const response = await tabbyGet(`payments/${pid}`);
+  if (!response.ok) return null;
+  const data: TabbyPaymentDetails = await response.json();
+  return data;
+}

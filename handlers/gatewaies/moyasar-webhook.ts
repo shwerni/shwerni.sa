@@ -9,15 +9,13 @@ import { telegramAdmin } from "@/lib/api/telegram/telegram";
 // data
 import { updateOrderStatus } from "@/data/order/reserveation";
 
-// uploadthing — ⚠️ swap for your existing `utapi` export if you already have one;
-// I couldn't find one in the files shared, so this instantiates its own client
 import { UTApi } from "uploadthing/server";
 import {
-  getOrderForMoyasarRefund,
+  getOrderForRefund,
   getWebhookActor,
-  recordMoyasarRefund,
+  recordRefund,
   recordMoyasarSettlement,
-} from "@/data/gatewaies/moyasar-webhook";
+} from "@/data/gatewaies/webhook";
 const utapi = new UTApi();
 
 // types
@@ -108,7 +106,7 @@ export async function moyasarRefundWebhook(
       return false;
     }
 
-    const order = await getOrderForMoyasarRefund(payment.invoice_id);
+    const order = await getOrderForRefund(payment.invoice_id);
     if (!order?.payment) {
       await telegramAdmin(
         `shwerni-error: moyasar refund webhook — no order found for invoice=${payment.invoice_id}`,
@@ -124,7 +122,7 @@ export async function moyasarRefundWebhook(
       return false;
     }
 
-    await recordMoyasarRefund({
+    await recordRefund({
       orderOid: order.oid,
       paymentId: order.payment.id,
       totalRefundedSar: Math.round((verified.refunded / 100) * 100) / 100,

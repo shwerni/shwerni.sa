@@ -4,7 +4,7 @@ import type { RefundChannel } from "@/lib/generated/prisma/enums";
 
 // order + payment + any still-open refund request, keyed by the Moyasar invoice id —
 // used by the payment_refunded webhook to attribute the refund correctly
-export const getOrderForMoyasarRefund = async (invoiceId: string) => {
+export const getOrderForRefund = async (invoiceId: string) => {
   try {
     return await prisma.order.findFirst({
       where: { payment: { pid: invoiceId } },
@@ -102,7 +102,7 @@ export async function recordMoyasarSettlement(params: {
 // idempotent via a diff against amounts already recorded for this paymentId —
 // safe against Moyasar's up-to-6x webhook redelivery and against genuine
 // sequential partial refunds on the same payment
-export async function recordMoyasarRefund(params: {
+export async function recordRefund(params: {
   orderOid: number;
   paymentId: string;
   totalRefundedSar: number; // cumulative refunded amount reported by Moyasar, in SAR
