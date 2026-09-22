@@ -13,10 +13,12 @@ import { getConsultantStates } from "@/data/consultant";
 
 // prisma types
 import { ApprovalState, ConsultantState } from "@/lib/generated/prisma/client";
-import prisma from "@/lib/database/db";
-import { EVENT_DATE, EVENT_MAX_RESERVATIONS_PER_CONSULTANT } from "@/components/clients/event/constant";
 
+// constants
+import { EVENT_MAX_RESERVATIONS_PER_CONSULTANT } from "@/components/clients/event/constant";
+import { getEventReservedCount, isEventConsultant } from "@/data/temp-event";
 
+// props
 type Props = {
   params: Promise<{ cid: string }>;
 };
@@ -25,8 +27,17 @@ const Page = async ({ params }: Props) => {
   const { cid } = await params;
   const cidN = Number(cid);
 
-  const consultant = await getConsultantStates(cidN);
+  // reject non-numeric / invalid ids before touching the database
+  if (!Number.isInteger(cidN) || cidN <= 0) return <Error404 />;
 
+  // independent checks — run in parallel
+  const [consultant, enrolled, reservedCount] = await Promise.all([
+    getConsultantStates(cidN),
+    isEventConsultant(cidN),
+    getEventReservedCount(cidN),
+  ]);
+
+  // not published / not approved
   if (
     !consultant ||
     consultant.approved !== ApprovalState.APPROVED ||
@@ -34,12 +45,10 @@ const Page = async ({ params }: Props) => {
   )
     return <Error404 />;
 
-  const reservedCount = await prisma.freeSession.count({
-    where: { consultantId: cidN, date: EVENT_DATE },
-  });
+  // not enrolled in the national day discount
+  if (!enrolled) return <Error404 />;
 
-  // consultant hit the cap — treat identically to "not available",
-  // same 404 the list-hiding uses so there's no separate leak of state
+  // reached the daily cap — same 404 as the hidden list entry
   if (reservedCount >= EVENT_MAX_RESERVATIONS_PER_CONSULTANT)
     return <Error404 />;
 

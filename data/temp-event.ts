@@ -6,6 +6,7 @@ import { revalidateTag } from "next/cache";
 // constants
 import {
   EVENT_DATE,
+  EVENT_DISCOUNT_ID,
   EVENT_MAX_RESERVATIONS_PER_CONSULTANT,
 } from "@/components/clients/event/constant";
 
@@ -72,6 +73,10 @@ export const getEventConsultants = async () => {
         ) AS specialties
 
       FROM "consultants" c
+      JOIN "discount_consultants" dc
+        ON dc."consultantId" = c.cid
+        AND dc."discountId" = ${EVENT_DISCOUNT_ID}
+        AND dc."status" = true
       LEFT JOIN (
         SELECT "consultantId", COUNT(*)::int AS reserved_count
         FROM "free_sessions"
@@ -92,7 +97,6 @@ export const getEventConsultants = async () => {
     return [];
   }
 };
-
 // atomic capped booking — call ONLY from a validated "use server" action
 export async function createEventFreeSession(
   cid: number,
