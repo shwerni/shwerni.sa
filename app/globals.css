@@ -1,58 +1,11 @@
-@import "tailwindcss" source(none);
+@import "tailwindcss";
 @plugin "tailwindcss-animate";
-
-/* only scan real source folders — paths are relative to this file (app/globals.css) */
-@source "../app";
-@source "../components";
-@source "../constants";
-@source "../lib";
-@source "../utils";
-@source "../hooks";
 
 /* ============================================================
    THEME
    ============================================================ */
 @theme {
   --breakpoint-xs: 30rem;
-}
-
-/* brand colors — static so they're always emitted (legacy var(--theme) aliases depend on them) */
-@theme static {
-  --color-theme: #016c39;
-  --color-theme-50: #e6f5ee;
-  --color-theme-700: #007e03;
-  --color-theme-900: #003816;
-
-  /* old blue theme (restore after the event):
-     --color-theme: #117ed8;
-     --color-theme-700: #094577;
-  */
-}
-
-/* flip-clock animations */
-@theme {
-  --animate-flip-top: flip-top 0.3s ease-in forwards;
-  --animate-flip-bottom: flip-bottom 0.3s ease-out 0.3s forwards;
-
-  @keyframes flip-top {
-    from {
-      transform: rotateX(0deg);
-    }
-
-    to {
-      transform: rotateX(-90deg);
-    }
-  }
-
-  @keyframes flip-bottom {
-    from {
-      transform: rotateX(90deg);
-    }
-
-    to {
-      transform: rotateX(0deg);
-    }
-  }
 }
 
 @theme inline {
@@ -78,6 +31,10 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --color-theme: var(--theme);
+  --color-theme-50: var(--theme-50);
+  --color-theme-700: var(--theme-700);
+  --color-theme-900: var(--theme-900);
 }
 
 /* ============================================================
@@ -85,14 +42,12 @@
    ============================================================ */
 :root {
   --radius: 0.625rem;
-
-  /* legacy aliases — existing var(--theme) usages keep working */
-  --theme: var(--color-theme);
-  --theme-50: var(--color-theme-50);
-  --theme-700: var(--color-theme-700);
-  --theme-900: var(--color-theme-900);
-
   --background: oklch(1 0 0);
+  /* blue (restore after the event): --theme: #117ed8; */
+  --theme: #016c39;
+  --theme-50: #e6f5ee;
+  --theme-700: #007e03;
+  --theme-900: #003816;
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -116,7 +71,6 @@
    BASE LAYER
    ============================================================ */
 @layer base {
-
   *,
   ::before,
   ::after {
@@ -181,11 +135,11 @@ textarea::selection {
    THEME COLOR UTILITIES
    ============================================================ */
 .bg-zblue-200 {
-  background-color: var(--color-theme);
+  background-color: var(--theme);
 }
 
 .text-zblue-200 {
-  color: var(--color-theme);
+  color: var(--theme);
 }
 
 .zgrayBtn,
@@ -204,23 +158,13 @@ textarea::selection {
    ANIMATIONS
    ============================================================ */
 @keyframes accordion-down {
-  from {
-    height: 0;
-  }
-
-  to {
-    height: var(--radix-accordion-content-height);
-  }
+  from { height: 0; }
+  to   { height: var(--radix-accordion-content-height); }
 }
 
 @keyframes accordion-up {
-  from {
-    height: var(--radix-accordion-content-height);
-  }
-
-  to {
-    height: 0;
-  }
+  from { height: var(--radix-accordion-content-height); }
+  to   { height: 0; }
 }
 
 @utility animate-accordion-down {
@@ -231,6 +175,25 @@ textarea::selection {
   animation: accordion-up 0.5s ease-out;
 }
 
+/* flip clock (event countdown) */
+@keyframes flip-top {
+  from { transform: rotateX(0deg); }
+  to   { transform: rotateX(-90deg); }
+}
+
+@keyframes flip-bottom {
+  from { transform: rotateX(90deg); }
+  to   { transform: rotateX(0deg); }
+}
+
+@utility animate-flip-top {
+  animation: flip-top 0.3s ease-in forwards;
+}
+
+@utility animate-flip-bottom {
+  animation: flip-bottom 0.3s ease-out 0.3s forwards;
+}
+
 /* ============================================================
    SCROLLBAR
    ============================================================ */
@@ -238,7 +201,6 @@ textarea::selection {
   &::-webkit-scrollbar {
     display: none;
   }
-
   scrollbar-width: none;
 }
 
