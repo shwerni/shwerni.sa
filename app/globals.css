@@ -1,5 +1,13 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 @plugin "tailwindcss-animate";
+
+/* only scan real source folders — paths are relative to this file (app/globals.css) */
+@source "../app";
+@source "../components";
+@source "../constants";
+@source "../lib";
+@source "../utils";
+@source "../hooks";
 
 /* ============================================================
    THEME
