@@ -9,7 +9,7 @@ import {
 
 // 🎉 EVENT MODE — client site restricted to the allowlist below
 const EVENT_ALLOWED_EXACT = ["/", "/contact-us", "/terms", "/event"];
-const EVENT_ALLOWED_PREFIXES = ["/event/", "freesession", "/freesessions/"];
+const EVENT_ALLOWED_PREFIXES = ["/event/", "/freesessions/"];
 
 // strip trailing slash so "/event/" and "/terms/" match the exact list
 const normalize = (pathname: string) =>
@@ -38,6 +38,13 @@ export async function proxy(req: NextRequest) {
       );
     }
     return NextResponse.next();
+  }
+
+  // 🔁 singular typo links (/freesession/xyz) → real meeting page (/freesessions/xyz)
+  if (pathname.startsWith("/freesession/")) {
+    const url = nextUrl.clone();
+    url.pathname = pathname.replace("/freesession/", "/freesessions/");
+    return NextResponse.redirect(url);
   }
 
   // 🎉 EVENT MODE GATE — before every other rule
