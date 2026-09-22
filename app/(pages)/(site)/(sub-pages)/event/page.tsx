@@ -2,11 +2,12 @@
 import { Metadata } from "next";
 import React, { Suspense } from "react";
 
+// React & Next
+import Image from "next/image";
 // components
 import Filter, {
   FilterContent,
-} from "@/components/clients//sub-pages/event/discounts/filter";
-import EventHeader from "@/components/clients/sub-pages/event/header";
+} from "@/components/clients/sub-pages/event/discounts/filter";
 import Consultants from "@/components/clients/sub-pages/event/discounts/list";
 import CardSkeleton from "@/components/clients/shared/card-skeleton";
 import Navigation from "@/components/clients/sub-pages/event/discounts/navigation";
@@ -16,87 +17,63 @@ import { getDiscountConsultants } from "@/data/discounts";
 
 // constants
 import { mainRoute } from "@/constants/links";
-import { getCampaignFor } from "@/data/event";
-import { NoActiveEvents } from "@/components/clients/sub-pages/event/no-event";
+
+// national day event — free-session discount
+const EVENT_DISCOUNT_ID = 7;
 
 // meta data seo
-export async function generateMetadata(): Promise<Metadata> {
-  const campaign = await getCampaignFor("EVENT_PAGE");
+const title = "شاورني - جلستك الاستشارية علينا بمناسبة اليوم الوطني";
+const description =
+  "احتفالًا باليوم الوطني السعودي، احجز جلستك الاستشارية المجانية مع أي مستشار في منصة شاورني — العرض ليوم واحد فقط.";
+const url = `${mainRoute}event`;
+const og = {
+  url: `${mainRoute}other/event/banner.png`,
+  alt: "شاورني - اليوم الوطني السعودي",
+  type: "image/png",
+  width: 1200,
+  height: 630,
+};
 
-  const fallbackTitle = "شاورني - العروض والخصومات | ترقب أحدث العروض الحصرية";
-  const fallbackDesc =
-    "صفحة العروض الحصرية من منصة شاورني. ترقب أحدث العروض والخصومات على جلسات الاستشارة النفسية والأسرية والمهنية بأسعار مميزة.";
-
-  const title = campaign?.title
-    ? `شاورني - ${campaign.title}`
-    : campaign?.emptyTitle
-      ? `شاورني - ${campaign.emptyTitle}`
-      : fallbackTitle;
-
-  const description =
-    campaign?.description ??
-    campaign?.subtitle ??
-    campaign?.emptyBody ??
-    fallbackDesc;
-
-  const image = campaign?.image ?? `${mainRoute}other/owners.jpeg`;
-  const url = `${mainRoute}event`;
-
-  const og = {
-    url: image,
-    alt: campaign?.title ?? "shwerni",
-    type: "image/jpg",
-    width: 1200,
-    height: 630,
-  };
-
-  return {
+export const metadata: Metadata = {
+  title,
+  description,
+  keywords: [
+    "اليوم الوطني السعودي",
+    "عروض اليوم الوطني",
+    "جلسة استشارية مجانية",
+    "عروض شاورني",
+    "منصة استشارات سعودية",
+    "مستشار نفسي",
+    "مستشار أسري",
+  ],
+  alternates: { canonical: url },
+  openGraph: {
     title,
     description,
-    keywords: [
-      ...(campaign?.title ? [campaign.title] : []),
-      "عروض شاورني",
-      "خصومات استشارة",
-      "تخفيضات استشارة نفسية",
-      "عروض استشارة أسرية",
-      "منصة استشارات سعودية",
-      "مستشار نفسي",
-      "مستشار أسري",
-      "استشارات بسعر مخفض",
-    ],
-    alternates: { canonical: url },
-    robots: campaign ? undefined : { index: false, follow: true },
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      url,
-      siteName: "شاورني - العروض الحصرية",
-      locale: "ar_SA",
-      images: [og],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      creator: "@shwernisa",
-      images: [og],
-    },
-    icons: `${mainRoute}favicon.ico`,
-  };
-}
+    type: "website",
+    url,
+    siteName: "شاورني",
+    locale: "ar_SA",
+    images: [og],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+    creator: "@shwernisa",
+    images: [og],
+  },
+  icons: `${mainRoute}favicon.ico`,
+};
 
-// type
 // filter data
 type FilterParams = {
-  did: number;
   search?: string;
   page?: string;
   categories?: string;
   gender?: string;
 };
 
-// interface
 interface Props {
   searchParams: Promise<FilterParams>;
 }
@@ -104,17 +81,11 @@ interface Props {
 export default async function Page({ searchParams }: Props) {
   const { search = "", page = "1", categories, gender } = await searchParams;
 
-  const campaign = await getCampaignFor("EVENT_PAGE");
-
-  // nothing active → styled empty state from the campaign, or defaults
-  if (!campaign) return <NoActiveEvents />;
-  if (!campaign.discountId) return <NoActiveEvents campaign={campaign} />;
-
   return (
     <div>
-      <EventHeader campaign={campaign} />
+      <EventBanner />
 
-      <div className="md:grid grid-cols-5 space-y-5 pb-5">
+      <div className="md:grid grid-cols-5 space-y-5 py-5">
         <Filter>
           <FilterContent />
         </Filter>
@@ -131,7 +102,6 @@ export default async function Page({ searchParams }: Props) {
             }
           >
             <ConsultantsList
-              did={campaign.discountId}
               search={search}
               page={page}
               categories={categories}
@@ -145,20 +115,18 @@ export default async function Page({ searchParams }: Props) {
 }
 
 const ConsultantsList = async ({
-  did,
-  search,
+  search = "",
   page,
   categories,
   gender,
-  // specialties,
 }: FilterParams): Promise<React.JSX.Element> => {
   // safe page
   const n = Number(page);
   const safe = n > 0 && Number.isInteger(n) ? n : 1;
 
-  // get articles
+  // consultants in the free discount, excluding those who hit the daily cap
   const data = await getDiscountConsultants(
-    did,
+    EVENT_DISCOUNT_ID,
     safe,
     search,
     categories?.split(","),
@@ -170,5 +138,33 @@ const ConsultantsList = async ({
       <Consultants consultants={data.items} />
       <Navigation pages={data.pages} current={data.page} total={data.total} />
     </>
+  );
+};
+
+const EventBanner = () => {
+  return (
+    <div className="relative w-full aspect-square sm:aspect-video overflow-hidden">
+      {/* mobile */}
+      <Image
+        src="/other/event/banner-mobile.png"
+        alt="عرض شاورني بمناسبة اليوم الوطني السعودي"
+        priority
+        fetchPriority="high"
+        fill
+        className="object-cover sm:hidden"
+        sizes="100vw"
+      />
+
+      {/* desktop */}
+      <Image
+        src="/other/event/banner.png"
+        alt="عرض شاورني بمناسبة اليوم الوطني السعودي"
+        priority
+        fetchPriority="high"
+        fill
+        className="hidden sm:block object-cover"
+        sizes="100vw"
+      />
+    </div>
   );
 };

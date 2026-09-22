@@ -8,6 +8,45 @@
   --breakpoint-xs: 30rem;
 }
 
+/* brand colors — static so they're always emitted (legacy var(--theme) aliases depend on them) */
+@theme static {
+  --color-theme: #016c39;
+  --color-theme-50: #e6f5ee;
+  --color-theme-700: #007e03;
+  --color-theme-900: #003816;
+
+  /* old blue theme (restore after the event):
+     --color-theme: #117ed8;
+     --color-theme-700: #094577;
+  */
+}
+
+/* flip-clock animations */
+@theme {
+  --animate-flip-top: flip-top 0.3s ease-in forwards;
+  --animate-flip-bottom: flip-bottom 0.3s ease-out 0.3s forwards;
+
+  @keyframes flip-top {
+    from {
+      transform: rotateX(0deg);
+    }
+
+    to {
+      transform: rotateX(-90deg);
+    }
+  }
+
+  @keyframes flip-bottom {
+    from {
+      transform: rotateX(90deg);
+    }
+
+    to {
+      transform: rotateX(0deg);
+    }
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -31,10 +70,6 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --color-theme: var(--theme);
-  --color-theme-50: var(--theme-50);
-  --color-theme-700: var(--theme-700);
-  --color-theme-900: var(--theme-900);
 }
 
 /* ============================================================
@@ -42,13 +77,14 @@
    ============================================================ */
 :root {
   --radius: 0.625rem;
+
+  /* legacy aliases — existing var(--theme) usages keep working */
+  --theme: var(--color-theme);
+  --theme-50: var(--color-theme-50);
+  --theme-700: var(--color-theme-700);
+  --theme-900: var(--color-theme-900);
+
   --background: oklch(1 0 0);
-  /* --theme: #117ed8; */
-  /* --theme-700: #094577; */
-  --theme: #016C39;
-  --theme-50: #E6F5EE;
-  --theme-700: #007E03;
-  --theme-900: #003816;
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -137,11 +173,11 @@ textarea::selection {
    THEME COLOR UTILITIES
    ============================================================ */
 .bg-zblue-200 {
-  background-color: var(--theme);
+  background-color: var(--color-theme);
 }
 
 .text-zblue-200 {
-  color: var(--theme);
+  color: var(--color-theme);
 }
 
 .zgrayBtn,
@@ -204,33 +240,4 @@ textarea::selection {
 .cv-auto {
   content-visibility: auto;
   contain-intrinsic-size: auto 400px;
-}
-
-@keyframes flip-top {
-  from {
-    transform: rotateX(0deg);
-  }
-
-  to {
-    transform: rotateX(-90deg);
-  }
-}
-
-@keyframes flip-bottom {
-  from {
-    transform: rotateX(90deg);
-  }
-
-  to {
-    transform: rotateX(0deg);
-  }
-}
-
-.animate-flip-top {
-  animation: flip-top 0.3s ease-in forwards;
-}
-
-.animate-flip-bottom {
-  animation: flip-bottom 0.3s ease-out forwards;
-  animation-delay: 0.3s;
 }
