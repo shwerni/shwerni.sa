@@ -127,3 +127,24 @@ export async function createEventFreeSession(
 
   return result;
 }
+
+export const getEventReservedCount = async (cid: number) => {
+  return prisma.freeSession.count({
+    where: { consultantId: cid, date: EVENT_DATE },
+  });
+};
+
+// is this consultant actively enrolled in the event discount?
+export const isEventConsultant = async (cid: number) => {
+  const row = await prisma.discountConsultant.findUnique({
+    where: {
+      consultantId_discountId: {
+        consultantId: cid,
+        discountId: EVENT_DISCOUNT_ID,
+      },
+    },
+    select: { status: true },
+  });
+
+  return !!row?.status;
+};
