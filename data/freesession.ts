@@ -122,12 +122,10 @@ export const reserveFreeSession = async (formdata: freeSessionSchemaType) => {
     //   },
     // });
 
+    const date = dateToString(timeZone().iso);
+
     // check conflict
-    const check = await checkMeetingTimeConflict(
-      data.cid,
-      data.time,
-      dateToString(data.date),
-    );
+    const check = await checkMeetingTimeConflict(data.cid, data.time, date);
 
     // validate
     if (check)
