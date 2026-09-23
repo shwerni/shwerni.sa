@@ -272,7 +272,7 @@ export default function AwarenessForm({
                           className={cn(
                             "flex-1 flex justify-center items-center gap-2 py-4 rounded-xl border-2 transition-all",
                             field.value === Gender.MALE
-                              ? "border-blue-500 bg-blue-50 text-blue-700"
+                              ? "border-theme-500 bg-theme-50 text-blue-700"
                               : "border-gray-200 bg-gray-50 text-gray-500 hover:border-blue-200",
                           )}
                         >
@@ -362,7 +362,7 @@ export default function AwarenessForm({
                       {loadingTimes ? (
                         <TimeSkeleton />
                       ) : !selectedDate ? (
-                        <div className="flex items-start gap-3 p-4 border rounded-lg bg-blue-50 text-theme">
+                        <div className="flex items-start gap-3 p-4 border rounded-lg bg-theme-50 text-theme">
                           <CalendarIcon className="w-5 h-5 shrink-0" />
                           <p className="text-sm font-medium">
                             اختر التاريخ أولاً لعرض المواعيد المتاحة
@@ -465,7 +465,7 @@ export default function AwarenessForm({
             <div className="space-y-6">
               {/* selected summary */}
               {selectedDate && selectedTime && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 text-theme text-sm font-medium">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-theme-50 text-theme text-sm font-medium">
                   <CalendarDays className="w-4 h-4 shrink-0" />
                   <span>
                     {format(selectedDate, "EEEE، d MMMM", { locale: ar })} —{" "}

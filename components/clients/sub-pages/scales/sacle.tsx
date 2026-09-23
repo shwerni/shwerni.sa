@@ -24,7 +24,7 @@ function severityColor(severity?: string | null) {
     case "moderate": return { text: "text-yellow-600",  bg: "bg-yellow-50",  border: "border-yellow-200" };
     case "high":     return { text: "text-orange-600",  bg: "bg-orange-50",  border: "border-orange-200" };
     case "severe":   return { text: "text-red-600",     bg: "bg-red-50",     border: "border-red-200" };
-    default:         return { text: "text-blue-600",    bg: "bg-blue-50",    border: "border-blue-200" };
+    default:         return { text: "text-blue-600",    bg: "bg-theme-50",    border: "border-blue-200" };
   }
 }
 
@@ -91,7 +91,7 @@ export default function ScaleAssessment({ scaleSlug, scaleTitle, items, resultRa
     return (
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         {/* Header band */}
-        <div className="h-2 bg-blue-500 w-full" />
+        <div className="h-2 bg-theme-500 w-full" />
 
         <div className="p-8 text-center">
           <p className="text-sm text-gray-400 mb-2">{scaleTitle}</p>
@@ -113,7 +113,7 @@ export default function ScaleAssessment({ scaleSlug, scaleTitle, items, resultRa
           {/* Score bar */}
           <div className="w-full bg-gray-100 rounded-full h-3 mb-5 overflow-hidden">
             <div
-              className="h-3 rounded-full bg-blue-500 transition-all duration-700"
+              className="h-3 rounded-full bg-theme-500 transition-all duration-700"
               style={{ width: `${Math.min((totalScore / maxScore) * 100, 100)}%` }}
             />
           </div>
@@ -166,8 +166,8 @@ export default function ScaleAssessment({ scaleSlug, scaleTitle, items, resultRa
   if (!started) {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
-        <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <svg className="w-7 h-7 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="w-14 h-14 bg-theme-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <svg className="w-7 h-7 text-theme-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
               d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
@@ -193,7 +193,7 @@ export default function ScaleAssessment({ scaleSlug, scaleTitle, items, resultRa
       {/* Progress bar */}
       <div className="relative h-1.5 bg-gray-100">
         <div
-          className="absolute top-0 right-0 h-full bg-blue-500 transition-all duration-500 ease-out"
+          className="absolute top-0 right-0 h-full bg-theme-500 transition-all duration-500 ease-out"
           style={{ width: `${progressPct}%` }}
         />
       </div>
@@ -221,7 +221,7 @@ export default function ScaleAssessment({ scaleSlug, scaleTitle, items, resultRa
                 className={`w-full px-5 py-3.5 rounded-xl border text-sm font-medium text-center transition-all duration-150
                   ${isSelected
                     ? "bg-blue-600 border-blue-600 text-white shadow-sm"
-                    : "bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50"
+                    : "bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-theme-50"
                   }`}
               >
                 {option.label}

@@ -40,7 +40,7 @@ export const categories: Category[] = [
     link: "",
     icon: "/svg/masks-psychic.svg",
     status: true,
-    style: "bg-blue-50 text-blue-600",
+    style: "bg-theme-50 text-blue-600",
   },
   {
     id: Categories.LAW,
@@ -115,7 +115,7 @@ export const paymentStatuses: PaymentType[] = [
   {
     state: PaymentState.NEW,
     label: "جديد",
-    style: "bg-blue-50 text-blue-700",
+    style: "bg-theme-50 text-blue-700",
   },
   {
     state: PaymentState.PROCESSING,

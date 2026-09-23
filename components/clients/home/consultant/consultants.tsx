@@ -28,7 +28,7 @@ const Consultants = async () => {
     );
 
   return (
-    <Section className="bg-blue-50 py-8 sm:py-10 space-y-10">
+    <Section className="bg-theme-50 py-8 sm:py-10 space-y-10">
       {/* title */}
       <Title title="خبرة ودعم بلا حدود" subTitle="" />
       {/* list */}

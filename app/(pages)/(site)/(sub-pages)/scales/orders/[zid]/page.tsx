@@ -88,7 +88,7 @@ export default async function Page({
           <div className="text-center mb-2">
             <h1 className="text-2xl font-bold text-gray-900">{scale.title}</h1>
             {scale.subtitle && (
-              <span className="inline-block mt-2 text-sm font-medium text-blue-500 bg-blue-50 px-3 py-1 rounded-full">
+              <span className="inline-block mt-2 text-sm font-medium text-theme-500 bg-theme-50 px-3 py-1 rounded-full">
                 {scale.subtitle}
               </span>
             )}

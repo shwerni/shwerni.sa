@@ -53,8 +53,8 @@ const HeaderSheet = ({ user, path }: Props) => {
 
       <Sheet>
         <SheetTrigger asChild>
-          <button className="relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 hover:bg-[#117ED8]/8 active:scale-95 group">
-            <Menu className="w-5 h-5 text-[#117ED8] transition-transform duration-200 group-hover:scale-110" />
+          <button className="relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 hover:bg-theme/8 active:scale-95 group">
+            <Menu className="w-5 h-5 text-theme transition-transform duration-200 group-hover:scale-110" />
           </button>
         </SheetTrigger>
 

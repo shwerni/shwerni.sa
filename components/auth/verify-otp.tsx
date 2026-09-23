@@ -181,7 +181,7 @@ const VerifyOtp: React.FC<Props> = ({ name, phone, otp }: Props) => {
             disabled={!resendActive}
             className={`font-medium ${
               resendActive
-                ? "text-[#117ED8] hover:underline"
+                ? "text-theme hover:underline"
                 : "text-slate-400 cursor-not-allowed"
             }`}
           >

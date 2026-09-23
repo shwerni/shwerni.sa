@@ -20,8 +20,8 @@ const ClearFilter = () => {
   return (
     <div className="col-span-4 flex flex-col items-center justify-center py-24 text-center">
       {/* Icon */}
-      <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-blue-50">
-        <LayoutGrid className="h-10 w-10 text-blue-500" />
+      <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-theme-50">
+        <LayoutGrid className="h-10 w-10 text-theme-500" />
       </div>
 
       {/* Text */}

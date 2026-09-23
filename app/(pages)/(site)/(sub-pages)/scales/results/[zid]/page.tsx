@@ -45,9 +45,9 @@ function severityColor(severity?: string | null) {
     default:
       return {
         text: "text-blue-700",
-        bg: "bg-blue-50",
+        bg: "bg-theme-50",
         border: "border-blue-200",
-        bar: "bg-blue-500",
+        bar: "bg-theme-500",
       };
   }
 }

@@ -21,7 +21,7 @@ const Login = () => {
           <LogInForm />
           <div className="flex items-center justify-center gap-2">
             <h5 className="text-sm text-gray-500">ليس لديك حساب؟</h5>
-            <Link className="text-sm text-[#117ED8] underline" href="/register">
+            <Link className="text-sm text-theme underline" href="/register">
               إنشاء حساب
             </Link>
           </div>

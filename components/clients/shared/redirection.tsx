@@ -17,10 +17,10 @@ export default function Redirection({ href, delay = 2000 }: Props) {
   }, [href, delay, router]);
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+    <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-theme-50 px-4 py-3 text-sm text-blue-700">
       {/* Spinner */}
       <svg
-        className="h-4 w-4 shrink-0 animate-spin text-blue-500"
+        className="h-4 w-4 shrink-0 animate-spin text-theme-500"
         fill="none"
         viewBox="0 0 24 24"
       >

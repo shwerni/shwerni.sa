@@ -114,20 +114,20 @@ export function SideBarBtn({ item, className, active }: SideBarBtnProps) {
         className={cn(
           "relative flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-200 group",
           active
-            ? "bg-[#117ED8]/10 text-[#117ED8]"
+            ? "bg-theme/10 text-theme"
             : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
           className,
         )}
       >
         {active && (
-          <span className="absolute right-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-1 h-[80%] bg-[#117ED8] rounded-r-full" />
+          <span className="absolute right-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-1 h-[80%] bg-theme rounded-r-full" />
         )}
 
         <item.icon
           className={cn(
             "h-4 w-4 shrink-0 transition-colors duration-200",
             active
-              ? "text-[#117ED8]"
+              ? "text-theme"
               : "text-gray-400 group-hover:text-gray-600",
           )}
         />
@@ -136,7 +136,7 @@ export function SideBarBtn({ item, className, active }: SideBarBtnProps) {
 
         {/* active dot on the far left (RTL end) */}
         {active && (
-          <span className="mr-auto w-1.5 h-1.5 rounded-full bg-[#117ED8]" />
+          <span className="mr-auto w-1.5 h-1.5 rounded-full bg-theme" />
         )}
       </Link>
     </SheetClose>

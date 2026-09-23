@@ -22,7 +22,7 @@ const Register = () => {
           <div className="flex items-center justify-center gap-2">
             <h5 className="text-sm text-gray-500">لديك حساب ؟</h5>
             <Link
-              className="text-sm text-[#117ED8] font-medium underline"
+              className="text-sm text-theme font-medium underline"
               href="/login"
             >
               تسجل الدخول

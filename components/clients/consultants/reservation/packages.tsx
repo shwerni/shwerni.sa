@@ -74,7 +74,7 @@ const Packages = ({ packages, costs, form }: Props) => {
                 className={cn(
                   "flex flex-col justify-between sm:items-center sm:flex-row gap-5 max-w-10/12 sm:max-w-xl border rounded-md py-3 px-4 cursor-pointer transition-all duration-150",
                   isActive
-                    ? "border-theme-700 bg-blue-50 ring-1 ring-theme-700/20"
+                    ? "border-theme-700 bg-theme-50 ring-1 ring-theme-700/20"
                     : index % 2 === 0
                       ? "bg-[#F1F8FE] border-[#E5E7EB]"
                       : "bg-[#F9FAFB] border-[#E5E7EB]",

@@ -37,7 +37,7 @@ const UserNav = ({ user }: Props) => {
     return (
       <Avatar>
         <AvatarImage src={src} />
-        <AvatarFallback className="bg-blue-50">
+        <AvatarFallback className="bg-theme-50">
           <User2 className="w-5" />
         </AvatarFallback>
       </Avatar>
@@ -50,7 +50,7 @@ const UserNav = ({ user }: Props) => {
         <div className="flex items-center gap-2 cursor-pointer">
           <Avatar>
             <AvatarImage src={src} />
-            <AvatarFallback className="bg-blue-50">
+            <AvatarFallback className="bg-theme-50">
               <User2 className="w-5" />
             </AvatarFallback>
           </Avatar>

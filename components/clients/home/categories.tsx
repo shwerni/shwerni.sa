@@ -48,8 +48,8 @@ const Categories = async () => {
       sub: "قلق · اكتئاب · ضغوط",
       iconBg: "bg-blue-100",
       iconColor: "text-blue-600",
-      style: "bg-blue-50 text-blue-600 border-blue-100",
-      dot: "bg-blue-500",
+      style: "bg-theme-50 text-blue-600 border-blue-100",
+      dot: "bg-theme-500",
       icon: Brain,
     },
     {

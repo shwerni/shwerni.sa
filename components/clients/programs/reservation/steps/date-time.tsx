@@ -227,7 +227,7 @@ export default function StepDateTime({ form, onNext, onBack }: Props) {
 
             if (!selectedDate)
               return (
-                <div className="flex items-start gap-3 p-4 border rounded-lg bg-blue-50 text-theme h-fit">
+                <div className="flex items-start gap-3 p-4 border rounded-lg bg-theme-50 text-theme h-fit">
                   <CalendarIcon className="w-5 h-5 shrink-0" />
                   <div className="flex flex-col">
                     <p className="font-medium text-sm">اختر التاريخ أولاً</p>

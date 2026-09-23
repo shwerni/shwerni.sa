@@ -58,7 +58,7 @@ const colors: Record<
   info: {
     color: "blue",
     bg100: "bg-blue-100",
-    bg50: "bg-blue-50",
+    bg50: "bg-theme-50",
     bg700: "bg-blue-700",
     text: "text-blue-700",
   },

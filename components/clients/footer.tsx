@@ -98,7 +98,7 @@ const Footer = () => {
             <div key={index} className="space-y-4">
               <div className="space-y-1.5">
                 <h4 className="text-lg text-gray-200">{i.title}</h4>
-                <div className="w-10 h-0.5 bg-[#117ED8] rounded-2xl" />
+                <div className="w-10 h-0.5 bg-theme rounded-2xl" />
               </div>
               <div className="flex flex-col gap-2">
                 {i.data.map((i, index) => (

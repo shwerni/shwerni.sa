@@ -191,8 +191,8 @@ const ReschedulePick = ({ meeting, order, rescheduled, ireason }: Props) => {
         <OrderTable order={order} />
         <Separator className="w-10/12 max-w-xl mx-auto" />
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center">
-            <CalendarClock className="text-blue-500 w-8 h-8" />
+          <div className="w-14 h-14 rounded-full bg-theme-50 flex items-center justify-center">
+            <CalendarClock className="text-theme-500 w-8 h-8" />
           </div>
           <h3 className="text-sm font-medium text-foreground">
             تمت إعادة جدولة هذه الجلسة بالفعل

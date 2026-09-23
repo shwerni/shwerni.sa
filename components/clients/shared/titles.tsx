@@ -27,10 +27,10 @@ const Title: React.FC<Props> = ({
       </h5>
       <div className="flex items-end gap-4">
         <Image
-          src="/svg/shwerni-logo-r.svg"
+          src="/other/event/shwerni-logo-r.svg"
           alt="shwerni"
-          width={12}
-          height={12}
+          width={52} // 12
+          height={52}
         />
         <h2
           className={cn(
@@ -41,10 +41,10 @@ const Title: React.FC<Props> = ({
           {title}
         </h2>
         <Image
-          src="/svg/shwerni-logo-l.svg"
+          src="/other/event/shwerni-logo-l.svg"
           alt="shwerni"
-          width={12}
-          height={12}
+          width={52}
+          height={52}
         />
       </div>
     </div>

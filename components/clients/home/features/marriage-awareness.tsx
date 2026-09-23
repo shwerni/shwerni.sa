@@ -10,7 +10,7 @@ export default async function MarriageAwarenessSlimCard() {
 
   return (
     <div className="max-w-6xl mx-auto my-8 px-4">
-      <div className="relative bg-white border border-blue-50 rounded-2xl shadow-lg shadow-blue-900/5 px-4 sm:px-5 py-4 sm:py-5 overflow-hidden">
+      <div className="relative bg-white border border-theme-50 rounded-2xl shadow-lg shadow-blue-900/5 px-4 sm:px-5 py-4 sm:py-5 overflow-hidden">
         {/* background */}
         <div className="absolute -top-20 -right-20 w-72 h-72 bg-blue-100/40 rounded-full blur-3xl" />
 

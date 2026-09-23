@@ -122,7 +122,7 @@ export function UploadField<T extends FieldValues>({
 
         {/* Uploading spinner */}
         {uploading && (
-          <Loader2 size={28} className="animate-spin text-blue-500" />
+          <Loader2 size={28} className="animate-spin text-theme-500" />
         )}
 
         {/* Done state */}

@@ -6,7 +6,7 @@ const included = [
     Icon: ClipboardList,
     title: "تطبيق المقياس",
     desc: "مقياس علمي معتمد لقياس جاهزيتك للزواج",
-    color: "text-blue-600 bg-blue-50",
+    color: "text-blue-600 bg-theme-50",
   },
   {
     Icon: Brain,
@@ -27,7 +27,7 @@ export default function ProductCard() {
     <div className="bg-white rounded-2xl border border-blue-100 shadow-sm p-6 space-y-4">
       {/* title */}
       <div className="text-center space-y-1">
-        <span className="text-xs font-medium text-blue-500 bg-blue-50 px-3 py-1 rounded-full">
+        <span className="text-xs font-medium text-theme-500 bg-theme-50 px-3 py-1 rounded-full">
           حزمة متكاملة
         </span>
         <h1 className="text-xl font-bold text-theme-700 mt-2">

@@ -10,7 +10,7 @@ const DaysButtons = ({ day, selected = false }: Props) => {
   return (
     <div
       className={cn(
-        selected ? "bg-[#117ED8] text-white" : "text-theme-700",
+        selected ? "bg-theme text-white" : "text-theme-700",
         "flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 w-17 border border-[#AAD6F8] rounded-lg",
       )}
     >
