@@ -17,6 +17,7 @@ import { ApprovalState, ConsultantState } from "@/lib/generated/prisma/client";
 import { EVENT_MAX_RESERVATIONS_PER_CONSULTANT } from "@/components/clients/event/constant";
 import { getEventReservedCount, isEventConsultant } from "@/data/temp-event";
 import FreeSessionReserve from "@/components/clients/event/reserve";
+import EventConsultantFull from "@/components/clients/event/full";
 
 // props
 type Props = {
@@ -50,7 +51,7 @@ const Page = async ({ params }: Props) => {
 
   // reached the daily cap — same 404 as the hidden list entry
   if (reservedCount >= EVENT_MAX_RESERVATIONS_PER_CONSULTANT)
-    return <Error404 />;
+ return <EventConsultantFull />;
 
   return (
     <div className="space-y-4">
