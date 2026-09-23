@@ -116,7 +116,7 @@ const ProgramContent: React.FC<Props> = ({ program }: Props) => {
         </div>
         {/* program summary & consultant */}
         <div className="col-span-2">
-          <div className="w-11/12 max-w-2xl bg-[#F1F8FE] py-6 px-3  mx-auto space-y-6 rounded-sm">
+          <div className="w-11/12 max-w-2xl bg-theme-25 py-6 px-3  mx-auto space-y-6 rounded-sm">
             {/* cost */}
             <div className="flex flex-col gap-0.5">
               <div className="inline-flex items-center gap-2">

@@ -54,7 +54,7 @@ export default async function RootLayout({
       {children}
 
       {/* cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 bg-[#F1F8FE] py-6 px-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 bg-theme-25 py-6 px-3">
         <div className="flex flex-col items-center gap-2">
           <h3 className="text-lg font-medium">
             لماذا ستستفيد من الجلسة المجانية الشهرية؟

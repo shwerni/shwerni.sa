@@ -32,7 +32,7 @@ const Page = () => {
             <AccordionItem
               value={String(index)}
               key={index}
-              className="px-3 data-[state=open]:bg-[#F1F8FE] rounded"
+              className="px-3 data-[state=open]:bg-theme-25 rounded"
             >
               <AccordionTrigger className="[&>svg]:bg-gray-100 [&>svg]:rounded-full [&>svg]:w-8 [&>svg]:h-8 [&>svg]:p-2 hover:no-underline">
                 <div className="inline-flex items-center gap-3">
@@ -44,7 +44,7 @@ const Page = () => {
                   </span>
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="font-medium text-sm data-[state=open]:bg-[#F1F8FE]">
+              <AccordionContent className="font-medium text-sm data-[state=open]:bg-theme-25">
                 {i.desc}
               </AccordionContent>
             </AccordionItem>

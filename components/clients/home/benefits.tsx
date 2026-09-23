@@ -34,7 +34,7 @@ const Benefits = () => {
   ];
 
   return (
-    <Section className="hidden lg:block bg-[#F1F8FE] py-10 space-y-8">
+    <Section className="hidden lg:block bg-theme-25 py-10 space-y-8">
       <Title
         title="خطوتك الذكية نحو قرار أوضح وحياة أهدأ"
         subTitle="لماذا شاورني ؟ "

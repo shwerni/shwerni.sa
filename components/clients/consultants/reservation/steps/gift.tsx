@@ -30,7 +30,7 @@ export default function GiftForm({ form }: Props) {
   return (
     <>
       {/* Gifted option */}
-      <div className="flex justify-between items-center bg-[#F1F8FE] py-4 px-5 rounded-md">
+      <div className="flex justify-between items-center bg-theme-25 py-4 px-5 rounded-md">
         <Controller
           name="hasBeneficiary"
           control={form.control}

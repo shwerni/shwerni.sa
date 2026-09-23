@@ -148,7 +148,7 @@ const CouponForm = ({ form }: Props) => {
                       variant="outline"
                       loading={loading}
                       onClick={handleCoupon}
-                      className="bg-[#F1F8FE] border-r-0 rounded text-sm"
+                      className="bg-theme-25 border-r-0 rounded text-sm"
                     >
                       <span>تطبيق</span>
                     </Button>

@@ -1,5 +1,5 @@
 // React & Next
-import Image from "next/image";
+import Link from "next/link";
 
 // components
 import ScalesCta from "./scales";
@@ -75,6 +75,13 @@ const Categories = async () => {
     },
   ];
 
+  // mobile trust points — same promises the desktop cards make
+  // const trust = [
+  //   { icon: ShieldCheck, label: "خصوصية تامة" },
+  //   { icon: BadgeCheck, label: "مستشارون معتمدون" },
+  //   { icon: Clock, label: "حجز خلال دقيقة" },
+  // ];
+
   return (
     <Section className="max-w-5xl mx-auto">
       {/* title */}
@@ -147,46 +154,44 @@ const Categories = async () => {
         {/* scales */}
         <ScalesCta />
       </div>
-      {/* reserve */}
-      <div className="md:hidden flex flex-col items-center gap-6 text-center">
-        {/* reserve — brand theme gradient */}
-        <div className="md:hidden relative bg-linear-to-b from-theme/5 to-theme/25 p-6 sm:p-8 space-y-5 md:space-y-8 mx-5 :mx-3 rounded-2xl overflow-hidden">
-          {/* images style */}
-          <Image
-            src="/svg/home/home-stars.svg"
-            alt="icon"
-            width={300}
-            height={300}
-            className="absolute top-2 left-0"
-          />
-          <div className="absolute -top-25 -left-25 w-52 h-52 rounded-full border-2 border-theme/35" />
-          <div className="absolute -top-20 -left-20 w-40 h-40 rounded-full bg-theme/35" />
-          <div className="absolute -bottom-80 -right-30 w-80 h-80 rounded-full bg-theme/35" />
-          {/* content */}
-          <h3 className="text-black text-3xl font-semibold z-20">
-            حجزك مع مستشارك خلال دقيقة
-          </h3>
-          <p className="text-black text-base">
-            لا داعي للانتظار، يمكنك بدء جلستك الآن مع أحد مستشارينا بخطوات سهلة
-            وسريعة تمنحك الراحة والطمأنينة.
-          </p>
-          <div className="flex flex-wrap justify-center gap-2.5">
+
+      {/* ---------- mobile ---------- */}
+      <div className="md:hidden mx-4">
+        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+          {/* header */}
+          <div className="flex items-center justify-between gap-3 bg-linear-to-l from-theme to-theme-900 px-4 py-3 text-white">
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold">احجز مع مستشارك خلال دقيقة</h3>
+              <p className="text-[11px] text-white/75">
+                خصوصية تامة · مستشارون معتمدون
+              </p>
+            </div>
+            <Link
+              href="/discover"
+              className="shrink-0 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-theme transition-transform active:scale-95"
+            >
+              احجز الآن
+            </Link>
+          </div>
+
+          {/* categories */}
+          {/* categories — single row */}
+          <div className="grid grid-cols-4 gap-1 p-3">
             {categories.map((cat) => (
-              <a
+              <Link
                 key={cat.id}
-                href={`/consultants?categories=${cat.id}`}
-                className={`
-                inline-flex items-center gap-2 rounded-full border px-4 py-2
-                text-sm font-semibold transition-all duration-200
-                hover:scale-105 hover:shadow-md active:scale-100
-                ${cat.style}
-              `}
+                href={url(cat.id)}
+                className="flex flex-col items-center gap-1.5 rounded-xl py-2 transition-colors active:bg-gray-50"
               >
                 <span
-                  className={`h-1.5 w-1.5 rounded-full ${cat.dot} shrink-0`}
-                />
-                {cat.label}
-              </a>
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl ${cat.iconBg}`}
+                >
+                  <cat.icon className={`h-5 w-5 ${cat.iconColor}`} />
+                </span>
+                <span className="text-center text-[11px] font-semibold leading-tight text-gray-800">
+                  {cat.label}
+                </span>
+              </Link>
             ))}
           </div>
         </div>

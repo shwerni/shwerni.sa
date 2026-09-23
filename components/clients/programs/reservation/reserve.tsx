@@ -75,7 +75,7 @@ const ProgramReserve = async ({ prid }: Props) => {
             {/* about */}
             <p>{program.description.split(".").slice(0, 1)}</p>
             {/* info */}
-            <div className="flex justify-between items-center w-full bg-[#F1F8FE] px-6 py-2 mx-auto rounded-sm">
+            <div className="flex justify-between items-center w-full bg-theme-25 px-6 py-2 mx-auto rounded-sm">
               {[
                 { label: program.duration + " دقيقة", icon: Clock },
                 { label: program.sessions + " جلسات", icon: Video },

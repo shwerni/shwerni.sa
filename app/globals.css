@@ -40,6 +40,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --color-theme: var(--theme);
+  --color-theme-25: var(--theme-25);
   --color-theme-50: var(--theme-50);
   --color-theme-100: var(--theme-100);
   --color-theme-300: var(--theme-300);
@@ -57,14 +58,17 @@
   /* blue (restore after the event): --theme: #117ed8; */
   --theme: #016c39;
   --theme-50: #e6f5ee;
+  --theme-25: #f2faf6;
   --theme-100: #d4ecdf;
   --theme-300: #7cc49e;
   --theme-600: #015c30;
   --theme-700: #007e03;
   --theme-900: #003816;
+  /* green */
 
   /* blue (default)
   --theme: #117ed8;
+  --theme-25: #f1f8fe;
   --theme-50: #e7f2fb;
   --theme-100: #d9edfc;
   --theme-300: #84c2f6;

@@ -76,7 +76,7 @@ const Packages = ({ packages, costs, form }: Props) => {
                   isActive
                     ? "border-theme-700 bg-theme-50 ring-1 ring-theme-700/20"
                     : index % 2 === 0
-                      ? "bg-[#F1F8FE] border-[#E5E7EB]"
+                      ? "bg-theme-25 border-[#E5E7EB]"
                       : "bg-[#F9FAFB] border-[#E5E7EB]",
                 )}
               >

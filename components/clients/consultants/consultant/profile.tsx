@@ -126,7 +126,7 @@ const ConsultantProfile: React.FC<Props> = ({
         </div>
       </div>
       {/* experience & reviews count */}
-      <div className="flex flex-wrap justify-between sm:justify-start items-center gap-y-3 gap-x-10 bg-[#F1F8FE] py-3 px-5 rounded-md">
+      <div className="flex flex-wrap justify-between sm:justify-start items-center gap-y-3 gap-x-10 bg-theme-25 py-3 px-5 rounded-md">
         {summary.map((i) =>
           i.value ? (
             <div key={i.label} className="flex items-center gap-2">

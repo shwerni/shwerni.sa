@@ -149,7 +149,7 @@ export default function StepPayment({ form, onBack }: Props) {
             <TermsForm form={form} />
           </div>
           {/* payment summary */}
-          <div className="md:col-span-2 w-[95%] max-w-96 bg-[#F1F8FE] pt-5 pb-14 px-3 sm:px-5 space-y-8 mx-auto rounded-lg">
+          <div className="md:col-span-2 w-[95%] max-w-96 bg-theme-25 pt-5 pb-14 px-3 sm:px-5 space-y-8 mx-auto rounded-lg">
             <h4 className="text-center text-lg font-medium text-gray-700">
               الفاتورة
             </h4>

@@ -38,11 +38,11 @@ const Home = async () => {
       {/* reviews */}
       <Reviews />
       {/* steps to use */}
-      <Steps />
-      {/* youtube */}
-      <Podcast />
+      {/* <Steps /> */}
       {/* benefits */}
       <Benefits />
+      {/* youtube */}
+      <Podcast />
       {/* join us */}
       <Join />
     </>

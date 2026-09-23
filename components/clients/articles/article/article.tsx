@@ -90,7 +90,7 @@ const Article = async ({
             />
           </AspectRatio>
           {/* info */}
-          <header className="flex items-center gap-3 md:gap-5 bg-[#F1F8FE] py-4 px-2 md:px-3 rounded-sm">
+          <header className="flex items-center gap-3 md:gap-5 bg-theme-25 py-4 px-2 md:px-3 rounded-sm">
             <div className="relative">
               <Image
                 src="/layout/logo.png"

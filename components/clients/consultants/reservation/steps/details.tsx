@@ -145,7 +145,7 @@ export default function StepDetails({ form, original, onNext, onBack }: Props) {
           {isPackage ? (
             <Field className="w-full max-w-xs">
               <FieldLabel>مدة الاستشارة</FieldLabel>
-              <div className="flex items-center gap-2 rounded-md border border-blue-100 bg-[#F1F8FE] px-3 py-2">
+              <div className="flex items-center gap-2 rounded-md border border-blue-100 bg-theme-25 px-3 py-2">
                 <Clock className="w-4 h-4 text-theme shrink-0" />
                 <span className="text-sm font-semibold text-theme-700">
                   45 دقيقة

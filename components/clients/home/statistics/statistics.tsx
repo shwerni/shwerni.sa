@@ -40,7 +40,7 @@ const Statistics = async () => {
       <DivMotion
         variant="blur-in"
         delay={0.5}
-        className="grid grid-cols-3 gap-2 sm:gap-6 px-3 py-6 sm:px-10 sm:py-10 bg-linear-to-b from-[#F1F8FE] from-40% to-white rounded-2xl"
+        className="grid grid-cols-3 gap-2 sm:gap-6 px-3 py-6 sm:px-10 sm:py-10 bg-linear-to-b from-theme-25 from-40% to-white rounded-2xl"
       >
         <Suspense fallback={<SkeletonCounter />}>
           <StatisticsValues statistics={statistics} />
