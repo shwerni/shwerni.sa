@@ -53,8 +53,8 @@ const HeaderSheet = ({ user, path }: Props) => {
 
       <Sheet>
         <SheetTrigger asChild>
-          <button className="relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 hover:bg-theme/8 active:scale-95 group">
-            <Menu className="w-5 h-5 text-theme transition-transform duration-200 group-hover:scale-110" />
+          <button className="relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 hover:bg-theme-200/8 active:scale-95 group">
+            <Menu className="w-5 h-5 text-theme-200 transition-transform duration-200 group-hover:scale-110" />
           </button>
         </SheetTrigger>
 
@@ -65,21 +65,10 @@ const HeaderSheet = ({ user, path }: Props) => {
           style={{ width: "300px" }}
         >
           {/* gradient header */}
-          <SheetHeader
-            className="relative px-6 py-5 overflow-hidden"
-            style={{
-              background: "linear-gradient(135deg, #117ED8 0%, #0a5fa3 100%)",
-            }}
-          >
+          <SheetHeader className="relative px-6 py-5 overflow-hidden bg-linear-135 from-theme to-theme-600">
             {/* decorative circles */}
-            <div
-              className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-10"
-              style={{ background: "white" }}
-            />
-            <div
-              className="absolute -bottom-8 -left-4 w-32 h-32 rounded-full opacity-10"
-              style={{ background: "white" }}
-            />
+            <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10" />
+            <div className="absolute -bottom-8 -left-4 w-32 h-32 rounded-full bg-white/10" />
 
             <div className="relative flex flex-row items-center gap-3">
               <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm">
@@ -103,10 +92,7 @@ const HeaderSheet = ({ user, path }: Props) => {
             {/* user badge if logged in */}
             {user && (
               <div className="relative mt-4 flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-                  style={{ background: "rgba(255,255,255,0.2)" }}
-                >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/20 text-white font-bold text-sm">
                   {user.name?.charAt(0) ?? "U"}
                 </div>
                 <div>

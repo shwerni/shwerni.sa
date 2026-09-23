@@ -59,7 +59,7 @@ const Filter = ({ children }: Props) => {
     <div className="mt-3 md:mt-5">
       {/* desktop */}
       <div className="hidden md:flex flex-col gap-5  p-3 border-l border-gray-200">
-        <h6 className="text-theme text-xl font-medium">فلترة البرامج</h6>
+        <h6 className="text-theme-200 text-xl font-medium">فلترة البرامج</h6>
         {children}
       </div>
       {/* mobile */}
@@ -69,7 +69,7 @@ const Filter = ({ children }: Props) => {
             <IconLabel
               Icon={ChevronLeft}
               label="فلترة البرامج "
-              className="text-theme text-xl font-medium"
+              className="text-theme-200 text-xl font-medium"
             />
           </div>
         </DropdownMenuTrigger>

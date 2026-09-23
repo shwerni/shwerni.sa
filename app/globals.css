@@ -1,13 +1,5 @@
-@import "tailwindcss" source(none);
+@import "tailwindcss";
 @plugin "tailwindcss-animate";
-
-/* scan only real source folders — never .next / build output */
-@source "../app";
-@source "../components";
-@source "../constants";
-@source "../lib";
-@source "../utils";
-@source "../hooks";
 
 /* ============================================================
    THEME
@@ -39,10 +31,13 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* brand theme scale */
   --color-theme: var(--theme);
   --color-theme-25: var(--theme-25);
   --color-theme-50: var(--theme-50);
   --color-theme-100: var(--theme-100);
+  --color-theme-200: var(--theme-200);
   --color-theme-300: var(--theme-300);
   --color-theme-600: var(--theme-600);
   --color-theme-700: var(--theme-700);
@@ -54,29 +49,34 @@
    ============================================================ */
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  /* blue (restore after the event): --theme: #117ed8; */
+
+  /* ---------- brand theme — keep one block active ---------- */
+
+  /* green (national day) */
   --theme: #016c39;
-  --theme-50: #e6f5ee;
   --theme-25: #f2faf6;
+  --theme-50: #e6f5ee;
   --theme-100: #d4ecdf;
+  --theme-200: #a8d9bf;
   --theme-300: #7cc49e;
   --theme-600: #015c30;
   --theme-700: #007e03;
   --theme-900: #003816;
-  /* green */
 
   /* blue (default)
   --theme: #117ed8;
   --theme-25: #f1f8fe;
   --theme-50: #e7f2fb;
   --theme-100: #d9edfc;
+  --theme-200: #aad6f8;
   --theme-300: #84c2f6;
   --theme-600: #0d61a6;
   --theme-700: #094577;
   --theme-900: #062c4d;
   */
 
+  /* ---------- ui tokens ---------- */
+  --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -162,7 +162,7 @@ textarea::selection {
 }
 
 /* ============================================================
-   THEME COLOR UTILITIES
+   THEME COLOR UTILITIES (legacy class names)
    ============================================================ */
 .bg-zblue-200 {
   background-color: var(--theme);

@@ -48,7 +48,7 @@ export const Counter = ({
     return () => observer.disconnect();
   }, [value, delay, duration, decimals]);
   return (
-    <h5 className="text-theme font-semibold text-2xl sm:text-4xl" ref={ref}>
+    <h5 className="text-theme-200 font-semibold text-2xl sm:text-4xl" ref={ref}>
       {count.toLocaleString(undefined, {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,
