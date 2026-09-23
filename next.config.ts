@@ -1,6 +1,31 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      { source: "/available", destination: "/discover", permanent: true },
+      { source: "/privacy", destination: "/terms", permanent: true },
+
+      // singular → plural
+      { source: "/freesession", destination: "/freesessions", permanent: true },
+      {
+        source: "/freesession/:path*",
+        destination: "/freesessions/:path*",
+        permanent: true,
+      },
+      {
+        source: "/meeting/:path*",
+        destination: "/meetings/:path*",
+        permanent: true,
+      },
+      { source: "/consultant", destination: "/consultants", permanent: true },
+      {
+        source: "/consultant/:path*",
+        destination: "/consultants/:path*",
+        permanent: true,
+      },
+    ];
+  },
   experimental: {
     optimizeCss: true,
     // viewTransition: true,
