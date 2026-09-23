@@ -8,6 +8,7 @@
 @source "../lib";
 @source "../utils";
 @source "../hooks";
+
 /* ============================================================
    THEME
    ============================================================ */
@@ -55,6 +56,14 @@
   --theme-50: #e6f5ee;
   --theme-700: #007e03;
   --theme-900: #003816;
+
+  /* blue (default)
+  --theme: #117ed8;
+  --theme-50: #e7f2fb;
+  --theme-700: #094577;
+  --theme-900: #062c4d;
+  */
+
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -78,6 +87,7 @@
    BASE LAYER
    ============================================================ */
 @layer base {
+
   *,
   ::before,
   ::after {
@@ -165,13 +175,23 @@ textarea::selection {
    ANIMATIONS
    ============================================================ */
 @keyframes accordion-down {
-  from { height: 0; }
-  to   { height: var(--radix-accordion-content-height); }
+  from {
+    height: 0;
+  }
+
+  to {
+    height: var(--radix-accordion-content-height);
+  }
 }
 
 @keyframes accordion-up {
-  from { height: var(--radix-accordion-content-height); }
-  to   { height: 0; }
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+
+  to {
+    height: 0;
+  }
 }
 
 @utility animate-accordion-down {
@@ -184,13 +204,23 @@ textarea::selection {
 
 /* flip clock (event countdown) */
 @keyframes flip-top {
-  from { transform: rotateX(0deg); }
-  to   { transform: rotateX(-90deg); }
+  from {
+    transform: rotateX(0deg);
+  }
+
+  to {
+    transform: rotateX(-90deg);
+  }
 }
 
 @keyframes flip-bottom {
-  from { transform: rotateX(90deg); }
-  to   { transform: rotateX(0deg); }
+  from {
+    transform: rotateX(90deg);
+  }
+
+  to {
+    transform: rotateX(0deg);
+  }
 }
 
 @utility animate-flip-top {
@@ -208,6 +238,7 @@ textarea::selection {
   &::-webkit-scrollbar {
     display: none;
   }
+
   scrollbar-width: none;
 }
 

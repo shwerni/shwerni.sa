@@ -13,7 +13,7 @@ import Section from "@/components/clients/shared/section";
 import { Award, Brain, Goal, Scale, Users } from "lucide-react";
 
 // prisma data
-import { getActiveCampaignFor, getCampaignFor } from "@/data/event";
+import { getActiveCampaignFor } from "@/data/event";
 
 // prisma types
 import { Categories as CategoriesType } from "@/lib/generated/prisma/enums";
@@ -46,10 +46,11 @@ const Categories = async () => {
       id: CategoriesType.PSYCHIC,
       label: "الدعم النفسي",
       sub: "قلق · اكتئاب · ضغوط",
-      iconBg: "bg-blue-100",
-      iconColor: "text-blue-600",
-      style: "bg-theme-50 text-blue-600 border-blue-100",
-      dot: "bg-theme-500",
+      // brand theme — follows --theme in globals.css
+      iconBg: "bg-theme/15",
+      iconColor: "text-theme",
+      style: "bg-theme-50 text-theme border-theme/20",
+      dot: "bg-theme",
       icon: Brain,
     },
     {
@@ -148,8 +149,8 @@ const Categories = async () => {
       </div>
       {/* reserve */}
       <div className="md:hidden flex flex-col items-center gap-6 text-center">
-        {/* reserve */}
-        <div className="md:hidden relative bg-linear-to-b from-[#34068312] to-[#7E91FF47] p-6 sm:p-8 space-y-5 md:space-y-8 mx-5 :mx-3 rounded-2xl overflow-hidden">
+        {/* reserve — brand theme gradient */}
+        <div className="md:hidden relative bg-linear-to-b from-theme/5 to-theme/25 p-6 sm:p-8 space-y-5 md:space-y-8 mx-5 :mx-3 rounded-2xl overflow-hidden">
           {/* images style */}
           <Image
             src="/svg/home/home-stars.svg"
@@ -158,9 +159,9 @@ const Categories = async () => {
             height={300}
             className="absolute top-2 left-0"
           />
-          <div className="absolute -top-25 -left-25 w-52 h-52 rounded-full border-2 border-[#1480D957]" />
-          <div className="absolute -top-20 -left-20 w-40 h-40 rounded-full bg-[#1480D957]" />
-          <div className="absolute -bottom-80 -right-30 w-80 h-80 rounded-full bg-[#1480D957]" />
+          <div className="absolute -top-25 -left-25 w-52 h-52 rounded-full border-2 border-theme/35" />
+          <div className="absolute -top-20 -left-20 w-40 h-40 rounded-full bg-theme/35" />
+          <div className="absolute -bottom-80 -right-30 w-80 h-80 rounded-full bg-theme/35" />
           {/* content */}
           <h3 className="text-black text-3xl font-semibold z-20">
             حجزك مع مستشارك خلال دقيقة
