@@ -19,7 +19,7 @@ import { getDiscountConsultants } from "@/data/discounts";
 import { mainRoute } from "@/constants/links";
 
 // national day event — free-session discount
-const EVENT_DISCOUNT_ID = 7;
+const EVENT_DISCOUNT_ID = 6;
 
 // meta data seo
 const title = "شاورني - جلستك الاستشارية علينا بمناسبة اليوم الوطني";

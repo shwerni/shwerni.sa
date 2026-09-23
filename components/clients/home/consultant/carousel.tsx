@@ -42,7 +42,7 @@ const ConsultantsCarousel = ({ consultants }: Props) => {
         {consultants.map((i, index) => (
           <CarouselItem key={index} className="max-w-76.25">
             {/* conultant card data  */}
-            <Link href={`/event/${i.cid}`}>
+            <Link href={`/consultants/${i.cid}`}>
               <ConsultantCard
                 consultant={i}
                 //   favorites={favorites}
