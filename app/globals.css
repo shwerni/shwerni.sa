@@ -41,6 +41,9 @@
   --radius-xl: calc(var(--radius) + 4px);
   --color-theme: var(--theme);
   --color-theme-50: var(--theme-50);
+  --color-theme-100: var(--theme-100);
+  --color-theme-300: var(--theme-300);
+  --color-theme-600: var(--theme-600);
   --color-theme-700: var(--theme-700);
   --color-theme-900: var(--theme-900);
 }
@@ -54,12 +57,18 @@
   /* blue (restore after the event): --theme: #117ed8; */
   --theme: #016c39;
   --theme-50: #e6f5ee;
+  --theme-100: #d4ecdf;
+  --theme-300: #7cc49e;
+  --theme-600: #015c30;
   --theme-700: #007e03;
   --theme-900: #003816;
 
   /* blue (default)
   --theme: #117ed8;
   --theme-50: #e7f2fb;
+  --theme-100: #d9edfc;
+  --theme-300: #84c2f6;
+  --theme-600: #0d61a6;
   --theme-700: #094577;
   --theme-900: #062c4d;
   */
@@ -200,35 +209,6 @@ textarea::selection {
 
 @utility animate-accordion-up {
   animation: accordion-up 0.5s ease-out;
-}
-
-/* flip clock (event countdown) */
-@keyframes flip-top {
-  from {
-    transform: rotateX(0deg);
-  }
-
-  to {
-    transform: rotateX(-90deg);
-  }
-}
-
-@keyframes flip-bottom {
-  from {
-    transform: rotateX(90deg);
-  }
-
-  to {
-    transform: rotateX(0deg);
-  }
-}
-
-@utility animate-flip-top {
-  animation: flip-top 0.3s ease-in forwards;
-}
-
-@utility animate-flip-bottom {
-  animation: flip-bottom 0.3s ease-out 0.3s forwards;
 }
 
 /* ============================================================

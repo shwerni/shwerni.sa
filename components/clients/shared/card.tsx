@@ -23,6 +23,7 @@ interface CardProps extends VariantProps<typeof cardContainer> {
   src?: string;
   className?: string;
   variant?: "white" | "default" | "black";
+  // "blue" / "sky" kept as names for existing callers — both follow the brand theme
   bg?: "blue" | "default" | "sky";
 }
 
@@ -47,16 +48,16 @@ const Card: React.FC<CardProps> = ({
     default: {
       text: "text-white",
       icon: "text-white",
-      title: "text-[#84C2F6]",
+      title: "text-theme-300",
     },
     black: { text: "text-black", icon: "text-black", title: "text-black" },
   };
 
-  // background
+  // background — brand theme tokens (globals.css)
   const bgColors = {
-    blue: "bg-gradient-to-b from-[#0D61A6] to-[#D6DFEF]",
+    blue: "bg-linear-to-b from-theme-600 to-theme-100",
     default: "",
-    sky: "bg-[#D9EDFC]",
+    sky: "bg-theme-100",
   };
 
   const color = colors[variant];
@@ -108,7 +109,7 @@ const Card: React.FC<CardProps> = ({
           <h3
             className={cn(
               "text-base sm:text-xl font-semibold mb-2",
-              color.title
+              color.title,
             )}
           >
             {title}
