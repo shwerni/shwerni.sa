@@ -50,6 +50,14 @@ enum DiscountState {
   EXPIRED
 }
 
+enum WalletTransactionType {
+  REFUND            // credit: order amount refunded into the wallet
+  PAYMENT           // debit: order paid in full using the wallet
+  PARTIAL_PAYMENT   // debit: order paid partially using the wallet
+  ADJUSTMENT_CREDIT // manual credit added by an admin
+  ADJUSTMENT_DEBIT  // manual debit removed by an admin
+}
+
 model Payment {
   id           String         @id @default(cuid())
   pid          String?        @unique
@@ -89,17 +97,38 @@ model UsedCoupon {
 model Wallet {
   id           String   @id @default(cuid())
   status       Boolean  @default(true)
-  credit       Int
-  info         String[]
-  transactions Int[]
-  oids         Int[]
-  created_at   DateTime @default(now())
+  credit     Float    @default(0)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   // @relations
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[] 
 
   @@map("wallets")
+}
+
+model WalletTransaction {
+  id           String                @id @default(cuid())
+  type         WalletTransactionType
+  // always positive, direction comes from type
+  amount       Float
+  // wallet.credit right after this transaction was applied, for audit/debugging
+  balanceAfter Float
+  // pre-formatted arabic description, generated once at write time
+  description  String
+  created_at   DateTime              @default(now())
+
+  // @relations
+  walletId String
+  wallet   Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  orderId  Int?
+  order    Order? @relation(fields: [orderId], references: [oid])
+
+  @@index([walletId])
+  @@index([orderId])
+  @@map("wallet_transactions")
 }
 
 model Coupon {

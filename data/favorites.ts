@@ -2,38 +2,7 @@
 
 import prisma from "@/lib/database/db";
 import { Consultant } from "@/lib/generated/prisma/client";
-
-export async function toggleFavorite(userId: string, consultantId: number) {
-  // Check if the favorite already exists
-  const existing = await prisma.favorite.findUnique({
-    where: {
-      userId_consultantId: {
-        userId,
-        consultantId,
-      },
-    },
-  });
-
-  if (existing) {
-    await prisma.favorite.delete({
-      where: {
-        userId_consultantId: {
-          userId,
-          consultantId,
-        },
-      },
-    });
-    return false;
-  } else {
-    await prisma.favorite.create({
-      data: {
-        userId,
-        consultantId,
-      },
-    });
-    return true;
-  }
-}
+import { ConsultantItem } from "./consultant";
 
 export async function getFavorites(userId: string) {
   try {
@@ -73,3 +42,53 @@ export async function getFavorite(id: string, cid: number) {
     return false;
   }
 }
+
+/**
+ * flip favorite state for one consultant
+ * @returns true when now favorited, false when removed
+ */
+
+export const toggleFavorite = async (userId: string, cid: number) => {
+  const existing = await prisma.favorite.findUnique({
+    where: { userId_consultantId: { userId, consultantId: cid } },
+  });
+
+  if (existing) {
+    await prisma.favorite.delete({ where: { id: existing.id } });
+    return false;
+  }
+
+  try {
+    await prisma.favorite.create({ data: { userId, consultantId: cid } });
+    return true;
+  } catch (e) {
+    // lost a create race to a concurrent request, the row exists either way
+    if ((e as { code?: string }).code === "P2002") return true;
+    throw e;
+  }
+};
+
+// all consultants the given user has favorited, most recently added first
+export const getFavoriteConsultants = async (userId: string) => {
+  return prisma.$queryRaw<ConsultantItem[]>`
+SELECT
+  c.cid,
+  c.name,
+  c.image,
+  c.gender,
+  c.category,
+  c.rate,
+  c.cost30,
+  GREATEST(DATE_PART('year', AGE(NOW(), c.seniority))::int, 1) AS years
+
+FROM favorites f
+JOIN consultants c ON c.cid = f."consultantId"
+
+WHERE f."userId" = ${userId}
+AND c.status = true
+AND c."statusA" = 'PUBLISHED'
+AND c.approved = 'APPROVED'
+
+ORDER BY f.created_at DESC
+`;
+};

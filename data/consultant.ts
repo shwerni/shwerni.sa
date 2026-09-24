@@ -236,9 +236,8 @@ type ConsultantWithExtras = Consultant & {
 };
 
 // get consultant for consultant page
-export const getConsultant = async (cid: number) => {
+export const getConsultant = async (cid: number, userId?: string) => {
   try {
-    // get current times
     const consultant = await prisma.$queryRaw<ConsultantWithExtras[]>`
 SELECT
   c.*,
@@ -253,7 +252,13 @@ SELECT
   COALESCE(
     ARRAY_AGG(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL),
     '{}'
-  ) AS specialties
+  ) AS specialties,
+
+  EXISTS (
+    SELECT 1 FROM favorites f
+    WHERE f."consultantId" = c.cid
+    AND f."userId" = ${userId}
+  ) AS "isFavorite"
 
 FROM consultants c
 
@@ -274,10 +279,8 @@ AND c.approved = 'APPROVED'
 GROUP BY c.id, c.cid
 `;
 
-    // return
     return consultant[0] || null;
   } catch {
-    // return
     return null;
   }
 };

@@ -12,7 +12,7 @@ const ClearFilter = () => {
 
   // handle clear flters
   const clearFilters = () => {
-    router.push("/event"); // later
+    router.push("/freesessions");
   };
 
   return (

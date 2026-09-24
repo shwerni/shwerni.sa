@@ -21,5 +21,6 @@ export const GET = createGetRoute(async (request) => {
     name: user.name,
     phone: user.phone,
     phoneLockDays: cooldownDays(user.phoneChangedAt),
+    passwordLockDays: cooldownDays(user.passwordChangedAt),
   };
 });

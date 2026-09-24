@@ -11,12 +11,12 @@ import {
 // set this once you've copied the secret_token from Moyasar Dashboard → Settings →
 // Webhooks into your env; until then this soft-fails (skips verification) rather
 // than rejecting every event
-const MOYASAR_WEBHOOK_SECRET = process.env.MOYASAR_WEBHOOK_SECRET;
+const DASHBOARD_SECRET = process.env.DASHBOARD_SECRET;
 
 function isValidSecret(secret: unknown): boolean {
-  if (!MOYASAR_WEBHOOK_SECRET) return true;
+  if (!DASHBOARD_SECRET) return true;
   if (typeof secret !== "string") return false;
-  const expected = Buffer.from(MOYASAR_WEBHOOK_SECRET);
+  const expected = Buffer.from(DASHBOARD_SECRET);
   const actual = Buffer.from(secret);
   if (expected.length !== actual.length) return false;
   return timingSafeEqual(expected, actual);

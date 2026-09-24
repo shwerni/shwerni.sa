@@ -44,7 +44,7 @@ export async function recordMoyasarSettlement(params: {
   amountSar: number;
   settlementDate: Date;
   transactionCount: number;
-  proof: UploadedProof;
+  proof: UploadedProof | null;
   actor: { id: string; name: string; role: string };
 }) {
   const {
@@ -69,12 +69,14 @@ export async function recordMoyasarSettlement(params: {
         type: "INCOME",
         category: "GATEWAY_PAYOUT",
         title: "دفعة من ميسير",
-        description: `${marker} ${transactionCount} transaction(s) settled`,
+        description: proof
+          ? `${marker} ${transactionCount} transaction(s) settled`
+          : `${marker} ${transactionCount} transaction(s) settled — proof PDF missing, attach manually`,
         amount: amountSar,
         date: settlementDate,
-        proofUrl: proof.url,
-        proofKey: proof.key,
-        proofName: proof.name,
+        proofUrl: proof?.url ?? null,
+        proofKey: proof?.key ?? null,
+        proofName: proof?.name ?? null,
         createdById: actor.id,
         createdByName: actor.name,
         createdByRole: actor.role as never,
@@ -88,7 +90,9 @@ export async function recordMoyasarSettlement(params: {
         entityId: entry.id,
         action: "CREATE",
         changes: [{ field: "amount", from: null, to: amountSar }],
-        note: `Auto-created from Moyasar balance_transferred webhook (settlement ${settlementId})`,
+        note: proof
+          ? `Auto-created from Moyasar balance_transferred webhook (settlement ${settlementId})`
+          : `Auto-created from Moyasar balance_transferred webhook (settlement ${settlementId}) — proof PDF missing`,
         actorId: actor.id,
         actorName: actor.name,
         actorRole: actor.role as never,

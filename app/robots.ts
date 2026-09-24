@@ -15,7 +15,6 @@ export default function robots(): MetadataRoute.Robots {
         "/employees",
         "/sessions",
         "/brief",
-        "/event",
         "/collaborator",
       ],
     },

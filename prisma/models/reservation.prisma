@@ -63,6 +63,7 @@ model Order {
   reschedules    Reschedule[]
   refundRequests RefundRequest[]
   refunds        Refund[]
+  transactions WalletTransaction[] 
 
   @@map("orders")
 }
