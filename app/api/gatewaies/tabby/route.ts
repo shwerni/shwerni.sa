@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     await updateOrderStatus(payment.id, PaymentState.HOLD);
     // return
     return NextResponse.json({ success: false });
-  } catch (error) {
+  } catch {
     // return
     return NextResponse.json({ success: false });
   }

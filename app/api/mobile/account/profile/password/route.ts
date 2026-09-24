@@ -3,11 +3,11 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 // utils
-import { prisma } from "@/lib/prisma";
 import { HttpError } from "@/lib/api/http-error";
-import { requireMobileUser } from "@/lib/auth/mobile";
-import { createPostRoute } from "@/lib/api/route-factory";
-import { cooldownDays, cooldownMessage } from "@/lib/account/cooldown";
+import { createPostRoute } from "@/lib/api/routes/route-factory";
+import { requireMobileUser } from "@/lib/auth/require-mobile-user";
+import prisma from "@/lib/database/db";
+import { cooldownDays, cooldownMessage } from "@/utils/user";
 
 const schema = z.object({
   currentPassword: z.string().min(1),

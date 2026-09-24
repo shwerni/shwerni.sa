@@ -46,9 +46,9 @@ export async function moyasarSettlementWebhook(
   try {
     // never trust the webhook body's amount/urls directly — re-fetch server-to-server
     const settlement = await moyasarSettlementDetails(event.id);
-    if (!settlement || !settlement.invoice_url) {
+    if (!settlement) {
       await telegramAdmin(
-        `shwerni-error: moyasar settlement ${event.id} could not be verified or has no invoice`,
+        `shwerni-error: moyasar settlement ${event.id} could not be verified`,
       );
       return false;
     }
@@ -61,12 +61,35 @@ export async function moyasarSettlementWebhook(
       return false;
     }
 
-    const uploaded = await utapi.uploadFilesFromUrl(settlement.invoice_url);
-    if (!uploaded?.data) {
+    // the invoice PDF is a nice-to-have proof attachment, not a requirement for the
+    // ledger entry itself — if it's missing or the upload fails, record the entry
+    // anyway with no proof and flag it for someone to attach manually later
+    let proof: { url: string; key: string; name: string } | null = null;
+
+    if (settlement.invoice_url) {
+      try {
+        const uploaded = await utapi.uploadFilesFromUrl(settlement.invoice_url);
+        if (uploaded?.data) {
+          proof = {
+            url: uploaded.data.url,
+            key: uploaded.data.key,
+            name:
+              uploaded.data.name ?? `moyasar-settlement-${settlement.id}.pdf`,
+          };
+        } else {
+          await telegramAdmin(
+            `shwerni-warn: moyasar settlement ${event.id} — invoice PDF upload failed, ledger entry recorded without proof`,
+          );
+        }
+      } catch {
+        await telegramAdmin(
+          `shwerni-warn: moyasar settlement ${event.id} — invoice PDF upload threw, ledger entry recorded without proof`,
+        );
+      }
+    } else {
       await telegramAdmin(
-        `shwerni-error: failed to upload invoice PDF for moyasar settlement ${event.id}`,
+        `shwerni-warn: moyasar settlement ${event.id} — no invoice_url from Moyasar yet, ledger entry recorded without proof`,
       );
-      return false;
     }
 
     await recordMoyasarSettlement({
@@ -74,11 +97,7 @@ export async function moyasarSettlementWebhook(
       amountSar: Math.round((settlement.amount / 100) * 100) / 100,
       settlementDate: new Date(settlement.created_at),
       transactionCount: event.transaction_count,
-      proof: {
-        url: uploaded.data.url,
-        key: uploaded.data.key,
-        name: uploaded.data.name ?? `moyasar-settlement-${settlement.id}.pdf`,
-      },
+      proof,
       actor,
     });
 
@@ -99,7 +118,7 @@ export async function moyasarRefundWebhook(
     // re-verify the specific payment against the invoice, never trust the webhook body alone
     const invoice = await moyasarInvoiceDetails(payment.invoice_id);
     const verified = invoice?.payments.find((p) => p.id === payment.id);
-    if (!verified || verified.refunded <= 0) {
+    if (!invoice || !verified || verified.refunded <= 0) {
       await telegramAdmin(
         `shwerni-error: moyasar refund webhook could not be verified for payment=${payment.id}`,
       );
@@ -133,7 +152,7 @@ export async function moyasarRefundWebhook(
 
     // an invoice only reaches "refunded" status once fully refunded — a partial
     // refund leaves the invoice (and our PaymentState) at "paid"
-    if (invoice?.status === "refunded") {
+    if (invoice.status === "refunded") {
       await updateOrderStatus(payment.invoice_id, PaymentState.REFUND);
     }
 

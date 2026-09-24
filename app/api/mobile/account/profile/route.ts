@@ -12,7 +12,12 @@ export const GET = createGetRoute(async (request) => {
 
   const user = await prisma.user.findUnique({
     where: { id },
-    select: { name: true, phone: true, phoneChangedAt: true },
+    select: {
+      name: true,
+      phone: true,
+      phoneChangedAt: true,
+      passwordChangedAt: true,
+    },
   });
 
   if (!user) throw new HttpError("المستخدم غير موجود", 404);
