@@ -1,26 +1,11 @@
 "use server";
 import { NextResponse } from "next/server";
-import { timingSafeEqual } from "crypto";
 
 import { moyasarPayment } from "@/handlers/gatewaies/moyasar";
 import {
   moyasarRefundWebhook,
   moyasarSettlementWebhook,
 } from "@/handlers/gatewaies/moyasar-webhook";
-
-// set this once you've copied the secret_token from Moyasar Dashboard → Settings →
-// Webhooks into your env; until then this soft-fails (skips verification) rather
-// than rejecting every event
-const DASHBOARD_SECRET = process.env.DASHBOARD_SECRET;
-
-function isValidSecret(secret: unknown): boolean {
-  if (!DASHBOARD_SECRET) return true;
-  if (typeof secret !== "string") return false;
-  const expected = Buffer.from(DASHBOARD_SECRET);
-  const actual = Buffer.from(secret);
-  if (expected.length !== actual.length) return false;
-  return timingSafeEqual(expected, actual);
-}
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -29,13 +14,6 @@ export async function POST(request: Request) {
   // this is how payment_refunded, balance_transferred and every other event you
   // configured in the dashboard arrive — distinct from the raw invoice callback below
   if (typeof body.type === "string" && body.data) {
-    if (!isValidSecret(body.secret_token)) {
-      return NextResponse.json(
-        { success: false, message: "payment handler error: invalid secret" },
-        { status: 401 },
-      );
-    }
-
     try {
       switch (body.type) {
         case "payment_refunded": {
