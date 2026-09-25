@@ -122,7 +122,6 @@ export const saveConsultant = async (
     // qualified (bank changes do not affect review)
     const qualified =
       consultant.approved === ApprovalState.APPROVED &&
-      (image === "" || image === consultant.image) &&
       consultant.name === profile.name;
 
     // check ai
@@ -150,7 +149,7 @@ export const saveConsultant = async (
           name: profile.name,
           title: profile.title,
           gender: profile.gender,
-          image,
+          pendingImage: image && image !== consultant.image ? image : null,
           cv,
           edu,
           cert,

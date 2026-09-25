@@ -2,7 +2,7 @@
 import { z } from "zod";
 
 // schemas
-import {  ConsultantSchema } from "@/schemas";
+import { ConsultantSchema } from "@/schemas";
 
 // prisma types
 import {
@@ -116,7 +116,7 @@ export const getProfileFormDefaults = (
   cost45: owner?.cost45 ?? 0,
   cost60: owner?.cost60 ?? 0,
   // documents
-  image: owner?.image ?? "",
+  image: owner?.pendingImage ?? owner?.image ?? "",
   cv: owner?.cv ?? "",
   edu: owner?.edu ?? "",
   cert: owner?.cert ?? "",

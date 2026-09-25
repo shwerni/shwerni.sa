@@ -1,16 +1,9 @@
 "use client";
-// packages
-import { useFormContext, useWatch } from "react-hook-form";
-
 // components
 import { FormSection } from "./form-section";
 
 // schema
-import {
-  isCertRequired,
-  type DocumentField,
-  type ProfileFormValues,
-} from "@/schemas/consultant/profile";
+import { type DocumentField } from "@/schemas/consultant/profile";
 
 // icons
 import { FileText } from "lucide-react";
@@ -31,10 +24,10 @@ export function DocumentsSection({
   certAlwaysRequired,
   onUploadingChange,
 }: Props) {
-  const { control } = useFormContext<ProfileFormValues>();
-  const category = useWatch({ control, name: "category" });
+  // const { control } = useFormContext<ProfileFormValues>();
+  // const category = useWatch({ control, name: "category" });
   // same rule the schema enforces, so the badge never disagrees with validation
-  const certRequired = isCertRequired(category, certAlwaysRequired);
+  // const certRequired = isCertRequired(category, certAlwaysRequired);
 
   // shared props
   const shared = { author, disabled, onUploadingChange };
@@ -51,7 +44,7 @@ export function DocumentsSection({
           name="image"
           kind="image"
           label="الصورة الشخصية"
-          description="صورة حقيقية وواضحة، لا تُقبل الصور الرمزية. تظهر للعملاء"
+          description="صورة حقيقية وواضحة، لا تُقبل الصور الرمزية. تظهر للعملاء بعد اعتمادها من الإدارة"
           required={false}
         />
         <FileUploadField
