@@ -46,7 +46,7 @@ const CopyBtn = ({ label, copy, className }: Props) => {
         </>
       ) : (
         <>
-          <Copy className="px-1" /> {label}
+          <Copy className="px-1 size-5" /> {label}
         </>
       )}
     </Button>

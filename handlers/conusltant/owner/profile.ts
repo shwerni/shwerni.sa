@@ -13,6 +13,7 @@ import {
 
 // schemas
 import { ConsultantSchema } from "@/schemas";
+import { BankAccountSchema } from "@/schemas/consultant/iban";
 
 // prisma data
 import { CheckIsBlocked } from "@/data/blocked";
@@ -21,10 +22,11 @@ import { getTaxCommission } from "@/data/admin/settings/finance";
 
 // lib
 import prisma from "@/lib/database/db";
+import { checkSaudiIban } from "@/lib/iban";
 import { aiAcceptOwners } from "@/lib/api/ai/ai";
 import { sendReviewerNotification } from "@/lib/api/telegram/templates/owner";
 
-// save or create owner profile
+// save or create owner profile + bank account
 export const saveConsultant = async (
   author: string,
   phone: string,
@@ -38,51 +40,58 @@ export const saveConsultant = async (
   neducation: string[],
   preference: GenderPreference,
   ndate: string,
+  bank: z.infer<typeof BankAccountSchema>,
 ) => {
-  // get data
+  // validate profile
   const validatedFields = ConsultantSchema.safeParse(data);
+  if (!validatedFields.success)
+    return { state: false, message: "بيانات خاطئة" };
+  const profile = validatedFields.data;
 
-  // if data wrong
-  if (!validatedFields) return { state: false, message: "بيانات خاطئة" };
+  // validate bank; bankCode is derived here, never sent by the client
+  const validatedBank = BankAccountSchema.safeParse(bank);
+  if (!validatedBank.success)
+    return { state: false, message: "بيانات الحساب البنكي غير صحيحة" };
+  const ibanCheck = checkSaudiIban(validatedBank.data.iban);
+  if (!ibanCheck.ok) return { state: false, message: "رقم الآيبان غير صحيح" };
+  const bankData = {
+    iban: ibanCheck.iban,
+    bankCode: ibanCheck.bankCode,
+    holderName: validatedBank.data.holderName,
+  };
 
-  // if data validate
-  if (validatedFields.data) {
-    // check if blocked
-    const isBLocked = await CheckIsBlocked(phone);
+  // check if blocked
+  const isBLocked = await CheckIsBlocked(phone);
+  if (isBLocked) return { state: false, message: "هذا الحساب محظور" };
 
-    // vakidate
-    if (isBLocked) return { state: false, message: "هذا الحساب محظور" };
+  // get commisson and tax
+  const taxCommission = await getTaxCommission();
 
-    // get commisson and tax
-    const taxCommission = await getTaxCommission();
+  // try
+  try {
+    // get consultant if exist
+    const consultant = await getOwnerbyAuthor(author);
 
-    // try
-    try {
-      // get consultant if exist
-      const consultant = await getOwnerbyAuthor(author);
-
-      // if not exist
-      if (!consultant) {
-        // create consultant
-        const newOwner = await prisma.consultant.create({
+    // if not exist: create consultant + bank account together
+    if (!consultant) {
+      const newOwner = await prisma.$transaction(async (tx) => {
+        const created = await tx.consultant.create({
           data: {
             status: true,
             statusA: ConsultantState.HOLD,
             phone: phone,
-            name: data.name,
+            name: profile.name,
             userId: author,
-            title: data.title,
-            gender: data.gender,
-            category: data.category,
+            title: profile.title,
+            gender: profile.gender,
+            category: profile.category,
             image,
             cv,
             edu,
             cert,
-            cost30: data.cost30,
-            cost45: data.cost45,
-            cost60: data.cost60,
-            iban: data.iban,
-            bankName: data.bankName,
+            cost30: profile.cost30,
+            cost45: profile.cost45,
+            cost60: profile.cost60,
             commission: taxCommission?.commission,
             nabout,
             nexperiences,
@@ -92,37 +101,45 @@ export const saveConsultant = async (
           },
         });
 
-        // send notifications
-        await sendReviewerNotification(newOwner);
+        await tx.bankAccount.create({
+          data: { consultantId: created.cid, ...bankData },
+        });
 
-        // return
-        return {
-          consultant: newOwner,
-          state: true,
-          message: "تم انشاء الاعلان بنجاح",
-        };
-      }
+        return created;
+      });
 
-      // qualified
-      const qualified =
-        consultant.approved === ApprovalState.APPROVED &&
-        (image === "" || image === consultant.image) &&
-        consultant.name === data.name;
+      // send notifications
+      await sendReviewerNotification(newOwner);
 
-      // check ai
-      const acceptAi =
-        qualified &&
-        (await aiAcceptOwners(
-          data.nabout || "",
-          data.neducation.join("."),
-          data.nexperiences.join("."),
-        ));
+      // return
+      return {
+        consultant: newOwner,
+        state: true,
+        message: "تم انشاء الاعلان بنجاح",
+      };
+    }
 
-      // accept
-      const accept = acceptAi && qualified;
+    // qualified (bank changes do not affect review)
+    const qualified =
+      consultant.approved === ApprovalState.APPROVED &&
+      (image === "" || image === consultant.image) &&
+      consultant.name === profile.name;
 
-      // update current owner
-      const sdata = await prisma.consultant.update({
+    // check ai
+    const acceptAi =
+      qualified &&
+      (await aiAcceptOwners(
+        profile.nabout || "",
+        profile.neducation.join("."),
+        profile.nexperiences.join("."),
+      ));
+
+    // accept
+    const accept = acceptAi && qualified;
+
+    // update owner + upsert bank account together
+    const sdata = await prisma.$transaction(async (tx) => {
+      const updated = await tx.consultant.update({
         where: {
           userId: author,
         },
@@ -130,19 +147,17 @@ export const saveConsultant = async (
           status: true,
           statusA: accept ? ConsultantState.PUBLISHED : ConsultantState.HOLD,
           phone: phone,
-          name: data.name,
-          title: data.title,
-          gender: data.gender,
+          name: profile.name,
+          title: profile.title,
+          gender: profile.gender,
           image,
           cv,
           edu,
           cert,
-          category: data.category,
-          cost30: data.cost30,
-          cost45: data.cost45,
-          cost60: data.cost60,
-          iban: data.iban,
-          bankName: data.bankName,
+          category: profile.category,
+          cost30: profile.cost30,
+          cost45: profile.cost45,
+          cost60: profile.cost60,
           adminNote: "",
           nabout,
           nexperiences,
@@ -152,18 +167,26 @@ export const saveConsultant = async (
         },
       });
 
-      // return
-      return {
-        consultant: sdata,
-        state: true,
-        message: "تم حفظ البيانات بنجاح",
-      };
-    } catch {
-      return {
-        state: false,
-        message: "حدث حطأ ما برجاء المحاولة مرة اخري",
-      };
-    }
+      await tx.bankAccount.upsert({
+        where: { consultantId: updated.cid },
+        create: { consultantId: updated.cid, ...bankData },
+        update: bankData,
+      });
+
+      return updated;
+    });
+
+    // return
+    return {
+      consultant: sdata,
+      state: true,
+      message: "تم حفظ البيانات بنجاح",
+    };
+  } catch {
+    return {
+      state: false,
+      message: "حدث حطأ ما برجاء المحاولة مرة اخري",
+    };
   }
 };
 

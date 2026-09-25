@@ -9,7 +9,7 @@ import CoProfileForm from "@/components/legacy/consultants/owner/profile/form";
 import { userServer } from "@/lib/auth/server";
 
 // data
-import { getOwnerbyAuthor } from "@/data/consultant";
+import { getBankAccountByAuthor, getOwnerbyAuthor } from "@/data/consultant";
 
 export default async function Page() {
   // user
@@ -18,6 +18,8 @@ export default async function Page() {
   if (!user || !user.id || !user.phone) return <ErrorRefresh />;
   // get consultant page
   const consultant = await getOwnerbyAuthor(user.id);
+  // get consultant bank
+  const bankAccount = await getBankAccountByAuthor(user.id);
   // return
   return (
     <Section>
@@ -28,7 +30,12 @@ export default async function Page() {
         <ConsultantPopUp gender={consultant?.gender} name={consultant?.name} />
       )} */}
       {/* form */}
-      <CoProfileForm author={user.id} owner={consultant} phone={user.phone} />
+      <CoProfileForm
+        author={user.id}
+        owner={consultant}
+        phone={user.phone}
+        bankAccount={bankAccount}
+      />
     </Section>
   );
 }

@@ -46,25 +46,6 @@ export const ConsultantSchema = z.object({
   cost60: z.coerce.number().positive().safe().min(174, {
     message: "يجب أن تكون التكلفة 175 على الأقل",
   }),
-  // bank name
-  bankName: z
-    .string()
-    .trim()
-    .min(8, {
-      message: "يجب ان يتكون من 8 احرف علي الاقل",
-    })
-    .max(40, {
-      message: "40 حرف كحد اقصي",
-    }),
-  // bank iban number
-  iban: z
-    .string()
-    .min(24, {
-      message: "يجب ان يتكون من 24 احرف علي الاقل",
-    })
-    .max(40, {
-      message: "40 حرف كحد اقصي",
-    }),
 
   // new data
   nabout: z.string().max(150, "النبذة القصيرة لا تتجاوز 150 حرف").optional(),

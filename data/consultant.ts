@@ -967,3 +967,13 @@ export async function getDiscountedConsultants(
 
   return consultants;
 }
+
+export const getBankAccountByAuthor = async (author: string) => {
+  try {
+    return await prisma.bankAccount.findFirst({
+      where: { consultant: { userId: author } },
+    });
+  } catch {
+    return null;
+  }
+};

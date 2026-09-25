@@ -58,8 +58,8 @@ model Consultant {
   cost30        Float
   cost45        Float
   cost60        Float
-  iban          String
-  bankName      String
+  iban          String?
+  bankName      String?
   category      Categories
   image         String?
   cv            String?
@@ -92,7 +92,8 @@ model Consultant {
   articleComments          ArticleComment[]
   packages                 Package[]
   questions                Question[]
-
+  bankAccount              BankAccount?
+  
   @@index([sort_key])
   @@index([status, statusA, approved, sort_key])
   @@map("consultants")
@@ -195,4 +196,19 @@ model ConsultantOath {
   consultant Consultant @relation(fields: [consultantId], references: [cid])
 
   @@map("consultant_oaths")
+}
+
+model BankAccount {
+  consultantId Int      @id
+  iban         String
+  bankCode     String
+  holderName   String?
+    created_at   DateTime @default(now())
+  updated_at   DateTime @default(now()) @updatedAt
+
+  // @relations
+  consultant Consultant @relation(fields: [consultantId], references: [cid], onDelete: Cascade)
+
+  @@index([iban])
+  @@map("bank_accounts")
 }
