@@ -724,11 +724,12 @@ export const ownerExistbyAuthor = async (userId: string) => {
 // get consultant profile by author
 export const getOwnerbyAuthor = async (userId: string) => {
   try {
-    const exist = await prisma.consultant.findFirst({
+    const exist = await prisma.consultant.findUnique({
       where: { userId },
     });
     return exist;
-  } catch {
+  } catch (error){
+   console.log(error)
     return null;
   }
 };

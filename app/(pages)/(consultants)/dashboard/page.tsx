@@ -20,6 +20,7 @@ export default async function Page() {
   const consultant = await getOwnerbyAuthor(user.id);
   // get consultant bank
   const bankAccount = await getBankAccountByAuthor(user.id);
+
   // return
   return (
     <Section>

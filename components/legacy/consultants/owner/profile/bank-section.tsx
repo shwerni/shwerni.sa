@@ -19,7 +19,7 @@ import { FormSection } from "./form-section";
 import { checkSaudiIban, formatIbanInput } from "@/lib/iban";
 
 // constants
-import { SAUDI_BANKS } from "@/constants/saudi-banks";
+import { getSaudiBank } from "@/constants/saudi-banks";
 
 // schema
 import { type ProfileFormValues } from "@/schemas/consultant/profile";
@@ -39,7 +39,7 @@ export function BankSection({ disabled }: Props) {
   // detect bank live from the IBAN's embedded SAMA code
   const iban = useWatch({ control, name: "iban" }) ?? "";
   const ibanCheck = checkSaudiIban(iban);
-  const bank = ibanCheck.ok ? SAUDI_BANKS[ibanCheck.bankCode] : null;
+  const bank = ibanCheck.ok ? getSaudiBank(ibanCheck.bankCode) : null;
 
   return (
     <FormSection

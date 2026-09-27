@@ -32,16 +32,15 @@ export function getBankCodeFromIban(iban: string): SaudiBankCode | null {
 }
 
 export type IbanCheck =
-  | { ok: true; iban: string; bankCode: SaudiBankCode }
-  | { ok: false; reason: "format" | "checksum" | "unknown_bank" };
+  | { ok: true; iban: string; bankCode: string }
+  | { ok: false; reason: "format" | "checksum" };
 
 export function checkSaudiIban(input: string): IbanCheck {
   const iban = normalizeIban(input);
   if (!SA_IBAN_REGEX.test(iban)) return { ok: false, reason: "format" };
   if (!hasValidIbanChecksum(iban)) return { ok: false, reason: "checksum" };
-  const bankCode = getBankCodeFromIban(iban);
-  if (!bankCode) return { ok: false, reason: "unknown_bank" };
-  return { ok: true, iban, bankCode };
+  // any SAMA code is accepted; unknown ones display as "other bank"
+  return { ok: true, iban, bankCode: iban.slice(4, 6) };
 }
 
 // Display: "SA46 8000 0543 6080 1125 8781"
