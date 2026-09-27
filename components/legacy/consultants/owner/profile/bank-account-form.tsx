@@ -34,7 +34,7 @@ import { saveBankAccount } from "@/handlers/conusltant/owner/bank-account";
 
 // utils / constants
 import { checkSaudiIban, formatIban, formatIbanInput } from "@/lib/iban";
-import { SAUDI_BANKS } from "@/constants/saudi-banks";
+import { getSaudiBank } from "@/constants/saudi-banks";
 
 // icons
 import { Landmark, Save } from "lucide-react";
@@ -61,7 +61,7 @@ export function BankAccountForm({ bankAccount }: Props) {
   // detect bank live from the IBAN's embedded SAMA code
   const iban = useWatch({ control: form.control, name: "iban" });
   const ibanCheck = checkSaudiIban(iban ?? "");
-  const bank = ibanCheck.ok ? SAUDI_BANKS[ibanCheck.bankCode] : null;
+  const bank = ibanCheck.ok ? getSaudiBank(ibanCheck.bankCode) : null;
 
   // on submit
   function onSubmit(data: z.infer<typeof BankAccountSchema>) {
