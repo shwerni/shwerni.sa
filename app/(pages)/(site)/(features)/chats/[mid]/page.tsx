@@ -9,6 +9,7 @@ import { getChatMeeting } from "@/data/chats";
 
 // prisma types
 import { PaymentState } from "@/lib/generated/prisma/enums";
+import UploadThingWrapper from "@/components/wrappers/uploadthing";
 
 // props
 interface Props {
@@ -44,21 +45,23 @@ export default async function MeetingChatPage({ params, searchParams }: Props) {
   const consultant = meeting.orders.consultant;
 
   return (
-    <ChatClient
-      mid={mid}
-      session={meeting.session}
-      date={meeting.date}
-      username={meeting.orders.name}
-      time={meeting.time}
-      orderOid={meeting.orders.oid}
-      consultant={{
-        cid: consultant.cid,
-        name: consultant.name,
-        image: consultant.image,
-        gender: consultant.gender,
-      }}
-      participantId={participantId}
-      senderRole={currentParticipant.role}
-    />
+    <UploadThingWrapper>
+      <ChatClient
+        mid={mid}
+        session={meeting.session}
+        date={meeting.date}
+        username={meeting.orders.name}
+        time={meeting.time}
+        orderOid={meeting.orders.oid}
+        consultant={{
+          cid: consultant.cid,
+          name: consultant.name,
+          image: consultant.image,
+          gender: consultant.gender,
+        }}
+        participantId={participantId}
+        senderRole={currentParticipant.role}
+      />
+    </UploadThingWrapper>
   );
 }

@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 
 // components
+import Footer from "@/components/clients/footer";
 import Header from "@/components/legacy/consultants/header";
 import RoleError from "@/components/legacy/layout/zErrors/auth/role";
 import ConsultantOath from "@/components/legacy/consultants/owner/oath";
@@ -16,9 +17,9 @@ import { UserRole } from "@/lib/generated/prisma/enums";
 
 // prisma data
 import { getUserById } from "@/data/user";
-import { getAuthStateById } from "@/data/admin/tools/oath";
 import { getOwnerbyAuthor } from "@/data/consultant";
-import Footer from "@/components/clients/footer";
+import { getAuthStateById } from "@/data/admin/tools/oath";
+import UploadThingWrapper from "@/components/wrappers/uploadthing";
 
 // meta data seo
 export const metadata: Metadata = {
@@ -35,38 +36,42 @@ export default async function RootLayout({
   const user = await userServer();
   // if user not logged in
   if (!user || !user.id) return <WrongPage />;
-  // is user verified
-  const isVerified = await getUserById(user?.id ?? "");
+
+  // role comes from the session token — check it before any db query,
+  // so non-consultants get the error page without hitting the database
+  if (user.role !== UserRole.OWNER) return <RoleError role={UserRole.OWNER} />;
+
+  // the three lookups only depend on the user id, so run them in parallel
+  const [dbUser, oath, consultant] = await Promise.all([
+    getUserById(user.id),
+    getAuthStateById(user.id),
+    getOwnerbyAuthor(user.id),
+  ]);
+
   // if not verified
-  if (!isVerified?.phoneVerified)
-    return <PleaseVerify phone={isVerified?.phone ?? ""} />;
-  // check oath acceptance
-  const oath = await getAuthStateById(user.id);
-  // consultant exist
-  const consultant = await getOwnerbyAuthor(user.id);
-  // if consulant
-  if (user?.role === UserRole.OWNER)
-    return (
-      <main className="flex-1 flex flex-col justify-between max-w-7xl min-h-screen m-auto">
+  if (!dbUser?.phoneVerified)
+    return <PleaseVerify phone={dbUser?.phone ?? ""} />;
+
+  return (
+    <main className="flex-1 flex flex-col justify-between max-w-7xl min-h-screen m-auto">
+      {/* uplaod thing */}
+      <UploadThingWrapper>
         {/* dashboard */}
         <div>
           {/* header */}
           <Header />
           {/* children */}
-          {
-            !consultant ? (
-              children
-            ) : oath ? (
-              children
-            ) : (
-              <ConsultantOath id={user.id} />
-            )
-          }
+          {!consultant ? (
+            children
+          ) : oath ? (
+            children
+          ) : (
+            <ConsultantOath id={user.id} />
+          )}
         </div>
-        {/* footer */}
-        <Footer />
-      </main>
-    );
-  // erorr page for user
-  return <RoleError role={UserRole.OWNER} />;
+      </UploadThingWrapper>
+      {/* footer */}
+      <Footer />
+    </main>
+  );
 }

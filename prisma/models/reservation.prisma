@@ -64,7 +64,9 @@ model Order {
   refundRequests RefundRequest[]
   refunds        Refund[]
   transactions WalletTransaction[] 
-
+  bankTransferRequest BankTransferRequest?
+  financeEntries      FinanceEntry[]
+  
   @@map("orders")
 }
 

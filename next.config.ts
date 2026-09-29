@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
       { source: "/available", destination: "/discover", permanent: true },
       { source: "/privacy", destination: "/terms", permanent: true },
 
+      // old/bot-generated url — redirect at the edge so it never renders a page
+      { source: "/index", destination: "/", permanent: true },
+
       // singular → plural
       { source: "/freesession", destination: "/freesessions", permanent: true },
       {

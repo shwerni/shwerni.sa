@@ -1,4 +1,9 @@
 
+enum BankTransferRequestState {
+  PENDING
+  APPROVED
+  REJECTED
+}
 
 enum RefundRequestState {
     PENDING
@@ -30,15 +35,9 @@ enum FinanceCategory {
     GATEWAY_PAYOUT
     CONSULTANT_PAYOUT
     SALES
+    ORDER_TRANSACTION 
     INVESTMENT
     OTHER
-}
-
-enum FinanceLogEntity {
-    ORDER
-    REFUND
-    REFUND_REQUEST
-    ENTRY
 }
 
 enum FinanceLogAction {
@@ -54,6 +53,14 @@ enum InsightTrigger {
   SCHEDULED // 24h staleness check on page load
   BIG_CHANGE // a tracked metric moved past its threshold since the last report
   MANUAL // someone clicked "regenerate" by hand
+}
+
+enum FinanceLogEntity {
+  ORDER
+  REFUND
+  REFUND_REQUEST
+  ENTRY
+  BANK_TRANSFER_REQUEST
 }
 
 // refund ticket — can be opened by admin, manager, accountant or customer service
@@ -142,6 +149,13 @@ model FinanceEntry {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
+// @ relations
+ // the order this entry paid for (bank transfers) — optional, most entries have none
+  orderId Int?
+  order   Order? @relation(fields: [orderId], references: [oid], onDelete: SetNull)
+
+  @@index([orderId])
+
     @@index([date])
     @@index([type, category])
     @@map("finance_entries")
@@ -197,4 +211,57 @@ model FinanceInsightReport {
 
   @@index([generatedAt])
   @@map("finance_insight_reports")
+}
+
+// a client paid by bank transfer — customer service submits the order details
+// and the transfer proof; the order and ledger entry are created only on approval
+model BankTransferRequest {
+  id    String                   @id @default(cuid())
+  btid  Int                      @unique @default(autoincrement())
+  state BankTransferRequestState @default(PENDING)
+
+  // client
+  clientName  String
+  clientPhone String
+  author      String @default("temp") // user id when the client has an account
+
+  // session — same formats as Meeting (date "yyyy-MM-dd", time, duration "30" | "45" | "60")
+  consultantId Int
+  consultant   Consultant @relation(fields: [consultantId], references: [cid])
+  duration     String
+  date         String
+  time         String
+  meetingDone  Boolean    @default(false)
+  notify       Boolean    @default(false)
+
+  // transfer — amount is what reached the bank (after tax), as the client sent it
+  amount        Float
+  transferredAt DateTime
+  bankReference String?
+  proofUrl      String
+  proofKey      String
+  proofName     String
+  note          String?  @db.Text
+
+  // actor snapshots (plain values so history survives user changes)
+  requestedById   String
+  requestedByName String
+  requestedByRole UserRole
+
+  reviewedById   String?
+  reviewedByName String?
+  reviewedByRole UserRole?
+  reviewedAt     DateTime?
+  reviewNote     String?   @db.Text
+
+  // result of approval
+  orderId Int?   @unique
+  order   Order? @relation(fields: [orderId], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([state, createdAt])
+  @@index([consultantId])
+  @@map("bank_transfer_requests")
 }

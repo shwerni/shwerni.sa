@@ -39,10 +39,10 @@ const ConsultantsCarousel = ({ consultants }: Props) => {
       opts={{ loop: true, direction: "rtl" }}
     >
       <CarouselContent>
-        {consultants.map((i, index) => (
-          <CarouselItem key={index} className="max-w-76.25">
+        {consultants.map((i) => (
+          <CarouselItem key={i.cid} className="max-w-76.25">
             {/* conultant card data  */}
-            <Link href={`/consultants/${i.cid}`}>
+            <Link href={`/consultants/${i.cid}`} prefetch={false}>
               <ConsultantCard
                 consultant={i}
                 //   favorites={favorites}

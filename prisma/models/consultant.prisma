@@ -58,8 +58,6 @@ model Consultant {
   cost30        Float
   cost45        Float
   cost60        Float
-  iban          String?
-  bankName      String?
   category      Categories
   image         String?
   pendingImage  String?
@@ -94,7 +92,8 @@ model Consultant {
   packages                 Package[]
   questions                Question[]
   bankAccount              BankAccount?
-  
+    bankTransferRequests BankTransferRequest[]
+    
   @@index([sort_key])
   @@index([status, statusA, approved, sort_key])
   @@map("consultants")

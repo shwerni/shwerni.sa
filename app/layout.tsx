@@ -1,6 +1,4 @@
 // React & Next
-import { Suspense } from "react";
-import { connection } from "next/server";
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Arabic } from "next/font/google";
 
@@ -18,11 +16,6 @@ import { Toaster } from "@/components/ui/sonner";
 
 // google recaptcha
 import ReCaptchaWrapper from "@/components/wrappers/recaptcha";
-
-// upload thing
-import { extractRouterConfig } from "uploadthing/server";
-import { ourFileRouter } from "@/app/api/uploadthing/core";
-import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 
 // scripts
 import MetaPixel from "@/components/legacy/layout/scripts/ads/metaPixel";
@@ -56,11 +49,6 @@ export const viewport: Viewport = {
   colorScheme: "light",
 };
 
-async function UTSSR() {
-  await connection();
-  return <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />;
-}
-
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -93,10 +81,6 @@ export default async function RootLayout({
       <body className={font.className}>
         <ReCaptchaWrapper>
           <main className="max-w-437.5 mx-auto">
-            {/* uplaod thing */}
-            <Suspense>
-              <UTSSR />
-            </Suspense>
             {/* top loader */}
             <NextTopLoader />
             {/* nuqs adaptar */}
