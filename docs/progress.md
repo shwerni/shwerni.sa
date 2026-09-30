@@ -319,3 +319,29 @@ Files: `app/api/gatewaies/moyasar/route.ts`, `handlers/gatewaies/moyasar.ts`, `l
 - Guest chat link (`/chats/[mid]?participant=…`): attach an image and a PDF; both upload and send.
 - Consultant chat from `/dashboard/chats/[mid]`: attachment uploads.
 - The same page with a wrong `participant` value: the page 404s, and a direct UploadThing request with a wrong token is rejected.
+
+## 2026-09-30 · Step 0 follow-up, item 5: getPaidPast3Days
+
+**Before:** every home page visitor received, for up to 30 paid orders from the last 3 days, the real order `id`, the client's full `name`, and the consultant's `name` and `category`. The banner masked the name only in the browser.
+
+**Files changed**
+
+- `data/order/reserveation.ts`: selects `id`, `name`, `consultant.name`, and returns:
+  - `id`: an opaque key, the first 16 characters of the sha256 of the order id. It's stable, so the "seen" tracking keeps working, but it isn't the order id.
+  - `name`: already masked on the server with the banner's own rule (first and last letter, `*` between). The banner masks it again, and that gives the same text.
+  - `consultant.name`
+  - `category` is no longer returned: it was copied into the store but never rendered.
+- `hooks/zustand/order-notification.ts`: `category` made optional in `RawOrder` / `NotifEntry` (type only).
+
+**Fields that remain in the browser:** opaque key, masked client name, consultant name. No phones, emails or ids, and no full client names.
+
+**Side effect:** "seen" ids stored before this change are the old raw order ids, so a returning visitor may see recent notifications once more.
+
+**Verified**
+
+- `npm run build`: passes.
+
+**Needs manual testing on the preview**
+
+- The home page banner shows the same masked name and consultant as before, and doesn't repeat an order within a session.
+- In the network response of the server action, there's no full client name and no order id.

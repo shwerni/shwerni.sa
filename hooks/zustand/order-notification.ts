@@ -14,17 +14,18 @@ const PALETTES = [
 export type Palette = typeof PALETTES[number];
 const EMOJIS = ['🎉','✨','🌟','💫','🎊','🙌','👏','🔥','💪','🤩'] as const;
 
+// id is an opaque key (not the order id) and name is already masked on the server
 export type RawOrder = {
   id: string;
   name: string;
-  consultant: { name: string; category: string };
+  consultant: { name: string; category?: string };
 };
 
 export type NotifEntry = {
   orderId: string;
   clientName: string;
   consultantName: string;
-  category: string;
+  category?: string;
   emoji: string;
   palette: Palette;
   isRealtime: boolean;
