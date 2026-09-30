@@ -40,11 +40,15 @@ import {
 } from "@/data/programs";
 import {
   createMeetingMessage as createMeetingMessageData,
+  getMeetingAccess,
   toggleUserBlock as toggleUserBlockData,
 } from "@/data/chats";
 
 // lib
 import { isConsultant, ownConsultantCid, sessionUser } from "@/lib/auth/guards";
+
+// prisma types
+import { UserRole } from "@/lib/generated/prisma/enums";
 
 // ---------- articles ----------
 
@@ -212,16 +216,39 @@ export async function createNewProgram(
   return createNewProgramData(...args);
 }
 
-// ---------- chats (participant checks are added in tier 5) ----------
+// ---------- chats ----------
 
+// participants only (checked inside by participantId). the sender role always comes from
+// that participant record, so a client can't post as the consultant
 export async function createMeetingMessage(
-  ...args: Parameters<typeof createMeetingMessageData>
+  ...[payload]: Parameters<typeof createMeetingMessageData>
 ) {
-  return createMeetingMessageData(...args);
+  return createMeetingMessageData({ ...payload, sender: undefined });
 }
 
+// the meeting's consultant only: either logged in as that consultant, or holding the
+// consultant's participant token. participantId is an optional extra argument
 export async function toggleUserBlock(
-  ...args: Parameters<typeof toggleUserBlockData>
+  ...[mid, shouldBlock, participantId]: [
+    ...Parameters<typeof toggleUserBlockData>,
+    participantId?: string,
+  ]
 ) {
-  return toggleUserBlockData(...args);
+  const access = await getMeetingAccess(mid);
+  if (!access) return { error: "Meeting not found" };
+
+  const user = await sessionUser();
+  const isMeetingConsultant =
+    !!user && access.orders.consultant.userId === user.id;
+  const isOwnerParticipant =
+    !!participantId &&
+    access.participants.some(
+      (p) => p.participant === participantId && p.role === UserRole.OWNER,
+    );
+
+  // another meeting looks exactly like a missing one
+  if (!isMeetingConsultant && !isOwnerParticipant)
+    return { error: "Meeting not found" };
+
+  return toggleUserBlockData(mid, shouldBlock);
 }

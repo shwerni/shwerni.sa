@@ -379,3 +379,20 @@ export async function getChatList(author: string, role: UserRole) {
     return null;
   }
 }
+
+// who may act in a meeting chat: its participants (by their random token) and its consultant
+export async function getMeetingAccess(mid: string) {
+  if (!mid) return null;
+
+  try {
+    return await prisma.meeting.findUnique({
+      where: { mid },
+      select: {
+        participants: { select: { participant: true, role: true } },
+        orders: { select: { consultant: { select: { userId: true } } } },
+      },
+    });
+  } catch {
+    return null;
+  }
+}

@@ -35,10 +35,10 @@ export const ourFileRouter = {
       // !!! Whatever is returned here is sent to the clientside `onClientUploadComplete` callback
       return { uploadedBy: metadata.userId };
     }),
-  // chat
+  // chat: open to guests (chat links work without login), so types, size and count stay tight
   chatAttachment: f({
-    image: { maxFileSize: "8MB" },
-    pdf: { maxFileSize: "16MB" },
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
+    pdf: { maxFileSize: "16MB", maxFileCount: 1 },
   })
     .middleware(async () => {
       return {};

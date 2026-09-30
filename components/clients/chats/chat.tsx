@@ -122,7 +122,7 @@ export default function ChatClient({
   // swr polling - Properly typed
   const { data, mutate } = useSWR<
     Omit<MeetingData, "messages"> & { blocked: boolean; messages: Messages[] }
-  >(`/api/meetings/${mid}/chat`, fetcher, {
+  >(`/api/meetings/${mid}/chat?participant=${encodeURIComponent(participantId)}`, fetcher, {
     refreshInterval: 7000,
     revalidateOnFocus: true,
     revalidateOnReconnect: true,
@@ -166,7 +166,7 @@ export default function ChatClient({
     if (!data) return;
     setIsTogglingBlock(true);
     try {
-      await toggleUserBlock(mid, !data.blocked);
+      await toggleUserBlock(mid, !data.blocked, participantId);
       await mutate();
       scrollToBottom("smooth");
     } finally {

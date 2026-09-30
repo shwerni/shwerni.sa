@@ -140,3 +140,54 @@ None of these links carries a token, so there is nothing to match against a reco
 - Consultant dashboard orders list by month.
 - Home page recent-orders notification.
 - Moyasar and Tabby payment callbacks, cron cancel-orders, payment cancel/failed pages (they call `updateOrderStatus` from server code).
+
+## 2026-09-30 · Step 0 hotfix, tier 5: open routes
+
+**Files changed**
+
+- `app/api/meetings/[mid]/chat/route.ts`: requires `?participant=` to be a participant token of that meeting, the same rule as the `/chats/[mid]` page. Otherwise it returns 404 `"Meeting not found"`. The response no longer includes any participant's `participant` token.
+- `app/api/meetings/chats/route.ts`: author and role come from `userServer()`; the `?author=` / `?role=` query is ignored. No session returns 401. `otherParticipantId` is returned as `null` (the list never used it, and it is the other party's token).
+- `app/api/pusher/auth/route.ts`: the user comes from `userServer()`; the `userId` form field is ignored.
+- `app/api/uploadthing/delete/route.ts`: requires `x-dashboard-secret` to equal `DASHBOARD_SECRET` (`timingSafeEqual`; an unset secret never matches). Nothing in this codebase calls the route; `lib/upload/actions.ts` `deleteImageAdmin` has no callers.
+- `app/api/uploadthing/core.ts`: `chatAttachment` stays open to guests. It already allowed only image (8 MB) and PDF (16 MB); `maxFileCount: 1` added to both. The chat input also accepts `.doc/.xls/.txt`, which the router already rejected before this change.
+- `data/chats.ts`: new `getMeetingAccess(mid)` (participant tokens with roles, plus the consultant's userId).
+- `actions/site.ts`:
+  - `createMeetingMessage` drops the caller's `sender`, so the role always comes from the participant record.
+  - `toggleUserBlock(mid, shouldBlock, participantId?)` requires the meeting's consultant: either a session as that consultant, or the consultant's participant token. Otherwise it returns `{ error: "Meeting not found" }`. The optional third argument is the only signature change in the hotfix.
+- `components/clients/chats/chat.tsx`, `components/clients/chats/list/chat.tsx`: the SWR URL carries `?participant=`, and `toggleUserBlock` gets `participantId`. No markup changes.
+
+**Verified**
+
+- `npm run build`: passes.
+- Manifest: 70 functions. Outside `actions/`: the 15 `"use cache"` registrations and the skipped `dashboard/programs/[prid]` page.
+
+**Needs manual testing in the browser**
+
+- Guest and consultant chat via `/chats/[mid]?participant=…`: messages load, send, attachments upload, block and unblock (consultant).
+- Dashboard chats list and `/dashboard/chats/[mid]`.
+- Consultant online presence (pusher auth) while logged in.
+- If the dashboard codebase calls `/api/uploadthing/delete`, it must now send `x-dashboard-secret`.
+
+## Payments: proposal only (not applied)
+
+**Tabby webhook** (`app/api/gatewaies/tabby/route.ts`, `handlers/gatewaies/tabby.ts`, `lib/api/gatewaies/tabby.ts`):
+
+1. The route ignores the body's `status` and `amount` and calls `tabbyPaymentDetails(payment.id)` server-to-server.
+2. If Tabby reports the payment `AUTHORIZED` and its amount equals the order's `payment.total` (tax included), call `tabbyPayment(pid, verifiedAmount)`.
+3. `capturePayment` returns `true` only when `response.ok`, and `false` on non-2xx or on a throw.
+4. `tabbyPayment` sets PAID only when the capture returns `true`. Otherwise it sets HOLD and calls `telegramAdmin` with the pid.
+5. Any other verified status sets HOLD, as today but only after verification. An unverifiable payment changes nothing and alerts `telegramAdmin`.
+
+**Payment cancel page** (`app/(pages)/(site)/(sub-pages)/payment/cancel/page.tsx`):
+
+1. Set REFUSED only when there is a session, `order.author === user.id`, and `order.payment.payment === PaymentState.NEW`. The enum has no PENDING; NEW is the unpaid state.
+2. Otherwise render the same page without changing any status.
+3. Effect to confirm: guests (author `"temp"`) and paid orders are no longer changed from this page. Stale NEW orders are still cleared by `cron/cancel-orders`.
+
+## Step 0 status
+
+Tiers 1–5 are committed. The item "Hotfix Critical and High functions from section 1 and deploy" in section 9 is not ticked:
+
+- Deploying is outside what I'm allowed to do.
+- Two things are still open: the skipped `dashboard/programs/[prid]` page (exposes only its own page component) and the payments proposal above.
+- The manifest check in CLAUDE.md needs the corrected pattern noted in tier 1.
