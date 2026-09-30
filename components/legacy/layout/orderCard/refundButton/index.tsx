@@ -20,7 +20,7 @@ import LoadingBtn from "@/components/legacy/layout/loadingBtn";
 import { findTime, totalAfterTax } from "@/utils";
 
 // prisma data
-import { orderStatusRefund } from "@/data/order/reserveation";
+import { orderStatusRefund } from "@/actions/order";
 
 // prisma types
 import { PaymentState } from "@/lib/generated/prisma/enums";

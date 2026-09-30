@@ -22,7 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import OrderCard from "@/components/legacy/layout/orderCard";
 
 // prisma data
-import { getPaidOwnersOrdersByAuthorAndMonth } from "@/data/order/reserveation";
+import { getPaidOwnersOrdersByAuthorAndMonth } from "@/actions/order";
 
 // prisma types
 
