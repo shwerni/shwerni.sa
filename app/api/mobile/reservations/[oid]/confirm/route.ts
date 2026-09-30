@@ -5,7 +5,7 @@ import { NextRequest } from "next/server";
 import { requireMobileUser } from "@/lib/auth/require-mobile-user";
 import { createPostRoute } from "@/lib/api/routes/route-factory";
 import prisma from "@/lib/database/db";
-import { orderChargeTotal } from "@/utils/admin/payments";
+import { withTax } from "@/utils/tax";
 
 // prisma types
 import { PaymentMethod, PaymentState } from "@/lib/generated/prisma/enums";
@@ -84,7 +84,7 @@ export const POST = createPostRoute<PaymentResultResponse, { oid: string }>(
       const result =
         order.payment.method === PaymentMethod.tabby
           ? await verifyTabbyPayment(pid)
-          : await verifyMoyasarPayment(pid, orderChargeTotal(order.payment), order.oid);
+          : await verifyMoyasarPayment(pid, withTax(order.payment.total), order.oid);
 
       console.log(`[payment-result] gateway returned:`, result);
 

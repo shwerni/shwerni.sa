@@ -7,7 +7,7 @@ import { requireMobileUser } from "@/lib/auth/require-mobile-user";
 import { createPostRoute } from "@/lib/api/routes/route-factory";
 import prisma from "@/lib/database/db";
 import { zencryption } from "@/utils/admin/encryption";
-import { orderChargeTotal } from "@/utils/admin/payments";
+import { withTax } from "@/utils/tax";
 import { Reservation } from "@/types/admin";
 import { tabbyBody } from "@/lib/api/gatewaies/tabby";
 
@@ -31,7 +31,7 @@ export const POST = createPostRoute<
   const payload = await tabbyBody(
     order as Reservation,
     // same tax-inclusive charge as web
-    String(orderChargeTotal(order.payment)),
+    String(withTax(order.payment.total)),
     zid,
   );
 

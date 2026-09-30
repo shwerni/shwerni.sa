@@ -15,7 +15,7 @@ import { tabbyPaymentDetails } from "@/lib/api/gatewaies/tabby";
 import { telegramAdmin } from "@/lib/api/telegram/telegram";
 
 // utils
-import { orderChargeTotal } from "@/utils/admin/payments";
+import { withTax } from "@/utils/tax";
 
 // prisma types
 import { PaymentState } from "@/lib/generated/prisma/enums";
@@ -58,8 +58,8 @@ export async function POST(request: Request) {
 
     // authorized: capture only when tabby's amount matches what this order charged
     if (status === "authorized") {
-      // the same function Pay charges with
-      const expected = orderChargeTotal(payment);
+      // the same calculation Pay charges with
+      const expected = withTax(payment.total);
       const amountMatches =
         Number(details.amount) === expected && details.currency === "SAR";
 

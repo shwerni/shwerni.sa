@@ -13,7 +13,7 @@ import {
 import { onPaymentSuccess } from "@/handlers/admin/order/payment";
 
 // utils
-import { totalAfterTax } from "@/utils";
+import { withTax } from "@/utils/tax";
 import { dateTimeToString } from "@/utils/time";
 
 // arabic description for a transaction, one place so every writer matches
@@ -46,7 +46,8 @@ export const addWalletCredit = async (
   total: number,
   tax: number,
 ) => {
-  const fTotal = Number(totalAfterTax(total, tax));
+  // refund credit uses the same tax calculation as the charge
+  const fTotal = withTax(total);
 
   try {
     return await prisma.$transaction(async (tx) => {

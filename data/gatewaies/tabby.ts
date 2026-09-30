@@ -3,7 +3,7 @@ import "server-only";
 import prisma from "@/lib/database/db";
 
 // utils
-import { totalAfterTax } from "@/utils";
+import { withTax } from "@/utils/tax";
 
 // prisma types
 import { PaymentState } from "@/lib/generated/prisma/client";
@@ -59,7 +59,7 @@ export const getTabbyOrderHistory = async (oid: number, author: string) => {
         const payment = order.payment!;
         return {
           purchased_at: order.created_at,
-          amount: totalAfterTax(payment!.total, payment!.tax),
+          amount: withTax(payment!.total).toFixed(2),
           payment_method: "card",
           status: tabbyPaymentStatus(payment!.payment),
           buyer: {
@@ -71,7 +71,7 @@ export const getTabbyOrderHistory = async (oid: number, author: string) => {
               title: order.consultant,
               description: order.consultant,
               quantity: 1,
-              unit_price: totalAfterTax(payment!.total, payment!.tax),
+              unit_price: withTax(payment!.total).toFixed(2),
               reference_id: String(order.consultantId),
               product_url: `${mainRoute}consultant/${order.consultantId}`,
             },

@@ -46,7 +46,8 @@ import { mobileNotifyOrderConfirmed } from "@/lib/notifications/mobile/notify/re
 import { getFinanceConfig } from "@/data/admin/settings/finance";
 import { resolveConsultantPricing } from "@/data/event";
 import prisma from "@/lib/database/db";
-import { calculatePayment, orderChargeTotal } from "@/utils/admin/payments";
+import { calculatePayment } from "@/utils/admin/payments";
+import { withTax } from "@/utils/tax";
 
 // on payment success
 export const onPaymentSuccess = async (order: Reservation) => {
@@ -225,7 +226,7 @@ export async function Pay(
   const cost = payment.total; // pre-tax, discounted → Payment.total
   // tax-inclusive → charged to the card; computed from the stored (rounded) total so every
   // later check (webhooks, mobile) gets exactly this amount back from the order
-  const total = orderChargeTotal({ total: cost, tax: finance.tax });
+  const total = withTax(cost);
 
   if (!Number.isFinite(total) || total <= 0) {
     return {

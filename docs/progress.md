@@ -403,9 +403,9 @@ The `attempts` column was added to `verification_tokens` by the migration-owning
 | `utils/index.ts` `totalAfterTax` | order card, order info, refund dialog, currency labels, Tabby order history (`data/gatewaies/tabby.ts`), wallet refund credit (`data/wallet.ts`) | `round(cost + cost × tax/100)` over the stored total (unchanged) |
 | `app/api/mobile/reservations/[oid]/confirm` and `result` responses | `amountSar` shown in the app | pre-tax `payment.total` (unchanged, display only) |
 
-**Known difference (existing, unchanged)**
+**Known difference (corrected in the tax cleanup below)**
 
-`totalAfterTax` and `orderChargeTotal` can differ by 1 SAR because of floating point: `150 × 1.15 = 172.4999…` rounds to 172, while `150 + 22.5 = 172.5` rounds to 173. So for a 150 SAR session the card is charged 172 while order cards and the wallet refund show or credit 173. Making `totalAfterTax` use `orderChargeTotal` would align them, but it changes displayed prices and refund amounts; not done without your approval.
+The first version of this note was wrong: `150 × (1 + 15/100)` is exactly 172.5, so a 150 SAR session was 173 everywhere. The real difference: `calculatePayment` (checkout and charge) and `totalAfterTax` (cards, refunds) disagreed by 1 SAR at 400 whole-number prices up to 20,000 (first ones: 50, 90, 110, 170, 190, 210). Resolved by the tax cleanup.
 
 **Verified**
 
@@ -413,7 +413,7 @@ The `attempts` column was added to `verification_tokens` by the migration-owning
 
 **Needs manual testing on the preview**
 
-- Web booking without a coupon (e.g. 150 SAR): the Moyasar and Tabby checkout amount equals what it was before (172).
+- Web booking without a coupon (e.g. 150 SAR): the Moyasar and Tabby checkout amount equals what it was before (173).
 - Web booking with a coupon: the checkout amount equals `orderChargeTotal` of the stored total.
 - Mobile Tabby payload amount is tax-inclusive, and the webhook then marks it PAID.
 - Mobile Moyasar confirm and result mark a paid order PAID.
@@ -466,3 +466,37 @@ The `attempts` column was added to `verification_tokens` by the migration-owning
 - The same cancel URL opened logged out, or as another user: same page, and the order stays NEW.
 - The cancel URL for a PAID order: the order stays PAID.
 - A guest checkout cancel: same page, order stays NEW until the cron clears it.
+
+## 2026-09-30 · Cleanup item 1: one tax calculation
+
+**What the checkout showed before, for a 150 SAR session:** 173. `usePaymentCalculation` computed `Math.round(150 × (1 + 15/100)) = Math.round(172.5) = 173`, and `Pay` charged 173. The "172" in the earlier note was my mistake; that note is corrected above.
+
+**Why unify anyway:** the float formula (`total × (1 + tax/100)`, used by checkout, `calculatePayment` and `Pay`) and `totalAfterTax` (`cost + cost × tax/100`, used by cards and refunds) disagreed by 1 SAR at 400 whole-number prices up to 20,000. For example, 50 SAR showed and charged 57 while cards and refunds said 58. With a coupon, checkout also used the unrounded price (205 SAR at 51% showed 116 while the order stored and charged 115).
+
+**Files changed**
+
+- `utils/tax.ts` (new, pure): `TAX_PERCENT = 15` and `withTax(total) = Math.round(Math.round(total) × (100 + TAX_PERCENT) / 100)`. This is the only tax calculation.
+- `utils/admin/payments.ts`: `calculatePayment().totalWTax` uses `withTax`; `orderChargeTotal` removed.
+- `hooks/site/usePaymentCalculation.ts` (checkout): `totalWTax = withTax(finalTotal)` and `subTotal = withTax(baseCost)`, so the rounded total then integer tax is exactly what `Pay` charges.
+- `handlers/admin/order/payment.ts` (`Pay`), `app/api/gatewaies/tabby/route.ts`, `handlers/gatewaies/moyasar.ts`, `lib/api/gatewaies/tabby.ts`, and the mobile `tabby-payload`, `confirm` and `result` routes: `withTax(stored total)`.
+- `utils/index.ts` `totalAfterTax`: now a display wrapper around `withTax` (string or number, `tax = 0` means already final). It covers order cards, the refund dialog, order info and currency labels without editing the three UI files that have uncommitted edits (`currency-label.tsx`, `order-info.tsx`, legacy currency label).
+- `data/wallet.ts` (wallet refund credit) and `data/gatewaies/tabby.ts` (Tabby order history): `withTax` directly.
+- `components/legacy/consultants/owner/profile/pricing-section.tsx`: the consultant's "client pays … including tax" hint used unrounded `value × 1.15`, so 150 showed "172.50". It now uses `withTax` and shows "173.00".
+
+**Behaviour changes**
+
+- At the 400 affected prices, checkout and the charge go up by 1 SAR to match cards and refunds (50 → 58).
+- With coupons, checkout now shows the rounded-price figure that is charged (205 SAR at 51% → 115).
+- The tax rate is the constant `TAX_PERCENT = 15`. The `finance.tax` setting (`getFinanceConfig`, from the settings table) no longer affects any total. `Pay` still stores `finance.tax` in `payment.tax`. If that setting is ever not 15, stored and applied tax would differ.
+
+**Verified**
+
+- `npm run build`: passes.
+- Worked numbers: 150 → checkout 173, charge 173, card and refund 173.00, Moyasar 17300 halalas. 205 at 51% → stored 100, checkout 115, charge 115, card 115.00. 50 → 58 everywhere.
+
+**Needs manual testing on the preview**
+
+- 150 SAR session: checkout shows 173; Moyasar and Tabby charge 173; order card, refund dialog and wallet refund credit show 173.
+- 205 SAR session with a 51% coupon: checkout shows 115 and the charge is 115 on web; the mobile Tabby payload and mobile Moyasar check expect 115.
+- 50 SAR price (if one exists): 58 on checkout, charge and cards.
+- Consultant profile pricing hint: 150 shows "173.00".

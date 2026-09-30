@@ -1,6 +1,9 @@
 // types
 import { Lang } from "@/types/types";
 
+// utils
+import { withTax } from "@/utils/tax";
+
 // prisma types
 import {
   ApprovalState,
@@ -125,16 +128,16 @@ export const consultantGenderLabel = (gender: Gender) => {
   return gender == Gender.MALE ? "مستشار" : "مستشارة";
 };
 
-// total after tax
+// total after tax: display wrapper around the shared withTax, no tax math of its own.
+// tax 0 means the amount is already final (currency labels), anything else applies TAX_PERCENT
 export const totalAfterTax = (
   cost: number,
   tax: number = 15,
   type: "string" | "number" = "string",
 ) => {
   // calculate
-  return type == "string"
-    ? Math.round(cost + (cost * tax) / 100).toFixed(2)
-    : Math.round(cost + (cost * tax) / 100);
+  const value = tax === 0 ? Math.round(cost) : withTax(cost);
+  return type == "string" ? value.toFixed(2) : value;
 };
 
 // remove html tags

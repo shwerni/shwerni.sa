@@ -13,7 +13,7 @@ import { telegramAdmin } from "@/lib/api/telegram/telegram";
 import { moyasarInvoiceDetails } from "@/lib/api/gatewaies/moyasar";
 
 // utils
-import { orderChargeTotal } from "@/utils/admin/payments";
+import { withTax } from "@/utils/tax";
 import { isMoyasarDefinitiveFailure, type Status } from "@/utils/gatewaies";
 
 // types: only invoice_id is read, everything else in the body is ignored
@@ -51,7 +51,7 @@ async function CheckPaymentState(payment: Moyasar) {
 
   // paid: only when amount (halalas), currency and invoice all match this order
   if (invoice.status === "paid") {
-    const expected = Math.round(orderChargeTotal(orderPayment) * 100);
+    const expected = Math.round(withTax(orderPayment.total) * 100);
     const matches =
       invoice.amount === expected &&
       invoice.currency === "SAR" &&
