@@ -1037,3 +1037,45 @@ Run as the server (`TZ=UTC`) and as a browser in Riyadh (UTC+3), on 23:30 / 00:0
 **Needs manual testing on the preview**
 
 - Consultant instant page (`components/consultant/instant`), the 404 page, and the consultant dashboard intro popup.
+
+## 2026-10-01 · Cleanup step 2, decision 1: fix, instant bookings after midnight got yesterday's date
+
+**Picker check (reschedule and session pick):** both pass a date from `components/clients/shared/pick-date-time.tsx`, which builds it as `new Date("yyyy-MM-dd")` (UTC midnight of the chosen day). Both old `dateToString` versions return the chosen day for that input in a Riyadh browser (test rows `new Date("yyyy-MM-dd")`: same). **No off-by-one there for users in Saudi time.** (A browser west of UTC would get the day before from the `format()` version.)
+
+**The real bug:** instant booking.
+
+- The instant form sends `date: iso` from `addNMinutes()`, the actual moment "now + a few minutes".
+- `reserveInstant` (`data/online.ts`) stored `date: dateToString(data.date)` using `format()` on a UTC server, and used the same value in the slot-conflict check and in the "already booked" message.
+
+**How it showed up for users:** an instant session booked between 00:00 and 02:59 Riyadh was saved with the **previous day's date** and the correct time. For example, booked 01:30 on 1 Feb, it was stored as 31 Jan 01:30, a full day in the past. So the session would appear as already passed:
+
+- It sorts under past sessions.
+- The room time checks treat it as over, so joining at the booked time is likely refused.
+- Time-based reminders don't fire.
+- Its slot conflict was checked against the wrong day.
+
+Bookings from 03:00 to 23:59 were correct.
+
+**Files changed**
+
+- `utils/date.ts`: new `riyadhDateString(date)` = `formatInTimeZone(date, "Asia/Riyadh", "yyyy-MM-dd")`.
+- `data/online.ts`: the three `dateToString(data.date)` calls in `reserveInstant` now use `riyadhDateString`.
+
+**Checked on a UTC server:**
+
+| Riyadh time | Before | After |
+| ----------- | ------ | ----- |
+| 00:05, 01:30, 02:59 on 1 Feb | 2026-01-31 | 2026-02-01 |
+| 23:55 on 31 Jan, 03:00 on 1 Feb | correct | unchanged |
+| 00:10 on 1 Jan 2027 | 2026-12-31 | 2027-01-01 |
+
+**Caveat, users outside UTC+3:** the form's `iso` comes from `toZonedTime` in the browser. In a browser that isn't on UTC+3, that `Date` is shifted. For example, a browser on UTC now gets the next day for bookings between 21:00 and 23:59 Riyadh; before this fix it was correct. For Saudi (and KW/QA/BH) browsers the fix is exact. A fully zone-proof fix would have the form send the Riyadh `yyyy-MM-dd` string it already computes (`addNMinutes().date`) instead of the `Date`. That's a form contract change; not done.
+
+**Verified**
+
+- `npm run build` on the committed tree: passes.
+
+**Needs manual testing on the preview**
+
+- Book an instant session after midnight Riyadh (or temporarily on a staging DB): the stored meeting date is today, it shows as upcoming, and the room opens at the booked time.
+- An instant booking in the evening is unchanged.

@@ -13,10 +13,15 @@ import {
   setMinutes,
   fromUnixTime,
 } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 
 // prisma types
 import { Weekday } from "@/lib/generated/prisma/enums";
 import { timeZone } from "@/lib/site/time";
+
+// the riyadh calendar day of an instant (slot times, server timestamps), whatever the runtime zone
+export const riyadhDateString = (date: Date): string =>
+  formatInTimeZone(date, "Asia/Riyadh", "yyyy-MM-dd");
 
 /**
  * Converts yyyy-MM-dd to Arabic day name

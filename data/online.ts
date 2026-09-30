@@ -14,7 +14,8 @@ import {
 } from "@/lib/generated/prisma/enums";
 import { InstantFormType, instantSchema } from "@/schemas";
 import { checkMeetingTimeConflict } from "./order/reserveation";
-import { dateToString } from "@/utils/time";
+// the instant booking date is "now + a few minutes", an instant, so it is read in riyadh time
+import { riyadhDateString } from "@/utils/date";
 import { orderInfoLabel } from "@/utils";
 import { ConsultantCard } from "@/types/layout";
 import { ReserveResult } from "@/types/admin";
@@ -198,14 +199,14 @@ export const reserveInstant = async (
     const conflict = await checkMeetingTimeConflict(
       data.cid,
       data.time,
-      dateToString(data.date),
+      riyadhDateString(data.date),
     );
 
     if (conflict)
       return {
         state: false,
         code: "info",
-        message: `هذا الموعد (${dateToString(data.date)} - ${data.time}) تم حجزه بالفعل، برجاء اختيار وقت آخر`,
+        message: `هذا الموعد (${riyadhDateString(data.date)} - ${data.time}) تم حجزه بالفعل، برجاء اختيار وقت آخر`,
       } satisfies ReserveResult<never>;
 
     const owner = await prisma.consultant.findFirst({
@@ -236,7 +237,7 @@ export const reserveInstant = async (
         meeting: {
           create: {
             session: 1,
-            date: dateToString(data.date),
+            date: riyadhDateString(data.date),
             time: data.time,
             duration: String(data.duration),
           },
