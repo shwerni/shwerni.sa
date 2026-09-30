@@ -85,11 +85,9 @@ export function dateToWeekDay(date: Date): Weekday {
   return Object.keys(Weekday)[date.getDay()] as Weekday;
 }
 
-// n "yyyy-MM-dd" days starting at date, e.g. getDatesAhead(3, d) → [d, d+1, d+2]
-export function getDatesAhead(
-  daysAhead: number,
-  date: Date = new Date(),
-): string[] {
+// n "yyyy-MM-dd" days starting at date, e.g. getDatesAhead(3, d) → [d, d+1, d+2].
+// date is required: a new Date() default gives the utc day on the server between 00:00 and 02:59 riyadh
+export function getDatesAhead(daysAhead: number, date: Date): string[] {
   if (daysAhead <= 0) return [];
 
   return Array.from({ length: daysAhead }, (_, i) =>

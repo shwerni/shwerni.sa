@@ -16,7 +16,7 @@ import StepPayment from "@/components/clients/forms/payment";
 import StepDetails from "@/components/clients/forms/details";
 
 // lib
-import { add25Minutes, getDatesAhead, timeZone } from "@/utils/date";
+import { addNMinutes, getDatesAhead, timeZone } from "@/utils/date";
 
 // utils
 
@@ -67,7 +67,7 @@ export default function Discover({ user, finance }: Props) {
   // time zone & dates
   const { iso: initial } = timeZone();
   const { date: iso, time: nowTime } = React.useMemo(
-    () => add25Minutes(initial),
+    () => addNMinutes(initial, 25),
     [initial],
   );
 

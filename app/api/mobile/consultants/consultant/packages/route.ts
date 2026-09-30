@@ -1,6 +1,6 @@
 // data
 import { getConsultantsPackages } from "@/data/packages";
-import { createGetRoute } from "@/lib/api/routes/create-get-route";
+import { createGetRoute } from "@/lib/api/routes/route-factory";
 
 // prisma types
 import type { Package } from "@/lib/generated/prisma/client";
@@ -13,4 +13,4 @@ export const GET = createGetRoute<Package[]>(async (request) => {
   }
 
   return getConsultantsPackages(cid);
-});
+}, { errorMessage: "failed to fetch" });

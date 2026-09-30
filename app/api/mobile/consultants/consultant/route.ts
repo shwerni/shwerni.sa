@@ -2,7 +2,7 @@
 import { getConsultant } from "@/data/consultant";
 
 // data
-import { createGetRoute } from "@/lib/api/routes/create-get-route";
+import { createGetRoute } from "@/lib/api/routes/route-factory";
 import { requireMobileUser } from "@/lib/auth/require-mobile-user";
 
 // primsa types
@@ -31,4 +31,4 @@ export const GET = createGetRoute<ConsultantWithExtras>(async (request) => {
   }
 
   return consultant;
-});
+}, { errorMessage: "failed to fetch" });

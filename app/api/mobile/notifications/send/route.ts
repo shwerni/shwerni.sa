@@ -2,7 +2,7 @@
 import type { NextRequest } from "next/server";
 
 // utils
-import { createPostRoute } from "@/lib/api/routes/create-post-route";
+import { createPostRoute } from "@/lib/api/routes/route-factory";
 import { requireMobileUser } from "@/lib/auth/require-mobile-user";
 import { HttpError } from "@/lib/api/http-error";
 import { sendNotification } from "@/lib/notifications/mobile/send-notification";

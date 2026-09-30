@@ -1192,3 +1192,21 @@ Bookings from 03:00 to 23:59 were correct.
 - Telegram new-order message: booking date and meeting sentence.
 - WhatsApp booking, reminder and reschedule notifications: the meeting sentence is 12-hour.
 - Reschedule and session pick: the chosen day is saved as picked.
+
+## 2026-10-01 · Cleanup step 2, decision 5: the four identical merges
+
+**Files changed**
+
+- **Route factories:** `lib/api/routes/create-get-route.ts` and `create-post-route.ts` deleted. Their 20 importers (all under `app/api/mobile/`) now use `route-factory.ts`. The old `createGetRoute` answered unexpected errors with `{ error: "failed to fetch" }` while the route-factory default is `"failed to process request"`, so the 18 migrated `createGetRoute` calls pass `{ errorMessage: "failed to fetch" }` and the mobile app sees the same responses. `createPostRoute` had the same default in both. One importer is the stub `mobile/reservations/instant/route.ts` (POST commented out); only its import line changed.
+- **add25Minutes:** `components/clients/discover/discover.tsx` uses `addNMinutes(initial, 25)`. `add25Minutes` stays in `utils/date.ts` as a deprecated one-line alias because 6 of your stashed files call it: reels page, consultant, program and free-session date-time steps, `pick-date-time.tsx`, and the marriage-awareness form.
+- **getDatesAhead:** the `date` argument is now required. Every caller, in the tree and in your stash, already passes one, so no call site changed.
+- **Dead `meetingTime` copy:** removed in the move commit (`1f96b15`).
+
+**Verified**
+
+- `npm run build`: passes (one run was cut off by my own `timeout` wrapper at page collection; rerun without it, exit 0).
+
+**Needs manual testing on the preview**
+
+- Mobile app: consultants, programs, scales, notifications (list, read, unread count, send), account profile and sessions, online list, realtime token. Normal responses are unchanged; forced errors still say "failed to fetch".
+- Discover: date strip and "now + 25 minutes" first slot.

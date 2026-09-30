@@ -1,6 +1,6 @@
 // utils
 import { HttpError } from "@/lib/api/http-error";
-import { createGetRoute } from "@/lib/api/routes/create-get-route";
+import { createGetRoute } from "@/lib/api/routes/route-factory";
 import { requireMobileUser } from "@/lib/auth/require-mobile-user";
 import prisma from "@/lib/database/db";
 import { cooldownDays } from "@/utils/user";
@@ -28,4 +28,4 @@ export const GET = createGetRoute(async (request) => {
     phoneLockDays: cooldownDays(user.phoneChangedAt),
     passwordLockDays: cooldownDays(user.passwordChangedAt),
   };
-});
+}, { errorMessage: "failed to fetch" });
