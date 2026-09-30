@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "proxy.ts",
+    "auth.ts",
+    "better-auth.config.ts",
+    "prisma.config.ts",
+    "prisma/seed/**/*.ts",
+    "scripts/**/*.{js,mjs}"
+  ],
+  "project": ["**/*.{ts,tsx,js,mjs}"],
+  "ignore": ["docs/**", "lib/generated/**", "backups/**", "next-env.d.ts"]
+}

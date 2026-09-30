@@ -500,3 +500,85 @@ The first version of this note was wrong: `150 × (1 + 15/100)` is exactly 172.5
 - 205 SAR session with a 51% coupon: checkout shows 115 and the charge is 115 on web; the mobile Tabby payload and mobile Moyasar check expect 115.
 - 50 SAR price (if one exists): 58 on checkout, charge and cards.
 - Consultant profile pricing hint: 150 shows "173.00".
+
+# Cleanup phase
+
+Branch `cleanup`, created from local `main` at `228c109` (the hotfix commits; `origin/main` is still `36c4842`).
+
+## 2026-09-30 · Cleanup step 1a: unused files
+
+**Tooling:** `knip.json` added so knip sees the Next.js entry points plus `proxy.ts`, `auth.ts`, `better-auth.config.ts`, `prisma.config.ts`, the Prisma seed and `scripts/`. `docs/`, `lib/generated/` and `backups/` are ignored. knip reported 67 unused files, 8 unused dependencies (7 plus 1 dev), 234 unused exports and 19 unused exported types.
+
+**Who can call code in this repo from outside:** only `app/` pages and routes, and Server Actions (now only `actions/`). Other codebases can't import files from here. Knip already treats routes and pages as entry points, and it follows the two dynamic imports (`bot/button.tsx`, `notification-lazy.tsx`), which are relative. So an unused non-route file has no outside caller.
+
+**Deleted (44 files):**
+- `data/campaigns.ts`
+- `hooks/fetch.ts`
+- `hooks/localStorage.ts`
+- `hooks/scroll.ts`
+- `hooks/use-mobile.ts`
+- `hooks/useOnlineConsultant.ts`
+- `hooks/usIsOnline.ts`
+- `components/shared/error-notfound.tsx`
+- `components/shared/time-picker.tsx`
+- `components/shared/video-player.tsx`
+- `components/ui/collapsible.tsx`
+- `lib/api/sms.ts`
+- `lib/upload/actions.ts`
+- `lib/upload/provider.ts`
+- `lib/upload/server.ts`
+- `components/clients/consultants/appointment.tsx`
+- `components/clients/consultants/skeleton.tsx`
+- `components/clients/forms/coupons.tsx`
+- `components/clients/forms/terms.tsx`
+- `components/clients/freesessions/skeleton.tsx`
+- `components/clients/home/instant.tsx`
+- `components/clients/home/test.tsx`
+- `components/clients/shared/program-card.tsx`
+- `components/clients/shared/whatsapp-btn.tsx`
+- `lib/api/uploadthing/core.ts`
+- `lib/api/uploadthing/route.ts`
+- `lib/site/settings/index.ts`
+- `components/clients/home/programs/carousel.tsx`
+- `components/clients/home/programs/programs.tsx`
+- `components/clients/programs/program/skeleton.tsx`
+- `components/clients/sub-pages/event/header.tsx`
+- `components/clients/sub-pages/event/no-event.tsx`
+- `components/clients/sub-pages/scales/print-btn.tsx`
+- `components/legacy/consultants/popup/canvas.tsx`
+- `components/legacy/consultants/popup/intro.tsx`
+- `components/legacy/layout/events/fireworks.tsx`
+- `components/legacy/layout/links/index.tsx`
+- `components/legacy/layout/navigation/links.tsx`
+- `components/legacy/layout/theme/index.tsx`
+- `lib/api/ai/bot/bot.ts`
+- `lib/api/uploadthing/delete/route.ts`
+- `components/clients/sub-pages/event/discounts/header.tsx`
+- `components/clients/sub-pages/event/discounts/skeleton.tsx`
+- `components/legacy/consultants/owner/previewProfile/index.tsx`
+
+**Unused but kept:**
+
+- Your uncommitted edits (untouched): `components/shared/date-picker-input.tsx`, `payment-badge.tsx`, `time-input.tsx`, `upload-btn.tsx`; `components/ui/hover-card.tsx`, `slider.tsx`, `tooltip.tsx`; `components/clients/consultants/old-filter.tsx`; `components/clients/home/coupons/carousel.tsx`; `components/clients/sub-pages/marriage-awareness/card.tsx`, `form.tsx`; `components/legacy/consultants/owner/profile/bank-account-form.tsx`.
+- Phase 1 foundation, untracked and not wired up yet: `lib/safe-action.ts`, `lib/rate-limit.ts`, `utils/action-errors.ts`, `utils/bot-protection.ts`, `hooks/use-action.ts`.
+- Same feature as files you're editing: `components/clients/home/coupons/coupons.tsx`, `components/clients/home/features/marriage-awareness.tsx`, `components/clients/sub-pages/marriage-awareness/payment.tsx`, `product.tsx`.
+- Payment UI, unsure whether it's the pre-cutoff transition code: `components/clients/forms/method.tsx`, `components/legacy/layout/gatewaies/tabby.tsx`.
+
+**Pre-cutoff payment transition code:** not found in this repo. Nothing in the payment, order or webhook code mentions a cutoff, transition or removal date; the only `preCutoffTime` is in `cron/reschedule`. All payment files are excluded from this cleanup until you point me to it.
+
+**Found, not changed (`vercel.json` crons that don't match a route):**
+
+- `/api/cron/debounce-cleanup`: no such route.
+- `/api/cron/notifications/dispatch`: the route is `/api/cron/mobile/notifications/dispatch`.
+- `/api/cron/room/call`: the route is `/api/cron/mobile/room/call`.
+
+These three jobs likely never run.
+
+**Verified**
+
+- `npm run build`: passes.
+
+**Needs manual testing on the preview**
+
+- Home page, consultants list and profile, programs, events and discounts, scales and print, free sessions: pages load with no missing components.
+- Chat uploads and profile image uploads (the stray `lib/api/uploadthing` copies are gone; the real ones in `app/api/uploadthing` stay).
