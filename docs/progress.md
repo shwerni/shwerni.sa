@@ -191,3 +191,38 @@ Tiers 1–5 are committed. The item "Hotfix Critical and High functions from sec
 - Deploying is outside what I'm allowed to do.
 - Two things are still open: the skipped `dashboard/programs/[prid]` page (exposes only its own page component) and the payments proposal above.
 - The manifest check in CLAUDE.md needs the corrected pattern noted in tier 1.
+
+## 2026-09-30 · Step 0 follow-up, item 1: OTP attempt limit (stopped: migration owned elsewhere)
+
+**Finding:** this repo does not own the Prisma migrations. `prisma.config.ts` points at `prisma/migrations`, but that folder doesn't exist and there is no migration history; schema changes here are committed without migrations. No code was changed. Adding the field here before the column exists would make every `verificationToken` query fail.
+
+**Apply in the codebase that owns the migrations.** Schema change, in `model VerificationToken`:
+
+```prisma
+model VerificationToken {
+  id       String   @id @default(cuid())
+  phone    String
+  token    String   @unique
+  otp      String
+  expire   DateTime
+  attempts Int      @default(0)
+
+  @@unique([phone, token])
+  @@map("verification_tokens")
+}
+```
+
+SQL:
+
+```sql
+ALTER TABLE "verification_tokens" ADD COLUMN "attempts" INTEGER NOT NULL DEFAULT 0;
+```
+
+**Once the column exists**, copy the same field into `prisma/models/user.prisma` here and implement:
+
+- One atomic read-and-count per verify, only for a token that exists and hasn't expired:
+  `UPDATE "verification_tokens" SET "attempts" = "attempts" + 1 WHERE "token" = $1 AND "expire" > now() RETURNING "id", "phone", "otp", "attempts";`
+- Compare with `crypto.timingSafeEqual` (equal-length buffers).
+- Wrong OTP with `attempts >= 5`: delete the token and return the existing `"انتهت صلاحية كود التحقق"`.
+- Correct OTP: delete the token (already done today).
+- Same in `verifyToken` (`handlers/auth/verify.ts`) and `verifyReset` (`handlers/auth/reset.ts`).
