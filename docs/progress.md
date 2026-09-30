@@ -1125,3 +1125,38 @@ Bookings from 03:00 to 23:59 were correct.
 - Booking payment step: the time shows "…صباحاً" / "…مساءً".
 - The meetings and free-session meetings lists show the 12-hour sentence.
 - A WhatsApp booking notification shows "صباحاً".
+
+## 2026-10-01 · Cleanup step 2, decision 1: fix, free sessions after midnight got yesterday's date
+
+**How the booking flows send their date:**
+
+| Flow | Date sent to the server | Result |
+| ---- | ----------------------- | ------ |
+| Consultant | day click → `new Date("yyyy-MM-dd")` (UTC midnight) | correct |
+| Program | `new Date(Date.UTC(y, m, d))` | correct |
+| Discover | `new Date("yyyy-MM-dd")` | correct |
+| Reschedule, session pick | `PickDateTime`, `new Date("yyyy-MM-dd")` | correct |
+| Instant | `addNMinutes().iso`, the actual moment | fixed in `140c6d1` |
+| Free session | `timeZone().iso` from the browser, the actual moment | **bug, fixed here** |
+
+**The bug:**
+
+- `data/freesession.ts` stored `date: dateToString(data.date)` using `format()` on the UTC server. So a free session booked between 00:00 and 02:59 Riyadh was saved with the previous day's date.
+- The slot-conflict check just above it uses Riyadh today (`dateToString(timeZone().iso)`), so the check and the stored date also disagreed in that window.
+
+**How it showed up for users:** a free session booked right after midnight was saved a day early. It would show as already passed, with no reminder, and no working join window at the booked time. The consultant's slot for the real day stayed open for double booking.
+
+**Files changed**
+
+- `data/freesession.ts`: `date: riyadhDateString(data.date)`. The conflict check is unchanged; it was already Riyadh today.
+
+**Build note:** clean-tree builds log "took more than 60 seconds, retrying" for the cron route handlers during static generation. They succeed on retry and end up dynamic (`ƒ`). This predates this change: the same messages appeared in the two builds before it.
+
+**Verified**
+
+- `npm run build`: passes.
+
+**Needs manual testing on the preview**
+
+- Book a free session after midnight Riyadh: the stored date is today and it shows as upcoming.
+- A daytime free session is unchanged.

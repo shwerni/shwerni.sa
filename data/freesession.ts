@@ -15,6 +15,8 @@ import {
   dateToString,
   getWeekStartSaturday,
 } from "@/utils/time";
+// the booking date is the browser's "now", an instant, so it is read in riyadh time
+import { riyadhDateString } from "@/utils/date";
 
 // schema
 import { freeSessionSchema, freeSessionSchemaType } from "@/schemas";
@@ -122,7 +124,7 @@ export const reserveFreeSession = async (formdata: freeSessionSchemaType) => {
         phone: data.phone,
         consultantId: data.cid,
         time: data.time,
-        date: dateToString(data.date),
+        date: riyadhDateString(data.date),
         duration: "30",
         info: [
           `new free session | modified_at: ${dateTimeToString(new Date())}`,
