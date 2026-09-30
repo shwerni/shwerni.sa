@@ -1,3 +1,5 @@
+// all date and time helpers live here (date-fns + date-fns-tz only). client-safe: no server imports.
+
 // packages
 import { ar, arSA } from "date-fns/locale";
 import {
@@ -8,51 +10,123 @@ import {
   isWithinInterval,
   isBefore,
   addDays,
-  addHours,
   parseISO,
-  setMinutes,
-  fromUnixTime,
+  getISODay,
+  startOfDay,
+  subDays,
 } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
+import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 
 // prisma types
 import { Weekday } from "@/lib/generated/prisma/enums";
-import { timeZone } from "@/lib/site/time";
+
+// ─── riyadh clock ─────────────────────────────────────────────────────────────
+
+// now in asia/riyadh: wall-clock time, date and a zoned Date (moved from lib/site/time.ts)
+export const timeZone = () => {
+  // time zone (riyadh)
+  const zone = toZonedTime(new Date(), "Asia/Riyadh");
+
+  // return time and date
+  return {
+    time: format(zone, "HH:mm"),
+    date: format(zone, "yyyy-MM-dd"),
+    iso: zone,
+  };
+};
+
+// a meeting's "yyyy-MM-dd" + "HH:mm" in riyadh time as a real utc Date (inverse of timeZone())
+export function meetingDateTime(date: string, time: string): Date {
+  return fromZonedTime(`${date}T${time}:00`, "Asia/Riyadh");
+}
+
+// ─── date strings ─────────────────────────────────────────────────────────────
+
+// a calendar day the user picked, as "yyyy-MM-dd" in the runtime's local zone (browser)
+export const calendarDayToString = (date: Date): string => {
+  if (!date || isNaN(date.getTime())) return "";
+  return format(date, "yyyy-MM-dd");
+};
 
 // the riyadh calendar day of an instant (slot times, server timestamps), whatever the runtime zone
 export const riyadhDateString = (date: Date): string =>
   formatInTimeZone(date, "Asia/Riyadh", "yyyy-MM-dd");
 
-/**
- * Converts yyyy-MM-dd to Arabic day name
- * @example "2026-01-30" → "الجمعة"
- */
+// deprecated: utc date via toISOString. kept for files with uncommitted edits; new code uses
+// calendarDayToString (picked days) or riyadhDateString (instants)
+export const dateToString = (date: Date): string => {
+  return date.toISOString().split("T")[0];
+};
+
+// "dd-MM-yyyy HH:mm", of the given date or of riyadh now
+export const dateTimeToString = (date?: Date) => {
+  if (!date) {
+    // date
+    const { iso } = timeZone();
+    return format(iso, "dd-MM-yyyy HH:mm");
+  }
+  return format(date, "dd-MM-yyyy HH:mm");
+};
+
+// "dd-MM-yyyy" with the arabic locale
+export const dateToArString = (date: Date) => {
+  return format(date, "dd-MM-yyyy", { locale: ar });
+};
+
+// ─── days ─────────────────────────────────────────────────────────────────────
+
+// "yyyy-MM-dd" to the arabic day name, e.g. "2026-01-30" → "الجمعة"
 export function getDayName(dateStr: string): string {
   return format(parseISO(dateStr), "EEEE", { locale: arSA });
 }
 
-/**
- * Adds 25 minutes to the provided date (or now)
- * @returns { date: 'yyyy-MM-dd', time: 'HH:mm' }
- */
-export function add25Minutes(date: Date = timeZone().iso): {
-  date: string;
-  time: string;
-  iso: Date;
-} {
-  const next = addMinutes(date, 25);
-
-  return {
-    date: format(next, "yyyy-MM-dd"),
-    time: format(next, "HH:mm"),
-    iso: next,
-  };
+// prisma Weekday of a date (Weekday starts at SUNDAY, same order as getDay())
+export function dateToWeekDay(date: Date): Weekday {
+  return Object.keys(Weekday)[date.getDay()] as Weekday;
 }
 
-/**
- * Adds n minutes to the provided date (or now)
- * @returns { date: 'yyyy-MM-dd', time: 'HH:mm' }
- */
+// n "yyyy-MM-dd" days starting at date, e.g. getDatesAhead(3, d) → [d, d+1, d+2]
+export function getDatesAhead(
+  daysAhead: number,
+  date: Date = new Date(),
+): string[] {
+  if (daysAhead <= 0) return [];
+
+  return Array.from({ length: daysAhead }, (_, i) =>
+    format(addDays(date, i), "yyyy-MM-dd"),
+  );
+}
+
+// the next n days from riyadh today, with prisma weekday and arabic day name
+export const DaysAheadFromToday = (days: number) => {
+  try {
+    // get time zone time and date
+    const { date } = timeZone();
+
+    // days array
+    return getDatesAhead(days, parseISO(date)).map((ndate) => ({
+      day: dateToWeekDay(parseISO(ndate)),
+      date: ndate,
+      label: format(parseISO(ndate), "EEEE", { locale: ar }),
+    }));
+  } catch {
+    return null;
+  }
+};
+
+// the saturday that starts the riyadh week of a date (free sessions)
+export const getWeekStartSaturday = (date: Date) => {
+  // zoned date
+  const zoned = startOfDay(toZonedTime(date, "Asia/Riyadh"));
+  // iso day (1=mon ... 7=sun, 6=sat)
+  const day = getISODay(zoned);
+  // if saturday keep today else subtract to reach last saturday
+  return day >= 6 ? zoned : subDays(zoned, day + 1);
+};
+
+// ─── minutes ──────────────────────────────────────────────────────────────────
+
+// adds n minutes to a date (default riyadh now): { date: "yyyy-MM-dd", time: "HH:mm", iso }
 export function addNMinutes(
   date: Date = timeZone().iso,
   minutes: number = 5,
@@ -70,35 +144,48 @@ export function addNMinutes(
   };
 }
 
-/**
- * Returns an array of yyyy-MM-dd dates for N days ahead
- * @example getDatesAhead(3) → [today, +1, +2]
- */
-export function getDatesAhead(
-  daysAhead: number,
-  date: Date = new Date(),
-): string[] {
-  if (daysAhead <= 0) return [];
-
-  return Array.from({ length: daysAhead }, (_, i) =>
-    format(addDays(date, i), "yyyy-MM-dd"),
-  );
+// deprecated: same as addNMinutes(date, 25). kept for files with uncommitted edits
+export function add25Minutes(date: Date = timeZone().iso) {
+  return addNMinutes(date, 25);
 }
 
-/**
- * get weekday label as WeekDay type of prisma
- * @returns WeekDay
- */
-export function dateToWeekDay(date: Date): Weekday {
-  return Object.keys(Weekday)[date.getDay()] as Weekday;
+// "HH:mm" 30 minutes before and after a time
+export const aboveAndLowerTime = (time: string) => {
+  // base time
+  const base = parse(time, "HH:mm", new Date());
+  // minus 30
+  const minus30 = format(addMinutes(base, -30), "HH:mm");
+  // plus 30
+  const plus30 = format(addMinutes(base, 30), "HH:mm");
+
+  return [minus30, plus30];
+};
+
+// ─── labels ───────────────────────────────────────────────────────────────────
+
+// "HH:mm" to a 12-hour arabic label, e.g. "14:00" → "02:00 مساءً"
+export const timeToArabic = (time: string) => {
+  const parsed = parse(time, "HH:mm", new Date());
+  return format(parsed, "hh:mm a")
+    .replace("AM", "صباحاً")
+    .replace("PM", "مساءً");
+};
+
+// "HH:mm" to a 12-hour arabic label ("صباحا" spelling)
+export function timeLabel(time: string) {
+  return format(parse(time, "HH:mm", new Date()), "hh:mm a")
+    .replace("AM", "صباحا")
+    .replace("PM", "مساءً");
 }
 
-/**
- * meeting label
- *
- * @param date Date object from form
- * @param time string like "07:00"
- */
+// "EEEE d MMMM yyyy" in arabic
+export function dateLabel(date: Date) {
+  return format(date, "EEEE d MMMM yyyy", {
+    locale: ar,
+  });
+}
+
+// weekday, day, month, year and 12-hour time, e.g. "السبت، 31 يناير 2026 · 11:30 مساءً"
 export function meetingLabel(date: Date | string, time: string) {
   // merge date + time
   const dateTime = parse(time, "HH:mm", date);
@@ -112,12 +199,15 @@ export function meetingLabel(date: Date | string, time: string) {
     .replace("م", "مساءً")}`;
 }
 
-/**
- * meeting label
- *
- * @param date string "yyyy-mm-dd"
- * @param time string like "07:00"
- */
+// the meeting sentence with a 12-hour time: "الجلسة يوم … الموافق yyyy-MM-dd الساعة 02:00 مساءً"
+export const meetingSentence = (date: string, time: string) => {
+  // day name
+  const name = format(parseISO(date), "EEEE", { locale: ar });
+  // label
+  return `الجلسة يوم ${name} الموافق ${date} الساعة ${timeToArabic(time)}`;
+};
+
+// the meeting sentence with the raw 24-hour time
 export const meetingFullLabel = (date: string, time: string) => {
   // parse date safely
   const parsedDate = parse(time, "HH:mm", date);
@@ -126,55 +216,12 @@ export const meetingFullLabel = (date: string, time: string) => {
   const name = format(parsedDate, "EEEE", { locale: ar });
 
   // label
-  const label = `الجلسة يوم ${name} الموافق ${date} الساعة ${time}`;
-
-  // return label
-  return label;
+  return `الجلسة يوم ${name} الموافق ${date} الساعة ${time}`;
 };
 
-/**
- * @param date Date object from form
- * @param time string like "07:00"
- */
-export function dateLabel(date: Date) {
-  return format(date, "EEEE d MMMM yyyy", {
-    locale: ar,
-  });
-}
+// ─── meeting windows ──────────────────────────────────────────────────────────
 
-/**
- * @param time string like "07:00" or "14:00"
- * @returns "07:00 صباحا" | "02:00 مساءا"
- */
-export function timeLabel(time: string) {
-  return format(parse(time, "HH:mm", new Date()), "hh:mm a")
-    .replace("AM", "صباحا")
-    .replace("PM", "مساءً");
-}
-
-/**
- * convert a JavaScript Date object into an ISO-like date string (YYYY-MM-DD)
- *
- * @param date - JavaScript Date instance (must be valid)
- * @returns string formatted as "YYYY-MM-DD"
- *
- * @example
- * dateToString(new Date(2026, 1, 11)) // "2026-02-11"
- */
-export const dateToString = (date: Date): string => {
-  return date.toISOString().split("T")[0];
-};
-
-/**
- * Determine meeting status
- * @param time current time (HH:mm)
- * @param date current date (YYYY-MM-DD)
- * @param mTime meeting time (HH:mm)
- * @param mDate meeting date (YYYY-MM-DD)
- * @param before minutes before meeting start (default 5)
- * @param after minutes after meeting start (default 35)
- * @returns true if running, false if passed, null if still upcoming
- */
+// meeting status at a given riyadh date/time: true running, false passed, null upcoming
 export const meetingTime = (
   time: string,
   date: string,
@@ -197,15 +244,7 @@ export const meetingTime = (
   return null;
 };
 
-/**
- * Check if a meeting is within attendance window
- * (15 min before to 35 min after)
- * @param time current time (HH:mm)
- * @param date current date (YYYY-MM-DD)
- * @param mTime meeting time (HH:mm)
- * @param mDate meeting date (YYYY-MM-DD)
- * @returns true if within attendance window, false otherwise
- */
+// true inside the attendance window (15 min before to 35 min after the meeting)
 export const attendanceTime = (
   time: string,
   date: string,

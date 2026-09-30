@@ -1,15 +1,3 @@
-// packages
-import { toZonedTime, format } from "date-fns-tz";
-
-// time zone modified
-export const timeZone = () => {
-  // time zone (riyadh)
-  const zone = toZonedTime(new Date(), "Asia/Riyadh");
-
-  // return time and dat
-  return {
-    time: format(zone, "HH:mm"),
-    date: format(zone, "yyyy-MM-dd"),
-    iso: zone,
-  };
-};
+// deprecated path: timeZone() now lives in utils/date.ts. this re-export keeps the old import
+// working for files with uncommitted edits; delete it once nothing imports it.
+export { timeZone } from "@/utils/date";

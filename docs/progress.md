@@ -1079,3 +1079,25 @@ Bookings from 03:00 to 23:59 were correct.
 
 - Book an instant session after midnight Riyadh (or temporarily on a staging DB): the stored meeting date is today, it shows as upcoming, and the room opens at the booked time.
 - An instant booking in the evening is unchanged.
+
+## 2026-10-01 · Cleanup step 2, decision 4: every date helper in utils/date.ts (move only)
+
+**Files changed**
+
+- `utils/date.ts`: now holds every date helper, using date-fns and date-fns-tz only, with no server imports.
+  - Moved in: `timeZone` (from `lib/site/time.ts`); `meetingDateTime`, `DaysAheadFromToday`, `aboveAndLowerTime`, `timeToArabic`, `dateTimeToString`, `dateToArString`, `getWeekStartSaturday` (from `utils/time`).
+  - New names: `calendarDayToString` (the old `utils/time` `dateToString`) and `meetingSentence(date, time)` (the old `utils/time` `meetingLabel(time, date)`).
+  - `DaysAheadFromToday` is now built on `getDatesAhead` and `dateToWeekDay`; the comparison test showed identical output.
+- `utils/time/index.ts` and `lib/site/time.ts`: re-exports only, with the old names, argument order and behaviour. They're kept because 7 to 9 of your stashed files import them. I checked every name imported from these paths, in committed files and in your stash, and all are covered.
+- Dropped: the dead internal `meetingTime` and `parseDateTime` copies in `utils/time`, which weren't exported or used.
+
+**Behaviour:** unchanged; this commit only moves code.
+
+**Verified**
+
+- `npm run build` on the committed tree: passes.
+
+**Needs manual testing on the preview**
+
+- Booking times and slots: date strip, time slots after 25 minutes, late night, month end.
+- Consultant timings week and the free-session week start.
