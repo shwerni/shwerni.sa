@@ -34,11 +34,10 @@ const Page = async ({ searchParams }: Props) => {
   if (data.state == false) return <Error404 />;
 
   // validate
-  if (!data.phone || !data.otp || !data.name) return <Error404 />;
+  if (!data.phone) return <Error404 />;
 
-  return (
-    <ResetPasswordForm phone={data.phone} otp={data.otp} name={data.name} />
-  );
+  // the form sends the token back; the otp never reaches the browser
+  return <ResetPasswordForm phone={data.phone} token={token} />;
 };
 
 export default Page;

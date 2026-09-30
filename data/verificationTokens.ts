@@ -35,8 +35,8 @@ export const generateVerificationToken = async (phone: string) => {
     const otp = String(generateOtp());
     // generate token using uuid
     const token = crypto.randomUUID();
-    // token expire time one hour
-    const expire = new Date(new Date().getTime() + 3600 * 1000);
+    // token expire time ten minutes (the token travels in the url)
+    const expire = new Date(new Date().getTime() + 600 * 1000);
 
     // check if token exist
     const tokenExsit = await getVerificationTokenByPhone(phone);

@@ -13,14 +13,18 @@ import prisma from "@/lib/database/db";
 import { getUserByEmail, getUserById, getUserByPhone } from "@/data/user";
 import { generateVerificationToken } from "@/data/verificationTokens";
 
+// lib
+import { userServer } from "@/lib/auth/server";
+
 // schema
 import { PasswordSchema, PhoneSchema, UserSchema } from "@/schemas";
 import { mainRoute } from "@/constants/links";
 
 // unauthorized phone number change on the register form
+// the account always comes from the session; the second argument is kept for callers but ignored
 export const unauthorizedPhoneChangeByToken = async (
   data: z.infer<typeof PhoneSchema>,
-  oldPhone: string,
+  _oldPhone: string,
   getUrl?: boolean
 ) => {
   // register fields data { phone }
@@ -39,11 +43,16 @@ export const unauthorizedPhoneChangeByToken = async (
   if (phoneExist)
     return { state: false, message: "يوجد لدينا حساب مسجل بهذا الرقم" };
 
+  // session user
+  const session = await userServer();
+
   // user
-  const user = await prisma.user.findUnique({
-    where: { phone: oldPhone },
-    select: { phone: true },
-  });
+  const user = session?.id
+    ? await prisma.user.findUnique({
+        where: { id: session.id },
+        select: { phone: true },
+      })
+    : null;
 
   // if token not exist
   if (!user || !user.phone)
@@ -88,10 +97,17 @@ export const unauthorizedPhoneChangeByToken = async (
 };
 
 // change user name and email
+// the account always comes from the session; the id argument is kept for callers but ignored
 export const userInfoChange = async (
   data: z.infer<typeof UserSchema>,
-  id: string
+  _id: string
 ) => {
+  // session user
+  const id = (await userServer())?.id;
+
+  // no session
+  if (!id) return { state: false, message: "لا يوجد حساب بهذه المعلومات" };
+
   // register fields data { phone}
   const validatePhone = UserSchema.safeParse(data);
 
@@ -148,10 +164,17 @@ export const userInfoChange = async (
 };
 
 // change user name and email
+// the account always comes from the session; the id argument is kept for callers but ignored
 export const userPasswrodChange = async (
   data: z.infer<typeof PasswordSchema>,
-  id: string
+  _id: string
 ) => {
+  // session user
+  const id = (await userServer())?.id;
+
+  // no session
+  if (!id) return { state: false, message: "لا يوجد حساب بهذه المعلومات" };
+
   // register fields data { phone}
   const validatePhone = PasswordSchema.safeParse(data);
 

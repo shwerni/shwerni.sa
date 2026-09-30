@@ -18,7 +18,7 @@ import { notificationSecurityOtp } from "@/lib/notifications/site";
 // prisma data
 import {
   generateVerificationToken,
-  getVerificationTokenByPhone,
+  getVerificationTokenByToken,
 } from "@/data/verificationTokens";
 import { getUserByPhone } from "@/data/user";
 import { CheckIsBlocked } from "@/data/blocked";
@@ -67,7 +67,7 @@ export const forgetpassowrd = async (data: z.infer<typeof PhoneSchema>) => {
 // after submiting the otp and checking all condations of the verification token with checkToken function
 export const verifyReset = async (
   data: z.infer<typeof ResetSchema>,
-  phone: string,
+  token: string,
 ) => {
   // reset fields { newpassword, confirmphone, phone}
   const validatedFields = ResetSchema.safeParse(data);
@@ -83,18 +83,25 @@ export const verifyReset = async (
   if (newpassword !== confirmpassword)
     return { state: false, message: "كلمة المرور غير مطابقة" };
 
+  // the phone comes from the token record, never from the client
+  const tokenExist = await getVerificationTokenByToken(token);
+
+  // if token not exist
+  if (!tokenExist)
+    return { state: false, message: "لا يوجد كود تفعيل لهذا الحساب" };
+
+  // token expired
+  if (new Date(tokenExist.expire) < new Date())
+    return { state: false, message: "انتهت صلاحية كود التحقق" };
+
+  // phone of this token
+  const phone = tokenExist.phone;
+
   // user exist
   const userExist = await getUserByPhone(phone);
 
-  // check if token exist
-  const tokenExist = await getVerificationTokenByPhone(phone);
-
-  // if token and user exist
-  if (!tokenExist && !userExist)
-    return { state: false, message: "لا يوجد كود تفعيل لهذا الحساب" };
-
   // if otp is not matched
-  if (tokenExist?.otp !== otp)
+  if (tokenExist.otp !== otp)
     return { state: false, message: "رمز التحقق خطأ" };
 
   // bcrypt hasing
@@ -112,7 +119,7 @@ export const verifyReset = async (
 
   // delete current token
   await prisma.verificationToken.delete({
-    where: { id: tokenExist?.id },
+    where: { id: tokenExist.id },
   });
 
   // redirect to login page

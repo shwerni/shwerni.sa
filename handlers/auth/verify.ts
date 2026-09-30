@@ -11,11 +11,13 @@ import { UserRole } from "@/lib/generated/prisma/enums";
 // database data
 import {
   generateVerificationToken,
-  getVerificationTokenByPhone,
   getVerificationTokenByToken,
 } from "@/data/verificationTokens";
 import { getUserByPhone } from "@/data/user";
 import { CheckIsBlocked } from "@/data/blocked";
+
+// utils
+import { maskPhone } from "@/utils/phone";
 
 // prisma types
 
@@ -43,22 +45,29 @@ export const checkToken = async (token: string) => {
   // vakidate
   if (isBLocked) return { state: false, message: "هذا الحساب محظور" };
 
-  // success without message
-  return { phone: user.phone, name: user.name, otp: tokenExist.otp };
+  // the token is in the url, so only a masked phone goes back; never the otp
+  return { phone: maskPhone(tokenExist.phone) };
 };
 
 // after submiting the otp and checking all condations of the verification token with checkToken function
-export const verifyToken = async (phone: string, otp: string) => {
+export const verifyToken = async (token: string, otp: string) => {
   try {
+    // the phone comes from the token record, never from the client
+    const tokenExist = await getVerificationTokenByToken(token);
+
+    // if token not exist
+    if (!tokenExist)
+      return { state: false, message: "لا يوجد كود تفعيل لهذا الحساب" };
+
+    // token expired
+    if (new Date(tokenExist.expire) < new Date())
+      return { state: false, message: "انتهت صلاحية كود التحقق" };
+
+    // phone of this token
+    const phone = tokenExist.phone;
+
     // user exist
     const userExist = await getUserByPhone(phone);
-
-    // check if token exist
-    const tokenExist = await getVerificationTokenByPhone(phone);
-
-    // if token and user exist
-    if (!tokenExist && !userExist)
-      return { state: false, message: "لا يوجد كود تفعيل لهذا الحساب" };
 
     // if otp is not matched
     if (tokenExist?.otp !== otp)
@@ -85,7 +94,7 @@ export const verifyToken = async (phone: string, otp: string) => {
 
     // delete current token
     await prisma.verificationToken.delete({
-      where: { id: tokenExist?.id },
+      where: { id: tokenExist.id },
     });
 
     // return { state: true, message: "تم التحقق بنجاح" };

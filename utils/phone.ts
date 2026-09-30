@@ -106,6 +106,12 @@ export function filterValidGulfPhones(phones: (string | null | undefined)[]): st
   return result;
 }
 
+// keeps the first 3 and last 4 digits so a token holder can't read the full number
+export function maskPhone(phone: string): string {
+  if (phone.length <= 7) return "•".repeat(phone.length);
+  return phone.slice(0, 3) + "•".repeat(phone.length - 7) + phone.slice(-4);
+}
+
 /** Fisher-Yates shuffle — used so campaigns don't always hit numbers in DB insert order */
 export function shufflePhones<T>(arr: T[]): T[] {
   const copy = [...arr];
