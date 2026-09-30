@@ -345,3 +345,32 @@ Files: `app/api/gatewaies/moyasar/route.ts`, `handlers/gatewaies/moyasar.ts`, `l
 
 - The home page banner shows the same masked name and consultant as before, and doesn't repeat an order within a session.
 - In the network response of the server action, there's no full client name and no order id.
+
+## 2026-09-30 · Step 0 follow-up, item 1 (resumed): OTP attempt limit
+
+The `attempts` column was added to `verification_tokens` by the migration-owning codebase.
+
+**Files changed**
+
+- `prisma/models/user.prisma`: `attempts Int @default(0)` on `VerificationToken`. `npx prisma generate` run locally; the generated client is git-ignored.
+- `data/verificationTokens.ts` (now `import "server-only"`):
+  - `consumeVerificationAttempt(token)`: one atomic `UPDATE "verification_tokens" SET "attempts" = "attempts" + 1 WHERE "token" = $1 AND "expire" > $now RETURNING "id", "phone", "otp", "attempts"`, so only a live, unexpired token is counted and read. The time is a JS `Date` parameter, so it's correct for `timestamp` and `timestamptz`.
+  - `otpMatches`: `crypto.timingSafeEqual`, and different lengths never match.
+  - `deleteVerificationToken` and `MAX_OTP_ATTEMPTS = 5`.
+- `handlers/auth/verify.ts` `verifyToken` and `handlers/auth/reset.ts` `verifyReset`, same logic:
+  - Missing token: `"لا يوجد كود تفعيل لهذا الحساب"`. Expired token: `"انتهت صلاحية كود التحقق"`. Both messages unchanged.
+  - Wrong OTP: `"رمز التحقق خطأ"`. On the 5th wrong attempt, the token is deleted and `"انتهت صلاحية كود التحقق"` is returned, so a new code is needed.
+  - Correct OTP (including on the 5th attempt): the token is deleted first, then the account is updated.
+
+**Deploy note:** `package.json` has no `prisma generate` step (`"build": "next build"`), and `lib/generated/prisma` is git-ignored. Check that the Vercel build regenerates the client; unverified how it does today. The attempt query is raw SQL, so it doesn't depend on the generated types.
+
+**Verified**
+
+- `npm run build`: passes.
+
+**Needs manual testing on the preview**
+
+- Verify OTP: a correct code works once; the same link again says there's no code.
+- Verify OTP: 4 wrong codes show "رمز التحقق خطأ", the 5th shows the expired message, and then even the correct code fails until a new one is requested.
+- Reset password: the same two checks.
+- Wait more than 10 minutes: the expired message.

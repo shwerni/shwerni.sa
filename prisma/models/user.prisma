@@ -74,6 +74,8 @@ model VerificationToken {
   token  String   @unique
   otp    String
   expire DateTime
+  // wrong otp tries; the token is deleted at 5 (column added by the migration-owning codebase)
+  attempts Int @default(0)
 
   @@unique([phone, token])
   @@map("verification_tokens")

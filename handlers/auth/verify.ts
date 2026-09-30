@@ -10,8 +10,12 @@ import { UserRole } from "@/lib/generated/prisma/enums";
 
 // database data
 import {
+  MAX_OTP_ATTEMPTS,
+  consumeVerificationAttempt,
+  deleteVerificationToken,
   generateVerificationToken,
   getVerificationTokenByToken,
+  otpMatches,
 } from "@/data/verificationTokens";
 import { getUserByPhone } from "@/data/user";
 import { CheckIsBlocked } from "@/data/blocked";
@@ -52,26 +56,35 @@ export const checkToken = async (token: string) => {
 // after submiting the otp and checking all condations of the verification token with checkToken function
 export const verifyToken = async (token: string, otp: string) => {
   try {
-    // the phone comes from the token record, never from the client
-    const tokenExist = await getVerificationTokenByToken(token);
+    // counts this attempt and reads the token in one query (only a live, unexpired token)
+    const tokenExist = await consumeVerificationAttempt(token);
 
-    // if token not exist
-    if (!tokenExist)
-      return { state: false, message: "لا يوجد كود تفعيل لهذا الحساب" };
+    // missing or expired token: same messages as before
+    if (!tokenExist) {
+      const expired = await getVerificationTokenByToken(token);
+      return expired
+        ? { state: false, message: "انتهت صلاحية كود التحقق" }
+        : { state: false, message: "لا يوجد كود تفعيل لهذا الحساب" };
+    }
 
-    // token expired
-    if (new Date(tokenExist.expire) < new Date())
-      return { state: false, message: "انتهت صلاحية كود التحقق" };
-
-    // phone of this token
+    // phone of this token, never from the client
     const phone = tokenExist.phone;
+
+    // if otp is not matched
+    if (!otpMatches(tokenExist.otp, otp)) {
+      // too many wrong tries: the user must request a new code
+      if (tokenExist.attempts >= MAX_OTP_ATTEMPTS) {
+        await deleteVerificationToken(tokenExist.id);
+        return { state: false, message: "انتهت صلاحية كود التحقق" };
+      }
+      return { state: false, message: "رمز التحقق خطأ" };
+    }
+
+    // single use: the token goes before anything else happens
+    await deleteVerificationToken(tokenExist.id);
 
     // user exist
     const userExist = await getUserByPhone(phone);
-
-    // if otp is not matched
-    if (tokenExist?.otp !== otp)
-      return { state: false, message: "رمز التحقق خطأ" };
 
     // update user phone verified to true
     const user = await prisma.user.update({
@@ -91,11 +104,6 @@ export const verifyToken = async (token: string, otp: string) => {
         },
       });
     }
-
-    // delete current token
-    await prisma.verificationToken.delete({
-      where: { id: tokenExist.id },
-    });
 
     // return { state: true, message: "تم التحقق بنجاح" };
   } catch (error) {
