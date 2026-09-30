@@ -44,3 +44,8 @@ export function createPusherClient(userId: string): PusherClient {
 
   return consultantClient;
 }
+
+export function disconnectConsultantClient() {
+  consultantClient?.disconnect();
+  consultantClient = null;
+}

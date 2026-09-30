@@ -1019,3 +1019,21 @@ Run as the server (`TZ=UTC`) and as a browser in Riyadh (UTC+3), on 23:30 / 00:0
 7. `reels/actions.ts` vs `data/reels.ts` (45 lines), and the `login` vs `register` and `reset-password` vs `verify-otp` form handlers.
 
 **Needs manual testing on the preview:** nothing yet; no behaviour changed in this entry.
+
+## 2026-09-30 · Cleanup repair: committed tree didn't build
+
+**What happened:** the step 1a–1c builds ran on the working tree, which included your uncommitted edits. Your edited versions of `components/consultant/instant/index.tsx`, `app/not-found.tsx` and `app/(pages)/(consultants)/dashboard/page.tsx` no longer import three files, so knip marked them unused and I deleted them. The committed versions still import them. When GitHub Desktop stashed your edits (`stash@{0}`, "On cleanup") and the tree became clean, `npm run build` failed. Steps 1a–1c were **not** verified on the committed tree as the log claimed.
+
+**Restored from `228c109`** (still imported by committed code): `hooks/useOnlineConsultant.ts`, `components/shared/error-notfound.tsx`, `components/legacy/consultants/popup/intro.tsx`, `components/legacy/consultants/popup/canvas.tsx` (imported by `intro.tsx`). `lib/api/pusher/pusher-client.ts` goes back to its pre-1c version, since `disconnectConsultantClient` is used by the restored hook.
+
+**Checked:** no other 1c removal is imported by the committed tree or by the stashed versions of your files, and every import in the tree resolves.
+
+**From here on:** your edits are stashed, so builds run on the committed tree. These files become dead again once your edits are committed; list them for a later knip run.
+
+**Verified**
+
+- `npm run build` on the clean committed tree: passes.
+
+**Needs manual testing on the preview**
+
+- Consultant instant page (`components/consultant/instant`), the 404 page, and the consultant dashboard intro popup.
