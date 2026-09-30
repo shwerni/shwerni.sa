@@ -171,12 +171,8 @@ export const timeToArabic = (time: string) => {
     .replace("PM", "مساءً");
 };
 
-// "HH:mm" to a 12-hour arabic label ("صباحا" spelling)
-export function timeLabel(time: string) {
-  return format(parse(time, "HH:mm", new Date()), "hh:mm a")
-    .replace("AM", "صباحا")
-    .replace("PM", "مساءً");
-}
+// same as timeToArabic ("صباحاً" / "مساءً"); old name kept for its callers
+export const timeLabel = (time: string) => timeToArabic(time);
 
 // "EEEE d MMMM yyyy" in arabic
 export function dateLabel(date: Date) {
@@ -207,17 +203,9 @@ export const meetingSentence = (date: string, time: string) => {
   return `الجلسة يوم ${name} الموافق ${date} الساعة ${timeToArabic(time)}`;
 };
 
-// the meeting sentence with the raw 24-hour time
-export const meetingFullLabel = (date: string, time: string) => {
-  // parse date safely
-  const parsedDate = parse(time, "HH:mm", date);
-
-  // day name in arabic
-  const name = format(parsedDate, "EEEE", { locale: ar });
-
-  // label
-  return `الجلسة يوم ${name} الموافق ${date} الساعة ${time}`;
-};
+// same as meetingSentence (12-hour time); old name kept for its callers
+export const meetingFullLabel = (date: string, time: string) =>
+  meetingSentence(date, time);
 
 // ─── meeting windows ──────────────────────────────────────────────────────────
 

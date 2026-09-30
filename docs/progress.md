@@ -1101,3 +1101,27 @@ Bookings from 03:00 to 23:59 were correct.
 
 - Booking times and slots: date strip, time slots after 25 minutes, late night, month end.
 - Consultant timings week and the free-session week start.
+
+## 2026-10-01 · Cleanup step 2, decisions 2 and 3: time label and meeting sentence
+
+**Files changed**
+
+- `utils/date.ts`:
+  - `timeLabel` is now `timeToArabic`, so "صباحاً" / "مساءً" everywhere (was "صباحا").
+  - `meetingFullLabel(date, time)` is now `meetingSentence`, the 12-hour form: "الجلسة يوم … الموافق yyyy-MM-dd الساعة 02:00 مساءً" (was "الساعة 14:00").
+  - Both old names stay as aliases, so their callers, including your stashed files, get the decided wording without edits.
+
+**Where it shows**
+
+- `timeLabel`: the booking payment steps (consultant, instant, program, marriage awareness, `forms/payment.tsx`) and the WhatsApp notification parameters in `lib/notifications/site.ts`. That's parameter text only; no template changes.
+- `meetingFullLabel`: the meetings list (`components/clients/meetings/index.tsx`) and free-session meetings (`components/clients/freesessions/meetings.tsx`).
+
+**Verified**
+
+- `npm run build`: passes.
+
+**Needs manual testing on the preview**
+
+- Booking payment step: the time shows "…صباحاً" / "…مساءً".
+- The meetings and free-session meetings lists show the 12-hour sentence.
+- A WhatsApp booking notification shows "صباحاً".
