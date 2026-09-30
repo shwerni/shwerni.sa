@@ -1,4 +1,3 @@
-"use server";
 // React & Next
 import { Metadata } from "next";
 import { Suspense } from "react";

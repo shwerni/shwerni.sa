@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 import { filterValidGulfPhones, shufflePhones } from "@/utils/phone";
 import type { TemplateParams } from "@/lib/api/whatsapp";
 import { revalidatePath } from "next/cache";

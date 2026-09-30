@@ -46,7 +46,7 @@ export default function UserSettings({
   time,
   date,
 }: {
-  user: User | null;
+  user: Omit<User, "password"> | null;
   time: string;
   date: string;
 }) {

@@ -1,4 +1,3 @@
-"use server";
 // React & Next
 import React from "react";
 

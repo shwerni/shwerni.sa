@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // packages
 import { subDays } from "date-fns";
 

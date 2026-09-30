@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // prisma data
 import { Consultant } from "@/lib/generated/prisma/client";
 

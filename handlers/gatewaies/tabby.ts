@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // lib
 import { capturePayment, tabbyPaymentDetails } from "@/lib/api/gatewaies/tabby";
 

@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 
 // constants
 import { mainRoute } from "@/constants/links";

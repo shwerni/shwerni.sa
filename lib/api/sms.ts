@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // endpoint
 const url = "https://api-sms.4jawaly.com/api/v1/account/area/sms/send";
 

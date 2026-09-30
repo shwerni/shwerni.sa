@@ -1,4 +1,3 @@
-"use server";
 
 // packages
 import { NextRequest } from "next/server";

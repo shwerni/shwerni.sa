@@ -1,4 +1,3 @@
-"use server";
 // React & Next
 import { NextResponse } from "next/server";
 

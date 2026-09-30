@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 
 // prisma types
 import { UserRole } from "@/lib/generated/prisma/client";

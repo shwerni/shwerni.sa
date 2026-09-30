@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 import { google } from "googleapis";
 
 // get meetings

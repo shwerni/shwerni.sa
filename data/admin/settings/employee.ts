@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 import { UserRole } from "@/lib/generated/prisma/enums";
 // prisma db
 

@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // prisma db
 import prisma from "@/lib/database/db";
 
@@ -45,7 +45,11 @@ export const getUserByPhone = async (phone: string) => {
 // get unique user by Id
 export const getUserById = async (id: string) => {
   try {
-    const exist = await prisma.user.findUnique({ where: { id } });
+    // dashboard pages pass this row to client components, so the hash never leaves here
+    const exist = await prisma.user.findUnique({
+      where: { id },
+      omit: { password: true },
+    });
     // if not exist
     if (!exist) return null;
     // return

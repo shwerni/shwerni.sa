@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // prisma
 import prisma from "@/lib/database/db";
 
