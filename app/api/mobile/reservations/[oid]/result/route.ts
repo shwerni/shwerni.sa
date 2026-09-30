@@ -73,7 +73,13 @@ export const GET = createGetRoute<PaymentResultResponse, { oid: string }>(
       console.log("result");
       console.log(moyasar);
       
-      if (isMoyasarSettledPaid(moyasar.status) && amountMatches && oidMatches) {
+      const currencyMatches = moyasar.currency === "SAR";
+      if (
+        isMoyasarSettledPaid(moyasar.status) &&
+        amountMatches &&
+        currencyMatches &&
+        oidMatches
+      ) {
         state = PaymentState.PAID;
         await prisma.payment.update({
           where: { id: order.payment.id },

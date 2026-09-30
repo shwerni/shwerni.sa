@@ -417,3 +417,33 @@ The `attempts` column was added to `verification_tokens` by the migration-owning
 - Web booking with a coupon: the checkout amount equals `orderChargeTotal` of the stored total.
 - Mobile Tabby payload amount is tax-inclusive, and the webhook then marks it PAID.
 - Mobile Moyasar confirm and result mark a paid order PAID.
+
+## 2026-09-30 · Step 0 follow-up, item 2: Moyasar webhook (approved proposal applied)
+
+**Files changed**
+
+- `app/api/gatewaies/moyasar/route.ts`:
+  - Enveloped webhooks (`payment_refunded`, `balance_transferred`, others) require `body.secret_token` to equal `MOYASAR_WEBHOOK_SECRET` (`timingSafeEqual`, same length first). No fallback: if the env var is unset, every enveloped webhook gets 401 and nothing changes.
+  - The raw invoice callback passes only `invoice_id` to the handler.
+- `handlers/gatewaies/moyasar.ts` `CheckPaymentState`, in order:
+  1. Look up the order by pid; unknown invoice: nothing to change.
+  2. Order already PAID: nothing changes (idempotent).
+  3. Re-fetch the full invoice with `moyasarInvoiceDetails`. Unreachable: no change, `telegramAdmin`.
+  4. `status === "paid"`: PAID only when `amount === Math.round(orderChargeTotal(payment) × 100)`, `currency === "SAR"` and `invoice.id === payment.pid`. Otherwise HOLD plus `telegramAdmin`.
+  5. `failed` / `voided` (`isMoyasarDefinitiveFailure`): HOLD. Anything else, e.g. `initiated`, changes nothing. **Behaviour change: before, every non-paid status set HOLD.**
+- `utils/gatewaies/verify/verify.ts` `verifyMoyasarPayment` and `app/api/mobile/reservations/[oid]/result/route.ts`: also require `currency === "SAR"`. Amounts come from `orderChargeTotal` since item 3.
+
+**Deploy requirement:** set `MOYASAR_WEBHOOK_SECRET` in Vercel to the secret configured for webhooks in the Moyasar dashboard. Until it's set, refund and settlement webhooks are rejected with 401.
+
+**Verified**
+
+- `npm run build`: passes.
+
+**Needs manual testing on the preview (Moyasar test mode)**
+
+- A web card booking: the invoice callback marks the order PAID once. Resending the callback changes nothing.
+- An abandoned or `initiated` invoice callback leaves the order NEW. A failed card sets HOLD.
+- A forged callback for an unpaid order (a known `invoice_id`, never paid) doesn't mark it PAID.
+- Refund webhook with the right `secret_token` is processed; with a wrong or missing one, 401 and no change.
+- With `MOYASAR_WEBHOOK_SECRET` unset on the preview: enveloped webhooks get 401.
+- Mobile Moyasar confirm and result still mark a paid order PAID.
