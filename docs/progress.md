@@ -264,3 +264,41 @@ ALTER TABLE "verification_tokens" ADD COLUMN "attempts" INTEGER NOT NULL DEFAULT
 - A forged webhook body (`{"id":"<pid>","status":"authorized"}` for an unpaid sandbox order that Tabby hasn't authorized) does not mark it PAID.
 - A rejected or expired Tabby payment sets the order to HOLD.
 - Sandbox with a capture failure: order HOLD and a Telegram alert.
+
+## 2026-09-30 · Step 0 follow-up, item 3: Moyasar webhook (findings, proposal only, not applied)
+
+**How paid is decided today**
+
+| Path | secret_token | Server-to-server fetch | Status | Amount (halalas) | Currency | Idempotent |
+| ---- | ------------ | ---------------------- | ------ | ---------------- | -------- | ---------- |
+| Invoice callback `POST /api/gatewaies/moyasar` (raw `{ payments: [...] }`), via `handlers/gatewaies/moyasar.ts` `CheckPaymentState` | not checked (the raw callback has none) | yes, `moyasarPaymentStatus(invoice_id)` reads only `status` | `paid` → PAID; **anything else, including `initiated`, → HOLD** | not compared | not compared | yes, skips when already PAID and Moyasar says paid |
+| Enveloped webhooks on the same route (`payment_refunded`, `balance_transferred`) | **not checked** | yes, `moyasarInvoiceDetails` / `moyasarSettlementDetails` | from Moyasar's record | refunds from Moyasar's record | — | depends on `recordRefund` (unverified) |
+| Mobile `POST /api/mobile/reservations/[oid]/confirm`, via `utils/gatewaies/verify/verify.ts` `verifyMoyasarPayment` | n/a (user session + ownership) | yes, `/v1/payments/{id}` | `paid` / `captured` | compared to `Math.round(order.payment.total × 100)`, **the pre-tax total** | not compared | only re-verifies orders still NEW |
+
+Verification is partial:
+
+- No amount or currency check on the web path.
+- A forged callback with a known `invoice_id` can move an unpaid order to HOLD.
+- The enveloped webhooks don't check `secret_token`.
+- The mobile check compares against the pre-tax total while web charges the tax-inclusive total (unverified which the mobile SDK charges).
+
+**Proposal**
+
+Files: `app/api/gatewaies/moyasar/route.ts`, `handlers/gatewaies/moyasar.ts`, `lib/api/gatewaies/moyasar.ts`, `utils/gatewaies/verify/verify.ts`.
+
+1. Enveloped webhooks: compare `body.secret_token` with a new env var `MOYASAR_WEBHOOK_SECRET` (the value set in the Moyasar dashboard) using `timingSafeEqual`, same length first. Mismatch returns 401 and changes nothing.
+2. Invoice callback:
+   - Ignore everything in the body except `invoice_id`, and look up the order by pid.
+   - An order already PAID returns 200 and changes nothing.
+   - Re-fetch with `moyasarInvoiceDetails(invoice_id)`: the full invoice, not just its status.
+3. Mark PAID only when all of these hold:
+   - `status === "paid"`
+   - `currency === "SAR"`
+   - `amount === Math.round(order.payment.total × (1 + order.payment.tax / 100)) × 100`, which is the halalas `createMoyasarCheckout` sends
+   - the invoice id equals the order's `payment.pid`
+4. Verified paid with a mismatching amount or currency: HOLD plus `telegramAdmin`.
+5. Only definitive failures (`failed`, `voided`, via `isMoyasarDefinitiveFailure`) set HOLD. `initiated` and other in-progress statuses change nothing. This is a behaviour change from today, where they go to HOLD.
+6. Unverifiable (Moyasar unreachable or non-2xx): no change, `telegramAdmin`.
+7. `verifyMoyasarPayment`: also require `currency === "SAR"`. Confirm which total the mobile SDK charges: if tax-inclusive, the mobile confirm route should pass the tax-inclusive total.
+
+**Needs from you:** approval, and the `MOYASAR_WEBHOOK_SECRET` value set in Vercel (name only here).
