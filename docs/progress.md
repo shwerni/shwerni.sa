@@ -582,3 +582,21 @@ These three jobs likely never run.
 
 - Home page, consultants list and profile, programs, events and discounts, scales and print, free sessions: pages load with no missing components.
 - Chat uploads and profile image uploads (the stray `lib/api/uploadthing` copies are gone; the real ones in `app/api/uploadthing` stay).
+
+## 2026-09-30 · Cleanup step 1b: refund feature removed
+
+**Files changed**
+
+- Deleted `components/legacy/layout/orderCard/refundButton/index.tsx`: `RefundBtn` and its refund dialog.
+- `components/legacy/layout/orderCard/index.tsx`: removed the `RefundBtn` import and its `!owner` branch. `PayBtn`'s `!owner` branch is untouched (it was not in scope; it also never renders, since the only `OrderCard` caller passes `owner={true}`).
+- `actions/order.ts`: removed the `orderStatusRefund` guard.
+
+**Kept:** `orderStatusRefund` in `data/order/reserveation.ts`. `updateOrderStatus` still calls it for `PaymentState.REFUND`, which is used by the Moyasar and Tabby refund webhooks (`handlers/gatewaies/moyasar-webhook.ts`, `handlers/gatewaies/tabby.ts`).
+
+**Verified**
+
+- `npm run build`: passes.
+
+**Needs manual testing on the preview**
+
+- Consultant dashboard orders list: cards render as before, with no refund button (there was none before either).

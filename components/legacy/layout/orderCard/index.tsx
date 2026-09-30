@@ -17,7 +17,6 @@ import CopyButton from "@/components/shared/copy-button";
 import { OrderStatus } from "@/components/legacy/layout/zStatus";
 import PayBtn from "@/components/legacy/layout/orderCard/payButton";
 import OrderReason from "@/components/legacy/layout/orderCard/chat";
-import RefundBtn from "@/components/legacy/layout/orderCard/refundButton";
 
 // prisma types
 import { PaymentState, UserRole } from "@/lib/generated/prisma/enums";
@@ -176,15 +175,8 @@ export default function OrderCard({ order, owner, time }: Props) {
                 </div>
               </CardContent>
               {/* card footer */}
-              {/* order refund & created at */}
-              {/* order refund */}
+              {/* refunds are handled only in the dashboard codebase */}
               <div className="flex justify-between items-center w-10/12 mx-auto mt-5">
-                {!owner && (
-                  <RefundBtn
-                    order={order}
-                    time={{ date: time.date, time: time.time }}
-                  />
-                )}
                 {!owner && (
                   <PayBtn
                     order={order}
