@@ -28,3 +28,10 @@ export function calculatePayment({
     walletUsed: Math.round(walletUsed),
   };
 }
+
+// the tax-inclusive amount charged for an order, from its stored pre-tax total and tax.
+// the one source for Pay's charge, every gateway payload (web and mobile) and every
+// webhook / mobile amount check. same formula as calculatePayment's totalWTax
+export function orderChargeTotal({ total, tax }: { total: number; tax: number }) {
+  return calculatePayment({ baseCost: total, tax }).totalWTax;
+}

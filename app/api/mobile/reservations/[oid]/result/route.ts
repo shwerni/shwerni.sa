@@ -6,6 +6,7 @@ import { requireMobileUser } from "@/lib/auth/require-mobile-user";
 import { createGetRoute } from "@/lib/api/routes/route-factory";
 import prisma from "@/lib/database/db";
 import { isMoyasarSettledPaid, isMoyasarDefinitiveFailure } from "@/utils/gatewaies";
+import { orderChargeTotal } from "@/utils/admin/payments";
 
 // prisma types
 import { PaymentState } from "@/lib/generated/prisma/enums";
@@ -64,7 +65,8 @@ export const GET = createGetRoute<PaymentResultResponse, { oid: string }>(
       // verify against our own recorded total, and against the oid this
       // payment was created for — comparing moyasar's own fields to each
       // other proves nothing about whether the order actually matches
-      const amountMatches = moyasar.amount === Math.round(order.payment.total * 100);
+      // same tax-inclusive charge as web, in halalas
+      const amountMatches = moyasar.amount === Math.round(orderChargeTotal(order.payment) * 100);
       const oidMatches = moyasar.metadata?.oid === order.oid;
 
       console.log("result");

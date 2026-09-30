@@ -374,3 +374,46 @@ The `attempts` column was added to `verification_tokens` by the migration-owning
 - Verify OTP: 4 wrong codes show "رمز التحقق خطأ", the 5th shows the expired message, and then even the correct code fails until a new one is requested.
 - Reset password: the same two checks.
 - Wait more than 10 minutes: the expired message.
+
+## 2026-09-30 · Step 0 follow-up, item 3: one charge total for web and mobile
+
+**Decision:** one shared function computes the charge from the stored total, and `Pay` charges that too. In rare coupon cases the charge drops by up to 1 SAR (e.g. a 205 SAR base with a 51% coupon: 116 → 115), so it matches what the order stores. The checkout screen (client hook) is unchanged and may show the old figure in those cases.
+
+**Files changed**
+
+- `utils/admin/payments.ts`: new `orderChargeTotal({ total, tax })` = `calculatePayment({ baseCost: total, tax }).totalWTax`. This is now the only source of the charged amount.
+- `handlers/admin/order/payment.ts` `Pay`: charges `orderChargeTotal({ total: cost, tax: finance.tax })`, where `cost` is the stored rounded `Payment.total` (was `calculatePayment(...).totalWTax` over the unrounded price).
+- `app/api/gatewaies/tabby/route.ts`: the expected amount is `orderChargeTotal(payment)`.
+- `app/api/mobile/reservations/[oid]/gatewaies/tabby-payload/route.ts`: sends `orderChargeTotal(order.payment)` (was the pre-tax `payment.total`).
+- `lib/api/gatewaies/tabby.ts` `tabbyPreScoring` (no callers): same change.
+- `app/api/mobile/reservations/[oid]/confirm/route.ts`: `verifyMoyasarPayment(pid, orderChargeTotal(order.payment), oid)` (was the pre-tax total).
+- `app/api/mobile/reservations/[oid]/result/route.ts`: compares `Math.round(orderChargeTotal(order.payment) × 100)` halalas (was the pre-tax total).
+
+**Every place a total is computed (after this item)**
+
+| Where | What | Formula |
+| ----- | ---- | ------- |
+| `handlers/admin/order/payment.ts` `Pay` | amount sent to Moyasar / Tabby (web) | `orderChargeTotal` |
+| `lib/api/gatewaies/moyasar.ts` `createMoyasarCheckout` | halalas from `Pay`'s amount | `toFixed(2)` of that amount |
+| `app/api/gatewaies/tabby/route.ts` | expected webhook amount | `orderChargeTotal` |
+| `mobile/.../tabby-payload/route.ts` | amount sent to Tabby (mobile) | `orderChargeTotal` |
+| `mobile/.../confirm/route.ts`, `mobile/.../result/route.ts` | expected Moyasar amount (mobile) | `orderChargeTotal` |
+| `lib/api/gatewaies/tabby.ts` `tabbyPreScoring` (unused) | amount | `orderChargeTotal` |
+| `hooks/site/usePaymentCalculation.ts` | checkout screen figure | `round(t × (1 + tax/100))` over the **unrounded** price (unchanged) |
+| `utils/index.ts` `totalAfterTax` | order card, order info, refund dialog, currency labels, Tabby order history (`data/gatewaies/tabby.ts`), wallet refund credit (`data/wallet.ts`) | `round(cost + cost × tax/100)` over the stored total (unchanged) |
+| `app/api/mobile/reservations/[oid]/confirm` and `result` responses | `amountSar` shown in the app | pre-tax `payment.total` (unchanged, display only) |
+
+**Known difference (existing, unchanged)**
+
+`totalAfterTax` and `orderChargeTotal` can differ by 1 SAR because of floating point: `150 × 1.15 = 172.4999…` rounds to 172, while `150 + 22.5 = 172.5` rounds to 173. So for a 150 SAR session the card is charged 172 while order cards and the wallet refund show or credit 173. Making `totalAfterTax` use `orderChargeTotal` would align them, but it changes displayed prices and refund amounts; not done without your approval.
+
+**Verified**
+
+- `npm run build`: passes.
+
+**Needs manual testing on the preview**
+
+- Web booking without a coupon (e.g. 150 SAR): the Moyasar and Tabby checkout amount equals what it was before (172).
+- Web booking with a coupon: the checkout amount equals `orderChargeTotal` of the stored total.
+- Mobile Tabby payload amount is tax-inclusive, and the webhook then marks it PAID.
+- Mobile Moyasar confirm and result mark a paid order PAID.

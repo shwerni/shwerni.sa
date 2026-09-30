@@ -9,6 +9,7 @@ import { updateTabbyPid } from "@/data/gatewaies/moyasar";
 
 // utils
 import { zencryption } from "@/utils/admin/encryption";
+import { orderChargeTotal } from "@/utils/admin/payments";
 
 // types
 import { Reservation } from "@/types/admin";
@@ -168,7 +169,12 @@ export const tabbyPreScoring = async (order: Reservation) => {
   // encrypted oid
   const zid = zencryption(order.oid);
   // body
-  const body = await tabbyBody(order, String(order.payment?.total), zid);
+  // same tax-inclusive charge as web
+  const body = await tabbyBody(
+    order,
+    String(order.payment ? orderChargeTotal(order.payment) : 0),
+    zid,
+  );
   // return
   try {
     // create checkout
