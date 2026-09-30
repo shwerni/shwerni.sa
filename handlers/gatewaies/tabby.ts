@@ -3,17 +3,34 @@ import "server-only";
 import { capturePayment, tabbyPaymentDetails } from "@/lib/api/gatewaies/tabby";
 
 // prisma data
-import { updateOrderStatus } from "@/data/order/reserveation";
+import {
+  getReservationPaymentByPid,
+  updateOrderStatus,
+} from "@/data/order/reserveation";
 
 // prisma types
 import { PaymentState } from "@/lib/generated/prisma/enums";
 import { telegramAdmin } from "@/lib/api/telegram/telegram";
 import {  getOrderForRefund, getWebhookActor, recordRefund } from "@/data/gatewaies/webhook";
 
-// payment state update
+// payment state update: paid only when tabby confirms the capture
 export async function tabbyPayment(pid: string, amount: string) {
   // capture payment
-  await capturePayment(pid, amount);
+  const captured = await capturePayment(pid, amount);
+
+  // capture failed
+  if (!captured) {
+    // a parallel webhook may have captured and paid already; never downgrade a paid order
+    const current = await getReservationPaymentByPid(pid);
+    if (current?.payment?.payment === PaymentState.PAID) return true;
+
+    await updateOrderStatus(pid, PaymentState.HOLD);
+    await telegramAdmin(
+      `shwerni-error: tabby capture failed for payment=${pid}, order set to hold`,
+    );
+    return false;
+  }
+
   // update order state
   try {
     // change state to paid
@@ -22,6 +39,7 @@ export async function tabbyPayment(pid: string, amount: string) {
     // if unsuccessful order
     await updateOrderStatus(pid, PaymentState.HOLD);
   }
+  return true;
 }
 
 export async function tabbyRefundWebhook(pid: string): Promise<boolean> {

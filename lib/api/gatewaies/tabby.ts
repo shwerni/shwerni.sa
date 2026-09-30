@@ -152,13 +152,14 @@ export const createTabbyCheckout = async (
 
 // url
 export const capturePayment = async (pid: string, amount: string) => {
-  // send capture a payment
+  // send capture a payment; only a 2xx response counts as captured (fetch doesn't throw on 4xx)
   try {
-    await tabby(`payments/${pid}/captures`, {
+    const response = await tabby(`payments/${pid}/captures`, {
       amount,
     });
+    return response.ok;
   } catch {
-    return null;
+    return false;
   }
 };
 

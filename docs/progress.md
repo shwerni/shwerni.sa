@@ -226,3 +226,41 @@ ALTER TABLE "verification_tokens" ADD COLUMN "attempts" INTEGER NOT NULL DEFAULT
 - Wrong OTP with `attempts >= 5`: delete the token and return the existing `"انتهت صلاحية كود التحقق"`.
 - Correct OTP: delete the token (already done today).
 - Same in `verifyToken` (`handlers/auth/verify.ts`) and `verifyReset` (`handlers/auth/reset.ts`).
+
+## 2026-09-30 · Step 0 follow-up, item 2: Tabby webhook (approved proposal applied)
+
+**Files changed**
+
+- `app/api/gatewaies/tabby/route.ts`:
+  - Reads only `id` from the body, then looks up the order by that pid.
+  - Idempotent: an order already PAID returns 200 `{ success: true }` and nothing changes, and nothing is captured.
+  - Otherwise it re-fetches the payment with `tabbyPaymentDetails(pid)`; the body's `status` and `amount` are ignored.
+  - Verified `authorized` with amount = `Math.round(total × (1 + tax / 100))` (the formula `Pay` charges) and currency `SAR`: `tabbyPayment`.
+  - Verified `authorized` with a different amount: HOLD plus `telegramAdmin`.
+  - Verified `closed`: no change, as before (it is also what Tabby sends after our capture).
+  - Any other verified status: HOLD.
+  - Unverifiable: no change, `telegramAdmin`.
+- `lib/api/gatewaies/tabby.ts`: `capturePayment` returns `true` only when `response.ok`, `false` on non-2xx or a throw.
+- `handlers/gatewaies/tabby.ts`: `tabbyPayment` sets PAID only after a successful capture. A failed capture sets HOLD and calls `telegramAdmin`, unless a parallel webhook already paid the order, in which case it never downgrades.
+
+**How this never captures twice**
+
+- The PAID guard runs before any capture.
+- A capture happens only when Tabby's own status is `authorized`; after a full capture it becomes `closed`.
+- A second concurrent capture is rejected by Tabby, and the re-check keeps the order PAID.
+
+**Open question**
+
+- The mobile route `mobile/reservations/[oid]/gatewaies/tabby-payload` sends the pre-tax `payment.total` to Tabby, while web sends the tax-inclusive total. A mobile Tabby payment would now go to HOLD plus a Telegram alert instead of PAID. The mobile booking POST routes are stubs today; this needs fixing before mobile Tabby goes live.
+
+**Verified**
+
+- `npm run build`: passes.
+
+**Needs manual testing on the preview (Tabby sandbox)**
+
+- A web Tabby booking completes and the order becomes PAID once.
+- Resending the same webhook leaves it PAID, with no second capture in the Tabby dashboard.
+- A forged webhook body (`{"id":"<pid>","status":"authorized"}` for an unpaid sandbox order that Tabby hasn't authorized) does not mark it PAID.
+- A rejected or expired Tabby payment sets the order to HOLD.
+- Sandbox with a capture failure: order HOLD and a Telegram alert.
