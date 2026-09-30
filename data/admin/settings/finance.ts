@@ -10,15 +10,6 @@ import { defaultFinance } from "@/constants/admin";
 
 // types
 type Finance = { tax: number | null; commission: number | null };
-
-// get finance settings
-export const getFinanceSettings = async () => {
-  // get all settings
-  const finance = await getSettingsByCategory("finance");
-
-  // return
-  return finance;
-};
 // get owners current count & increment on it
 export const getTaxCommission = async () => {
   try {
@@ -61,26 +52,6 @@ export const getPaymentMethods = async () => {
     return finance.payments;
   } catch {
     return [];
-  }
-};
-
-// get coupon rSettigns state
-export const getCouponsState = async () => {
-  try {
-    // get payments methods
-    const finance = await getExtractSettings<{ coupon: boolean }>("features", [
-      "coupon",
-    ]);
-
-    // create one if not exist
-    if (!finance?.coupon)
-      // return default values
-      return false;
-
-    // return settings
-    return finance.coupon;
-  } catch (error) {
-    return false;
   }
 };
 

@@ -2,7 +2,7 @@
 import prisma from "@/lib/database/db";
 import { pushToUser } from "./mobile-notify";
 
-export interface SendNotificationInput {
+interface SendNotificationInput {
   userId: string;
   // "instant" pushes right away, "scheduled" writes a row the cron
   // dispatch route picks up once timeToSend passes

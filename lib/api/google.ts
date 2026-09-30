@@ -36,30 +36,6 @@ export async function createGoogleMeeting() {
   return response.data.meetingUri;
 }
 
-export async function endMeeting(name: string) {
-  const meet = getMeetClient();
-
-  const response = await meet.spaces.endActiveConference({
-    name,
-    requestBody: {},
-  });
-
-  return response.data;
-}
-
-export async function adminCreateMeeting() {
-  const meet = getMeetClient();
-
-  const response = await meet.spaces.create({
-    requestBody: {
-      config: {
-        accessType: "OPEN",
-      },
-    },
-  });
-  return response.data.meetingUri;
-}
-
 // youtube props
 type Video = {
   id: string;

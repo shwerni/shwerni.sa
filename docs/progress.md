@@ -600,3 +600,140 @@ These three jobs likely never run.
 **Needs manual testing on the preview**
 
 - Consultant dashboard orders list: cards render as before, with no refund button (there was none before either).
+
+## 2026-09-30 · Cleanup step 1c: dead exports
+
+Done with a TypeScript AST pass over knip's unused-export list:
+
+- A declaration still used inside its own file only loses `export`.
+- A declaration used nowhere is deleted, with its leading comments.
+- Skipped: files with your uncommitted edits, payment files, shadcn `components/ui`, the Phase 1 foundation files, payment-sounding names, and any name still imported by a kept file (tsc compiles unused files too).
+
+<details><summary>Deleted (122)</summary>
+
+- `app/(pages)/(site)/(sub-pages)/scales/metadata.ts`: `buildResultMetadata`
+- `components/legacy/layout/zStatus/index.tsx`: `BadgeStatus`
+- `constants/data.ts`: `usageSteps`, `whyus`, `contactUsData`, `information`
+- `constants/index.ts`: `iHours`
+- `constants/menu.ts`: `subMenu`, `adminMenu`, `managerMenu`, `marketingMenu`, `servicesMenu`, `coordinatorMenu`, `collaboratorMenu`
+- `constants/theme/event.ts`: `themeKeys`
+- `data/admin/collaboration.ts`: `getCollaboratorById`
+- `data/admin/settings/employee.ts`: `getEmployeesByRole`
+- `data/admin/settings/finance.ts`: `getFinanceSettings`, `getCouponsState`
+- `data/admin/settings/settings.ts`: `setSetting`, `setSettings`, `getAllSettings`, `getSettingValues`
+- `data/article.ts`: `getAllPublishedArticles`, `getAllPublishedArticlesIds`, `getArticleTitleByBid`, `getArticleMetaData`
+- `data/consultant.ts`: `getConsultantReserved`, `getAllOwnersConsultants`, `getAllOwnersPuslished`, `getAllOwnersPuslishedPreview`, `getOwnerByCids`, `ownerExistbyAuthor`, `getOwnersInfoCid`, `getOwnersInfoByAuthor`, `getOwnerCidNameByAuthor`, `getAvailableOwnersGrouped`, `getAvailableOwnersByTime`, `getDiscountedConsultants`
+- `data/coupon.ts`: `getPublishedCoupons`, `getAvailableCoupons`
+- `data/discounts.ts`: `getActiveDiscount`, `applyDiscount`
+- `data/freesession.ts`: `getAllFreeSessions`, `freeSessionAttendance`
+- `data/instant.ts`: `recordUniqueInstantVisitor`, `getTodayInstantStats`, `getInstantStatsRange`
+- `data/meetings.ts`: `orderMeetingUrl`, `getMeetingsByCidAndRange`
+- `data/preconsultation.ts`: `newPreConsultationSeassion`, `updatePreConsultationSeassion`
+- `data/programs.ts`: `getAllPrograms`, `getProgramAvailableConsultants`, `getProgramConsultantsByPrid`
+- `data/question.ts`: `getQuestionsInfo`, `getQuestionTitleByQid`
+- `data/review.ts`: `reviewsExistByAuthor`, `reviewIsReservedByAuthor`, `getreviewsByAuthor`, `postreview`
+- `data/rooms.ts`: `getRoom`, `getParticipants`
+- `data/scales.ts`: `OrderScaleFullReport`
+- `data/seo.ts`: `siteMapConsultants`, `siteMapArticles`, `siteMapPrograms`
+- `data/statistics.ts`: `getHomeStatistics`
+- `data/timings.ts`: `getTimingsByCid`, `getTimingsDayByCid`, `getTimingsReservation`
+- `data/uploads.ts`: `getUploadedImages`
+- `data/user.ts`: `getAllUsers`
+- `data/whatsapp.ts`: `getWhatsappContact`, `getWhatsappChat`
+- `lib/api/google.ts`: `endMeeting`, `adminCreateMeeting`
+- `lib/api/pusher/pusher-client.ts`: `disconnectConsultantClient`
+- `lib/api/telegram/telegram.ts`: `telegramCService`
+- `lib/notifications/mobile/mobile-notify.ts`: `sendInstantNotification`, `scheduleNotification`
+- `lib/notifications/site.ts`: `notificationNewOwner`
+- `lib/upload/index.ts`: `UploadDropzone`
+- `schemas/chat.ts`: `SendMessageInput`, `Participant`
+- `schemas/index.ts`: `Reservation`, `InstantSchema`, `FreeSession`, `ConsultationAnswer`, `discountSchema`, `QuestionSchema`
+- `utils/date.ts`: `dateToLabel`, `toNextHalfOrHour`, `getDateAhead`
+- `utils/index.ts`: `findTime`, `filterTimesAfter`, `playRoomSound`, `averageRating`
+- `utils/phone.ts`: `isValidGulfPhone`, `filterValidGulfPhones`, `shufflePhones`
+- `utils/time/index.ts`: `isStillTime`, `DaysAhead`, `TodayOrTomorrow`, `DaysAheadEn`, `TargetDayDate`, `addMinutesToNow`, `availableSoonFilter`, `isMeetingPassed`, `isMeetingStill`, `attendanceTime`, `customITimes`, `checkDateToDays`, `dateToStringAr`, `dateToTime`, `dateToValidString`, `dateToDayEn`, `dateToWeekDay`, `dateToDayAr`, `datetodayNumber`, `isActiveWeekValid`, `isFirstWeekdayOfMonth`
+
+</details>
+
+<details><summary>No longer exported, still used in their own file (35)</summary>
+
+- `actions/site.ts`: `checkIsAnyConsultantOnline`
+- `components/legacy/layout/zStatus/index.tsx`: `AdStatus`
+- `constants/saudi-banks.ts`: `UNKNOWN_SAUDI_BANK`
+- `data/admin/settings/employee.ts`: `getEmployeeInfo`
+- `data/admin/settings/settings.ts`: `getSettingsBySubKeysCategory`
+- `data/event.ts`: `getActiveDiscountFor`, `Costs`, `PricingResult`, `ResolvedPrice`
+- `data/meetings.ts`: `SessionFilter`
+- `data/online.ts`: `broadcastConsultantBusy`
+- `data/rooms.ts`: `createRoom`, `createParticipants`
+- `data/verificationTokens.ts`: `getVerificationTokenByPhone`
+- `hooks/store/order-notification.ts`: `STORAGE_KEY`
+- `hooks/zustand/order-notification.ts`: `Palette`, `RawOrder`, `NotifEntry`
+- `lib/api/ai/ai.ts`: `Ai`
+- `lib/api/ai/bot/index.ts`: `oExtractJson`
+- `lib/api/whatsapp/index.ts`: `WhatsappSendResult`
+- `lib/notifications/mobile/send-campaign.ts`: `SendCampaignInput`
+- `lib/notifications/mobile/send-notification.ts`: `SendNotificationInput`
+- `lib/notifications/mobile/test-categories.ts`: `TestCategoryPreset`
+- `schemas/chat.ts`: `sendMessageSchema`, `participantSchema`
+- `utils/admin/encryption.ts`: `encryptToken`
+- `utils/event.ts`: `round`
+- `utils/phone.ts`: `normalizePhone`, `checkGulfPhone`, `PhoneCheck`
+- `utils/time/index.ts`: `incrementD`, `meetingTime`, `dateToDbDay`
+- `utils/user.ts`: `cooldown`
+
+</details>
+
+**Dead code left in files with your uncommitted edits (58), untouched:**
+
+- `components/legacy/layout/section/index.tsx`: `ZSection`
+- `components/legacy/layout/shadcnM/dialogWithoutX.tsx`: `DialogPortal`, `DialogOverlay`
+- `components/legacy/layout/zDialog/index.tsx`: `Dialog`, `DialogPortal`, `DialogOverlay`, `DialogClose`, `DialogTrigger`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogDescription`
+- `components/shared/categories-badge.tsx`: `Props`
+- `components/shared/icon-label.tsx`: `Props`
+- `components/shared/link-button.tsx`: `LinkButtonProps`
+- `components/ui/badge.tsx`: `badgeVariants`
+- `components/ui/calendar.tsx`: `CalendarDayButton`
+- `components/ui/card.tsx`: `CardAction`
+- `components/ui/carousel.tsx`: `CarouselPrevious`, `CarouselNext`
+- `components/ui/command.tsx`: `CommandDialog`, `CommandShortcut`, `CommandSeparator`
+- `components/ui/dialog.tsx`: `DialogOverlay`, `DialogPortal`
+- `components/ui/dropdown-menu.tsx`: `DropdownMenuPortal`, `DropdownMenuCheckboxItem`, `DropdownMenuRadioGroup`, `DropdownMenuRadioItem`, `DropdownMenuShortcut`, `DropdownMenuSub`, `DropdownMenuSubTrigger`, `DropdownMenuSubContent`
+- `components/ui/field.tsx`: `FieldLegend`
+- `components/ui/form.tsx`: `useFormField`
+- `components/ui/input-otp.tsx`: `InputOTPSeparator`
+- `components/ui/pagination.tsx`: `PaginationLink`, `PaginationPrevious`, `PaginationNext`
+- `components/ui/popover.tsx`: `PopoverAnchor`
+- `components/ui/scroll-area.tsx`: `ScrollBar`
+- `components/ui/select.tsx`: `SelectSeparator`, `SelectScrollUpButton`, `SelectScrollDownButton`
+- `components/ui/sheet.tsx`: `SheetFooter`
+- `components/ui/toast.tsx`: `ToastProvider`, `ToastViewport`, `Toast`, `ToastTitle`, `ToastDescription`, `ToastClose`, `ToastAction`
+- `lib/api/gatewaies/iban.ts`: `normalizeIban`, `hasValidIbanChecksum`, `getBankCodeFromIban`, `IbanCheck`
+- `schemas/consultant/profile.ts`: `isCertRequired`, `dateToYears`
+
+**Dead code left in payment code and shadcn primitives (30), untouched:**
+
+- `components/ui/use-toast.ts`: `reducer`, `useToast`
+- `data/admin/settings/finance.ts`: `getPaymentMethods`
+- `data/order/reserveation.ts`: `getReservationById`, `getReservationPidByOid`, `getAllOrders`, `getAllOrdersDesc`, `getAllOrdersByAuthor`, `getAllOwnersOrdersByAuthor`, `getAllOrdersByAuthorAndMonth`, `getAllOwnersOrdersByAuthorAndMonth`, `getPaidOwnersOrdersByAuthorAndRange`, `getPaidOwnersOrdersByCidAndRange`, `getReservationPaymentByOid`, `orderStatusPaid`, `orderStatusHold`, `orderStatusRefund`, `alreadyReservedTimes`, `updateOrderPaidByOid`, `getUnpaidOrder`, `cancelOrderByOid`
+- `data/wallet.ts`: `payAllByWallet`, `requestUsingWallet`, `adjustWalletCredit`
+- `handlers/gatewaies/tabby.ts`: `tabbyRefundWebhook`
+- `lib/api/gatewaies/moyasar.ts`: `moyasarPaymentStatus`, `moyasarPaymentDetails`
+- `lib/api/gatewaies/tabby.ts`: `tabbyPreScoring`
+- `schemas/index.ts`: `PaymentSchema`
+- `utils/tax.ts`: `TAX_PERCENT`
+
+**Kept because a kept file still imports them:** `data/coupon.ts#getCouponsForHome`, `utils/index.ts#isEnglish`, `components/shared/unavailable-service.tsx#WeekdayAr`, `components/clients/terms.tsx#TermsContent`, `components/clients/terms.tsx#TermsDialog`, `actions/consultant.ts#saveBankAccount`, `components/legacy/layout/skeleton/spinners/index.tsx#SpinnerEn`
+
+**Not handled by the pass (default exports / grouped exports):** `components/legacy/layout/titles/index.tsx#default`, `lib/upload/index.ts#uploadFiles`
+
+**Verified**
+
+- `npm run build`: passes.
+
+**Needs manual testing on the preview**
+
+- Every page listed in step 1a, plus login, register and OTP.
+- Consultant dashboard: timings, coupons, programs, reviews, dues, profile.
+- Booking: consultant, instant, program, discover.
+- **Booking times and slots:** unused helpers were removed from `utils/time` and `utils/date`. Pick dates across today and tomorrow, late-night slots and month end.

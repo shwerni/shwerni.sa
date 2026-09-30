@@ -47,38 +47,3 @@ export async function upsertWhatsappChat(
     return null;
   }
 }
-
-// get chat message
-export async function getWhatsappContact() {
-  try {
-    const chat = await prisma.waChat.findMany({
-      select: {
-        phone: true,
-        name: true,
-        waid: true,
-      },
-      orderBy: { last_message_at: "desc" },
-    });
-
-    // validate
-    if (!chat) return null;
-
-    // return
-    return chat;
-  } catch {
-    return null;
-  }
-}
-
-// get chat message
-export async function getWhatsappChat(waid: string) {
-  try {
-    // chat
-    return await prisma.message.findMany({
-      where: { chatId: waid },
-      orderBy: { time: "asc" },
-    });
-  } catch {
-    return null;
-  }
-}

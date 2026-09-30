@@ -11,17 +11,17 @@ const PALETTES = [
   { bg:'rgba(245,243,255,0.5)', chipBg:'#ede9fe', chipColor:'#3b0764', chipBorder:'#c4b5fd', dot:'#8b5cf6' },
 ] as const;
 
-export type Palette = typeof PALETTES[number];
+type Palette = typeof PALETTES[number];
 const EMOJIS = ['🎉','✨','🌟','💫','🎊','🙌','👏','🔥','💪','🤩'] as const;
 
 // id is an opaque key (not the order id) and name is already masked on the server
-export type RawOrder = {
+type RawOrder = {
   id: string;
   name: string;
   consultant: { name: string; category?: string };
 };
 
-export type NotifEntry = {
+type NotifEntry = {
   orderId: string;
   clientName: string;
   consultantName: string;

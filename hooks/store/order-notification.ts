@@ -1,4 +1,4 @@
-export const STORAGE_KEY = 'seen_orders_v1';
+const STORAGE_KEY = 'seen_orders_v1';
 export const MIN_DELAY  = 5_000;
 export const MAX_DELAY  = 10_000;
 export const FIRST_MIN  =  5_000;

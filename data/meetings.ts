@@ -44,77 +44,6 @@ export const participantAttendance = async (
   }
 };
 
-// get meeting url if not exist create
-export const orderMeetingUrl = async (oid: number, session?: number) => {
-  try {
-    // get order url
-    const meeting = await prisma.meeting.findUnique({
-      where: { orderId_session: { orderId: oid, session: session ?? 1 } },
-      select: { rooms: { select: { url: true } }, duration: true },
-    });
-
-    // return
-    if (meeting?.rooms?.url) return meeting.rooms.url;
-
-    // create url if not exist
-    const newUrl = await createGoogleMeeting();
-
-    // update order
-    await prisma.meeting.update({
-      where: { orderId_session: { orderId: oid, session: session ?? 1 } },
-      data: { rooms: { update: { url: newUrl } } },
-      select: { orderId: true },
-    });
-
-    // return
-    return newUrl;
-  } catch {
-    // return
-    return null;
-  }
-};
-
-// get all paid orders for owners (owner order page)
-export const getMeetingsByCidAndRange = async (
-  cid: number,
-  start: string,
-  end: string,
-) => {
-  try {
-    // get paid orders created in the specified month and year
-    const orders = await prisma.order.findMany({
-      where: {
-        consultantId: cid,
-        payment: { payment: PaymentState.PAID },
-        meeting: {
-          some: {
-            date: {
-              gte: start,
-              lte: end,
-            },
-          },
-        },
-      },
-      include: {
-        payment: true,
-        meeting: {
-          include: {
-            participants: true,
-          },
-        },
-        consultant: {
-          select: { userId: true, name: true, phone: true },
-        },
-      },
-    });
-
-    // Return orders
-    return orders;
-  } catch {
-    return null;
-  }
-};
-
 export const getMeeting = async (mid: string) => {
   try {
     const meeting = await prisma.meeting.findUnique({
@@ -201,7 +130,7 @@ export const isMeetingNeedsReschedule = async (mid: string) => {
 };
 
 // get user meetings
-export type SessionFilter = "upcoming" | "completed" | "cancelled" | "packages";
+type SessionFilter = "upcoming" | "completed" | "cancelled" | "packages";
 
 interface GetMeetingsParams {
   userId: string;

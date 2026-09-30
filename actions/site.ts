@@ -114,7 +114,7 @@ export async function toggleFavorite(
 // ---------- online consultants ----------
 
 // public
-export async function checkIsAnyConsultantOnline() {
+async function checkIsAnyConsultantOnline() {
   return checkIsAnyConsultantOnlineData();
 }
 

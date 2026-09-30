@@ -203,19 +203,6 @@ export const notificationNewOrder = async (order: Reservation) => {
   });
 };
 
-// new owner welcome notification
-export const notificationNewOwner = async (
-  phone: string,
-  name: string,
-  cid: string,
-) =>
-  notify(async () => {
-    await sendWhatsappTemplate(phone, "owner_new_approved", {
-      text: [name],
-      url: [cid],
-    });
-  });
-
 // new pre-consultation session
 export const notificationNewPreConsultation = async (
   phone: string,

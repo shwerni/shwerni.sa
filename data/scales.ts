@@ -58,10 +58,6 @@ export async function getAllScaleSlugs(): Promise<{ slug: string }[]> {
   });
 }
 
-export type OrderScaleFullReport = Awaited<
-  ReturnType<typeof getOrderScaleFullReport>
->;
-
 // ── Main fetch ────────────────────────────────────────────────────────────────
 
 export async function getOrderScaleFullReport(orderId: number) {

@@ -49,7 +49,7 @@ const processingUsers = new Set<string>();
 // ─────────────────────────────────────────────
 
 // extract json safely from AI response string
-export const oExtractJson = async (text: string) => {
+const oExtractJson = async (text: string) => {
   const match = text.match(/\{[\s\S]*\}/);
   if (!match) return null;
 

@@ -56,7 +56,7 @@ export const otpMatches = (expected: string, given: string) => {
   return a.length === b.length && timingSafeEqual(a, b);
 };
 
-export const getVerificationTokenByPhone = async (phone: string) => {
+const getVerificationTokenByPhone = async (phone: string) => {
   try {
     const result = await prisma.verificationToken.findFirst({
       where: { phone },

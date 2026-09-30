@@ -25,5 +25,3 @@ export const themes = {
 
 export type ThemeKey = keyof typeof themes;
 export type Theme = (typeof themes)[ThemeKey];
-
-export const themeKeys = Object.keys(themes) as ThemeKey[];

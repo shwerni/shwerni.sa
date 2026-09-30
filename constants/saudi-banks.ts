@@ -52,7 +52,7 @@ export function isSaudiBankCode(code: string): code is SaudiBankCode {
 }
 
 // fallback for valid IBANs from banks not in the list yet
-export const UNKNOWN_SAUDI_BANK = { ar: "بنك آخر", en: "Other bank" } as const;
+const UNKNOWN_SAUDI_BANK = { ar: "بنك آخر", en: "Other bank" } as const;
 
 // display name for any bank code, known or not
 export function getSaudiBank(code: string) {

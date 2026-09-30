@@ -19,14 +19,6 @@ import { Weekday } from "@/lib/generated/prisma/enums";
 import { timeZone } from "@/lib/site/time";
 
 /**
- * Converts a unix timestamp to Arabic day name
- * @example dateToLabel(1706572800000) → "الجمعة"
- */
-export function dateToLabel(date: number) {
-  return format(fromUnixTime(date / 1000), "EEEE", { locale: ar });
-}
-
-/**
  * Converts yyyy-MM-dd to Arabic day name
  * @example "2026-01-30" → "الجمعة"
  */
@@ -71,43 +63,6 @@ export function addNMinutes(
     time: format(next, "HH:mm"),
     iso: next,
   };
-}
-
-/**
- * Rounds date to next 30-min or full hour
- * @returns { date: 'yyyy-MM-dd', time: 'HH:mm' }
- */
-export function toNextHalfOrHour(date: Date = new Date()): {
-  date: string;
-  time: string;
-  iso: Date;
-} {
-  const minutes = date.getMinutes();
-  let next: Date;
-
-  if (minutes === 0 || minutes === 30) {
-    next = date;
-  } else if (minutes < 30) {
-    next = setMinutes(date, 30);
-  } else {
-    next = addHours(setMinutes(date, 0), 1);
-  }
-
-  return {
-    iso: next,
-    date: format(next, "yyyy-MM-dd"),
-    time: format(next, "HH:mm"),
-  };
-}
-
-/**
- * Returns yyyy-MM-dd for a date N days ahead
- */
-export function getDateAhead(
-  daysAhead: number,
-  date: Date = new Date(),
-): string {
-  return format(addDays(date, daysAhead), "yyyy-MM-dd");
 }
 
 /**

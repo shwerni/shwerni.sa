@@ -1,5 +1,5 @@
 // days a user must wait between phone / password changes
-export const cooldown = 10;
+const cooldown = 10;
 
 const DAY_MS = 86_400_000;
 

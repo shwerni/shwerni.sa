@@ -29,22 +29,6 @@ export const saveUploadedImage = async (
   }
 };
 
-// get images
-export const getUploadedImages = async () => {
-  // save image
-  try {
-    const images = await prisma.image.findMany({
-      select: {
-        key: true,
-        url: true,
-      },
-    });
-    return images;
-  } catch {
-    return null;
-  }
-};
-
 // save uplaoded files
 export const saveUploadedFile = async (
   title: string,

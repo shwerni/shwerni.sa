@@ -102,22 +102,6 @@ export const timeOptions: Times[] = Object.entries(itimes).map(
   }),
 );
 
-// initial time
-export const findTime = (value: string) => {
-  const item = itimes[value];
-  return item ? { ...item, value } : undefined;
-};
-
-/**
- * Filters times and removes anything before minTime
- * @example minTime = "15:30" → removes 15:00, 14:30, etc
- */
-export function filterTimesAfter(times: Times[], minTime?: string): Times[] {
-  if (!minTime) return times;
-
-  return times.filter((t) => t.value >= minTime);
-}
-
 // gender label
 export const genderLabel = (gender: Gender) => {
   return gender == Gender.MALE ? "ذكر" : "أنثى";
@@ -192,23 +176,6 @@ export const paymentMethodLabel = (method: PaymentMethod | null) => {
   if (method == PaymentMethod.visaMoyasar) return "فيزا";
   if (method == PaymentMethod.tabby) return "تابي";
   if (method == PaymentMethod.wallet) return "المحفظة";
-};
-
-// play sound
-export const playRoomSound = (
-  event: "join" | "leave" | "toggle-open" | "toggle-close",
-) => {
-  const audio = new Audio(`/audio/meeting-${event}.mp3`);
-  audio.play().catch(console.error);
-};
-
-// calculate weighted average rating
-export const averageRating = (ratings: number[]): number => {
-  // sum of ratings
-  const sum = ratings.reduce((acc, rating) => acc + rating, 0);
-
-  // return average
-  return sum / ratings.length;
 };
 
 // relation labels

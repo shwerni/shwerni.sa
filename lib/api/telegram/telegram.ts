@@ -110,19 +110,6 @@ export const telegram = async (data: string) => {
   }
 };
 
-// notify customer service telegram
-export const telegramCService = async (data: string) => {
-  try {
-    // notify me telegram
-    await sendMessage("5421775862", data);
-    // return
-    return true;
-  } catch {
-    // return
-    return false;
-  }
-};
-
 // zadmin notification
 export const telegramAdmin = async (data: string) => {
   try {

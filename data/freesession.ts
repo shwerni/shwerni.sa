@@ -22,30 +22,6 @@ import { Categories, Gender, Prisma } from "@/lib/generated/prisma/client";
 import { createGoogleMeeting } from "@/lib/api/google";
 
 // get all free sessions
-export const getAllFreeSessions = async () => {
-  try {
-    // get all
-    const sessions = await prisma.freeSession.findMany({
-      orderBy: {
-        created_at: "desc",
-      },
-      include: {
-        consultant: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    });
-    // return
-    return sessions;
-  } catch {
-    // return
-    return null;
-  }
-};
-
-// get all free sessions
 export const getOwnerFreeTimings = async (cid: number) => {
   try {
     // get all
@@ -169,45 +145,6 @@ export const reserveFreeSession = async (formdata: freeSessionSchemaType) => {
     return { message: newSession.fid, state: true };
   } catch {
     // return
-    return null;
-  }
-};
-
-// get reservation
-export const freeSessionAttendance = async (
-  fid: number,
-  participant: string,
-  ownerAttend: boolean | null,
-  clientAttend: boolean | null,
-  time: string | null,
-) => {
-  try {
-    // client attendance
-    if (participant === "client" && !clientAttend) {
-      // attendance
-      const order = await prisma.freeSession.update({
-        where: { fid },
-        data: { clientAttend: true, clientATime: time },
-        select: { fid: true },
-      });
-      // return
-      return Boolean(order);
-    }
-
-    // attendance
-    if (participant === "owner" && !ownerAttend) {
-      const order = await prisma.freeSession.update({
-        where: { fid },
-        data: { ownerAttend: true, ownerATime: time },
-        select: { fid: true },
-      });
-      // return
-      return Boolean(order);
-    }
-
-    // if participant not exist or already signed
-    return null;
-  } catch {
     return null;
   }
 };

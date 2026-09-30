@@ -39,7 +39,7 @@ export type TemplateParams = {
 
 // Structured result so callers (especially the cron job) can tell WHY a
 // send failed instead of getting back null with zero information.
-export type WhatsappSendResult =
+type WhatsappSendResult =
   | { ok: true; data: unknown }
   | {
       ok: false;

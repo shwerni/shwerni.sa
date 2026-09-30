@@ -130,20 +130,6 @@ export const getPrograms = async (
 };
 
 // get all program
-export const getAllPrograms = async () => {
-  try {
-    // get program
-    const program = await prisma.program.findMany();
-
-    // return
-    return program;
-  } catch {
-    // return
-    return null;
-  }
-};
-
-// get all program
 export const getProgramsForHome = async (limit: number = 8) => {
   try {
     // get program
@@ -243,60 +229,6 @@ export const getProgramInfo = async (prid: number) => {
 
     // return
     return program;
-  } catch {
-    // return
-    return null;
-  }
-};
-
-// get program by prid
-export const getProgramAvailableConsultants = async (prid: number) => {
-  try {
-    // get program
-    const program = await prisma.program.findUnique({
-      where: { prid },
-      select: { prid: true },
-    });
-
-    // validate
-    if (!program) throw new Error("Program not found");
-
-    // approved consultants
-    const approved = await prisma.programConsultant.findMany({
-      where: {
-        programId: program.prid,
-        status: ProgramEnrollState.APPROVED,
-        active: true,
-      },
-      include: {
-        consultant: true,
-      },
-    });
-
-    // consultant
-    const consultants = approved.map((c) => c.consultant);
-
-    // return
-    return consultants;
-  } catch {
-    // return
-    return null;
-  }
-};
-
-// get program by prid
-export const getProgramConsultantsByPrid = async (prid: number) => {
-  try {
-    // consultants
-    const consultants = await prisma.programConsultant.findMany({
-      where: { programId: prid },
-      include: {
-        consultant: true,
-      },
-    });
-
-    // return
-    return consultants;
   } catch {
     // return
     return null;

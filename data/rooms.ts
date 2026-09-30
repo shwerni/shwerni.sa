@@ -10,21 +10,8 @@ import { UserRole } from "@/lib/generated/prisma/enums";
 import { createGoogleMeeting } from "@/lib/api/google";
 import { Meeting } from "@/lib/generated/prisma/client";
 
-// get created room
-export const getRoom = async (roomName: string) => {
-  try {
-    const room = await prisma.room.findUnique({
-      where: { roomName },
-    });
-
-    return room;
-  } catch {
-    return null;
-  }
-};
-
 // create new room
-export const createRoom = async (
+const createRoom = async (
   roomId: string,
   meetingId: string,
   orderId: number,
@@ -53,7 +40,7 @@ export const createRoom = async (
 };
 
 // create order room participant
-export const createParticipants = async (mid: string) => {
+const createParticipants = async (mid: string) => {
   try {
     // get order
     const meeting = await prisma.meeting.findUnique({
@@ -81,26 +68,6 @@ export const createParticipants = async (mid: string) => {
     });
 
     return true;
-  } catch {
-    return null;
-  }
-};
-
-// order room
-export const getParticipants = async (meetingId: string, role: UserRole) => {
-  try {
-    // participant
-    const participant = await prisma.participant.findFirst({
-      where: {
-        meetingId,
-        role,
-      },
-      select: {
-        participant: true,
-      },
-    });
-
-    return participant?.participant;
   } catch {
     return null;
   }

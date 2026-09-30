@@ -84,16 +84,6 @@ export const getUserByEmail = async (email: string) => {
   }
 };
 
-// get unique user by email
-export const getAllUsers = async () => {
-  try {
-    const exist = await prisma.user.findMany();
-    return exist;
-  } catch {
-    return null;
-  }
-};
-
 // createUser register
 export const createUser = async (
   role: UserRole,

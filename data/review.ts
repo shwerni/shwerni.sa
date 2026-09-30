@@ -18,48 +18,6 @@ import { dateToString } from "@/utils/time";
 // lib
 import { aiAcceptReview } from "@/lib/api/ai/ai";
 
-// if rate exist to prevent second review
-export const reviewsExistByAuthor = async (author: string, cid: number) => {
-  try {
-    // if this author has review
-    const review = await prisma.review.findMany({
-      where: { author, consultantId: cid },
-    });
-    // return
-    return Boolean(review);
-  } catch {
-    return false;
-  }
-};
-
-// if rate exist to prevent second review
-export const reviewIsReservedByAuthor = async (author: string, cid: number) => {
-  try {
-    // if this author has review
-    const review = await prisma.order.findFirst({
-      where: { author, consultantId: cid },
-    });
-    // return
-    return Boolean(review);
-  } catch {
-    return false;
-  }
-};
-
-// get owners current count & increment on it
-export const getreviewsByAuthor = async (cid: number) => {
-  try {
-    // get all settings
-    const review = await prisma.review.findMany({
-      where: { consultantId: cid, status: ReviewState.PUBLISHED },
-    });
-    // return
-    return review;
-  } catch {
-    return null;
-  }
-};
-
 // get owners current count & increment on it
 export const getReviewsForHome = async () => {
   try {
@@ -77,34 +35,6 @@ export const getReviewsForHome = async () => {
     `;
     // return
     return reviews;
-  } catch {
-    return null;
-  }
-};
-
-// get owners current count & increment on it
-export const postreview = async (
-  cid: number,
-  author: string,
-  name: string,
-  comment: string,
-  rate: number,
-) => {
-  try {
-    // post new rate
-    const review = await prisma.review.create({
-      data: {
-        consultantId: cid,
-        author,
-        name,
-        comment,
-        rate,
-        status: ReviewState.HOLD,
-      },
-    });
-
-    // return
-    return Boolean(review);
   } catch {
     return null;
   }

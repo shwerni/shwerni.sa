@@ -14,7 +14,7 @@ type Employee = {
 };
 
 // get owners current count & increment on it
-export const getEmployeeInfo = async () => {
+const getEmployeeInfo = async () => {
   try {
     // get all settings
     const employees = await getSetting<Employee[]>("employees", "info");
@@ -34,17 +34,6 @@ export const getEmployeeInfo = async () => {
 // Normalize roles to uppercase trimmed string for safe comparison
 const normalizeRole = (role: string | UserRole) =>
   role.toString().trim().toUpperCase();
-
-// Get all employees by role (case-insensitive)
-export const getEmployeesByRole = async (role: UserRole | string) => {
-  // employees
-  const employees = await getEmployeeInfo();
-  // validate
-  if (!employees) return [];
-  // return
-  const targetRole = normalizeRole(role);
-  return employees.filter((emp) => normalizeRole(emp.role) === targetRole);
-};
 
 // Get all telegram IDs for employees with role SERVICE
 export const getServiceTelegramIds = async (role: string) => {

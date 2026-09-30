@@ -8,7 +8,7 @@ import { zdencrypt, zencrypt } from "@/constants";
 const secret_token = "sdxcz3214esaczxc32";
 
 // ecrypt (data) into a token
-export const encryptToken = (data: string): string => {
+const encryptToken = (data: string): string => {
   // encrypt data
   const encrypted = CryptoJS.AES.encrypt(data, secret_token).toString();
   // replace unsafe characters for url-safe encryption

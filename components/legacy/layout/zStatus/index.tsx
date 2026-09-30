@@ -21,18 +21,7 @@ import { findApprovalState, findPayment, findConsultantState } from "@/utils";
 import { Settings } from "lucide-react";
 
 // advertisement status ( is user profile published )
-export function BadgeStatus(props: { status: ApprovalState }) {
-  const approval = findApprovalState(props.status);
-
-  return (
-    <Badge className={`${approval?.color} pb-1 pt-1.5`}>
-      {approval?.label}
-    </Badge>
-  );
-}
-
-// advertisement status ( is user profile published )
-export function AdStatus(props: { status: ConsultantState }) {
+function AdStatus(props: { status: ConsultantState }) {
   const status = findConsultantState(props.status);
 
   return (
