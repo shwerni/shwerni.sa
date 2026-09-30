@@ -760,3 +760,262 @@ The replacements to make once those are committed: currency labels use `tax ? wi
 **Needs manual testing on the preview**
 
 - Order card totals and the event discount badge show the same numbers as before (e.g. 150 → 173.00).
+
+## 2026-09-30 · Cleanup step 2: duplicates in utils/ and lib/ (inventory and proposals, nothing migrated)
+
+### Inventory: 151 exported functions
+
+"Package" is the date library used inside the function. "Callers" counts files that import it.
+
+<details><summary>Full table</summary>
+
+| File | Name | What it does | Package | Callers |
+| ---- | ---- | ------------ | ------- | ------: |
+| `lib/api/ai/ai.ts` | `aiAcceptReview` | accpet new ratings | none | 1 |
+| `lib/api/ai/ai.ts` | `aiAcceptOwners` | accpet new ratings | none | 1 |
+| `lib/api/ai/ai.ts` | `aiConsultantSummary` | summarize consultant info | none | 1 |
+| `lib/api/ai/bot/debounce.ts` | `enqueueMessage` | safety-net cleanup for rows stuck longer than expected | none | 1 |
+| `lib/api/ai/bot/debounce.ts` | `findDueRows` | Find rows due for processing right now — used by the cron job | none | 1 |
+| `lib/api/ai/bot/debounce.ts` | `claimDueRow` | Atomically claim a due row: locks it (FOR UPDATE SKIP LOCKED) so two overlapping cron runs can never both process the same phone, then deletes it and returns the queue data in one transaction. | none | 1 |
+| `lib/api/ai/bot/debounce.ts` | `cleanStaleDebounceRows` | Safety-net cleanup for rows that never got claimed for some reason | none | 1 |
+| `lib/api/ai/bot/index.ts` | `handleBotResponse` | ───────────────────────────────────────────── 📲 WHATSAPP BOT HANDLER ───────────────────────────────────────────── | none | 1 |
+| `lib/api/ai/bot/index.ts` | `handleBotReply` | ───────────────────────────────────────────── 💬 WEBSITE CHAT BOT HANDLER ───────────────────────────────────────────── | none | 1 |
+| `lib/api/ai/bot/setup.ts` | `AiBot` | (no comment) `AiBot(text: string)` | none | 1 |
+| `lib/api/ai/chat-bot.ts` | `SendChatBot` | (no comment) `SendChatBot( message: string, from: string, user?: User, consultant?: Pick<Consultant, "name" \| "cid" \| "gende` | none | 1 |
+| `lib/api/ai/chat-guard.ts` | `checkMessageWithAI` | (no comment) `checkMessageWithAI = async (message: string): Promise<boolean>` | none | 1 |
+| `lib/api/gatewaies/iban.ts` | `normalizeIban` | (no comment) `normalizeIban(input: string): string` | none | 0 |
+| `lib/api/gatewaies/iban.ts` | `hasValidIbanChecksum` | ISO 13616 mod-97 check; processed digit-by-digit to avoid BigInt | none | 0 |
+| `lib/api/gatewaies/iban.ts` | `getBankCodeFromIban` | (no comment) `getBankCodeFromIban(iban: string): SaudiBankCode \| null` | none | 0 |
+| `lib/api/gatewaies/iban.ts` | `checkSaudiIban` | (no comment) `checkSaudiIban(input: string): IbanCheck` | none | 5 |
+| `lib/api/gatewaies/iban.ts` | `formatIban` | Display: "SA46 8000 0543 6080 1125 8781" | none | 2 |
+| `lib/api/gatewaies/iban.ts` | `formatIbanInput` | For the input's onChange: keeps "SA" fixed, digits only after it, caps at 24, groups by 4 | none | 2 |
+| `lib/api/gatewaies/moyasar.ts` | `createMoyasarCheckout` | create new checkout | none | 1 |
+| `lib/api/gatewaies/moyasar.ts` | `moyasarPaymentStatus` | get updated payment | none | 0 |
+| `lib/api/gatewaies/moyasar.ts` | `moyasarPaymentDetails` | full payload (status + amount + metadata) for mobile server-side verification | none | 0 |
+| `lib/api/gatewaies/moyasar.ts` | `moyasarInvoiceDetails` | full invoice (with its `payments` array) — used to re-verify a payment_refunded webhook against the specific payment id before trusting anything it claims. explicit return type (rather than an inline `as Promise<...>` cast) avoids the "implicitly has type 'any' because it does not have a type annotation and is referenced in its own initializer" (TS7022) error at call sites | none | 2 |
+| `lib/api/gatewaies/moyasar.ts` | `moyasarSettlementDetails` | re-fetch the settlement server-to-server — the balance_transferred webhook body doesn't include invoice_url, and we never trust webhook amounts without verifying. explicit return type here too, for the same TS7022 reason as moyasarInvoiceDetails | none | 1 |
+| `lib/api/gatewaies/tabby.ts` | `tabbyBody` | create new checkout | none | 1 |
+| `lib/api/gatewaies/tabby.ts` | `createTabbyCheckout` | (no comment) `createTabbyCheckout = async ( order: Reservation, total: number, )` | none | 1 |
+| `lib/api/gatewaies/tabby.ts` | `capturePayment` | url | none | 1 |
+| `lib/api/gatewaies/tabby.ts` | `tabbyPreScoring` | prescoring (is tabby payment available) | none | 0 |
+| `lib/api/gatewaies/tabby.ts` | `tabbyPaymentDetails` | re-fetch the payment server-to-server — Tabby's own docs say webhooks are notification-only and to verify via GET /payments/{id} before trusting anything | none | 2 |
+| `lib/api/google.ts` | `createGoogleMeeting` | (no comment) `createGoogleMeeting()` | none | 4 |
+| `lib/api/google.ts` | `getYouTubeVideos` | (no comment) `getYouTubeVideos(count: number = 5): Promise<Video[]>` | Intl | 1 |
+| `lib/api/pusher/pusher-client.ts` | `createPusherClient` | (no comment) `createPusherClient(userId: string): PusherClient` | none | 1 |
+| `lib/api/realtime/mint-token.ts` | `mintRealtimeToken` | (no comment) `mintRealtimeToken(userId: string, role: "USER" \| "OWNER" \| "GUEST")` | none | 4 |
+| `lib/api/recaptcha.ts` | `verifyRecaptcha` | (no comment) `verifyRecaptcha = async (token: string): Promise<boolean>` | none | 1 |
+| `lib/api/room/dispatch.ts` | `dispatchIncomingCall` | looks up the callee's latest voip token and sends through whichever transport they're registered on — returns false if they have no token on file (never opened the app / never granted push) rather than throwing, since a caller not being reachable isn't itself an error | none | 3 |
+| `lib/api/room/get-presence.ts` | `getPresence` | answers both questions the ring job needs from one row: is this user currently foregrounded at all, and are they specifically already on this meeting's own screen (in which case nothing should be sent) | none | 1 |
+| `lib/api/room/ring-participant.ts` | `ringParticipant` | decides and dispatches whatever this one participant needs, given who they're meeting. forceRing skips the presence check entirely and always sends a real voip ring — used by the t+5min recall, never by the t+0 ring | none | 1 |
+| `lib/api/routes/create-get-route.ts` | `createGetRoute` | wraps a data fetcher with app-secret auth, bigint-safe serialization, and error handling | none | 18 |
+| `lib/api/routes/create-post-route.ts` | `createPostRoute` | wraps a data mutator with app-secret auth, bigint-safe serialization, and error handling | none | 2 |
+| `lib/api/routes/route-factory.ts` | `createGetRoute` | wraps a data fetcher with app-secret auth, dynamic params, bigint-safe serialization, and error handling | none | 9 |
+| `lib/api/routes/route-factory.ts` | `createPostRoute` | wraps a data mutator with app-secret auth, dynamic params, bigint-safe serialization, and error handling | none | 15 |
+| `lib/api/routes/route-factory.ts` | `createPatchRoute` | wraps a data mutator with app-secret auth, dynamic params, bigint-safe serialization, and error handling | none | 1 |
+| `lib/api/routes/route-factory.ts` | `createDeleteRoute` | wraps a data mutator with app-secret auth, dynamic params, bigint-safe serialization, and error handling | none | 1 |
+| `lib/api/telegram/telegram.ts` | `newOrdertelegram` | infom me & inform manager 966554117879 or 201014203964 | none | 1 |
+| `lib/api/telegram/telegram.ts` | `telegramRefund` | infom me & inform manager 966554117879 or 201014203964 | none | 1 |
+| `lib/api/telegram/telegram.ts` | `telegram` | notification orders | none | 1 |
+| `lib/api/telegram/telegram.ts` | `telegramAdmin` | zadmin notification | none | 7 |
+| `lib/api/telegram/telegram.ts` | `telegramEmployees` | notify reviewer telegram | none | 1 |
+| `lib/api/telegram/telegram.ts` | `telegramDocuments` | pdf documents notification | none | 1 |
+| `lib/api/telegram/templates/index.ts` | `adminTelegramNewOrder` | templates | none | 1 |
+| `lib/api/telegram/templates/index.ts` | `serviceTelegramNewOrder` | (no comment) `serviceTelegramNewOrder = (data: Reservation)` | none | 1 |
+| `lib/api/telegram/templates/index.ts` | `managerTelegramNewOrder` | (no comment) `managerTelegramNewOrder = (data: Reservation)` | none | 1 |
+| `lib/api/telegram/templates/owner.ts` | `sendReviewerNotification` | (no comment) `sendReviewerNotification = async (consultant: Consultant)` | none | 1 |
+| `lib/api/whatsapp/index.ts` | `sendWhatsappTemplate` | Which Cloud API endpoint to hit depends on the WhatsApp template CATEGORY, not on how you feel like sending it: - MARKETING templates -> /marketing_messages  (marketing: true) - UTILITY / AUTHENTICATION / plain text       -> /messages (marketing: false) Sending a marketing-category template through /messages (or vice versa) is what gets flagged/throttled, so this flag should be driven by the template's actual approved category, not set ad hoc per call. | none | 2 |
+| `lib/api/whatsapp/index.ts` | `sendWhatsappText` | send text message (always goes through /messages - text messages are session/utility-type, never marketing) | none | 3 |
+| `lib/api/whatsapp/logic.ts` | `debouncedTextMessage` | (no comment) `debouncedTextMessage( from: string, fromId: string, fromName: string, text: string, )` | none | 1 |
+| `lib/api/whatsapp/logic.ts` | `routeNonText` | (no comment) `routeNonText(from: string, msg: WebhookMessage)` | none | 1 |
+| `lib/api/whatsapp/skip-bot.ts` | `shouldSkipBotReply` | (no comment) `shouldSkipBotReply(ctx: SkipContext): boolean` | none | 1 |
+| `lib/api/whatsapp/special-replies.ts` | `handleSpecialReply` | Runs all special-reply rules in order. If one matches, its handler fires and this returns true — the caller must stop processing this message entirely (no enqueue, no debounce, no AI call). Returns false if nothing matched, meaning normal flow should continue. | none | 1 |
+| `lib/auth/guards.ts` | `sessionUser` | hotfix guards for actions/: ids always come from the session, never from the caller the logged-in user, or null | none | 5 |
+| `lib/auth/guards.ts` | `ownConsultantCid` | the logged-in consultant's own consultant id, or null for anyone else | none | 2 |
+| `lib/auth/guards.ts` | `isConsultant` | true only for a logged-in consultant | none | 4 |
+| `lib/auth/legacy-password-login.ts` | `legacyPasswordLogin` | one-time bridge for existing web accounts logging into mobile for the first time — verifies the legacy bcrypt password, then silently creates both a better auth session and the mobile credential row, no otp needed since the password itself already proves ownership | none | 1 |
+| `lib/auth/require-mobile-user.ts` | `requireMobileUser` | resolves the signed-in mobile user from the request's session token throws a 401 HttpError when there is no valid session - every notification route uses this instead of trusting a client-supplied userId | none | 36 |
+| `lib/auth/server.ts` | `userServer` | server components | none | 36 |
+| `lib/auth/server.ts` | `roleServer` | server components | none | 3 |
+| `lib/notifications/mobile/campaign-fanout.ts` | `fanOutCampaign` | turns one campaign into a Notification row per matching user and pushes to every registered device across that whole audience in one batch - used for both instant campaigns and the cron picking up a scheduled one @returns how many users the campaign actually reached | none | 2 |
+| `lib/notifications/mobile/mobile-notify.ts` | `pushToUser` | pushes to every device registered for a user, right now | none | 1 |
+| `lib/notifications/mobile/mobile-push.ts` | `sendPushNotifications` | sends push notifications through expo's push service in batches of 100, pruning any tokens expo reports as no longer registered @param messages notifications to send, each targeting one expo push token @returns tickets reporting per-message delivery acceptance from expo | none | 4 |
+| `lib/notifications/mobile/notify/reservation.ts` | `mobileNotifyOrderConfirmed` | all four order-confirmation notifications: an instant + reminder pair for the client, and an instant + reminder pair for the consultant | none | 1 |
+| `lib/notifications/mobile/send-campaign.ts` | `sendCampaign` | single entry point for sending a mass notification to an entire audience (clients, owners, or everyone) - use this from the admin dashboard instead of writing campaign rows directly | none | 1 |
+| `lib/notifications/mobile/send-notification.ts` | `sendNotification` | single entry point for creating and sending a notification - use this everywhere instead of touching prisma or the push service directly | none | 4 |
+| `lib/notifications/site.ts` | `notificationSecurityOtp` | otp sending | none | 3 |
+| `lib/notifications/site.ts` | `notificationNewOrder` | new order notification | none | 1 |
+| `lib/notifications/site.ts` | `notificationNewPreConsultation` | new pre-consultation session | none | 1 |
+| `lib/notifications/site.ts` | `notificationNewFreeSession` | new free session notification | none | 1 |
+| `lib/notifications/site.ts` | `notificationPickNewSession` | program next session selection notification | none | 1 |
+| `lib/notifications/site.ts` | `notificationSessionConfirm` | new program session confirm notification | none | 1 |
+| `lib/notifications/site.ts` | `notificationReviewReminder` | review reminder | none | 1 |
+| `lib/notifications/site.ts` | `notificationScaleReminder` | scale reminder | none | 1 |
+| `lib/notifications/site.ts` | `notificationCheckRescheduling` | scale reminder | none | 1 |
+| `lib/notifications/site.ts` | `notificationConfirmRescheduling` | scale reminder | none | 1 |
+| `lib/notifications/site.ts` | `notificationNewChatMessage` | notify user of chat message | none | 1 |
+| `lib/rate-limit.ts` | `rateLimit` | true if the request is allowed; fails open on errors or timeouts | none | 1 |
+| `lib/rate-limit.ts` | `getClientIp` | (no comment) `getClientIp(): Promise<string>` | none | 1 |
+| `lib/safe-action.ts` | `ok` | (no comment) `ok = <T>(data: T)` | none | 0 |
+| `lib/safe-action.ts` | `fail` | (no comment) `fail = <E extends string>(error: E)` | none | 0 |
+| `lib/safe-action.ts` | `createAction` | (no comment) `createAction< S extends z.ZodType, const A extends AuthRule, T, E extends string = never, >( config: ActionCon` | none | 0 |
+| `lib/site/time.ts` | `timeZone` | time zone modified | date-fns-tz | 36 |
+| `utils/admin/dues.ts` | `calculateDues` | calculateDues - does NOT include tax (per request) | none | 3 |
+| `utils/admin/encryption.ts` | `decryptToken` | decrypt token | none | 2 |
+| `utils/admin/encryption.ts` | `zencryption` | zencryption (simple order id) | none | 7 |
+| `utils/admin/encryption.ts` | `zdencryption` | dencryption (simple order id) | none | 7 |
+| `utils/admin/encryption.ts` | `encryptionDigitsToUrl` | digits encryption | none | 4 |
+| `utils/admin/encryption.ts` | `dencryptionDigitsToUrl` | digits dencryption | none | 3 |
+| `utils/admin/payments.ts` | `calculatePayment` | calculate total | none | 6 |
+| `utils/app.ts` | `requireAppSecret` | Drop-in guard to ensure the request is coming from your mobile app. Usage in Next.js route: const isApp = requireAppSecret(req); if (isApp instanceof Response) return isApp; // 401 Unauthorized | none | 3 |
+| `utils/auth.ts` | `generateOtp` | generate random secure otp 5 digits | none | 1 |
+| `utils/date.ts` | `getDayName` | Converts yyyy-MM-dd to Arabic day name @example "2026-01-30" → "الجمعة" | date-fns | 1 |
+| `utils/date.ts` | `add25Minutes` | Adds 25 minutes to the provided date (or now) @returns { date: 'yyyy-MM-dd', time: 'HH:mm' } | date-fns | 7 |
+| `utils/date.ts` | `addNMinutes` | Adds n minutes to the provided date (or now) @returns { date: 'yyyy-MM-dd', time: 'HH:mm' } | date-fns | 1 |
+| `utils/date.ts` | `getDatesAhead` | Returns an array of yyyy-MM-dd dates for N days ahead @example getDatesAhead(3) → [today, +1, +2] | date-fns | 5 |
+| `utils/date.ts` | `dateToWeekDay` | get weekday label as WeekDay type of prisma @returns WeekDay | none | 7 |
+| `utils/date.ts` | `meetingLabel` | meeting label @param date Date object from form @param time string like "07:00" | date-fns | 5 |
+| `utils/date.ts` | `meetingFullLabel` | meeting label @param date string "yyyy-mm-dd" @param time string like "07:00" | date-fns | 2 |
+| `utils/date.ts` | `dateLabel` | @param date Date object from form @param time string like "07:00" | date-fns | 5 |
+| `utils/date.ts` | `timeLabel` | @param time string like "07:00" or "14:00" @returns "07:00 صباحا" \| "02:00 مساءا" | date-fns | 7 |
+| `utils/date.ts` | `dateToString` | convert a JavaScript Date object into an ISO-like date string (YYYY-MM-DD) @param date - JavaScript Date instance (must be valid) @returns string formatted as "YYYY-MM-DD" @example dateToString(new Date(2026, 1, 11)) // "2026-02-11" | none | 5 |
+| `utils/date.ts` | `meetingTime` | Determine meeting status @param time current time (HH:mm) @param date current date (YYYY-MM-DD) @param mTime meeting time (HH:mm) @param mDate meeting date (YYYY-MM-DD) @param before minutes before meeting start (default 5) @param after minutes after meeting start (default 35) @returns true if running, false if passed, null if still upcoming | date-fns | 3 |
+| `utils/date.ts` | `attendanceTime` | Check if a meeting is within attendance window (15 min before to 35 min after) @param time current time (HH:mm) @param date current date (YYYY-MM-DD) @param mTime meeting time (HH:mm) @param mDate meeting date (YYYY-MM-DD) @returns true if within attendance window, false otherwise | date-fns | 1 |
+| `utils/event.ts` | `applyRule` | (no comment) `applyRule = ( value: number, rule:` | none | 1 |
+| `utils/event.ts` | `getTheme` | (no comment) `getTheme = (key?: string \| null, overrides?: unknown): Theme` | none | 1 |
+| `utils/gatewaies/verify/tabby.ts` | `verifyTabbyPayment` | re-verifies a tabby payment directly against tabby's api | none | 1 |
+| `utils/gatewaies/verify/verify.ts` | `verifyMoyasarPayment` | re-verifies a moyasar payment directly against moyasar's api - never trusts the client-reported sdk result alone | none | 1 |
+| `utils/gatewaies.ts` | `isMoyasarSettledPaid` | moyasar reports 8 possible statuses — this maps each to how the app should treat it, since "not paid" isn't the same as "failed" | none | 2 |
+| `utils/gatewaies.ts` | `isMoyasarDefinitiveFailure` | (no comment) `isMoyasarDefinitiveFailure(status: Status)` | none | 3 |
+| `utils/index.ts` | `randomId` | create random id | none | 1 |
+| `utils/index.ts` | `isEnglish` | check langauge | none | 2 |
+| `utils/index.ts` | `phoneNumber` | validate phone number | none | 11 |
+| `utils/index.ts` | `findPayment` | payment statuses | none | 5 |
+| `utils/index.ts` | `findPaymentMethod` | payment method | none | 1 |
+| `utils/index.ts` | `findCategory` | category | none | 17 |
+| `utils/index.ts` | `findUser` | user | none | 1 |
+| `utils/index.ts` | `findReview` | category | none | 1 |
+| `utils/index.ts` | `findCurrency` | currency | none | 2 |
+| `utils/index.ts` | `findConsultantState` | consultant profile status state hidden, hold , published controled by admin | none | 2 |
+| `utils/index.ts` | `findApprovalState` | consultant profile status state hidden, hold , published controled by admin | none | 2 |
+| `utils/index.ts` | `genderLabel` | gender label | none | 4 |
+| `utils/index.ts` | `consultantGenderLabel` | gender label | none | 2 |
+| `utils/index.ts` | `totalAfterTax` | total after tax: display wrapper around the shared withTax, no tax math of its own. tax 0 means the amount is already final (currency labels), anything else applies TAX_PERCENT | none | 6 |
+| `utils/index.ts` | `htmlToText` | remove html tags | none | 2 |
+| `utils/index.ts` | `minutesToRead` | calculate how minutes to read | none | 3 |
+| `utils/index.ts` | `orderInfoLabel` | new order info label | none | 4 |
+| `utils/index.ts` | `meetingUrl` | meeting url | none | 2 |
+| `utils/index.ts` | `findParticipant` | get participant by role | none | 2 |
+| `utils/index.ts` | `paymentMethodLabel` | payment method label | none | 1 |
+| `utils/index.ts` | `relationLabel` | relation labels | none | 1 |
+| `utils/phone.ts` | `maskPhone` | keeps the first 3 and last 4 digits so a token holder can't read the full number | none | 1 |
+| `utils/tax.ts` | `withTax` | the one tax calculation for the whole site: checkout, Pay, gateway payloads (web and mobile), webhook and mobile checks, order cards, refund dialog, wallet refunds and tabby order history. integer math, so 150 → 173 everywhere (float math gave 57 or 58 for 50) | none | 13 |
+| `utils/time/index.ts` | `meetingDateTime` | ─── functions ─────────────────────────────────────────────────────────────── combines a meeting's separate date + time strings, interpreted as asia/riyadh local time, into a correct utc Date — mirrors the inverse of the existing timeZone() utility (toZonedTime) for consistency | date-fns-tz + date-fns | 1 |
+| `utils/time/index.ts` | `meetingLabel` | meetings label | date-fns | 4 |
+| `utils/time/index.ts` | `DaysAheadFromToday` | get N days ahead from today | date-fns | 1 |
+| `utils/time/index.ts` | `aboveAndLowerTime` | above and lower the current time (offset) | date-fns | 1 |
+| `utils/time/index.ts` | `timeToArabic` | time to arabic label | date-fns | 1 |
+| `utils/time/index.ts` | `dateToString` | format date to string english | date-fns | 22 |
+| `utils/time/index.ts` | `dateTimeToString` | format date time to string | date-fns | 4 |
+| `utils/time/index.ts` | `dateToArString` | format date to string arabic | date-fns | 1 |
+| `utils/time/index.ts` | `getWeekStartSaturday` | free session | date-fns-tz + date-fns | 2 |
+| `utils/user.ts` | `cooldownDays` | days left before a sensitive field can be changed again @param changedAt last change date, null if never changed @returns whole days left (rounded up), 0 when a change is allowed | none | 4 |
+| `utils/user.ts` | `cooldownThreshold` | oldest last-change date that still allows a new change | none | 1 |
+| `utils/user.ts` | `cooldownMessage` | user facing message when a change is locked @param label field name in arabic @param days days left | none | 3 |
+| `utils/utils.ts` | `cn` | (no comment) `cn(...inputs: ClassValue[])` | none | 119 |
+
+</details>
+
+### Date package
+
+The codebase already uses only **date-fns 3.6.0** (with `date-fns-tz` 3.2.0 and `date-fns/locale`): 33 imports of `date-fns`, 2 of `date-fns-tz`, 13 of `date-fns/locale`. There's no dayjs or moment.
+
+**Proposal:** keep date-fns plus date-fns-tz as the only date package. Put all date helpers in `utils/date.ts`, and move `timeZone()` there from `lib/site/time.ts` (it only uses date-fns-tz, so it's client-safe).
+
+### Groups
+
+**Same job, different names**
+
+| Group | Candidates | Proposed canonical |
+| ----- | ---------- | ------------------ |
+| add minutes | `add25Minutes(date)`, `addNMinutes(date, 25)` (`utils/date.ts`) | `addNMinutes` in `utils/date.ts`; callers use `addNMinutes(d, 25)` (test: identical) |
+| days ahead | `getDatesAhead(n, date)` (`utils/date.ts`, 5 callers), `DaysAheadFromToday(n)` (`utils/time`, 1 caller, also returns weekday and label) | `getDatesAhead` with a **required** date (every caller passes `timeZone().iso`-derived dates; the `new Date()` default is wrong on a UTC server between 00:00 and 02:59 Riyadh). `DaysAheadFromToday` keeps its extra fields and is built on it |
+| time label | `timeLabel` (`utils/date.ts`), `timeToArabic` (`utils/time`), 4 local `timeLabel` copies that look up `timeOptions` (`reels/page.tsx`, `discover/card.tsx`, `discover/reels.tsx`, `discover/time.tsx`, all with your edits) | **question 2** |
+| meeting label | `meetingFullLabel(date, time)` (`utils/date.ts`), `meetingLabel(time, date)` (`utils/time`): same sentence, different time format | **question 3** |
+| route factories | `createGetRoute` / `createPostRoute` in `lib/api/routes/create-get-route.ts` and `create-post-route.ts`, plus `createGetRoute` / `createPostRoute` / `createPatchRoute` / `createDeleteRoute` in `route-factory.ts` | `route-factory.ts` (same behaviour plus params); delete the two single files |
+| payment method label | `findPaymentMethod(method)`, `paymentMethodLabel(method)` (`utils/index.ts`) | payment code: listed only, not merged |
+| id encoding | `zencryption` / `zdencryption`, `encryptionDigitsToUrl` / `dencryptionDigitsToUrl` (`utils/admin/encryption.ts`) | payment and order links: listed only, not merged |
+| phone cleanup | `phoneNumber` (`utils/index.ts`, digits only), `normalizePhone` (`utils/phone.ts`, strips spaces, dashes, `+`, `00`) | different rules; keep both until you decide (not a like-for-like merge) |
+
+**Same name, different behaviour**
+
+| Name | Where | Difference |
+| ---- | ----- | ---------- |
+| `dateToString` | `utils/date.ts` (`toISOString().split("T")[0]`, a UTC date) and `utils/time` (`format(d, "yyyy-MM-dd")`, the runtime's local date) | **question 1** |
+| `meetingLabel` | `utils/date.ts` `(date, time)` gives "السبت، 31 يناير 2026 · 11:30 مساءً"; `utils/time` `(time, date)` gives "الجلسة يوم … الساعة …" | different outputs and swapped arguments. Proposed: rename the `utils/date.ts` one to `meetingDateTimeLabel`, and merge the `utils/time` one per question 3 |
+| `meetingTime` / `attendanceTime` | `utils/date.ts` (exported), `utils/time` (internal, unused) | identical window logic; the `utils/time` copy and its `parseDateTime` helper are dead code |
+| `createGetRoute` / `createPostRoute` | see route factories | same behaviour |
+
+### Date helper test (`docs/tests/compare-date-helpers.ts`)
+
+Run as the server (`TZ=UTC`) and as a browser in Riyadh (UTC+3), on 23:30 / 00:00 / 01:30 / 02:59 Riyadh at a month end and a year end, and on calendar days built three ways (`new Date(y,m,d)`, `parseISO`, `new Date("yyyy-MM-dd")`). The UTC run found 19 differences, the Riyadh run 30.
+
+| Pair | UTC server | Riyadh browser |
+| ---- | ---------- | -------------- |
+| `dateToString` date vs time | same everywhere | **differs**: `utils/date` returns the previous day for `parseISO` / `new Date(y,m,d)` days, and for real instants between 00:00 and 02:59 Riyadh |
+| `getDatesAhead(n)` (default now) vs `DaysAheadFromToday(n)` | **differs** 00:00–02:59 Riyadh (starts a day early) | differs at midnight |
+| `getDatesAhead(n, timeZone().iso)` vs `DaysAheadFromToday(n)` | same | same |
+| `timeLabel` vs `timeToArabic` | **differs**: "صباحا" vs "صباحاً" | same difference |
+| `timeToArabic` vs `timeOptions` lookup | same for listed slots; the lookup falls back to the raw "HH:mm" for times not in `timeOptions` | same |
+| `meetingFullLabel` vs `meetingLabel` | **differs**: "الساعة 23:59" vs "الساعة 11:59 مساءً" | same difference |
+| `dateToWeekDay` vs `format("EEEE")` rule | same | same |
+| `add25Minutes` vs `addNMinutes(25)` | same | same |
+
+**Stopped here as instructed. Questions:**
+
+1. **`dateToString`:** which is correct, the UTC date (`utils/date`) or the local date (`utils/time`)? Recommendation: `utils/time` (`format`). The `utils/date` version shows the previous day in the browser, and its callers include the client booking flows `sub-pages/reschedule/reschedule.tsx` and `sub-pages/sessions/sessions.tsx` (they send `dateToString(date)`), plus question dates in `questions/card.tsx` and `question.tsx`. Server callers (`data/order/reserveation.ts`, the slot-conflict check) give the same answer either way on a UTC server. This may be a live off-by-one bug in rescheduling and session picks; unverified which `Date` the pickers pass.
+2. **Time label:** "صباحاً" (`timeToArabic`) or "صباحا" (`timeLabel`)? Recommendation: "صباحاً". It matches "مساءً", which both already use.
+3. **Meeting sentence:** raw 24-hour time (`meetingFullLabel`, "الساعة 23:59") or 12-hour Arabic (`meetingLabel`, "الساعة 11:59 مساءً")? Recommendation: 12-hour Arabic, which matches the rest of the site.
+
+### jscpd (`npx jscpd app components lib utils data actions --min-lines 6`)
+
+281 clones, 7601 duplicated lines of 61656 (12.3%). The largest:
+
+| Lines | First | Second |
+| ----: | ----- | ------ |
+| 211 | `clients/chats/chat.tsx:110-320` | `clients/chats/list/chat.tsx:110-295` |
+| 146 | `clients/consultants/reservation/forms/coupons.tsx:31-176` | `clients/instant/reservation/forms/coupons.tsx:31-176` |
+| 146 | `clients/consultants/reservation/forms/coupons.tsx:31-176` | `clients/programs/reservation/forms/coupons.tsx:31-176` |
+| 127 | `clients/consultants/navigation.tsx:1-127` | `clients/freesessions/navigation.tsx:1-127` |
+| 120 | `clients/chats/chat.tsx:466-585` | `clients/chats/list/chat.tsx:450-569` |
+| 106 | `clients/consultants/reservation/forms/method.tsx:2-107` | `clients/forms/method.tsx:2-107` |
+| 106 | `clients/consultants/reservation/steps/payment.tsx:59-164` | `clients/forms/payment.tsx:49-153` |
+| 105 | `clients/consultants/reservation/steps/payment.tsx:59-163` | `clients/sub-pages/marriage-awareness/payment.tsx:45-149` |
+| 96 | `clients/freesessions/filter.tsx:58-153` | `clients/sub-pages/event/discounts/filter.tsx:58-153` |
+| 93 | `(pages)/(site)/programs/[prid]/page.tsx:8-100` | `(pages)/(site)/programs/reserve/[prid]/page.tsx:8-100` |
+| 85 | `clients/consultants/navigation.tsx:21-105` | `clients/programs/navigation.tsx:21-105` |
+| 82 | `api/mobile/room/[mid]/ring/route.ts:2-83` | `api/mobile/room/ring/[mid]/route.ts:2-83` |
+| 81 | `clients/consultants/reservation/forms/method.tsx:27-107` | `clients/instant/reservation/forms/method.tsx:25-105` |
+| 81 | `clients/consultants/reservation/forms/method.tsx:27-107` | `clients/programs/reservation/forms/method.tsx:25-105` |
+| 80 | `clients/consultants/navigation.tsx:48-127` | `clients/sub-pages/event/discounts/navigation.tsx:48-127` |
+| 79 | `api/mobile/room/[mid]/guard/route.ts:2-80` | `api/mobile/room/guard/[mid]/route.ts:2-80` |
+| 72 | `clients/consultants/reservation/search.tsx:1-72` | `clients/coupons/search.tsx:1-72` |
+| 71 | `clients/consultants/reservation/steps/details.tsx:75-145` | `clients/forms/details.tsx:67-137` |
+| 71 | `clients/forms/payment.tsx:146-216` | `clients/instant/reservation/steps/payment.tsx:138-208` |
+| 68 | `clients/consultants/card.tsx:12-79` | `clients/sub-pages/event/discounts/card.tsx:12-79` |
+| 67 | `clients/consultants/old-filter.tsx:301-367` | `clients/programs/filter.tsx:278-344` |
+| 64 | `clients/consultants/reservation/steps/payment.tsx:165-228` | `clients/forms/payment.tsx:153-216` |
+| 62 | `clients/consultants/reservation/steps/payment.tsx:167-228` | `clients/sub-pages/marriage-awareness/payment.tsx:147-208` |
+| 58 | `clients/consultants/reservation/stepper.tsx:2-59` | `clients/freesessions/reservation/stepper.tsx:2-59` |
+| 56 | `clients/chats/chat.tsx:399-454` | `clients/chats/list/chat.tsx:386-438` |
+
+**Worth extracting (none done, needs your approval):**
+
+1. Chat client: `clients/chats/chat.tsx` and `clients/chats/list/chat.tsx` are about 440 duplicated lines. Proposal: one chat component with a `variant` prop.
+2. Reservation coupon forms: `consultants`, `instant` and `programs` `reservation/forms/coupons.tsx` are the same 146 lines three times. Proposal: one shared component.
+3. Reservation payment and method steps across consultants, instant, programs, marriage awareness and `forms/`. Proposal: shared step components. **Touches booking and payment UI.**
+4. List navigation (`consultants`, `freesessions`, `programs`, `event/discounts` `navigation.tsx`) and filters. Proposal: one pagination/navigation component.
+5. Program page and reserve page (`programs/[prid]` and `programs/reserve/[prid]`), 93 lines. Proposal: a shared loader.
+6. Mobile room routes `room/[mid]/ring` vs `room/ring/[mid]` and `room/[mid]/guard` vs `room/guard/[mid]`: exact duplicates at two URLs. Proposal: keep one path per endpoint, **after checking which paths the mobile app calls**.
+7. `reels/actions.ts` vs `data/reels.ts` (45 lines), and the `login` vs `register` and `reset-password` vs `verify-otp` form handlers.
+
+**Needs manual testing on the preview:** nothing yet; no behaviour changed in this entry.
