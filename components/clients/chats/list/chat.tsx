@@ -182,7 +182,10 @@ export default function ChatClient({
       let fileName: string | undefined;
 
       if (attachment) {
-        const uploaded = await startUpload([attachment]);
+        const uploaded = await startUpload([attachment], {
+          mid,
+          participant: participantId,
+        });
         if (!uploaded || uploaded.length === 0) {
           setSendError("فشل رفع الملف، يرجى المحاولة مرة أخرى.");
           return;

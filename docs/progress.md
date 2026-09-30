@@ -302,3 +302,20 @@ Files: `app/api/gatewaies/moyasar/route.ts`, `handlers/gatewaies/moyasar.ts`, `l
 7. `verifyMoyasarPayment`: also require `currency === "SAR"`. Confirm which total the mobile SDK charges: if tax-inclusive, the mobile confirm route should pass the tax-inclusive total.
 
 **Needs from you:** approval, and the `MOYASAR_WEBHOOK_SECRET` value set in Vercel (name only here).
+
+## 2026-09-30 · Step 0 follow-up, item 4: chat uploads require a participant token
+
+**Files changed**
+
+- `app/api/uploadthing/core.ts`: `chatAttachment` takes `.input({ mid, participant })`. Its middleware requires `participant` to be a participant token of that meeting (`getMeetingAccess`, the same rule as the tier 5 chat route). Otherwise it throws `UploadThingError("Unauthorized")`. Still no login required, and the limits are unchanged: image 8 MB, PDF 16 MB, 1 file.
+- `components/clients/chats/chat.tsx`, `components/clients/chats/list/chat.tsx`: `startUpload([attachment], { mid, participant: participantId })`. A rejected upload shows the existing `"فشل رفع الملف، يرجى المحاولة مرة أخرى."`.
+
+**Verified**
+
+- `npm run build`: passes. The client helper `lib/upload/index.ts` imports the router only as a type.
+
+**Needs manual testing on the preview**
+
+- Guest chat link (`/chats/[mid]?participant=…`): attach an image and a PDF; both upload and send.
+- Consultant chat from `/dashboard/chats/[mid]`: attachment uploads.
+- The same page with a wrong `participant` value: the page 404s, and a direct UploadThing request with a wrong token is rejected.
