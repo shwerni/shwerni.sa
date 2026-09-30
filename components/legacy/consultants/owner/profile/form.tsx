@@ -23,7 +23,7 @@ import { GenderPreference } from "@/lib/generated/prisma/enums";
 import { BankAccount, Consultant } from "@/lib/generated/prisma/client";
 
 // handlers
-import { saveConsultant } from "@/handlers/conusltant/owner/profile";
+import { saveConsultant } from "@/actions/consultant";
 
 // schema
 import {

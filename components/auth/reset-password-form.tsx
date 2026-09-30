@@ -22,7 +22,7 @@ import { toast } from "@/components/shared/toast";
 import { Field, FieldError, FieldLabel } from "../ui/field";
 
 // handlers
-import { verifyReset } from "@/handlers/auth/reset";
+import { verifyReset } from "@/actions/auth";
 
 // schemas
 import { ResetSchema } from "@/schemas";

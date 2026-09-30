@@ -17,7 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import ConsultantImage from "@/components/clients/shared/consultant-image";
 
 // prisma data
-import { createMeetingMessage, toggleUserBlock } from "@/data/chats";
+import { createMeetingMessage, toggleUserBlock } from "@/actions/site";
 
 // schemas
 import { type MeetingData, type MeetingMessage } from "@/schemas/chat";

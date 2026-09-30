@@ -30,7 +30,7 @@ import {
 import { timeZone } from "@/lib/site/time";
 
 // prisma data
-import { createConsultantsCoupon } from "@/data/coupon";
+import { createConsultantsCoupon } from "@/actions/site";
 
 // utils
 import { cn } from "@/lib/utils";

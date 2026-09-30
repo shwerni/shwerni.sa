@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { toast } from "@/components/shared/toast";
-import { toggleArticleLike } from "@/data/article";
+import { toggleArticleLike } from "@/actions/site";
 import { AiOutlineLike, AiFillLike } from "react-icons/ai";
 
 interface Props {

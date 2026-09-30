@@ -25,7 +25,7 @@ import PhoneInput from "@/components/shared/phone-input";
 import PasswordInput from "@/components/shared/password-input";
 
 // lib
-import { verifyRecaptcha } from "@/lib/api/recaptcha";
+import { verifyRecaptcha } from "@/actions/ai";
 
 // prisma types
 import { UserRole } from "@/lib/generated/prisma/enums";
@@ -38,7 +38,7 @@ import { phoneNumber } from "@/utils";
 import { RegisterSchema } from "@/schemas";
 
 // handlers
-import { register } from "@/handlers/auth/register";
+import { register } from "@/actions/auth";
 
 const RegisterForm = () => {
   // roles data

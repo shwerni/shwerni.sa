@@ -32,7 +32,7 @@ import { add25Minutes, dateToWeekDay } from "@/utils/date";
 import { ProgramReservationFormType } from "@/schemas";
 
 // prisma data
-import { getConsultantAvailableTimes } from "@/data/consultant";
+import { getConsultantAvailableTimes } from "@/actions/consultant";
 
 // utils
 import { timeOptions } from "@/utils";

@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { ApprovalState, ConsultantState } from "@/lib/generated/prisma/enums";
 
 // handlers
-import { ownerVisibility } from "@/handlers/conusltant/owner/profile";
+import { ownerVisibility } from "@/actions/consultant";
 
 // contants
 import { mainRoute } from "@/constants/links";

@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 import prisma from "@/lib/database/db";
 import { pusherServer } from "@/lib/api/pusher/pusher-server";
 import {

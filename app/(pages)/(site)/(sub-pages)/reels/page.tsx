@@ -21,7 +21,8 @@ import { timeOptions } from "@/utils";
 
 // icons
 import { Briefcase, CalendarDays, Clock, MessageCircle, ChevronLeft } from "lucide-react";
-import { getAvailableTimesForDate, getConsultantsAvailableAt, ReelConsultant } from "./actions";
+import { getAvailableTimesForDate, getConsultantsAvailableAt } from "@/actions/reels";
+import type { ReelConsultant } from "./actions";
 
 // ─── Category labels ──────────────────────────────────────────────────────────
 

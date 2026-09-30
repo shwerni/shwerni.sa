@@ -24,7 +24,7 @@ import { add25Minutes, dateToWeekDay, getDatesAhead } from "@/utils/date";
 import { ReservationFormType } from "@/schemas";
 
 // prisma data
-import { getConsultantAvailableTimes } from "@/data/consultant";
+import { getConsultantAvailableTimes } from "@/actions/consultant";
 
 // types
 import { Cost } from "@/types/data";

@@ -24,7 +24,7 @@ import { toast } from "@/components/shared/toast";
 import { Textarea } from "@/components/ui/textarea";
 
 // prsiam data
-import { addArticleComment } from "@/data/article";
+import { addArticleComment } from "@/actions/site";
 
 // icons
 import { CheckCircle2, MessageSquarePlus } from "lucide-react";

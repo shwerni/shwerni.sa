@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 import { Gender } from "@/lib/generated/prisma/enums";
 // pacakges
 import OpenAI from "openai";

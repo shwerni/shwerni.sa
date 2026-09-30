@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import ConsultantCard from "./card";
 import ScrollTutorial from "./tutorial";
-import { getConsultantsAvailableAt } from "@/data/reels";
+import { getConsultantsAvailableAt } from "@/actions/site";
 import { Categories, Gender } from "@/lib/generated/prisma/enums";
 import { cn } from "@/lib/utils";
 import { timeOptions } from "@/utils";

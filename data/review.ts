@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // prisma db
 import prisma from "@/lib/database/db";
 
@@ -212,16 +212,23 @@ export async function getReviewsForConsultant(page: number = 1) {
   const limit = 10;
   const skip = (page - 1) * limit;
 
+  // approved reviews only, and only the fields the dashboard page renders
   const [reviews, totalCount] = await Promise.all([
     prisma.review.findMany({
+      where: { status: ReviewState.PUBLISHED },
       skip,
       take: limit,
-      include: {
-        consultant: { select: { name: true } },
+      select: {
+        id: true,
+        name: true,
+        comment: true,
+        rate: true,
+        status: true,
+        created_at: true,
       },
       orderBy: { created_at: "desc" },
     }),
-    prisma.review.count(),
+    prisma.review.count({ where: { status: ReviewState.PUBLISHED } }),
   ]);
 
   return {

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { checkIsAnyConsultantOnline } from "@/data/online";
+import { checkIsAnyConsultantOnline } from "@/actions/site";
 import { createPusherClient } from "@/lib/api/pusher/pusher-client";
 
 export function useIsOnline() {

@@ -24,7 +24,7 @@ import { timeZone } from "@/lib/site/time";
 
 // handlers
 import { runRecaptcha } from "@/handlers/admin/recaptcha";
-import { confirmFreeSession } from "@/handlers/admin/freesession";
+import { confirmFreeSession } from "@/actions/booking";
 
 // types
 import { User } from "next-auth";

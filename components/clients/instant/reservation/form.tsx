@@ -17,7 +17,7 @@ import { phoneNumber } from "@/utils";
 import { calculatePayment } from "@/utils/admin/payments";
 
 // handlers
-import { Pay } from "@/handlers/admin/order/payment";
+import { Pay } from "@/actions/booking";
 import { runRecaptcha } from "@/handlers/admin/recaptcha";
 
 // utils

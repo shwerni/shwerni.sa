@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // pacakges
 import { getDay, parseISO } from "date-fns";
 

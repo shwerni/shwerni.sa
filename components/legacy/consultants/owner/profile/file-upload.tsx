@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import { UploadButton } from "@/lib/upload";
 
 // prisma data
-import { saveUploadedFile, saveUploadedImage } from "@/data/uploads";
+import { saveUploadedFile, saveUploadedImage } from "@/actions/consultant";
 
 // schema
 import { type DocumentField, type ProfileFormValues } from "@/schemas/consultant/profile";

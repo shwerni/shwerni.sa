@@ -10,7 +10,7 @@ import { ZToast } from "@/components/legacy/layout/toasts";
 import { saveTimings } from "@/handlers/conusltant/owner/timings";
 
 // prisma data
-import { getTimings } from "@/data/timings";
+import { getTimings } from "@/actions/consultant";
 
 // prsima types
 import { Weekday } from "@/lib/generated/prisma/enums";

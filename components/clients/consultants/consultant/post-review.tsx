@@ -23,7 +23,7 @@ import { toast } from "@/components/shared/toast";
 import { Textarea } from "@/components/ui/textarea";
 
 // prisma data
-import { acceptNewreview } from "@/data/review";
+import { acceptNewreview } from "@/actions/site";
 
 // schemas
 import { CommentSchema } from "@/schemas";

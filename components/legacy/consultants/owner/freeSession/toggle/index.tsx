@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/shared/toast";
 
 // prisma data
-import { toggleFreesessionState } from "@/data/freesession";
+import { toggleFreesessionState } from "@/actions/consultant";
 
 // props
 interface Props {

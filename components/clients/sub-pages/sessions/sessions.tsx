@@ -18,7 +18,7 @@ import { dateToString } from "@/utils/date";
 import { Program } from "@/lib/generated/prisma/client";
 
 // prisma data
-import { selectSession } from "@/data/sessions";
+import { selectSession } from "@/actions/site";
 
 // types
 import { Reservation } from "@/types/admin";

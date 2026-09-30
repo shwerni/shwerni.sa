@@ -23,7 +23,7 @@ import Confirm from "@/components/legacy/layout/navigation/confirm";
 import { cn } from "@/lib/utils";
 
 // prisma data
-import { deleteConsultantsCoupon } from "@/data/coupon";
+import { deleteConsultantsCoupon } from "@/actions/site";
 
 // prisma types
 import { Coupon } from "@/lib/generated/prisma/client";

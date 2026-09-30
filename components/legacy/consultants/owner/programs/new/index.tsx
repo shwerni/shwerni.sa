@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { categories } from "@/constants/admin";
-import { createNewProgram } from "@/data/programs";
+import { createNewProgram } from "@/actions/site";
 import { ZToast } from "@/components/legacy/layout/toasts";
 import LoadingBtn from "@/components/legacy/layout/loadingBtn";
 import { Save } from "lucide-react";

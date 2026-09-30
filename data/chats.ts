@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 import { checkMessageWithAI } from "@/lib/api/ai/chat-guard";
 // prisma db
 import prisma from "@/lib/database/db";

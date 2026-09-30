@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // React & Next
 import { redirect } from "next/navigation";
 

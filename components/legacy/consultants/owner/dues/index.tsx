@@ -33,7 +33,7 @@ import { dateToString } from "@/utils/time";
 // import { exportDuesForOwner } from "@/app/_utils/excel/dues";
 
 // prisam data
-import { getDuesOwnenByMonth } from "@/data/dues";
+import { getDuesOwnenByMonth } from "@/actions/consultant";
 import { CouponType } from "@/lib/generated/prisma/enums";
 
 // types

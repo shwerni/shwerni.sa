@@ -11,7 +11,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 import { Discount } from "@/lib/generated/prisma/client";
 
-import { toggleDiscountState } from "@/data/discounts";
+import { toggleDiscountState } from "@/actions/consultant";
 
 import { cn } from "@/lib/utils";
 

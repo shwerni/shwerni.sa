@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/shared/toast";
 
 // handlers
-import { verifyToken } from "@/handlers/auth/verify";
+import { verifyToken } from "@/actions/auth";
 
 // lib
 // import { sendEmail } from "@/lib/mail";

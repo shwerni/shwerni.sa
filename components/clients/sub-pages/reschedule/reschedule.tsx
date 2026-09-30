@@ -24,7 +24,7 @@ import { findParticipant } from "@/utils";
 import { dateToString } from "@/utils/date";
 
 // prisma data
-import { rescheduleMeeting, meetingDone } from "@/data/reschedule";
+import { rescheduleMeeting, meetingDone } from "@/actions/site";
 import { Meeting, Participant } from "@/lib/generated/prisma/client";
 
 // prisma enums

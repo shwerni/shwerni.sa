@@ -28,7 +28,7 @@ import {
   unauthorizedPhoneChangeByToken,
   userInfoChange,
   userPasswrodChange,
-} from "@/handlers/auth/userInfo";
+} from "@/actions/auth";
 
 // types
 import { User } from "@/lib/generated/prisma/client";

@@ -30,7 +30,7 @@ import { BankAccount } from "@/lib/generated/prisma/client";
 import { BankAccountSchema } from "@/schemas/consultant/iban";
 
 // handlers
-import { saveBankAccount } from "@/handlers/conusltant/owner/bank-account";
+import { saveBankAccount } from "@/actions/consultant";
 
 // utils / constants
 import { checkSaudiIban, formatIban, formatIbanInput } from "@/lib/iban";

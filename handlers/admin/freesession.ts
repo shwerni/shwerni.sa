@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 
 // Next
 import { redirect } from "next/navigation";

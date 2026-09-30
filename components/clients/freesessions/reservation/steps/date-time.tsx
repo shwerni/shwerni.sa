@@ -32,7 +32,7 @@ import { dateToString } from "@/utils/time";
 import { add25Minutes, dateToWeekDay } from "@/utils/date";
 
 // prisma data
-import { getConsultantAvailableTimes } from "@/data/consultant";
+import { getConsultantAvailableTimes } from "@/actions/consultant";
 
 // icons
 import {
