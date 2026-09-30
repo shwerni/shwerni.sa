@@ -447,3 +447,22 @@ The `attempts` column was added to `verification_tokens` by the migration-owning
 - Refund webhook with the right `secret_token` is processed; with a wrong or missing one, 401 and no change.
 - With `MOYASAR_WEBHOOK_SECRET` unset on the preview: enveloped webhooks get 401.
 - Mobile Moyasar confirm and result still mark a paid order PAID.
+
+## 2026-09-30 · Step 0 follow-up, item 4: payment cancel page (approved proposal applied)
+
+**Files changed**
+
+- `app/(pages)/(site)/(sub-pages)/payment/cancel/page.tsx`: sets REFUSED only when there is a session (`userServer()`), `order.author === user.id`, and the payment is `NEW`. Otherwise it renders the same page and changes nothing. Markup unchanged.
+
+**Behaviour change (approved):** guests (author `"temp"`), other users' orders, paid orders and orders in any other state are no longer changed from this page. Stale NEW orders are still cleared by `cron/cancel-orders`. The `failed` page is unchanged (it still refuses non-paid orders by `zid`).
+
+**Verified**
+
+- `npm run build`: passes.
+
+**Needs manual testing on the preview**
+
+- A logged-in user cancels their own Tabby / Moyasar checkout: the page shows as before and the order becomes REFUSED.
+- The same cancel URL opened logged out, or as another user: same page, and the order stays NEW.
+- The cancel URL for a PAID order: the order stays PAID.
+- A guest checkout cancel: same page, order stays NEW until the cron clears it.
