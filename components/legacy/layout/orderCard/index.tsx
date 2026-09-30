@@ -22,7 +22,8 @@ import OrderReason from "@/components/legacy/layout/orderCard/chat";
 import { PaymentState, UserRole } from "@/lib/generated/prisma/enums";
 
 // utils
-import { meetingUrl, totalAfterTax } from "@/utils";
+import { meetingUrl } from "@/utils";
+import { withTax } from "@/utils/tax";
 import { dateToString, timeToArabic } from "@/utils/time";
 
 // types
@@ -111,7 +112,7 @@ export default function OrderCard({ order, owner, time }: Props) {
                   {/* status */}
                   <OrderStatus payment={payment.payment} />
                   {/* total cost */}
-                  <span>{totalAfterTax(payment.total, payment.tax)} ر.س</span>
+                  <span>{withTax(payment.total).toFixed(2)} ر.س</span>
                   {/* reservation date */}
                   <span>{meeting?.[0].duration} دقيقة</span>
                 </div>
@@ -147,7 +148,7 @@ export default function OrderCard({ order, owner, time }: Props) {
                   <OrderStatus payment={payment.payment} />
                   {/* total */}
                   <span className="w-full flex justify-start">الاجمالي</span>
-                  <span>{totalAfterTax(payment.total, payment.tax)} ر.س</span>
+                  <span>{withTax(payment.total).toFixed(2)} ر.س</span>
                   {/* duration */}
                   <span className="w-full flex justify-start">
                     مدة الاستشارة

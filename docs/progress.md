@@ -737,3 +737,26 @@ Done with a TypeScript AST pass over knip's unused-export list:
 - Consultant dashboard: timings, coupons, programs, reviews, dues, profile.
 - Booking: consultant, instant, program, discover.
 - **Booking times and slots:** unused helpers were removed from `utils/time` and `utils/date`. Pick dates across today and tomorrow, late-night slots and month end.
+
+## 2026-09-30 · Cleanup step 2 (part): totalAfterTax callers
+
+**Files changed**
+
+- `components/clients/sub-pages/event/discount-badge.tsx`, `components/legacy/layout/orderCard/index.tsx`: `withTax(x).toFixed(2)`, the same "173.00" text as before.
+
+**Not done:** `totalAfterTax` can't be deleted yet. Its other four callers have your uncommitted edits:
+
+- `components/clients/shared/currency-label.tsx` (`totalAfterTax(amount, tax ?? 0)`)
+- `components/clients/shared/order-info.tsx` (`totalAfterTax(order.payment.total, 15)`)
+- `components/legacy/consultants/owner/programs/index.tsx` (`totalAfterTax(price + price * 0.2, tax)`)
+- `components/legacy/layout/currency/label/index.tsx`
+
+The replacements to make once those are committed: currency labels use `tax ? withTax(amount) : Math.round(amount)`, then `.toFixed(2)`; the others use `withTax(x).toFixed(2)`. Then delete `totalAfterTax` from `utils/index.ts`.
+
+**Verified**
+
+- `npm run build`: passes.
+
+**Needs manual testing on the preview**
+
+- Order card totals and the event discount badge show the same numbers as before (e.g. 150 → 173.00).

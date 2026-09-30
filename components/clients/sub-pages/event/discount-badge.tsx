@@ -1,5 +1,5 @@
 import { themes, type ThemeKey } from "@/constants/theme/event";
-import { totalAfterTax } from "@/utils";
+import { withTax } from "@/utils/tax";
 
 interface Props {
   price: number;
@@ -30,7 +30,7 @@ const DiscountBadge = ({ price, campaign }: Props) => {
         className="px-1.5 py-0.5 rounded-md text-[10px] font-bold"
         style={{ background: `${v.accent}4D`, color: v.glow }}
       >
-        {totalAfterTax(price)} ريال
+        {withTax(price).toFixed(2)} ريال
       </span>
     </div>
   );
