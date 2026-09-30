@@ -10,7 +10,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 // utils
-import { dateToString } from "@/utils/time";
+import { riyadhDateString } from "@/utils/date";
 import { calculateDues } from "@/utils/admin/dues";
 
 // prisma types
@@ -64,7 +64,7 @@ export default function DuesDialog({ children, order, commission }: Props) {
               <OrderItem label="اسم العميل" value={order.name} />
               <OrderItem
                 label="تاريخ الحجز"
-                value={dateToString(order.created_at)}
+                value={riyadhDateString(order.created_at)}
               />
               <OrderItem
                 label="الإجمالي"

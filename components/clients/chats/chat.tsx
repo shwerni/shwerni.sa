@@ -35,7 +35,7 @@ import {
   Loader2,
   Ban,
 } from "lucide-react";
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 import Link from "next/link";
 import { differenceInHours } from "date-fns";
 

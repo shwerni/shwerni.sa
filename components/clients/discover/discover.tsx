@@ -16,10 +16,9 @@ import StepPayment from "@/components/clients/forms/payment";
 import StepDetails from "@/components/clients/forms/details";
 
 // lib
-import { timeZone } from "@/lib/site/time";
+import { add25Minutes, getDatesAhead, timeZone } from "@/utils/date";
 
 // utils
-import { add25Minutes, getDatesAhead } from "@/utils/date";
 
 // prisma data
 import { getAvailableTimesForDate } from "@/actions/site";

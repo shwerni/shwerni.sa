@@ -6,17 +6,11 @@ import prisma from "@/lib/database/db";
 import { checkMeetingTimeConflict } from "./order/reserveation";
 
 // lib
-import { timeZone } from "@/lib/site/time";
+import { dateTimeToString, getWeekStartSaturday, riyadhDateString, timeZone } from "@/utils/date";
 import { notificationNewFreeSession } from "@/lib/notifications/site";
 
 // utils
-import {
-  dateTimeToString,
-  dateToString,
-  getWeekStartSaturday,
-} from "@/utils/time";
 // the booking date is the browser's "now", an instant, so it is read in riyadh time
-import { riyadhDateString } from "@/utils/date";
 
 // schema
 import { freeSessionSchema, freeSessionSchemaType } from "@/schemas";
@@ -100,7 +94,7 @@ export const reserveFreeSession = async (formdata: freeSessionSchemaType) => {
     //   },
     // });
 
-    const date = dateToString(timeZone().iso);
+    const date = timeZone().date;
 
     // check conflict
     const check = await checkMeetingTimeConflict(data.cid, data.time, date);

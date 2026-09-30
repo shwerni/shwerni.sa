@@ -33,7 +33,7 @@ import {
   reviewStatus,
 } from "@/constants/admin";
 import { itimes } from "@/constants";
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 import { dateTimeToString } from "./time";
 import { mainRoute } from "@/constants/links";
 

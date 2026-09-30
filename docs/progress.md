@@ -1160,3 +1160,35 @@ Bookings from 03:00 to 23:59 were correct.
 
 - Book a free session after midnight Riyadh: the stored date is today and it shows as upcoming.
 - A daytime free session is unchanged.
+
+## 2026-10-01 · Cleanup step 2, decision 1: callers moved to the split date functions
+
+**Rule applied to every `dateToString` caller outside your stashed files and the payment/order files:**
+
+- Instants (`created_at`, `createdAt`, `due_at`, `new Date()`): `riyadhDateString`. These are articles (article, recommendation, card), questions (card, question), dues (dialog, list), the order card, `data/review.ts` log lines, and the Telegram order templates.
+- Calendar days the user picked: `calendarDayToString`. These are `sub-pages/reschedule/reschedule.tsx` and `sub-pages/sessions/sessions.tsx`.
+- `dateToString(timeZone().iso)` becomes `timeZone().date` (`data/freesession.ts`), the same value.
+- `meetingLabel(time, date)` from `utils/time` becomes `meetingSentence(date, time)`, arguments swapped: `lib/notifications/site.ts`, `lib/api/telegram/templates/index.ts`, `lib/api/ai/bot/index.ts`, owner free-session list.
+- Every other import from `@/lib/site/time` or `@/utils/time` in those 52 files now comes from `@/utils/date` (46 files changed; the rest were already on it).
+
+**Behaviour changes (bug fixes):**
+
+- Created and due dates rendered on the server (articles, dues, order card, Telegram templates) or with `toISOString` (questions) showed the **previous day** for anything created between 00:00 and 02:59 Riyadh. They now show the Riyadh day.
+- Reschedule and session pick: identical for browsers on UTC+3. In a browser west of UTC, `calendarDayToString` gives the day before for the picker's UTC-midnight dates, where `toISOString` did not. A zone-proof picker would build local-midnight dates (`parseISO`), but `pick-date-time.tsx` is one of your stashed files.
+
+**Not moved (still on the old paths or names, same behaviour):**
+
+- Your stashed files.
+- Payment and order files: `data/order/reserveation.ts`, `data/order/program.ts` (`dateToString(data.date)`, UTC-midnight dates, so correct), `data/wallet.ts`, `data/gatewaies/moyasar.ts`, `handlers/admin/order/payment.ts`, and the five booking payment step components. The intended function for each: server `data.date` → `riyadhDateString` (same result for UTC-midnight days); `new Date()` logs → `riyadhDateString`.
+
+**Verified**
+
+- `npm run build` on the committed tree: passes.
+- No stashed (protected) file touched.
+
+**Needs manual testing on the preview**
+
+- Created dates on articles, questions, dues and order cards (check one created just after midnight Riyadh).
+- Telegram new-order message: booking date and meeting sentence.
+- WhatsApp booking, reminder and reschedule notifications: the meeting sentence is 12-hour.
+- Reschedule and session pick: the chosen day is saved as picked.

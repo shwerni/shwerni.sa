@@ -9,10 +9,9 @@ import { getUserByPhone } from "./user";
 import { PaymentState, Prisma, UserRole } from "@/lib/generated/prisma/client";
 
 // lib
-import { timeZone } from "@/lib/site/time";
+import { meetingTime, timeZone } from "@/utils/date";
 import { mainRoute } from "@/constants/links";
 import { createGoogleMeeting } from "@/lib/api/google";
-import { meetingTime } from "@/utils/date";
 
 // get reservation
 export const participantAttendance = async (

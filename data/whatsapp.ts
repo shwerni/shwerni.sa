@@ -1,7 +1,7 @@
 import "server-only";
 // prisma data
 import prisma from "@/lib/database/db";
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 
 // lib
 

@@ -8,7 +8,7 @@ import { PaymentState, UserRole } from "@/lib/generated/prisma/enums";
 
 // lib
 import { notificationNewChatMessage } from "@/lib/notifications/site";
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 import { differenceInHours } from "date-fns";
 
 // create a new message

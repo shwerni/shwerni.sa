@@ -15,7 +15,7 @@ import {
 } from "@/lib/generated/prisma/client";
 
 // lib
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 import { CouponConsultant } from "@/types/layout";
 
 // get certian coupon

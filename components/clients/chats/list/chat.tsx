@@ -35,7 +35,7 @@ import {
   Ban,
   ArrowRight, // RTL back arrow
 } from "lucide-react";
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 import { differenceInHours } from "date-fns";
 import MessageBubble from "../bubble";
 import AttachmentPreview from "../attachment-preview";

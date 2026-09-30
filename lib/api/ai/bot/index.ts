@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 
 // utils
-import { meetingLabel } from "@/utils/time";
+import { meetingSentence, timeZone } from "@/utils/date";
 import { findApprovalState, findConsultantState } from "@/utils";
 
 // prisma data
@@ -23,7 +23,6 @@ import { User } from "next-auth";
 
 // lib
 import { AiBot } from "./setup";
-import { timeZone } from "@/lib/site/time";
 import { sendWhatsappText } from "@/lib/api/whatsapp";
 import { telegramAdmin } from "../../telegram/telegram";
 
@@ -91,9 +90,9 @@ const botActions: Record<
 
     if (!meeting) return "ما عندك جلسات قادمة 📭";
 
-    return `الجلسات القادمة:\n🗓️ #${meeting.oid}\n${meetingLabel(
-      meeting.meeting[0].time,
+    return `الجلسات القادمة:\n🗓️ #${meeting.oid}\n${meetingSentence(
       meeting.meeting[0].date,
+      meeting.meeting[0].time,
     )}\n👤 المستشار: ${meeting.consultant.name}`;
   },
 
@@ -109,9 +108,9 @@ const botActions: Record<
     const lines = meetings.map(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (m: any) =>
-        `🗓️ جلسة #${m.oid}\n${meetingLabel(
-          m.meeting[0].time,
+        `🗓️ جلسة #${m.oid}\n${meetingSentence(
           m.meeting[0].date,
+          m.meeting[0].time,
         )}\n👥 العميل: ${m.name || m.phone}`,
     );
 

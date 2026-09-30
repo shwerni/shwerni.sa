@@ -1,7 +1,7 @@
 import { getConsultantCost } from "./consultant";
 import prisma from "@/lib/database/db";
 import { Placement } from "@/lib/generated/prisma/enums";
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 import { applyRule } from "@/utils/event";
 import { cacheLife, cacheTag } from "next/cache";
 import { connection } from "next/server";

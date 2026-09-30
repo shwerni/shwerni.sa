@@ -17,7 +17,7 @@ import "@/styles/bot-button.css";
 import { Button } from "@/components/ui/button";
 
 // lib
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 
 const BotChat = lazy(() => import("."));
 

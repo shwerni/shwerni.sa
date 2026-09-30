@@ -21,7 +21,7 @@ import "@/styles/article.css";
 
 // utils
 import { consultantGenderLabel, minutesToRead } from "@/utils";
-import { dateToString } from "@/utils/time";
+import { riyadhDateString } from "@/utils/date";
 
 // prisma types
 import {
@@ -106,7 +106,7 @@ const Article = async ({
             >
               <Calendar1 className="w-3 md:w-4" />
               <span className="text-[0.7rem] md:text-xs">
-                {dateToString(article.created_at)}
+                {riyadhDateString(article.created_at)}
               </span>
             </time>
             <div className="inline-flex items-center gap-1 text-gray-500">

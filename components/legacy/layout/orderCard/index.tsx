@@ -24,7 +24,7 @@ import { PaymentState, UserRole } from "@/lib/generated/prisma/enums";
 // utils
 import { meetingUrl } from "@/utils";
 import { withTax } from "@/utils/tax";
-import { dateToString, timeToArabic } from "@/utils/time";
+import { riyadhDateString, timeToArabic } from "@/utils/date";
 
 // types
 import { DateTime } from "@/types/types";
@@ -186,7 +186,7 @@ export default function OrderCard({ order, owner, time }: Props) {
                 )}
                 {/* order created at */}
                 <div className="flex justify-end w-full">
-                  <h6>{dateToString(order.created_at)}</h6>
+                  <h6>{riyadhDateString(order.created_at)}</h6>
                 </div>
               </div>
             </AccordionContent>

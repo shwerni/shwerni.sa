@@ -13,7 +13,7 @@ import {
 } from "@/lib/generated/prisma/client";
 
 // utils
-import { dateToString } from "@/utils/time";
+import { riyadhDateString } from "@/utils/date";
 
 // lib
 import { aiAcceptReview } from "@/lib/api/ai/ai";
@@ -106,7 +106,7 @@ export const acceptNewreview = async (
               commentExist < servicesExist
             } | ${
               accepted.status ? "accepted by Ai" : "refused by Ai"
-            }(${String(accepted.status)}): ${dateToString(new Date())}`,
+            }(${String(accepted.status)}): ${riyadhDateString(new Date())}`,
           ],
         },
       });
@@ -124,7 +124,7 @@ export const acceptNewreview = async (
         rate,
         status: ReviewState.HOLD,
         info: [
-          `comments: ${commentExist} | orders: ${orderExist} | freesession: ${servicesExist} | not qualified| modified: ${dateToString(
+          `comments: ${commentExist} | orders: ${orderExist} | freesession: ${servicesExist} | not qualified| modified: ${riyadhDateString(
             new Date(),
           )}`,
         ],
@@ -211,7 +211,7 @@ export const acceptWhatsappReview = async (
           info: [
             `order: #${oid} | ${
               accepted.status ? "accepted by Ai" : "refused by Ai"
-            }(${String(accepted.status)}): ${dateToString(new Date())}`,
+            }(${String(accepted.status)}): ${riyadhDateString(new Date())}`,
           ],
         },
       });
@@ -229,7 +229,7 @@ export const acceptWhatsappReview = async (
         rate,
         status: ReviewState.HOLD,
         info: [
-          `order: #${oid} | not qualified| modified: ${dateToString(
+          `order: #${oid} | not qualified| modified: ${riyadhDateString(
             new Date(),
           )}`,
         ],

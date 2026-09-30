@@ -12,7 +12,7 @@ import { getOwnerForDues } from "@/data/consultant";
 import { getTaxCommission } from "@/data/admin/settings/finance";
 
 // lib
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 import { userServer } from "@/lib/auth/server";
 
 // meta data seo

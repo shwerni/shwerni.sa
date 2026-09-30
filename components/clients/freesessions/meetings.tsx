@@ -9,7 +9,7 @@ import { LinkButton } from "@/components/shared/link-button";
 // prisma data
 
 // utils
-import { meetingTime, meetingFullLabel } from "@/utils/date";
+import { meetingFullLabel, meetingTime } from "@/utils/date";
 
 // types
 

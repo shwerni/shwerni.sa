@@ -29,7 +29,7 @@ import Spinner from "@/components/legacy/layout/skeleton/spinners";
 import DuesDialog from "@/components/legacy/consultants/owner/dues/duesDialog";
 
 // utils
-import { dateToString } from "@/utils/time";
+import { riyadhDateString } from "@/utils/date";
 // import { exportDuesForOwner } from "@/app/_utils/excel/dues";
 
 // prisam data
@@ -234,7 +234,7 @@ export default function DuesOwner({
                           {dues.consultantEarning.toFixed(2)} sar
                         </TableCell>
                         <TableCell className="text-left">
-                          {i.due_at ? dateToString(i.due_at) : "لا يسجل"}
+                          {i.due_at ? riyadhDateString(i.due_at) : "لا يسجل"}
                         </TableCell>
                         <TableCell>
                           <Badge

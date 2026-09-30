@@ -2,7 +2,7 @@ import "server-only";
 // prisma db
 import prisma from "@/lib/database/db";
 import { getSetting } from "./admin/settings/settings";
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 import { Categories, Gender, Prisma } from "@/lib/generated/prisma/client";
 
 // get all published coupons
