@@ -1466,3 +1466,18 @@ Nothing imports these files today, so they aren't bundled.
 - The clean build follows in the final entry below.
 
 **Note:** `prisma.config.ts` reads `DIRECT_URL` through `env()`. If that variable isn't available during Vercel's install step, generate could fail. Unverified; check the first deploy log.
+
+## 2026-10-01 · Removal: final verification on main
+
+**Verified** (tree clean at `1674cf2`, `.next` deleted first, tsconfig `exclude` is only `["node_modules", "docs"]`)
+
+- `npm run build`: exit 0. Compiled, TypeScript passed, 139/139 static pages. This is the first clean build of main since the cleanup merge (`9e7fb28`).
+- `npx tsc --noEmit`: 0 errors.
+- Manifest check (`grep -oE '"(data|handlers|lib)/[^"]*"' .next/server/server-reference-manifest.json | sort -u`): prints only `"data/event.ts"` (its "use cache" registration).
+- No `"use server"` in `lib/`, `data/` or `handlers/`. The only one outside `actions/` is `app/(pages)/(consultants)/dashboard/programs/[prid]/page.tsx`, a known item.
+
+**Cutoff not applied: `LEGACY_CHARGE_CUTOFF` is still `2026-10-02T00:00:00+03:00`**
+
+- The requested value was `2026-10-01T12:00:00+03:00`. The integer tax (`228c109`) isn't live yet. origin/main was pushed at 15:48 and 15:51, but that tree still has `lib/api/ai/article`, which fails the build, so production still charges by the old formulas until the next deploy.
+- With a 12:00 cutoff, orders created between 12:00 and the deploy are charged the old amount but only accept `withTax`. That is 25 of 96 prices from 50 to 1000 (50 → 57 old vs 58 new; 90 → 103 vs 104), so those payments would go to hold.
+- Set the cutoff to the deploy time or later. Later only widens what pre-deploy orders may match.
