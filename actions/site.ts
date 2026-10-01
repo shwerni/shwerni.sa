@@ -67,6 +67,8 @@ export async function toggleArticleLike(
 export async function addArticleComment(
   ...[input]: Parameters<typeof addArticleCommentData>
 ) {
+  // log mode: records the botid verdict, never blocks
+  await checkHuman("addArticleComment");
   const user = await sessionUser();
   return addArticleCommentData({ ...input, author: user?.id ?? undefined });
 }
@@ -178,6 +180,8 @@ export async function selectSession(
 export async function acceptNewreview(
   ...[cid, owner, , name, comment, rate]: Parameters<typeof acceptNewreviewData>
 ) {
+  // log mode: records the botid verdict, never blocks
+  await checkHuman("acceptNewreview");
   const user = await sessionUser();
   return acceptNewreviewData(cid, owner, user?.id ?? "guest", name, comment, rate);
 }
