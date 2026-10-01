@@ -4,6 +4,9 @@ import { CampaignStatus } from "@/lib/generated/prisma/enums";
 import { sendWhatsappTemplate, type TemplateParams } from "@/lib/api/whatsapp";
 import { telegramAdmin } from "@/lib/api/telegram/telegram";
 
+// lib
+import { isCronRequest } from "@/lib/api/routes/cron-auth";
+
 export const maxDuration = 60;
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -176,8 +179,7 @@ async function processCampaign(campaign: {
 }
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isCronRequest(request)) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 

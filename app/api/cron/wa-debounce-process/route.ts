@@ -6,12 +6,13 @@ import {
 } from "@/lib/api/ai/bot/debounce";
 import { debouncedTextMessage } from "@/lib/api/whatsapp/logic";
 
+// lib
+import { isCronRequest } from "@/lib/api/routes/cron-auth";
+
 export const maxDuration = 30;
 
 export async function GET(request: NextRequest) {
-  if (
-    request.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
+  if (!isCronRequest(request)) {
     return new Response("Unauthorized", { status: 401 });
   }
 

@@ -2,11 +2,13 @@
 import { NextResponse } from "next/server";
 import { removeUnverifiedUsers } from "@/data/user";
 
+// lib
+import { isCronRequest } from "@/lib/api/routes/cron-auth";
+
 // prisma data
 
 // verify cron secret (protect the endpoint)
-const isAuthorized = (req: Request) =>
-  req.headers.get("authorization") === `Bearer ${process.env.CRON_SECRET}`;
+const isAuthorized = (req: Request) => isCronRequest(req);
 
 export async function GET(req: Request) {
   // guard

@@ -13,9 +13,11 @@ import { subDays, subMinutes, format } from "date-fns";
 // data
 import { checkReschedule } from "@/data/reschedule";
 
+// lib
+import { isCronRequest } from "@/lib/api/routes/cron-auth";
+
 // verify cron secret (protect the endpoint)
-const isAuthorized = (req: Request) =>
-  req.headers.get("authorization") === `Bearer ${process.env.CRON_SECRET}`;
+const isAuthorized = (req: Request) => isCronRequest(req);
 
 // max possible meeting duration in minutes — adjust if sessions can be longer
 const MAX_DURATION_MINUTES = 60;

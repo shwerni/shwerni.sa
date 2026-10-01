@@ -10,11 +10,13 @@ import { ringParticipant } from "@/lib/api/room/ring-participant";
 // prisma types
 import { PaymentState } from "@/lib/generated/prisma/client";
 
+// lib
+import { isCronRequest } from "@/lib/api/routes/cron-auth";
+
 const DATE_FORMAT = "yyyy-MM-dd HH:mm";
 
 // verify cron secret (protect the endpoint)
-const isAuthorized = (req: Request) =>
-  req.headers.get("authorization") === `Bearer ${process.env.CRON_SECRET}`;
+const isAuthorized = (req: Request) => isCronRequest(req);
 
 // meeting shape shared by both queries below
 const meetingSelect = {

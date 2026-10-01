@@ -9,13 +9,15 @@ import {
 } from "@/lib/notifications/mobile/mobile-push";
 import { fanOutCampaign } from "@/lib/notifications/mobile/campaign-fanout";
 
+// lib
+import { isCronRequest } from "@/lib/api/routes/cron-auth";
+
 // caps how many notifications one cron tick claims, so a large backlog
 // spreads across runs instead of one oversized batch
 const DISPATCH_BATCH_SIZE = 500;
 
 // verify cron secret (protect the endpoint)
-const isAuthorized = (req: Request) =>
-  req.headers.get("authorization") === `Bearer ${process.env.CRON_SECRET}`;
+const isAuthorized = (req: Request) => isCronRequest(req);
 
 /**
  * claims and fans out any campaigns whose timeToSend has passed - same

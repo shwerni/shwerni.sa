@@ -1417,3 +1417,25 @@ Nothing imports these files today, so they aren't bundled.
 **Needs manual testing on the preview**
 
 - Home page (cards, categories), articles list and article pages render as before.
+
+## 2026-10-01 · Removal 2: cron routes reject when CRON_SECRET is unset
+
+**Files changed**
+
+- `lib/api/routes/cron-auth.ts` (new, server-only): `isCronRequest(req)`.
+  - Returns false when `CRON_SECRET` is unset or empty, so `"Bearer undefined"` and `"Bearer "` never pass.
+  - Otherwise compares the `authorization` header to `Bearer <secret>` with `timingSafeEqual` (same length first).
+- All 8 cron routes use it; each keeps its existing 401 response:
+  - `cancel-orders`, `mobile/notifications/dispatch`, `mobile/room/call`, `reschedule`, `shuffle/consultants`, `users/unverified`: their `isAuthorized` now calls `isCronRequest`.
+  - `wa-debounce-process`, `whatsapp-campaigns`: their inline check is replaced, and the unused `authHeader` local is removed.
+- No cron route reads `CRON_SECRET` directly any more.
+
+**Verified**
+
+- `npm run build` on the clean tree: passes.
+
+**Needs manual testing on the preview**
+
+- Each cron with the right `Authorization: Bearer <CRON_SECRET>` returns 200.
+- No header, a wrong secret, or `Bearer undefined` returns 401.
+- With `CRON_SECRET` unset on a preview, every cron returns 401.
