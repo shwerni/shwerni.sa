@@ -1619,3 +1619,14 @@ Submit each form once as a guest unless noted. In the Vercel logs, confirm `[bot
 - The WhatsApp bot (`lib/api/whatsapp/logic.ts`) still calls `checkBotLimit(from)`, so it stays at 15 per sender phone.
 - This replaces the chat-bot test in the BotID coverage entry. As a guest, message 51 gets the limit reply (it was 16), and a new tab with cleared storage on the same network is still at the limit. A logged-in user gets the limit reply on message 16.
 - Counters are per day, and the key format didn't change, so guests already counted today keep their count.
+
+**3. Section 9 correction**
+
+- `docs/security-refactor.md`: "Add `bot` to `createAction`; `instrumentation-client.ts`; `utils/bot-protection.ts`" is unticked, with a note.
+- Why: `createAction` never got the `bot` option, and nothing uses `createAction` yet. The two files exist since `e3d76ec`, and BotID runs through `checkHuman` called directly in each action.
+- `docs/refactor-playbook.md` has the same checklist line, still ticked. It was left unchanged because only the security-refactor doc was in scope.
+
+**Verified**
+
+- Each commit: `npm run build` on a clean tree with `.next` deleted and nothing excluded beyond `["node_modules", "docs"]` passes (139/139), the manifest check prints only `"data/event.ts"`, and there is no `"use server"` in `lib/`, `data/` or `handlers/`.
+- `npx tsc --noEmit --incremental false`: 0 errors. A plain incremental `tsc` once reported two errors in `components/legacy/consultants/owner/profile/form.tsx` from a stale `tsconfig.tsbuildinfo`; the full run and the build's type check are clean.

@@ -708,7 +708,7 @@ console.log(`[rateLimit] ${key} ${(performance.now() - t).toFixed(1)}ms`);
 - [ ] Add the two Vercel Firewall rules in Log mode, review traffic, then switch to Deny
 - [x] Review the reCAPTCHA implementation (found: client-only verification bypassable, verifier exposed as action, no action binding, no timeout)
 - [x] Decide bot protection: Vercel BotID with Deep Analysis (Vercel Pro); reCAPTCHA dropped
-- [x] Add `bot: "log" | "enforce"` to `createAction`; `instrumentation-client.ts`; `utils/bot-protection.ts`
+- [ ] Add `bot: "log" | "enforce"` to `createAction`; `instrumentation-client.ts`; `utils/bot-protection.ts` (not done: `lib/safe-action.ts` has no `bot` option, and no action uses `createAction` yet. `instrumentation-client.ts` and `utils/bot-protection.ts` were added on 2026-10-01 in `e3d76ec`; until then the actions call `checkHuman` from `lib/bot-protection.ts` directly)
 - [ ] Install `botid`, wrap `next.config` with `withBotId`, list real protected page paths, enable Deep Analysis (code done 2026-10-01, `e3d76ec`: protect list is `"/*"`, `checkHuman` in 12 actions plus NextAuth `authorize`; Deep Analysis is a dashboard step, still open)
 - [ ] Remove reCAPTCHA: `app/layout.tsx`, `components/wrappers/recaptcha.tsx`, `lib/api/recaptcha.ts`, login, register, bot component, discover, marriage-awareness form, consultant / free-session / instant reservation forms, `RECAPTCHA_*` env
 - [ ] Run protected actions with `bot: "log"` for a week, review the Firewall BotID view, then switch to `"enforce"`
