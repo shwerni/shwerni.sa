@@ -8,7 +8,7 @@ import { BankAccountSchema } from "@/schemas/consultant/iban";
 // lib
 import { auth } from "@/auth";
 import prisma from "@/lib/database/db";
-import { checkSaudiIban } from "@/lib/iban";
+import { checkSaudiIban } from "@/lib/api/gatewaies/iban";
 
 // save or update the current consultant's bank account
 export const saveBankAccount = async (data: z.infer<typeof BankAccountSchema>) => {

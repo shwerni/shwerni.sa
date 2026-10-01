@@ -33,7 +33,7 @@ import { timeZone } from "@/lib/site/time";
 import { createConsultantsCoupon } from "@/actions/site";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // schema
 import { couponConsultantSchema } from "@/schemas/consultant";

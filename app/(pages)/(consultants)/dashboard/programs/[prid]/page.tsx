@@ -21,7 +21,7 @@ import { getOwnerbyAuthor } from "@/data/consultant";
 import { userServer } from "@/lib/auth/server";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { findCategory } from "@/utils";
 
 // constants

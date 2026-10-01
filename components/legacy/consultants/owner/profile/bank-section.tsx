@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { FormSection } from "./form-section";
 
 // lib
-import { checkSaudiIban, formatIbanInput } from "@/lib/iban";
+import { checkSaudiIban, formatIbanInput } from "@/lib/api/gatewaies/iban";
 
 // constants
 import { getSaudiBank } from "@/constants/saudi-banks";

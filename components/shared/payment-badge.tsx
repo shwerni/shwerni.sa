@@ -6,7 +6,7 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { isEnglish, findPayment } from "@/utils";
 
 // prisma

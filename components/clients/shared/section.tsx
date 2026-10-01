@@ -2,7 +2,7 @@
 import React from "react";
 
 // lib
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // props
 interface Props {

@@ -1,7 +1,7 @@
 // React & Next
 import React from "react";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // Props
 interface Props {

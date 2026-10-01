@@ -8,7 +8,7 @@ import { useTheme } from "next-themes";
 import { CurrencyValue } from "@/types/admin";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { totalAfterTax, findCurrency } from "@/utils";
 
 // props

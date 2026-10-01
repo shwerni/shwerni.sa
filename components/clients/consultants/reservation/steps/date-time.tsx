@@ -17,7 +17,7 @@ import CurrencyLabel from "@/components/clients/shared/currency-label";
 import { timeZone } from "@/lib/site/time";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { add25Minutes, dateToWeekDay, getDatesAhead } from "@/utils/date";
 
 // schema

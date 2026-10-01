@@ -17,7 +17,7 @@ import {
 import CouponCard from "@/components/clients/shared/coupons-card";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // types
 import { CouponConsultant } from "@/types/layout";

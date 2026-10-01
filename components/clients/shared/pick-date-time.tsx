@@ -10,7 +10,7 @@ import DaysButtons from "./days-buttons";
 import { Separator } from "@/components/ui/separator";
 
 // lib
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { timeZone } from "@/lib/site/time";
 
 // utils

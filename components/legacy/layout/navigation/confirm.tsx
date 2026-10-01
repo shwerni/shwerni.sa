@@ -13,7 +13,7 @@ import {
 } from "@/components/legacy/layout/shadcnM/dialogWithoutX";
 import { Button } from "@/components/ui/button";
 import LoadingBtn from "@/components/legacy/layout/loadingBtn";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // props
 type Props = {

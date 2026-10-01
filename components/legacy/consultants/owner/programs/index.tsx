@@ -20,7 +20,7 @@ import CurrencyLabel from "@/components/legacy/layout/currency/label";
 import { Program } from "@/lib/generated/prisma/client";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { totalAfterTax, findCategory } from "@/utils";
 
 // icons

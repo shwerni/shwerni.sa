@@ -7,7 +7,7 @@ import LoadingBtn from "@/components/legacy/layout/loadingBtn";
 
 import { updateConsultantSpecialties } from "@/actions/consultant";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 import { Categories } from "@/lib/generated/prisma/enums";
 import { Specialty } from "@/lib/generated/prisma/client";

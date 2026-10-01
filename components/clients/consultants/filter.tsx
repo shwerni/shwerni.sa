@@ -25,7 +25,7 @@ import { Separator } from "@/components/ui/separator";
 import { IconLabel } from "@/components/shared/icon-label";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { findCategory, genderLabel } from "@/utils";
 
 // prisma types

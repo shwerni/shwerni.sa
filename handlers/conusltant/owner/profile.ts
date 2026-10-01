@@ -22,7 +22,7 @@ import { getTaxCommission } from "@/data/admin/settings/finance";
 
 // lib
 import prisma from "@/lib/database/db";
-import { checkSaudiIban } from "@/lib/iban";
+import { checkSaudiIban } from "@/lib/api/gatewaies/iban";
 import { aiAcceptOwners } from "@/lib/api/ai/ai";
 import { sendReviewerNotification } from "@/lib/api/telegram/templates/owner";
 

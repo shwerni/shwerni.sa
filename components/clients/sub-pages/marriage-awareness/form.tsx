@@ -28,7 +28,7 @@ import CurrencyLabel from "@/components/clients/shared/currency-label";
 import DaysButtons from "@/components/clients/shared/days-buttons";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { dateToString } from "@/utils/time";
 import { timeOptions, phoneNumber } from "@/utils";
 import { calculatePayment } from "@/utils/admin/payments";

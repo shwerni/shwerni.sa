@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 
 // Card container classes

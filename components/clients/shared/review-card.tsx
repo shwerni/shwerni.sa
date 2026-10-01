@@ -8,7 +8,7 @@ import Stars from "@/components/clients/shared/stars";
 import { Review } from "@/lib/generated/prisma/client";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { dateToString } from "@/utils/time";
 
 // shadcn ui

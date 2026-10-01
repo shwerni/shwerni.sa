@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { SheetClose } from "@/components/ui/sheet";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { findUser } from "@/utils";
 
 // lib

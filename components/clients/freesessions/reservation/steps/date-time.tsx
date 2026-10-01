@@ -21,7 +21,7 @@ import { LinkButton } from "@/components/shared/link-button";
 import { Controller, type UseFormReturn } from "react-hook-form";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // schema
 import { freeSessionSchemaType } from "@/schemas";

@@ -25,7 +25,7 @@ import { Controller, type UseFormReturn } from "react-hook-form";
 import { timeZone } from "@/lib/site/time";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { add25Minutes, dateToWeekDay } from "@/utils/date";
 
 // schema

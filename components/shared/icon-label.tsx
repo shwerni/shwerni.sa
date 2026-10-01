@@ -2,7 +2,7 @@
 import React from "react";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 
 const Variants = cva("flex items-center", {

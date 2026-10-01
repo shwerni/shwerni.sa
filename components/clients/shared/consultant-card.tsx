@@ -18,7 +18,7 @@ import ConsultantSpecialties from "@/components/clients/shared/consultant-specia
 // types
 import { ConsultantCard as ConsultantCardType } from "@/types/layout";
 import CurrencyLabel from "./currency-label";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // props
 interface Props extends React.HTMLAttributes<HTMLDivElement> {

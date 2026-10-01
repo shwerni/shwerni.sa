@@ -1,5 +1,5 @@
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 export const Section: React.FC<{
   children: React.ReactNode | React.ReactNode[];

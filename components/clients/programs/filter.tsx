@@ -33,7 +33,7 @@ import SearchInput from "@/components/clients/shared/search-input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { findCategory } from "@/utils";
 
 // prisma types

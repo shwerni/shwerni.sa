@@ -33,7 +33,7 @@ import { BankAccountSchema } from "@/schemas/consultant/iban";
 import { saveBankAccount } from "@/actions/consultant";
 
 // utils / constants
-import { checkSaudiIban, formatIban, formatIbanInput } from "@/lib/iban";
+import { checkSaudiIban, formatIban, formatIbanInput } from "@/lib/api/gatewaies/iban";
 import { getSaudiBank } from "@/constants/saudi-banks";
 
 // icons

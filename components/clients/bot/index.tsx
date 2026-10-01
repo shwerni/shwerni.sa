@@ -14,7 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bot, Send } from "lucide-react";
 
 // lib
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { SendChatBot } from "@/actions/ai";
 
 // hooks

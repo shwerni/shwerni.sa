@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // icons
 import { Play } from "lucide-react";

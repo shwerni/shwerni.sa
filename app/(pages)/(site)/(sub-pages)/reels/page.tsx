@@ -12,7 +12,7 @@ import { ar } from "date-fns/locale";
 import { timeZone } from "@/lib/site/time";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { add25Minutes, getDatesAhead } from "@/utils/date";
 import { dateToString } from "@/utils/time";
 import { timeOptions } from "@/utils";

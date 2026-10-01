@@ -31,7 +31,7 @@ import { verifyRecaptcha } from "@/actions/ai";
 import { UserRole } from "@/lib/generated/prisma/enums";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { phoneNumber } from "@/utils";
 
 // schemas

@@ -5,7 +5,7 @@ import React from "react";
 import CurrencyLabel from "./currency-label";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { meetingLabel } from "@/utils/date";
 import { paymentMethodLabel } from "@/utils";
 

@@ -5,7 +5,7 @@ import React from "react";
 import { OrderInfoRow } from "./order-info";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // icons
 import { User } from "lucide-react";

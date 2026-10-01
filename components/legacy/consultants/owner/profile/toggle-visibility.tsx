@@ -12,7 +12,7 @@ import { ZToast } from "@/components/legacy/layout/toasts";
 import Confirm from "@/components/legacy/layout/navigation/confirm";
 
 // lib
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // prisma types
 import { ApprovalState, ConsultantState } from "@/lib/generated/prisma/enums";

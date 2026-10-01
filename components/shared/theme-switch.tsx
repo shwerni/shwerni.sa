@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import * as SwitchPrimitive from "@radix-ui/react-switch";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { MoonIcon, SunMediumIcon } from "lucide-react";
 
 const Switch = React.forwardRef<

@@ -29,3 +29,11 @@ model File {
 
   @@map("files")
 }
+
+model RateLimit {
+  key         String   @id
+  count       Int
+  windowStart DateTime @map("window_start") @db.Timestamptz(3)
+
+  @@map("rate_limit")
+}

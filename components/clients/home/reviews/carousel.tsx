@@ -15,7 +15,7 @@ import {
 import ReviewCard from "@/components/clients/shared/review-card";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // prisma types
 import { Review } from "@/lib/generated/prisma/client";

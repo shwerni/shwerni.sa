@@ -13,7 +13,7 @@ import { Discount } from "@/lib/generated/prisma/client";
 
 import { toggleDiscountState } from "@/actions/consultant";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // types
 interface Props {

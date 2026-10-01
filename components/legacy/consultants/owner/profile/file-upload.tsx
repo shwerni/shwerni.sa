@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { ZToast } from "@/components/legacy/layout/toasts";
 
 // lib
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { UploadButton } from "@/lib/upload";
 
 // prisma data

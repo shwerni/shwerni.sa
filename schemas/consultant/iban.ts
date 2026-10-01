@@ -1,5 +1,5 @@
 import z from "zod";
-import { checkSaudiIban } from "@/lib/iban";
+import { checkSaudiIban } from "@/lib/api/gatewaies/iban";
 
 const IBAN_ERRORS = {
   format: "رقم الآيبان يجب أن يبدأ بـ SA ويتكون من 24 خانة",

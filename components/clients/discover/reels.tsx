@@ -6,7 +6,7 @@ import ConsultantCard from "./card";
 import ScrollTutorial from "./tutorial";
 import { getConsultantsAvailableAt } from "@/actions/site";
 import { Categories, Gender } from "@/lib/generated/prisma/enums";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { timeOptions } from "@/utils";
 import { dateToString } from "@/utils/time";
 import { ArrowRight, User2 } from "lucide-react";
