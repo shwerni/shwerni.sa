@@ -1210,3 +1210,56 @@ Bookings from 03:00 to 23:59 were correct.
 
 - Mobile app: consultants, programs, scales, notifications (list, read, unread count, send), account profile and sessions, online list, realtime token. Normal responses are unchanged; forced errors still say "failed to fetch".
 - Discover: date strip and "now + 25 minutes" first slot.
+
+## 2026-10-01 · Cleanup step 2: date test, dependencies, later phase, room paths, status
+
+**Date test (decision 4)**
+
+`docs/tests/compare-date-helpers.ts` now checks the split functions:
+
+- Instants: `riyadhDateString` gives the Riyadh day.
+- Picked days, built three ways (`new Date("yyyy-MM-dd")`, `Date.UTC`, `parseISO`): `calendarDayToString` gives the picked day.
+- Zoned "now": `timeZone().date`.
+- Every old name equals its canonical function: `timeLabel` / `timeToArabic`, `meetingFullLabel` and `utils/time` `meetingLabel(t, d)` / `meetingSentence`, `add25Minutes` / `addNMinutes(25)`, `utils/time` `dateToString` / `calendarDayToString`, `lib/site/time` / `utils/date` `timeZone`, `DaysAheadFromToday` / `getDatesAhead`.
+
+Result as the UTC server and as a Riyadh browser: **0 wrong, 0 differences**. The UTC run also shows why the split matters: for instants between 00:00 and 02:59 Riyadh, `calendarDayToString` and the legacy `dateToString` both give the previous day; only `riyadhDateString` is right.
+
+**Dependencies (decision 6): not done, blocked**
+
+`package.json` and `package-lock.json` have your uncommitted edits (the `botid` addition, now in `stash@{0}`). Removing `@tanstack/react-table` and `@radix-ui/react-collapsible` now would change the same files and could conflict when you restore the stash.
+
+Options:
+
+- (a) Commit your `botid` change, then I remove both in one commit.
+- (b) I remove them now on this branch, and you resolve a small conflict when restoring the stash.
+
+Neither package is imported anywhere; `components/ui/collapsible.tsx` was deleted in step 1a.
+
+**Later phase: duplicate extraction (decision 7, nothing done)**
+
+From jscpd: 281 clones, 12.3% of lines.
+
+1. Chat client: `components/clients/chats/chat.tsx` vs `chats/list/chat.tsx`, about 440 lines. Proposal: one component with a `variant` prop.
+2. Reservation coupon forms: `consultants`, `instant` and `programs` `reservation/forms/coupons.tsx`, the same 146 lines three times.
+3. Reservation payment and method steps across consultant, instant, program, marriage awareness and `forms/` (booking and payment UI).
+4. List navigation and filters: `consultants`, `freesessions`, `programs`, `event/discounts` `navigation.tsx` / `filter.tsx`.
+5. `programs/[prid]` vs `programs/reserve/[prid]` pages, 93 lines.
+6. `reels/actions.ts` vs `data/reels.ts` (45 lines); login vs register and reset-password vs verify-otp form handlers.
+7. The mobile room duplicates below. Kept by decision.
+
+**Mobile room paths (decision 8): both kept**
+
+| Endpoint | Path A | Path B |
+| -------- | ------ | ------ |
+| guard (GET) | `/api/mobile/room/[mid]/guard` | `/api/mobile/room/guard/[mid]` |
+| ring (POST) | `/api/mobile/room/[mid]/ring` | `/api/mobile/room/ring/[mid]` |
+
+- Each pair is byte-identical, and all four files were added in the same commit (`26d1c26`, 2026-09-04, "apis mobile").
+- Nothing in this repo says which app version calls which path: there's no app-version header, user-agent check or path reference outside the routes themselves.
+- **Can't tell from here.** To find out, filter Vercel request logs by these four paths (and user-agent), or log an `x-app-version` header in the route factory.
+
+**Other notes**
+
+- `CLAUDE.md` isn't in the working tree any more. It was untracked, so GitHub Desktop moved it into `stash@{0}` together with my manifest-check fix. Restoring the stash brings both back.
+- Commit `aec3a5b` was interrupted mid-command and recorded only the two deleted route-factory files. Amended to `a34b926` with the 23 files it was meant to contain (the exact state that built with exit 0), so no commit on this branch is broken.
+- Still on the deprecated paths and names (same behaviour): your stashed files, and the payment and order files listed in the caller-migration entry. `utils/time/index.ts` and `lib/site/time.ts` can be deleted once those import `@/utils/date`; `totalAfterTax` once its four stashed callers use `withTax`.
