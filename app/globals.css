@@ -53,7 +53,7 @@
   /* ---------- brand theme — keep one block active ---------- */
 
   /* green (national day) */
-  --theme: #016c39;
+  /* --theme: #016c39;
   --theme-25: #f2faf6;
   --theme-50: #e6f5ee;
   --theme-100: #d4ecdf;
@@ -61,9 +61,9 @@
   --theme-300: #7cc49e;
   --theme-600: #015c30;
   --theme-700: #007e03;
-  --theme-900: #003816;
+  --theme-900: #003816; */
 
-  /* blue (default)
+  /* blue (default) */
   --theme: #117ed8;
   --theme-25: #f1f8fe;
   --theme-50: #e7f2fb;
@@ -73,7 +73,7 @@
   --theme-600: #0d61a6;
   --theme-700: #094577;
   --theme-900: #062c4d;
-  */
+ 
 
   /* ---------- ui tokens ---------- */
   --background: oklch(1 0 0);
