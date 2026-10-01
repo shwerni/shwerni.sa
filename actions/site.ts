@@ -45,6 +45,7 @@ import {
 } from "@/data/chats";
 
 // lib
+import { checkHuman } from "@/lib/bot-protection";
 import { isConsultant, ownConsultantCid, sessionUser } from "@/lib/auth/guards";
 
 // prisma types
@@ -76,6 +77,8 @@ export async function addArticleComment(
 export async function applyCoupon(
   ...[, code, cid]: Parameters<typeof applyCouponData>
 ) {
+  // log mode: records the botid verdict, never blocks
+  await checkHuman("applyCoupon");
   const user = await sessionUser();
   return applyCouponData(user?.id ?? "temp", code, cid);
 }
