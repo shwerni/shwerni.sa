@@ -1453,3 +1453,16 @@ Nothing imports these files today, so they aren't bundled.
 **Needs manual testing on the preview**
 
 - Mobile app: the reservation screen for a consultant shows tax 15 and the same total the payment charges (150 → 173).
+
+## 2026-10-01 · Removal 4: postinstall regenerates the Prisma client
+
+**Files changed**
+
+- `package.json`: `"postinstall": "prisma generate"`. Vercel runs it after `npm install` on every deploy, so the git-ignored `lib/generated/prisma` client is always built from the current schema, including `VerificationToken.attempts`. `package-lock.json` is unchanged.
+
+**Verified**
+
+- `npm run postinstall` locally: "Generated Prisma Client (7.9.1)", and the generated `VerificationToken` model has `attempts`.
+- The clean build follows in the final entry below.
+
+**Note:** `prisma.config.ts` reads `DIRECT_URL` through `env()`. If that variable isn't available during Vercel's install step, generate could fail. Unverified; check the first deploy log.
