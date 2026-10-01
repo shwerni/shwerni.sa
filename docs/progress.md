@@ -1481,3 +1481,125 @@ Nothing imports these files today, so they aren't bundled.
 - The requested value was `2026-10-01T12:00:00+03:00`. The integer tax (`228c109`) isn't live yet. origin/main was pushed at 15:48 and 15:51, but that tree still has `lib/api/ai/article`, which fails the build, so production still charges by the old formulas until the next deploy.
 - With a 12:00 cutoff, orders created between 12:00 and the deploy are charged the old amount but only accept `withTax`. That is 25 of 96 prices from 50 to 1000 (50 → 57 old vs 58 new; 90 → 103 vs 104), so those payments would go to hold.
 - Set the cutoff to the deploy time or later. Later only widens what pre-deploy orders may match.
+
+## 2026-10-01 · BotID coverage, log mode
+
+Protection is chosen by risk: public or guest-callable actions that cost money, send messages, or can be guessed. `BOTID_MODE` is `"log"`, so nothing is blocked yet.
+
+**Commits**
+
+| Commit | Item | Files |
+|---|---|---|
+| `e3d76ec` | Setup | `next.config.ts` (wrapped with `withBotId`), `instrumentation-client.ts` (new), `lib/bot-protection.ts` (new), `utils/bot-protection.ts`, `routes.ts` |
+| `02e31e9` | reCAPTCHA stopgap | `lib/api/recaptcha.ts` |
+| `d28bb04` | Auth | `actions/auth.ts`, `auth.config.ts` |
+| `dfacb60` | Booking | `actions/booking.ts`, `actions/site.ts` |
+| `447efce` | Content | `actions/site.ts` |
+| `124972f` | AI | `actions/ai.ts`, `lib/api/ai/chat-bot.ts` |
+
+**Setup (`e3d76ec`)**
+
+- `lib/bot-protection.ts` (`server-only`): `checkHuman(action)` runs `checkBotId()` and logs every call as `[botid] action=<name> mode=log isBot=<…> verified=<…> bypassed=<…> name=<…>`.
+  - `BOTID_MODE = "log"` is a constant in this file, so it can't be flipped by an env change. In log mode `checkHuman` always returns `true`.
+  - Fails open: if BotID throws, it logs `[botid] check failed` and `[botid] action=<name> … error=fail-open`, and the request goes through.
+  - One verdict per request. The login action and NextAuth's `authorize` run in the same request, so the second check reuses the first instead of making a second Deep Analysis call. The key is the request's `headers()` object, which Next keeps for the whole request.
+- `utils/bot-protection.ts`: the placeholder paths are gone. The single entry is `"/*"`, and `instrumentation-client.ts` reads it as `{ path: "/*", method: "POST" }`.
+  - `"/*"` compiles to `^/.*$`, so it also matches `/`.
+  - The BotID client only adds its headers to same-origin requests (checked in `botid/client/core`), so uploadthing uploads and backend calls are unaffected.
+- `routes.ts`: BotID's challenge prefix `/149e9513-01fa-4fb0-aad4-566afd725d1b` is now public.
+  - Why: `proxy.ts` runs before `next.config` rewrites, and it sends logged-out visitors on non-public paths to `/login`.
+  - The challenge script (`…/c.js`) was already skipped by the matcher's `.js` rule, but the other Kasada endpoints under that prefix weren't. Without this change, every guest would fail the challenge.
+  - No existing route's access changes.
+
+**Protected: 12 actions plus NextAuth (log names as they appear in the logs)**
+
+- Auth: `login`, `register`, `forgetpassowrd`, `phoneToken`, `unauthorizedPhoneChangeByToken`, `nextauth-credentials`.
+- Booking: `Pay`, `confirmFreeSession`, `confirmReconciliation`, `applyCoupon`.
+- Content: `acceptNewreview`, `addArticleComment`.
+- AI: `SendChatBot`.
+
+Each wrapper calls `await checkHuman("<name>")` as its first line. Signatures and return shapes are unchanged. `saveConsultant` is not protected, by decision.
+
+**NextAuth credentials**
+
+- `authorize` in `auth.config.ts` calls `checkHuman("nextauth-credentials")` first. Nothing else in the session config changed.
+- There is one `signIn("credentials")` call: `handlers/auth/login.ts:61`. It is reached only through the `login` action in `actions/auth.ts`, called from `components/auth/login-form.tsx` on `/login`, which is a browser page matched by `"/*"`.
+- Nothing calls `signIn` from `next-auth/react`, and no mobile route calls NextAuth's `signIn`.
+- A direct POST to `/api/auth/callback/credentials` gets its own check, against that request's headers.
+
+**reCAPTCHA stopgap (`02e31e9`)**
+
+- All eight forms already create their token at submit, not at page load:
+  - `login-form` and `resgister-form` (`onSubmit`).
+  - The chat bot (`handleSend`).
+  - The consultant, instant and free-session reservation forms, discover, and the marriage-awareness form (`onSubmit` → `runRecaptcha`).
+  - No form code changed.
+- `verifyRecaptcha` now logs `[recaptcha] failed success=… score=… action=… hostname=… error-codes=…` when verification fails, and `[recaptcha] verify request failed` when the request itself fails. The token is never logged.
+- The threshold (`score > 0.2`) and enforcement are unchanged.
+- Note: the reCAPTCHA check is still enforced only in the browser. `verifyRecaptcha` is a separate action, and no protected action checks the token on the server, so a script that calls `login` or `Pay` directly skips it. The `checkHuman` calls are server-side, so they do see those requests.
+
+**Chat bot cap (`124972f`)**
+
+- The daily cap of 15 is keyed on `user:<id>` for logged-in users and `ip:<ip>` for guests, using `getClientIp()` (IPv6 grouped by /64).
+- Before, the key was `from`, the caller-supplied localStorage id, so a guest could reset it by clearing storage.
+- `lib/api/ai/chat-bot.ts` now takes `limitKey` as a required first argument, so the caller's `from` can't fall back in. `from` still names the chat transcript.
+- The WhatsApp bot's cap (keyed on the sender's phone) is unchanged.
+
+**Enforce mode later: the existing error each action should return when `checkHuman` returns false**
+
+| Action | Return | What the user sees today for that result |
+|---|---|---|
+| `login` | `{ state: false, message: "حدث حطأ ما" }` | error toast |
+| `register` | `{ state: false, message: "حدث حطأ ما" }` | error toast |
+| `forgetpassowrd` | `{ state: false, message: "حدث خطأ ما برجاء اعادة المحاولة" }` | error toast |
+| `phoneToken` | `return;` (it only ever redirects, and its callers ignore the result) | button stops loading, nothing sent |
+| `unauthorizedPhoneChangeByToken` | `{ state: false, message: "حدث حطأ ما" }` | settings toast |
+| `nextauth-credentials` | `return null` | `CredentialsSignin`, so `login` shows "اسم المستخدم او كلمة المرور غير متطابقين" |
+| `Pay` | `{ state: false, message: "تعذّر إتمام العملية، برجاء المحاولة لاحقاً" }` (Pay's finance-failure message) | form toast |
+| `confirmFreeSession` | `return;` (the handler's own failure path) | no redirect, form stays |
+| `confirmReconciliation` | `{ state: false, message: "حدث حطأ ما برجاء المحاولة مرة اخري" }` | "حدث خطأ ما" toast |
+| `applyCoupon` | `{ state: false, message: "عذراً، الكود الذي أدخلته غير صحيح." }` | invalid-code toast; doesn't tell a guesser why |
+| `acceptNewreview` | `null` | "حدث خطأ ما" toast |
+| `addArticleComment` | `{ success: false }` | "حدث خطأ ما، حاول مرة أخرى" toast |
+| `SendChatBot` | `"حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى."` | the same text the widget shows when it catches an error |
+
+**Verified**
+
+- Each of the six commits: `npm run build` on a clean tree with `.next` deleted and `exclude` only `["node_modules", "docs"]`. Exit 0 each time, 139/139 pages.
+- After each commit, the manifest check prints only `"data/event.ts"`, and there's no `"use server"` in `lib/`, `data/` or `handlers/`.
+- `npx tsc --noEmit`: 0 errors.
+- `.next/routes-manifest.json` contains BotID's challenge rewrites.
+- Exactly 13 `checkHuman("…")` calls: the 12 actions plus `nextauth-credentials`.
+
+**Needs testing on a preview** (BotID always returns `bypassed=true` under `next dev`, so local tests prove nothing)
+
+Submit each form once as a guest unless noted. In the Vercel logs, confirm `[botid] action=<name> mode=log isBot=false`.
+
+| # | Page | Do | Log name |
+|---|---|---|---|
+| 1 | `/login` | log in with a verified account | `login`, then `nextauth-credentials` (same verdict) |
+| 2 | `/login` | log in with an unverified account (sends an OTP) | `login` only |
+| 3 | `/register` | register a new number | `register` |
+| 4 | `/forget-password` | request a reset | `forgetpassowrd` |
+| 5 | `/account` while logged in with an unverified phone | press the "verify" button | `phoneToken` |
+| 6 | `/dashboard/profile` (consultant) | change the phone number | `unauthorizedPhoneChangeByToken` |
+| 7 | `/consultants/[cid]` | apply a coupon | `applyCoupon` |
+| 8 | `/consultants/[cid]` | book and reach the payment page (don't pay) | `Pay` |
+| 9 | `/freesessions/consultants/[cid]` | book a free session | `confirmFreeSession` |
+| 10 | `/reconciliation` | submit a request | `confirmReconciliation` |
+| 11 | `/consultants/[cid]` | post a review | `acceptNewreview` |
+| 12 | `/articles/[aid]` | post a comment | `addArticleComment` |
+| 13 | any site page | send a chat-bot message | `SendChatBot` |
+
+- Also confirm no `[botid] … error=fail-open` lines, and that the BotID challenge requests (`/149e9513-…`) return 200 for a logged-out visitor, not a 307 to `/login`.
+- The chat bot: as a guest, send 16 messages and get the limit reply. A new tab with cleared storage on the same network must still be at the limit.
+- reCAPTCHA: a failed check should show a `[recaptcha] failed …` line.
+- Tests 8 and 9 create real orders. Use a test consultant: the pending `Pay` order expires through `cancel-orders`, and the free session books a slot and a Meet link.
+
+**Open questions and notes**
+
+- Deep Analysis is a Vercel dashboard setting (Firewall → Bot Management). Until it's on, `checkBotId` runs the basic check.
+- With `"/*"`, every same-origin POST waits for BotID's challenge token before it's sent. That adds a little latency to every Server Action, uploadthing POST and pusher auth call. If that shows up, narrow the list to the 13 pages above.
+- The chat cap per IP: guests behind one carrier NAT IPv4 address share the 15 messages a day.
+- None of the 54 actions use `lib/rate-limit.ts`. In log mode, OTP, coupon and chat-bot abuse stay as open as before.
+- Section 9 marks `bot` in `createAction` as done (`[x]`), but `lib/safe-action.ts` has no `bot` option. It's left untouched, by decision.
