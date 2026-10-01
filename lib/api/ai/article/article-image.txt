@@ -1,0 +1,47 @@
+  const sleep = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+
+  const bulkUpdateArticleImages = async (
+    ids: number[],
+    delayMs: number = 3100,
+  ) => {
+    const results: { id: number; success: boolean; error?: unknown }[] = [];
+    const errors = [];
+    for (const id of ids) {
+      try {
+        await updateArticleImageAi(id);
+        results.push({ id, success: true });
+      } catch (error) {
+        results.push({ id, success: false, error });
+        errors.push(id);
+        console.error(`Failed to update image for article ${id}:`, error);
+      }
+
+      await sleep(delayMs);
+    }
+
+    return results;
+  };
+
+        <Button
+        onClick={async () => {
+          // await updateArticleImageAi(123);
+          const done = [
+            124, 120, 121, 116, 118, 113, 114, 110, 112, 107, 122, 111, 108,
+            109, 104, 101, 115, 105, 106, 102, 103, 98, 100, 97, 92, 93, 89, 91,
+            83, 85, 84, 82, 86, 87, 88, 77, 79, 99, 95, 96, 94, 90, 80, 78, 75,
+            76, 59, 55, 54, 56, 57, 58, 51, 45, 154, 147, 145, 140, 137, 128,
+            40, 47, 35, 42, 41, 34, 28, 36, 31, 66, 52, 49, 32, 129, 153, 46,
+            39, 38, 33, 127, 37, 22, 30, 29, 23, 24, 26, 18, 17, 13, 25, 27, 14,
+            19, 21, 12, 68, 48,
+          ];
+
+          const ids = [
+            // stoped here
+          ];
+          await bulkUpdateArticleImages(ids);
+        }}
+        className="bg-red-500 text-white"
+      >
+        ai atest
+      </Button>

@@ -4,13 +4,15 @@ import Join from "@/components/clients/home/join";
 import Steps from "@/components/clients/home/steps";
 import Services from "@/components/clients/home/services";
 import Benefits from "@/components/clients/home/benefits";
-import Categories from "@/components/clients/home/categories";
 import Reviews from "@/components/clients/home/reviews/reviews";
 import InstantList from "@/components/clients/home/instant/instant-list";
 import Statistics from "@/components/clients/home/statistics/statistics";
 import Consultants from "@/components/clients/home/consultant/consultants";
 import { OrderNotification } from "./notification/notification-lazy";
 import Podcast from "./youtube/youtube";
+// import Coupons from "@/components/clients/home/coupons/coupons";
+import HomeCards from "@/components/clients/home/home-cards";
+import Categories from "./categories";
 
 const Home = async () => {
   return (
@@ -23,6 +25,8 @@ const Home = async () => {
       <Categories />
       {/* instant list */}
       <InstantList />
+      {/* home cards */}
+      <HomeCards />
       {/* consultant */}
       <Consultants />
       {/* services */}

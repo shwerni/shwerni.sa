@@ -83,7 +83,7 @@ const Categories = async () => {
   // ];
 
   return (
-    <Section className="max-w-5xl mx-auto">
+    <Section className="max-w-3xl mx-auto px-3 sm:px-5">
       {/* title */}
       <Title title="تلائم أهدافك وتحقق نتائجك" subTitle="مجالات واسعة" />
       {/* event card */}
