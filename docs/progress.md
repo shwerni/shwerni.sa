@@ -1263,3 +1263,39 @@ From jscpd: 281 clones, 12.3% of lines.
 - `CLAUDE.md` isn't in the working tree any more. It was untracked, so GitHub Desktop moved it into `stash@{0}` together with my manifest-check fix. Restoring the stash brings both back.
 - Commit `aec3a5b` was interrupted mid-command and recorded only the two deleted route-factory files. Amended to `a34b926` with the 23 files it was meant to contain (the exact state that built with exit 0), so no commit on this branch is broken.
 - Still on the deprecated paths and names (same behaviour): your stashed files, and the payment and order files listed in the caller-migration entry. `utils/time/index.ts` and `lib/site/time.ts` can be deleted once those import `@/utils/date`; `totalAfterTax` once its four stashed callers use `withTax`.
+
+# Release prep on main (after merging hotfix + cleanup + Ziad's edits)
+
+**Pre-existing blocker on `main`:** `npm run build` fails type-checking in files added by `dd122be` ("after claudie code"):
+
+- `lib/api/ai/article/articles.tsx:153`: `importArticle()` is `Promise<void>`, but the result is stored as `ImportResult`.
+- `lib/api/ai/article/index.ts:4` and `specialties.ts:3`: `@google/genai` isn't in `package.json` or `node_modules`.
+
+These are the only 3 `tsc` errors in the repo. Nothing imports these files yet, so they aren't bundled. Each commit below was verified by building with `lib/api/ai/article` temporarily added to `tsconfig` `exclude` (reverted before committing), plus `tsc` showing only those 3 errors.
+
+## 2026-10-01 · Item 1: TAX_PERCENT is the only tax rate
+
+**Files changed**
+
+- `handlers/admin/order/payment.ts` (`Pay`): the four `finance.tax` uses are now `TAX_PERCENT`: the `calculatePayment` call and the `tax` passed to `reserveConsultant`, `reserveProgram` and `reserveInstant`. So `payment.tax` on new orders stores the rate actually applied. `finance.commission` is unchanged.
+
+**Every place that still reads the tax setting (none affects a charge):**
+
+| Where | What it does with it |
+| ----- | -------------------- |
+| `data/admin/settings/finance.ts` `getFinanceConfig()` | reads `finance.tax` from the settings table (default 15) and returns it in the config |
+| `data/admin/settings/finance.ts` `getTaxCommission()` | reads `finance.tax` (`\|\| 15`) |
+| `app/api/mobile/consultants/[cid]/reservation-info/route.ts` | returns the whole `finance` object, **including `tax`, to the mobile app**. If the app computes prices from it, a setting other than 15 would show a different price from what's charged. Unverified what the app does with it. |
+| `components/clients/consultants/reservation/reserve.tsx`, `components/clients/programs/reservation/reserve.tsx`, `components/clients/instant/index.tsx`, `app/(pages)/(reels)/discover/page.tsx` | load `getFinanceConfig()` and pass `finance` down. The payment steps hand `finance.tax` to `usePaymentCalculation`, which ignores it (`withTax`). |
+| `components/clients/consultants/reservation/steps/payment.tsx`, `components/clients/forms/payment.tsx`, `components/clients/instant/reservation/steps/payment.tsx`, `components/clients/programs/reservation/steps/payment.tsx`, `components/clients/sub-pages/marriage-awareness/payment.tsx` | `tax: finance.tax` into `usePaymentCalculation` (ignored) |
+| `app/(pages)/(consultants)/dashboard/programs/page.tsx` | `tax={finance?.tax ?? 15}` from `getTaxCommission()` into `totalAfterTax`, which only checks for 0 |
+| `data/reconciliation.ts` | `settings.tax` from `getTaxCommission()` only in the order's info log text; the stored `payment.tax` is a hard-coded `15` (= `TAX_PERCENT`) |
+| `app/api/mobile/reservations/instant/route.ts` | `body.finance.tax`, in commented-out code |
+
+**Verified**
+
+- Build (with the WIP exclusion): passes.
+
+**Needs manual testing on the preview**
+
+- A new booking's `payment.tax` is 15 and the charge is unchanged (150 → 173).

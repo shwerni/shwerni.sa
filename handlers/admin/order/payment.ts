@@ -47,7 +47,8 @@ import { getFinanceConfig } from "@/data/admin/settings/finance";
 import { resolveConsultantPricing } from "@/data/event";
 import prisma from "@/lib/database/db";
 import { calculatePayment } from "@/utils/admin/payments";
-import { withTax } from "@/utils/tax";
+// the vat rate is the TAX_PERCENT constant; the finance.tax setting is no longer read for charges
+import { TAX_PERCENT, withTax } from "@/utils/tax";
 
 // on payment success
 export const onPaymentSuccess = async (order: Reservation) => {
@@ -219,7 +220,7 @@ export async function Pay(
   // ---------------------------------------------------------------
   const payment = calculatePayment({
     baseCost,
-    tax: finance.tax,
+    tax: TAX_PERCENT,
     discountPercent,
   });
 
@@ -250,7 +251,7 @@ export async function Pay(
     result = await reserveConsultant(
       data as ReservationFormType,
       cost,
-      finance.tax,
+      TAX_PERCENT,
       finance.commission,
     );
 
@@ -258,14 +259,14 @@ export async function Pay(
     result = await reserveProgram(
       data as ProgramReservationFormType,
       cost,
-      finance.tax,
+      TAX_PERCENT,
     );
 
   if (data.order === "instant")
     result = await reserveInstant(
       data as InstantFormType,
       cost,
-      finance.tax,
+      TAX_PERCENT,
       finance.commission,
     );
 
