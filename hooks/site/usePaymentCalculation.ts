@@ -1,12 +1,16 @@
 "use client";
 import * as React from "react";
 
+// utils
+import { withTax } from "@/utils/tax";
+
 interface Wallet {
   credit: number;
 }
 
 interface Params {
   baseCost: number;
+  // kept for callers; the tax part uses the shared withTax (TAX_PERCENT) so checkout equals the charge
   tax: number;
   wallet?: Wallet | null;
   initialDiscount?: number | null;
@@ -14,7 +18,6 @@ interface Params {
 
 export function usePaymentCalculation({
   baseCost,
-  tax,
   wallet,
   initialDiscount = null,
 }: Params) {
@@ -48,9 +51,7 @@ export function usePaymentCalculation({
   const [withdrawPay, setWithdrawPay] = React.useState<number>(
     calcWallet(total),
   );
-  const [totalWTax, setTotalWTax] = React.useState<number>(
-    total * (1 + tax / 100),
-  ); // after tax
+  const [totalWTax, setTotalWTax] = React.useState<number>(withTax(total)); // after tax
 
   /* =========================
      Sync discount from props
@@ -66,20 +67,21 @@ export function usePaymentCalculation({
     const nextTotal = calcSubTotal();
     const walletUsed = calcWallet(nextTotal);
     const finalTotal = useWallet ? nextTotal - walletUsed : nextTotal;
-    const finalTotalWTax = finalTotal * (1 + tax / 100);
+    // same calculation Pay charges: the rounded total, then integer tax
+    const finalTotalWTax = withTax(finalTotal);
 
     setTotal(nextTotal);
     setWithdrawPay(walletUsed);
     setTotalWTax(finalTotalWTax);
-  }, [calcSubTotal, calcWallet, useWallet, tax]);
+  }, [calcSubTotal, calcWallet, useWallet]);
 
   /* =========================
      API
      ========================= */
   return {
     total: Math.round(total),
-    totalWTax: Math.round(totalWTax),
-    subTotal: Math.round(baseCost * (1 + tax / 100)),
+    totalWTax,
+    subTotal: withTax(baseCost),
     withdrawPay: Math.round(withdrawPay),
     discount,
     setDiscount,

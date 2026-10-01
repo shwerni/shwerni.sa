@@ -1,11 +1,15 @@
 import { pusherServer } from "@/lib/api/pusher/pusher-server";
 import prisma from "@/lib/database/db";
+import { userServer } from "@/lib/auth/server";
 
 export async function POST(req: Request) {
   const formData = await req.formData();
   const socket_id = formData.get("socket_id") as string;
   const channel_name = formData.get("channel_name") as string;
-  const userId = formData.get("userId") as string;
+
+  // the user comes from the session; the userId form field is ignored
+  const user = await userServer();
+  const userId = user?.id;
 
   if (!socket_id || !channel_name || !userId)
     return new Response("Unauthorized", { status: 403 });

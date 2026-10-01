@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // prisma db
 import prisma from "@/lib/database/db";
 
@@ -6,44 +6,16 @@ import prisma from "@/lib/database/db";
 import { checkMeetingTimeConflict } from "./order/reserveation";
 
 // lib
-import { timeZone } from "@/lib/site/time";
+import { dateTimeToString, getWeekStartSaturday, riyadhDateString, timeZone } from "@/utils/date";
 import { notificationNewFreeSession } from "@/lib/notifications/site";
 
 // utils
-import {
-  dateTimeToString,
-  dateToString,
-  getWeekStartSaturday,
-} from "@/utils/time";
+// the booking date is the browser's "now", an instant, so it is read in riyadh time
 
 // schema
 import { freeSessionSchema, freeSessionSchemaType } from "@/schemas";
 import { Categories, Gender, Prisma } from "@/lib/generated/prisma/client";
 import { createGoogleMeeting } from "@/lib/api/google";
-
-// get all free sessions
-export const getAllFreeSessions = async () => {
-  try {
-    // get all
-    const sessions = await prisma.freeSession.findMany({
-      orderBy: {
-        created_at: "desc",
-      },
-      include: {
-        consultant: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    });
-    // return
-    return sessions;
-  } catch {
-    // return
-    return null;
-  }
-};
 
 // get all free sessions
 export const getOwnerFreeTimings = async (cid: number) => {
@@ -122,7 +94,7 @@ export const reserveFreeSession = async (formdata: freeSessionSchemaType) => {
     //   },
     // });
 
-    const date = dateToString(timeZone().iso);
+    const date = timeZone().date;
 
     // check conflict
     const check = await checkMeetingTimeConflict(data.cid, data.time, date);
@@ -146,7 +118,7 @@ export const reserveFreeSession = async (formdata: freeSessionSchemaType) => {
         phone: data.phone,
         consultantId: data.cid,
         time: data.time,
-        date: dateToString(data.date),
+        date: riyadhDateString(data.date),
         duration: "30",
         info: [
           `new free session | modified_at: ${dateTimeToString(new Date())}`,
@@ -169,45 +141,6 @@ export const reserveFreeSession = async (formdata: freeSessionSchemaType) => {
     return { message: newSession.fid, state: true };
   } catch {
     // return
-    return null;
-  }
-};
-
-// get reservation
-export const freeSessionAttendance = async (
-  fid: number,
-  participant: string,
-  ownerAttend: boolean | null,
-  clientAttend: boolean | null,
-  time: string | null,
-) => {
-  try {
-    // client attendance
-    if (participant === "client" && !clientAttend) {
-      // attendance
-      const order = await prisma.freeSession.update({
-        where: { fid },
-        data: { clientAttend: true, clientATime: time },
-        select: { fid: true },
-      });
-      // return
-      return Boolean(order);
-    }
-
-    // attendance
-    if (participant === "owner" && !ownerAttend) {
-      const order = await prisma.freeSession.update({
-        where: { fid },
-        data: { ownerAttend: true, ownerATime: time },
-        select: { fid: true },
-      });
-      // return
-      return Boolean(order);
-    }
-
-    // if participant not exist or already signed
-    return null;
-  } catch {
     return null;
   }
 };

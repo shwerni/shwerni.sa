@@ -18,7 +18,7 @@ import { toast } from "@/components/shared/toast";
 import { Checkbox } from "@/components/ui/checkbox";
 
 // prisma data
-import { applyCoupon } from "@/data/coupon";
+import { applyCoupon } from "@/actions/site";
 
 // types
 import { ReservationFormType } from "@/schemas";

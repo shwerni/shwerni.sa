@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 
 // prisma types
 import {
@@ -13,8 +13,7 @@ import {
 import { sendWhatsappTemplate } from "@/lib/api/whatsapp";
 
 // utils
-import { timeLabel } from "@/utils/date";
-import { meetingLabel } from "@/utils/time";
+import { meetingSentence, timeLabel } from "@/utils/date";
 import { encryptionDigitsToUrl, zencryption } from "@/utils/admin/encryption";
 
 // types
@@ -65,7 +64,7 @@ export const notificationNewOrder = async (order: Reservation) => {
   if (!meeting || !payment) return;
 
   // meeting label
-  const label = meetingLabel(meeting[0].time, meeting[0].date);
+  const label = meetingSentence(meeting[0].date, meeting[0].time);
 
   return notify(async () => {
     // if program or single
@@ -203,19 +202,6 @@ export const notificationNewOrder = async (order: Reservation) => {
   });
 };
 
-// new owner welcome notification
-export const notificationNewOwner = async (
-  phone: string,
-  name: string,
-  cid: string,
-) =>
-  notify(async () => {
-    await sendWhatsappTemplate(phone, "owner_new_approved", {
-      text: [name],
-      url: [cid],
-    });
-  });
-
 // new pre-consultation session
 export const notificationNewPreConsultation = async (
   phone: string,
@@ -238,7 +224,7 @@ export const notificationNewFreeSession = async (
   // zid
   const zid = zencryption(session.fid);
   // meeting label
-  const label = meetingLabel(session.time, session.date);
+  const label = meetingSentence(session.date, session.time);
 
   return notify(async () => {
     // owner
@@ -300,7 +286,7 @@ export const notificationSessionConfirm = async (
   date: string,
 ) => {
   // meeting label
-  const label = meetingLabel(time, date);
+  const label = meetingSentence(date, time);
 
   // program
   return notify(async () => {
@@ -352,7 +338,7 @@ export const notificationReviewReminder = async (
   time: string,
 ) => {
   // meeting label
-  const label = meetingLabel(time, date);
+  const label = meetingSentence(date, time);
 
   // send client
   return sendWhatsappTemplate(phone, "review_reminder", {
@@ -402,7 +388,7 @@ export const notificationConfirmRescheduling = async (
   meeting: Meeting,
 ) => {
   // meeting label
-  const label = meetingLabel(meeting.time, meeting.date);
+  const label = meetingSentence(meeting.date, meeting.time);
 
   // send to client
   await sendWhatsappTemplate(order.phone, "rescheduling_confirmed", {

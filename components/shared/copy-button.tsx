@@ -6,7 +6,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // icons
 import { Check, Copy } from "lucide-react";

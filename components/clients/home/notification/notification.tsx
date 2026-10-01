@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { useNotifStore } from "@/hooks/zustand/order-notification";
-import { getPaidPast3Days } from "@/data/order/reserveation";
+import { getPaidPast3Days } from "@/actions/order";
 
 function maskName(name: string): string {
   const n = name.trim();

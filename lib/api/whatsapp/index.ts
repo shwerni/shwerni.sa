@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // whatsapp config
 const WHATSAPP_URL = process.env.WHATSAPP_URL!; // e.g. https://graph.facebook.com/v21.0/586473104542070/
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN!;
@@ -39,7 +39,7 @@ export type TemplateParams = {
 
 // Structured result so callers (especially the cron job) can tell WHY a
 // send failed instead of getting back null with zero information.
-export type WhatsappSendResult =
+type WhatsappSendResult =
   | { ok: true; data: unknown }
   | {
       ok: false;

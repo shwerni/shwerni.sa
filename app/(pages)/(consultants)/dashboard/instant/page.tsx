@@ -14,20 +14,19 @@ import { userServer } from "@/lib/auth/server";
 import { ConsultantState } from "@/lib/generated/prisma/enums";
 
 const Page: React.FC = async () => {
-  // user
+
   const user = await userServer();
 
-  // if user not exist
   if (!user || !user.id) return <Error404 />;
 
-  // get instant profile
   const owner = await getOwnerbyAuthor(user.id);
 
-  // if user not exist
   if (!owner) return <Error404 />;
+
 
   if (owner.statusA !== ConsultantState.PUBLISHED)
     return <OwnerIsDisabled owner={owner} />;
+
 
   return <InstantDashboard userId={user?.id} />;
 };

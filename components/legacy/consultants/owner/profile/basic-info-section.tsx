@@ -17,7 +17,7 @@ import { ChoiceGroup, type ChoiceOption } from "./choice-group";
 import { FormSection } from "./form-section";
 
 // lib
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // prisma types
 import { Gender, GenderPreference } from "@/lib/generated/prisma/enums";

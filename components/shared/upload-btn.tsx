@@ -13,7 +13,7 @@ import {
   useFormContext,
 } from "react-hook-form";
 import { toast } from "./toast";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { UploadButton } from "@/lib/upload";
 import { CheckCircle2, FileText, ImageIcon, Loader2, X } from "lucide-react";
 

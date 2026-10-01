@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/database/db";
 
 // lib
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 
 // utils
 import { subDays, subMinutes, format } from "date-fns";

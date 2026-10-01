@@ -1,5 +1,5 @@
 // utils
-import { createGetRoute } from "@/lib/api/routes/create-get-route";
+import { createGetRoute } from "@/lib/api/routes/route-factory";
 import { requireMobileUser } from "@/lib/auth/require-mobile-user";
 
 // lib
@@ -13,4 +13,4 @@ export const GET = createGetRoute(async (request) => {
   });
 
   return { count };
-});
+}, { errorMessage: "failed to fetch" });

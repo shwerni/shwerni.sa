@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // pacakges
 import { getDay, parseISO } from "date-fns";
 
@@ -542,30 +542,6 @@ export const getConsultantCost = async (cid: number) => {
   }
 };
 
-// get reserved times
-export const getConsultantReserved = async (cid: number, date: string) => {
-  try {
-    const reserved = await prisma.$queryRaw<{ time: string }[]>`
-      SELECT m."time"
-      FROM "Order" o
-      JOIN "payments" p ON p.id = o."orderId"
-      JOIN "meetings" m ON m."orderId" = o.id
-      WHERE
-        o."consultantId" = ${cid}
-        AND p."payment" IN (${PaymentState.PAID}, ${PaymentState.PROCESSING})
-        AND m."date" = ${date}
-    `;
-
-    // validate
-    if (!reserved) return [];
-
-    // time string[]
-    return reserved.map((r) => r.time);
-  } catch {
-    return [];
-  }
-};
-
 // get all published consultant profiles
 export const getPuslishedConsultantsForHome = async () => {
   try {
@@ -617,62 +593,6 @@ GREATEST(
   }
 };
 
-// * old *//
-export const getAllOwnersConsultants = async () => {
-  try {
-    // get all conultants owners
-    const owners = await prisma.consultant.findMany();
-    // return
-    return owners;
-  } catch {
-    return undefined;
-  }
-};
-
-// get all published consultant profiles
-export const getAllOwnersPuslished = async () => {
-  try {
-    // get all conultants owners
-    const owners = await prisma.consultant.findMany({
-      where: {
-        status: true,
-        statusA: ConsultantState.PUBLISHED,
-      },
-    });
-    // return
-    return owners;
-  } catch {
-    return null;
-  }
-};
-
-// get all published consultant profiles
-export const getAllOwnersPuslishedPreview = async () => {
-  try {
-    // get all conultants owners
-    const owners = await prisma.consultant.findMany({
-      where: {
-        status: true,
-        statusA: ConsultantState.PUBLISHED,
-        approved: ApprovalState.APPROVED,
-      },
-      select: {
-        cid: true,
-        name: true,
-        title: true,
-        image: true,
-        category: true,
-        rate: true,
-        gender: true,
-      },
-    });
-    // return
-    return owners;
-  } catch {
-    return null;
-  }
-};
-
 // get consultant by cid
 export const getOwnerByCid = async (cid: number) => {
   try {
@@ -692,35 +612,6 @@ export const getOwnerByCid = async (cid: number) => {
   }
 };
 
-// get consultant by cid
-export const getOwnerByCids = async (cids: number[]) => {
-  try {
-    // get all conultants owners
-    const owner = await prisma.consultant.findMany({
-      where: {
-        cid: { in: cids },
-      },
-    });
-    // return
-    return owner;
-  } catch {
-    return null;
-  }
-};
-
-// if owner exist
-export const ownerExistbyAuthor = async (userId: string) => {
-  try {
-    const exist = await prisma.consultant.findFirst({
-      where: { userId },
-      select: { userId: true },
-    });
-    return exist;
-  } catch {
-    return null;
-  }
-};
-
 // get consultant profile by author
 export const getOwnerbyAuthor = async (userId: string) => {
   try {
@@ -735,38 +626,6 @@ export const getOwnerbyAuthor = async (userId: string) => {
 };
 
 // get times by day and cid
-export const getOwnersInfoCid = async (cid: number) => {
-  try {
-    // get current times
-    const onwer = await prisma.consultant.findFirst({
-      where: { cid },
-      select: { name: true, image: true, gender: true },
-    });
-    // return
-    return onwer;
-  } catch {
-    // return
-    return undefined;
-  }
-};
-
-// get times by day and cid
-export const getOwnersInfoByAuthor = async (userId: string) => {
-  try {
-    // get current times
-    const onwer = await prisma.consultant.findFirst({
-      where: { userId },
-      select: { name: true, image: true, gender: true },
-    });
-    // return
-    return onwer;
-  } catch {
-    // return
-    return undefined;
-  }
-};
-
-// get times by day and cid
 export const getOwnerCidByAuthor = async (userId: string) => {
   try {
     // get current times
@@ -776,22 +635,6 @@ export const getOwnerCidByAuthor = async (userId: string) => {
     });
     // return
     return onwer?.cid;
-  } catch {
-    // return
-    return undefined;
-  }
-};
-
-// get times by day and cid
-export const getOwnerCidNameByAuthor = async (userId: string) => {
-  try {
-    // get current times
-    const onwer = await prisma.consultant.findFirst({
-      where: { userId },
-      select: { cid: true, name: true },
-    });
-    // return
-    return onwer;
   } catch {
     // return
     return undefined;
@@ -813,161 +656,6 @@ export const getOwnerForDues = async (userId: string) => {
     return undefined;
   }
 };
-
-// get owners available soon
-export async function getAvailableOwnersGrouped(
-  day: Weekday,
-  date: string,
-  time: string,
-) {
-  try {
-    const results = await prisma.$queryRaw<
-      {
-        time: string;
-        cid: number;
-        name: string;
-        title: string;
-        image: string | null;
-        category: string | null;
-        rate: number | null;
-        gender: string | null;
-      }[]
-    >`
-WITH reserved_times AS (
-  SELECT DISTINCT m.time, o."consultantId"
-  FROM "meetings" m
-  JOIN "orders" o ON m."orderId" = o.oid
-  JOIN "payments" p ON o.oid = p."orderId"
-  WHERE m.date = ${date}
-    AND p.payment IN ('NEW', 'PROCESSING', 'PAID')
-)
-SELECT *
-FROM (
-  SELECT
-    TO_CHAR(ct.time::TIME, 'HH24:MI') AS time,
-    c.cid,
-    c.name,
-    c.title,
-    c.image,
-    c.category,
-    c.rate,
-    c.gender,
-    CASE WHEN dc."discountId" IS NOT NULL THEN true ELSE false END AS "discount",
-    ROW_NUMBER() OVER (PARTITION BY ct.time ORDER BY RANDOM()) as rn
-  FROM "consultant_timings" ct
-  JOIN "consultants" c ON ct."consultantId" = c.cid
-  LEFT JOIN reserved_times rt 
-    ON rt.time = ct.time AND rt."consultantId" = ct."consultantId"
-  LEFT JOIN discount_consultants dc 
-    ON c.cid = dc."consultantId" 
-   AND dc."discountId" = 1
-  WHERE ct.day = CAST(${day} AS "Weekday")
-    AND ct.time::TIME > ${time}::TIME
-    AND rt.time IS NULL
-    AND c.status = true
-    AND c."statusA" = ${ConsultantState.PUBLISHED}::"ConsultantState"
-    AND c.approved = ${ApprovalState.APPROVED}::"ApprovalState"
-) AS sub
-WHERE rn <= 4
-ORDER BY time ASC;
-`;
-
-    // Group the results by time
-    const grouped: Record<string, typeof results> = {};
-    for (const entry of results) {
-      if (!grouped[entry.time]) grouped[entry.time] = [];
-      grouped[entry.time].push(entry);
-    }
-
-    return Object.entries(grouped).map(([time, consultants]) => ({
-      time,
-      consultants,
-    }));
-  } catch {
-    return [];
-  }
-}
-
-// get owners available soon
-export async function getAvailableOwnersByTime(
-  day: Weekday,
-  date: string,
-  selected: string,
-) {
-  try {
-    const results = await prisma.$queryRaw<
-      {
-        cid: number;
-        name: string;
-        title: string;
-        image: string | null;
-        category: string | null;
-        rate: number | null;
-        gender: string | null;
-      }[]
-    >`
-WITH reserved_consultants AS (
-  SELECT DISTINCT o."consultantId"
-  FROM "meetings" m
-  JOIN "orders" o ON m."orderId" = o.oid
-  JOIN "payments" p ON o.oid = p."orderId"
-  WHERE m.date = ${date}
-    AND m.time = ${selected}
-    AND p.payment IN ('NEW', 'PROCESSING', 'PAID')
-)
-
-SELECT
-  c.cid,
-  c.name,
-  c.title,
-  c.image,
-  c.category,
-  c.rate,
-  c.gender
-FROM "consultant_timings" ct
-JOIN "consultants" c ON ct."consultantId" = c.cid
-LEFT JOIN reserved_consultants rc ON rc."consultantId" = ct."consultantId"
-WHERE ct.day = CAST(${day} AS "Weekday")
-  AND ct.time = ${selected}
-  AND rc."consultantId" IS NULL
-ORDER BY RANDOM();
-`;
-
-    return results;
-  } catch {
-    return null;
-  }
-}
-
-// get only consultants with discount did = 1
-export async function getDiscountedConsultants(
-  did: number = 1,
-): Promise<OwnerPreview[]> {
-  const consultants = await prisma.$queryRaw<OwnerPreview[]>`
-    SELECT 
-      c.cid,
-      c.name,
-      c.title,
-      c.image,
-      c.category,
-      c.rate,
-      c.gender,
-      d.discount
-    FROM consultants c
-    INNER JOIN discount_consultants dc 
-      ON c.cid = dc."consultantId" 
-     AND dc."discountId" = ${did}
-    INNER JOIN discounts d 
-      ON d.did = dc."discountId"
-    WHERE 
-      c.status = true
-      AND c."statusA" = ${ConsultantState.PUBLISHED}::"ConsultantState"
-      AND c.approved = ${ApprovalState.APPROVED}::"ApprovalState"
-    ORDER BY RANDOM()
-  `;
-
-  return consultants;
-}
 
 export const getBankAccountByAuthor = async (author: string) => {
   try {

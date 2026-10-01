@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // prisma db
 import prisma from "@/lib/database/db";
 
@@ -15,21 +15,8 @@ import {
 } from "@/lib/generated/prisma/client";
 
 // lib
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 import { CouponConsultant } from "@/types/layout";
-
-// get all published coupons
-export const getPublishedCoupons = async () => {
-  try {
-    const coupon = await prisma.coupon.findMany({
-      where: { status: CouponState.PUBLISHED },
-      select: { discount: true },
-    });
-    return coupon;
-  } catch {
-    return null;
-  }
-};
 
 // get certian coupon
 export const applyCoupon = async (user: string, code: string, cid: number) => {
@@ -242,43 +229,6 @@ export async function getCouponsForHome(): Promise<CouponConsultant[]> {
     AND (c.expires_at IS NULL OR c.expires_at::date >= CURRENT_DATE)
   ORDER BY RANDOM()
     LIMIT 10;
-  `;
-
-    // return
-    return coupons;
-  } catch {
-    // return
-    return [];
-  }
-}
-
-export async function getAvailableCoupons(
-  today: Date,
-): Promise<CouponConsultant[]> {
-  try {
-    // get coupons
-    const coupons = await prisma.$queryRaw<CouponConsultant[]>`
-    SELECT 
-      c.*,
-      json_build_object(
-        'name', co.name,
-        'image', co.image,
-        'category', co.category,
-        'gender', co.gender,
-        'rate', co.rate
-      ) AS consultant
-    FROM coupons c
-    JOIN consultants co 
-      ON co.cid = c."consultantId"
-    WHERE 
-      co.status = true
-      AND co."statusA" = ${ConsultantState.PUBLISHED}::"ConsultantState"
-      AND co.approved = ${ApprovalState.APPROVED}::"ApprovalState"
-      AND c.status = ${CouponState.PUBLISHED}::"CouponState"
-      AND c.visibility = ${CouponVisibility.PUBLIC}::"CouponVisibility"
-      AND (c.starts_at IS NULL OR DATE(c.starts_at) <= DATE(${today}))
-      AND (c.expires_at IS NULL OR DATE(c.expires_at) >= DATE(${today}))
-    ORDER BY RANDOM()
   `;
 
     // return

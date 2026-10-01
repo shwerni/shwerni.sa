@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // prisma db
 import prisma from "@/lib/database/db";
 
@@ -13,52 +13,10 @@ import {
 } from "@/lib/generated/prisma/client";
 
 // utils
-import { dateToString } from "@/utils/time";
+import { riyadhDateString } from "@/utils/date";
 
 // lib
 import { aiAcceptReview } from "@/lib/api/ai/ai";
-
-// if rate exist to prevent second review
-export const reviewsExistByAuthor = async (author: string, cid: number) => {
-  try {
-    // if this author has review
-    const review = await prisma.review.findMany({
-      where: { author, consultantId: cid },
-    });
-    // return
-    return Boolean(review);
-  } catch {
-    return false;
-  }
-};
-
-// if rate exist to prevent second review
-export const reviewIsReservedByAuthor = async (author: string, cid: number) => {
-  try {
-    // if this author has review
-    const review = await prisma.order.findFirst({
-      where: { author, consultantId: cid },
-    });
-    // return
-    return Boolean(review);
-  } catch {
-    return false;
-  }
-};
-
-// get owners current count & increment on it
-export const getreviewsByAuthor = async (cid: number) => {
-  try {
-    // get all settings
-    const review = await prisma.review.findMany({
-      where: { consultantId: cid, status: ReviewState.PUBLISHED },
-    });
-    // return
-    return review;
-  } catch {
-    return null;
-  }
-};
 
 // get owners current count & increment on it
 export const getReviewsForHome = async () => {
@@ -77,34 +35,6 @@ export const getReviewsForHome = async () => {
     `;
     // return
     return reviews;
-  } catch {
-    return null;
-  }
-};
-
-// get owners current count & increment on it
-export const postreview = async (
-  cid: number,
-  author: string,
-  name: string,
-  comment: string,
-  rate: number,
-) => {
-  try {
-    // post new rate
-    const review = await prisma.review.create({
-      data: {
-        consultantId: cid,
-        author,
-        name,
-        comment,
-        rate,
-        status: ReviewState.HOLD,
-      },
-    });
-
-    // return
-    return Boolean(review);
   } catch {
     return null;
   }
@@ -176,7 +106,7 @@ export const acceptNewreview = async (
               commentExist < servicesExist
             } | ${
               accepted.status ? "accepted by Ai" : "refused by Ai"
-            }(${String(accepted.status)}): ${dateToString(new Date())}`,
+            }(${String(accepted.status)}): ${riyadhDateString(new Date())}`,
           ],
         },
       });
@@ -194,7 +124,7 @@ export const acceptNewreview = async (
         rate,
         status: ReviewState.HOLD,
         info: [
-          `comments: ${commentExist} | orders: ${orderExist} | freesession: ${servicesExist} | not qualified| modified: ${dateToString(
+          `comments: ${commentExist} | orders: ${orderExist} | freesession: ${servicesExist} | not qualified| modified: ${riyadhDateString(
             new Date(),
           )}`,
         ],
@@ -212,16 +142,23 @@ export async function getReviewsForConsultant(page: number = 1) {
   const limit = 10;
   const skip = (page - 1) * limit;
 
+  // approved reviews only, and only the fields the dashboard page renders
   const [reviews, totalCount] = await Promise.all([
     prisma.review.findMany({
+      where: { status: ReviewState.PUBLISHED },
       skip,
       take: limit,
-      include: {
-        consultant: { select: { name: true } },
+      select: {
+        id: true,
+        name: true,
+        comment: true,
+        rate: true,
+        status: true,
+        created_at: true,
       },
       orderBy: { created_at: "desc" },
     }),
-    prisma.review.count(),
+    prisma.review.count({ where: { status: ReviewState.PUBLISHED } }),
   ]);
 
   return {
@@ -274,7 +211,7 @@ export const acceptWhatsappReview = async (
           info: [
             `order: #${oid} | ${
               accepted.status ? "accepted by Ai" : "refused by Ai"
-            }(${String(accepted.status)}): ${dateToString(new Date())}`,
+            }(${String(accepted.status)}): ${riyadhDateString(new Date())}`,
           ],
         },
       });
@@ -292,7 +229,7 @@ export const acceptWhatsappReview = async (
         rate,
         status: ReviewState.HOLD,
         info: [
-          `order: #${oid} | not qualified| modified: ${dateToString(
+          `order: #${oid} | not qualified| modified: ${riyadhDateString(
             new Date(),
           )}`,
         ],

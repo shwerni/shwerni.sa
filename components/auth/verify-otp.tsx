@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/shared/toast";
 
 // handlers
-import { verifyToken } from "@/handlers/auth/verify";
+import { verifyToken } from "@/actions/auth";
 
 // lib
 // import { sendEmail } from "@/lib/mail";
@@ -36,12 +36,12 @@ type VerifyFormValues = z.infer<typeof OtpSchema>;
 
 // props
 interface Props {
-  otp: string;
-  name: string;
+  // masked phone, display only
   phone: string;
+  token: string;
 }
 
-const VerifyOtp: React.FC<Props> = ({ name, phone, otp }: Props) => {
+const VerifyOtp: React.FC<Props> = ({ phone, token }: Props) => {
   // whatsapp
   const whatsappMessage = `مرحباً، أريد تفعيل حسابي في شاورني. رقم هاتفي هو: ${phone}`;
   const WHATSAPP_URL = `https://wa.me/966554117879?text=${encodeURIComponent(whatsappMessage)}`;
@@ -77,7 +77,7 @@ const VerifyOtp: React.FC<Props> = ({ name, phone, otp }: Props) => {
     setLoading(true);
 
     // verify token
-    const response = await verifyToken(phone, data.otp);
+    const response = await verifyToken(token, data.otp);
 
     if (response.state) {
       // toast

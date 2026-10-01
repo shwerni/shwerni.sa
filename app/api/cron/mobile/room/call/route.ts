@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 // utils
 import prisma from "@/lib/database/db";
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 import { ringParticipant } from "@/lib/api/room/ring-participant";
 
 // prisma types

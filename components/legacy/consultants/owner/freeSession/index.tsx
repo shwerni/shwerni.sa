@@ -3,8 +3,7 @@ import React from "react";
 
 // components
 import { StatusToggle } from "./toggle";
-import { getWeekStartSaturday } from "@/utils/time";
-import { timeZone } from "@/lib/site/time";
+import { getWeekStartSaturday, timeZone } from "@/utils/date";
 
 interface Props {
   cid: number;

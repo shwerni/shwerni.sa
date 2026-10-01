@@ -16,7 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import ConsultantImage from "@/components/clients/shared/consultant-image";
 
 // prisma data
-import { createMeetingMessage, toggleUserBlock } from "@/data/chats";
+import { createMeetingMessage, toggleUserBlock } from "@/actions/site";
 
 // schemas
 import { type MeetingData, type MeetingMessage } from "@/schemas/chat";
@@ -35,7 +35,7 @@ import {
   Ban,
   ArrowRight, // RTL back arrow
 } from "lucide-react";
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 import { differenceInHours } from "date-fns";
 import MessageBubble from "../bubble";
 import AttachmentPreview from "../attachment-preview";
@@ -121,7 +121,7 @@ export default function ChatClient({
 
   const { data, mutate } = useSWR<
     Omit<MeetingData, "messages"> & { blocked: boolean; messages: Messages[] }
-  >(`/api/meetings/${mid}/chat`, fetcher, {
+  >(`/api/meetings/${mid}/chat?participant=${encodeURIComponent(participantId)}`, fetcher, {
     refreshInterval: 7000,
     revalidateOnFocus: true,
     revalidateOnReconnect: true,
@@ -161,7 +161,7 @@ export default function ChatClient({
     if (!data) return;
     setIsTogglingBlock(true);
     try {
-      await toggleUserBlock(mid, !data.blocked);
+      await toggleUserBlock(mid, !data.blocked, participantId);
       await mutate();
       scrollToBottom("smooth");
     } finally {
@@ -182,7 +182,10 @@ export default function ChatClient({
       let fileName: string | undefined;
 
       if (attachment) {
-        const uploaded = await startUpload([attachment]);
+        const uploaded = await startUpload([attachment], {
+          mid,
+          participant: participantId,
+        });
         if (!uploaded || uploaded.length === 0) {
           setSendError("فشل رفع الملف، يرجى المحاولة مرة أخرى.");
           return;

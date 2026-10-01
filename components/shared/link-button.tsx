@@ -2,7 +2,7 @@ import * as React from "react";
 import Link, { type LinkProps } from "next/link";
 import { type VariantProps } from "class-variance-authority";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { buttonVariants } from "@/components/ui/button";
 
 interface LinkButtonProps

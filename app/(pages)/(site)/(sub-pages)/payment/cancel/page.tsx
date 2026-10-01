@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import Error404 from "@/components/shared/error-404";
 import Section from "@/components/clients/shared/section";
 
+// lib
+import { userServer } from "@/lib/auth/server";
+
 // utils
 import { zdencryption } from "@/utils/admin/encryption";
 
@@ -52,8 +55,17 @@ export default async function PaymentCancel({ searchParams }: Props) {
   // payment
   const payment = response?.payment;
 
+  // session user: the zid in the url is guessable, so only the order's owner can change it
+  const user = await userServer();
+
+  // only the owner's own unpaid (NEW) order is refused; anything else renders the same page unchanged
+  const canRefuse =
+    !!user?.id &&
+    response?.author === user.id &&
+    payment?.payment === PaymentState.NEW;
+
   // validate
-  if (response && payment?.pid) {
+  if (canRefuse && payment?.pid) {
     // update status to failed
     await updateOrderStatus(payment.pid, PaymentState.REFUSED);
   }

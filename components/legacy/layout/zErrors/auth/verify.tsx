@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // handlers
-import { phoneToken } from "@/handlers/auth/verify";
+import { phoneToken } from "@/actions/auth";
 
 // icon
 import { TriangleAlert } from "lucide-react";

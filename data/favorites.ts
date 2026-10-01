@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 
 import prisma from "@/lib/database/db";
 import { Consultant } from "@/lib/generated/prisma/client";

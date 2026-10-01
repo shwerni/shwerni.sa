@@ -1,6 +1,9 @@
 // types
 import { Lang } from "@/types/types";
 
+// utils
+import { withTax } from "@/utils/tax";
+
 // prisma types
 import {
   ApprovalState,
@@ -30,7 +33,7 @@ import {
   reviewStatus,
 } from "@/constants/admin";
 import { itimes } from "@/constants";
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 import { dateTimeToString } from "./time";
 import { mainRoute } from "@/constants/links";
 
@@ -99,22 +102,6 @@ export const timeOptions: Times[] = Object.entries(itimes).map(
   }),
 );
 
-// initial time
-export const findTime = (value: string) => {
-  const item = itimes[value];
-  return item ? { ...item, value } : undefined;
-};
-
-/**
- * Filters times and removes anything before minTime
- * @example minTime = "15:30" → removes 15:00, 14:30, etc
- */
-export function filterTimesAfter(times: Times[], minTime?: string): Times[] {
-  if (!minTime) return times;
-
-  return times.filter((t) => t.value >= minTime);
-}
-
 // gender label
 export const genderLabel = (gender: Gender) => {
   return gender == Gender.MALE ? "ذكر" : "أنثى";
@@ -125,16 +112,16 @@ export const consultantGenderLabel = (gender: Gender) => {
   return gender == Gender.MALE ? "مستشار" : "مستشارة";
 };
 
-// total after tax
+// total after tax: display wrapper around the shared withTax, no tax math of its own.
+// tax 0 means the amount is already final (currency labels), anything else applies TAX_PERCENT
 export const totalAfterTax = (
   cost: number,
   tax: number = 15,
   type: "string" | "number" = "string",
 ) => {
   // calculate
-  return type == "string"
-    ? Math.round(cost + (cost * tax) / 100).toFixed(2)
-    : Math.round(cost + (cost * tax) / 100);
+  const value = tax === 0 ? Math.round(cost) : withTax(cost);
+  return type == "string" ? value.toFixed(2) : value;
 };
 
 // remove html tags
@@ -189,23 +176,6 @@ export const paymentMethodLabel = (method: PaymentMethod | null) => {
   if (method == PaymentMethod.visaMoyasar) return "فيزا";
   if (method == PaymentMethod.tabby) return "تابي";
   if (method == PaymentMethod.wallet) return "المحفظة";
-};
-
-// play sound
-export const playRoomSound = (
-  event: "join" | "leave" | "toggle-open" | "toggle-close",
-) => {
-  const audio = new Audio(`/audio/meeting-${event}.mp3`);
-  audio.play().catch(console.error);
-};
-
-// calculate weighted average rating
-export const averageRating = (ratings: number[]): number => {
-  // sum of ratings
-  const sum = ratings.reduce((acc, rating) => acc + rating, 0);
-
-  // return average
-  return sum / ratings.length;
 };
 
 // relation labels

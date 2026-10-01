@@ -9,7 +9,7 @@ import Error404 from "@/components/shared/error-404";
 import { PaymentState } from "@/lib/generated/prisma/client";
 
 // lib
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 
 // utils
 import { getMeeting } from "@/data/meetings";

@@ -9,7 +9,7 @@ import { Consultant } from "@/lib/generated/prisma/client";
 import {
   updateConsultantBaseCosts,
   upsertConsultantPackage,
-} from "@/data/packages";
+} from "@/actions/consultant";
 
 export function BaseCostsForm({ consultant }: { consultant: Consultant }) {
   const [loading, setLoading] = React.useState(false);

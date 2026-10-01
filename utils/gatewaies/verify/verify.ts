@@ -30,9 +30,15 @@ export async function verifyMoyasarPayment(
   const moyasar = await res.json();
 
   const amountMatches = moyasar.amount === Math.round(expectedTotal * 100);
+  const currencyMatches = moyasar.currency === "SAR";
   const oidMatches = moyasar.metadata?.oid === expectedOid;
 
-  if (isMoyasarSettledPaid(moyasar.status) && amountMatches && oidMatches) {
+  if (
+    isMoyasarSettledPaid(moyasar.status) &&
+    amountMatches &&
+    currencyMatches &&
+    oidMatches
+  ) {
     return { state: PaymentState.PAID, failureReason: null };
   }
 

@@ -2,7 +2,7 @@
 import Link from "next/link";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // constants
 import { navLinks } from "@/constants/menu";

@@ -1,5 +1,5 @@
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // icons
 import { Send } from "lucide-react";

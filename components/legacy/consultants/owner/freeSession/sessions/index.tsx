@@ -15,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { getOwnerFreeSessions } from "@/data/freesession";
 
 // utils
-import { meetingLabel } from "@/utils/time";
+import { meetingSentence } from "@/utils/date";
 
 // props
 interface Props {
@@ -40,7 +40,7 @@ const UpcomingFreeSessions: React.FC<Props> = async ({ cid }) => {
                 <h3>
                   {i.name} | {i.fid}
                 </h3>
-                <h6>{meetingLabel(i.time, i.date)}</h6>
+                <h6>{meetingSentence(i.date, i.time)}</h6>
                 <Separator className="w-10/12 max-w-40 mx-auto" />
               </div>
             ))

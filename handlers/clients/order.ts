@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // prisma data
 import { getReservationByOid } from "@/data/order/reserveation";
 import { reserveReconciliation } from "@/data/reconciliation";

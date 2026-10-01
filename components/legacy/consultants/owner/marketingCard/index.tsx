@@ -12,7 +12,7 @@ import {
 import { DialogFooter } from "@/components/legacy/layout/zDialog";
 import { Gender } from "@/lib/generated/prisma/enums";
 import QRCode from "qrcode";
-import { aiConsultantSummary } from "@/lib/api/ai/ai";
+import { aiConsultantSummary } from "@/actions/ai";
 
 interface Props {
   cid: number;

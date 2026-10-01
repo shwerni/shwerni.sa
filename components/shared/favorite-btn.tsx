@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { toggleFavorite } from "@/data/favorites";
+import { toggleFavorite } from "@/actions/site";
 import { FaHeart, FaRegHeart } from "react-icons/fa";
 
 interface FavoriteBtnProps {

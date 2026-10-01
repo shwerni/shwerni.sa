@@ -5,14 +5,12 @@ import { z } from "zod";
 // No .refine() — file-only messages (no text) are valid.
 // Validation that "content OR file must exist" is handled in the server action.
 
-export const sendMessageSchema = z.object({
+const sendMessageSchema = z.object({
   content: z.string().max(2000, "الرسالة طويلة جداً").optional().default(""),
   fileUrl: z.string().url().nullable().optional(),
   fileType: z.string().nullable().optional(),
   fileName: z.string().nullable().optional(),
 });
-
-export type SendMessageInput = z.infer<typeof sendMessageSchema>;
 
 // ─── API Response Types ────────────────────────────────────────────────────────
 
@@ -26,7 +24,7 @@ export const meetingMessageSchema = z.object({
   createdAt: z.string(),
 });
 
-export const participantSchema = z.object({
+const participantSchema = z.object({
   id: z.string(),
   role: z.string(),
   participant: z.string(),
@@ -55,4 +53,3 @@ export const meetingDataSchema = z.object({
 
 export type MeetingData = z.infer<typeof meetingDataSchema>;
 export type MeetingMessage = z.infer<typeof meetingMessageSchema>;
-export type Participant = z.infer<typeof participantSchema>;

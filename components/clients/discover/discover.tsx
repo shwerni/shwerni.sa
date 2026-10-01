@@ -16,13 +16,12 @@ import StepPayment from "@/components/clients/forms/payment";
 import StepDetails from "@/components/clients/forms/details";
 
 // lib
-import { timeZone } from "@/lib/site/time";
+import { addNMinutes, getDatesAhead, timeZone } from "@/utils/date";
 
 // utils
-import { add25Minutes, getDatesAhead } from "@/utils/date";
 
 // prisma data
-import { getAvailableTimesForDate } from "@/data/reels";
+import { getAvailableTimesForDate } from "@/actions/site";
 
 // prisma types
 import { Categories, Gender, OrderType } from "@/lib/generated/prisma/enums";
@@ -36,7 +35,7 @@ import { User } from "next-auth";
 import { runRecaptcha } from "@/handlers/admin/recaptcha";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { phoneNumber } from "@/utils";
-import { Pay } from "@/handlers/admin/order/payment";
+import { Pay } from "@/actions/booking";
 import { Stepper } from "./stepper";
 import TopBar from "./top-bar";
 import { ar } from "date-fns/locale";
@@ -68,7 +67,7 @@ export default function Discover({ user, finance }: Props) {
   // time zone & dates
   const { iso: initial } = timeZone();
   const { date: iso, time: nowTime } = React.useMemo(
-    () => add25Minutes(initial),
+    () => addNMinutes(initial, 25),
     [initial],
   );
 

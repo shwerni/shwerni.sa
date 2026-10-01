@@ -1,6 +1,6 @@
 // utils
 import { meetingUrl } from "@/utils";
-import { dateToString, meetingLabel } from "@/utils/time";
+import { meetingSentence, riyadhDateString } from "@/utils/date";
 
 // prisma types
 import { SessionType, UserRole } from "@/lib/generated/prisma/client";
@@ -105,12 +105,12 @@ export const serviceTelegramNewOrder = (data: Reservation) => {
 
   // 1. Add booking time if both time and date exist
   if (time && date) {
-    meetingDetails.push(`• <b>موعد الحجز:</b> ${meetingLabel(time, date)}`);
+    meetingDetails.push(`• <b>موعد الحجز:</b> ${meetingSentence(date, time)}`);
   }
 
   // 2. Add creation date if it exists
   if (createdAt) {
-    meetingDetails.push(`• <b>تاريخ الحجز:</b> ${dateToString(createdAt)}`);
+    meetingDetails.push(`• <b>تاريخ الحجز:</b> ${riyadhDateString(createdAt)}`);
   }
 
   // 3. Add meeting links individually if the meeting ID and respective tokens exist
@@ -170,7 +170,7 @@ export const managerTelegramNewOrder = (data: Reservation) => {
     `• <b>مدة الجلسة:</b> ${duration}`,
     `• <b>التكلفة:</b> ${total}`,
     `• <b>طريقة الدفع:</b> ${method}`,
-    `• <b>موعد الحجز:</b> ${meetingLabel(time, date)}`,
-    `• <b>تاريخ الحجز:</b> ${dateToString(createdAt)}`,
+    `• <b>موعد الحجز:</b> ${meetingSentence(date, time)}`,
+    `• <b>تاريخ الحجز:</b> ${riyadhDateString(createdAt)}`,
   ].join("\n");
 };

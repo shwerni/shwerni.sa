@@ -37,29 +37,3 @@ export async function pushToUser(
     })),
   );
 }
-
-/**
- * creates a notification row and sends it immediately
- * use for anything triggered by a live user action (booking confirmed, etc.)
- */
-export async function sendInstantNotification(input: NotifyInput) {
-  if (!input.title.trim() || !input.message.trim()) {
-    throw new Error("title and message are required");
-  }
-
-  const notification = await prisma.notification.create({
-    data: { ...input, timeToSend: new Date(), sent: true, sentAt: new Date() },
-  });
-
-  await pushToUser(input.userId, input.title, input.message, input.type, input.targetId);
-
-  return notification;
-}
-
-/**
- * creates a notification row for a future time - the cron dispatch route
- * picks it up and sends it once timeToSend has passed
- */
-export async function scheduleNotification(input: NotifyInput & { timeToSend: Date }) {
-  return prisma.notification.create({ data: { ...input, sent: false } });
-}

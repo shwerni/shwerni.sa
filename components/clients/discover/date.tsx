@@ -4,7 +4,7 @@ import { ar } from "date-fns/locale";
 import { addDays, format, isAfter, isBefore, startOfDay } from "date-fns";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // prisma types
 import { Categories, Gender } from "@/lib/generated/prisma/enums";

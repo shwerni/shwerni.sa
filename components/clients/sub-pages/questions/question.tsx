@@ -13,7 +13,7 @@ import { Calendar, ThumbsUp, User, Users } from "lucide-react";
 // types & utils
 import { Consultant, Question } from "@/lib/generated/prisma/client";
 import { findCategory } from "@/utils";
-import { dateToString } from "@/utils/date";
+import { riyadhDateString } from "@/utils/date";
 
 interface Props {
   question: Question & {
@@ -158,7 +158,7 @@ export default function QuestionContent({ question }: Props) {
           dateTime={question.created_at?.toString()}
           className="font-medium"
         >
-          {dateToString(question.created_at)}
+          {riyadhDateString(question.created_at)}
         </time>
       </div>
     </article>

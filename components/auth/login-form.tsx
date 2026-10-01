@@ -26,7 +26,7 @@ import PhoneInput from "@/components/shared/phone-input";
 import PasswordInput from "@/components/shared/password-input";
 
 // lib
-import { verifyRecaptcha } from "@/lib/api/recaptcha";
+import { verifyRecaptcha } from "@/actions/ai";
 
 // utils
 import { phoneNumber } from "@/utils";
@@ -35,7 +35,7 @@ import { phoneNumber } from "@/utils";
 import { LogInSchema } from "@/schemas";
 
 // handlers
-import { login } from "@/handlers/auth/login";
+import { login } from "@/actions/auth";
 
 // consultant profile handler
 const LogInForm = () => {

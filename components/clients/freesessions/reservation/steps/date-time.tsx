@@ -21,7 +21,7 @@ import { LinkButton } from "@/components/shared/link-button";
 import { Controller, type UseFormReturn } from "react-hook-form";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // schema
 import { freeSessionSchemaType } from "@/schemas";
@@ -32,7 +32,7 @@ import { dateToString } from "@/utils/time";
 import { add25Minutes, dateToWeekDay } from "@/utils/date";
 
 // prisma data
-import { getConsultantAvailableTimes } from "@/data/consultant";
+import { getConsultantAvailableTimes } from "@/actions/consultant";
 
 // icons
 import {

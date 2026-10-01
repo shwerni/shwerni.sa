@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 
 // icon
 import { TriangleAlert } from "lucide-react";
-import { phoneToken } from "@/handlers/auth/verify";
+import { phoneToken } from "@/actions/auth";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 export default function ErrorVerify({ phone }: { phone: string }) {

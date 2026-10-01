@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import ConsultantImage from "@/components/clients/shared/consultant-image";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { findCategory, timeOptions } from "@/utils";
 
 // prisma types

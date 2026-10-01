@@ -1,5 +1,5 @@
 // prisma data
-import { updateTimings } from "@/data/timings";
+import { updateTimings } from "@/actions/consultant";
 
 // prisma types
 import { Weekday } from "@/lib/generated/prisma/enums";

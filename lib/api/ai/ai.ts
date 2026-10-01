@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 import { Gender } from "@/lib/generated/prisma/enums";
 // pacakges
 import OpenAI from "openai";
@@ -9,7 +9,7 @@ const openai = new OpenAI({
 });
 
 // send request
-export const Ai = async (prompt: string) => {
+const Ai = async (prompt: string) => {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4.1-mini",

@@ -15,7 +15,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // Icons
 import { LogOut, Menu } from "lucide-react";

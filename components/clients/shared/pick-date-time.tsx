@@ -10,7 +10,7 @@ import DaysButtons from "./days-buttons";
 import { Separator } from "@/components/ui/separator";
 
 // lib
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { timeZone } from "@/lib/site/time";
 
 // utils
@@ -19,7 +19,7 @@ import { dateToString } from "@/utils/time";
 import { add25Minutes, dateToWeekDay, getDatesAhead } from "@/utils/date";
 
 // prisma data
-import { getConsultantAvailableTimes } from "@/data/consultant";
+import { getConsultantAvailableTimes } from "@/actions/consultant";
 
 // icons
 import { CalendarIcon, Clock, Moon, Sun, Sunrise, Sunset } from "lucide-react";

@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // packages
 import { subDays } from "date-fns";
 
@@ -11,39 +11,6 @@ import {
   ConsultantState,
   PaymentState,
 } from "@/lib/generated/prisma/enums";
-
-export async function getHomeStatistics() {
-  try {
-    // thirty days ago month
-    const month = subDays(new Date(), 45);
-
-    // order monthly
-    const monthly = await prisma.order.count({
-      where: {
-        payment: { payment: PaymentState.PAID },
-        created_at: {
-          gte: month,
-        },
-      },
-    });
-
-    // consultant counts
-    const consultants = await prisma.consultant.count({
-      where: {
-        approved: ApprovalState.APPROVED,
-        statusA: ConsultantState.PUBLISHED,
-        status: true,
-      },
-    });
-
-    // orders count
-    const orders = await prisma.order.count();
-
-    return { consultants, orders, monthly };
-  } catch {
-    return null;
-  }
-}
 
 export async function getHomeSecondaryStatistics() {
   try {

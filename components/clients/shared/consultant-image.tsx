@@ -2,7 +2,7 @@
 import Image from "next/image";
 
 // lib
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // prisma
 import { Gender } from "@/lib/generated/prisma/enums";

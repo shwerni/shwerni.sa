@@ -162,87 +162,6 @@ export const OtpSchema = z.object({
     .regex(/^\d{5}$/, "الرمز يجب أن يكون أرقام فقط"),
 });
 
-// reservation
-export const Reservation = z
-  .object({
-    name: schemas.name,
-    phone: schemas.phone,
-    description: z.string().max(500, {
-      message: "500 حرف كحد اقصي",
-    }),
-    isGift: z.boolean().default(false),
-    giftName: z.string().optional(),
-    giftPhone: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      if (!data.isGift) return true;
-      return !!data.giftName;
-    },
-    {
-      message: "يجب إدخال اسم المستلم",
-      path: ["giftName"],
-    },
-  )
-  .refine(
-    (data) => {
-      if (!data.isGift) return true;
-      return !!data.giftPhone;
-    },
-    {
-      message: "يجب إدخال رقم هاتف المستلم",
-      path: ["giftPhone"],
-    },
-  )
-  .refine(
-    (data) => {
-      if (!data.isGift || !data.giftPhone) return true;
-      return schemas.phone.safeParse(data.giftPhone).success;
-    },
-    {
-      message: "رقم الهاتف يجب أن يتكون بين 10 و 12 رقماً",
-      path: ["giftPhone"],
-    },
-  )
-  .refine(
-    (data) => {
-      if (!data.isGift || !data.giftName) return true;
-      return schemas.name.safeParse(data.giftName).success;
-    },
-    {
-      message: "اسم المستلم يجب أن يكون بين 3 و 12 حرفاً",
-      path: ["giftName"],
-    },
-  );
-
-// consultant profile form & schema
-export const InstantSchema = z.object({
-  // state
-  status: z.boolean().default(false),
-  // cost
-  cost: z.coerce.number().positive().safe().min(80, {
-    message: "يجب أن تكون التكلفة 80 على الأقل",
-  }),
-});
-
-// free session
-export const FreeSession = z.object({
-  name: schemas.name,
-  phone: schemas.phone,
-});
-
-// reservation consultation answer
-export const ConsultationAnswer = z.object({
-  answer: z
-    .string()
-    .min(15, {
-      message: "يجب ان يتكون من 15 احرف علي الاقل",
-    })
-    .max(500, {
-      message: "500 حرف كحد اقصي",
-    }),
-});
-
 // client issue
 export const ClientIssue = z.object({
   name: schemas.name,
@@ -283,34 +202,6 @@ export const CommentSchema = z.object({
 export const PaymentSchema = z.object({
   terms: z.boolean().default(false).optional(),
   wallet: z.boolean().default(false).optional(),
-});
-
-export const discountSchema = z.object({
-  coupon: z.boolean().default(false).optional(),
-  code: z.string().trim().length(6, {
-    message: "يجب أن يكون الكود مكونا من 6 أرقام",
-  }),
-});
-
-export const QuestionSchema = z.object({
-  anonymous: z.boolean().default(true),
-  title: z
-    .string()
-    .min(15, {
-      message: "يجب ان يتكون من 15 احرف علي الاقل",
-    })
-    .max(75, {
-      message: "75 حرف كحد اقصي",
-    }),
-  question: z
-    .string()
-    .min(15, {
-      message: "يجب ان يتكون من 15 احرف علي الاقل",
-    })
-    .max(750, {
-      message: "750 حرف كحد اقصي",
-    }),
-  category: schemas.category,
 });
 
 export const ProgramSchema = z.object({

@@ -1,8 +1,9 @@
-"use server";
+import "server-only";
 // prisma db
 import prisma from "@/lib/database/db";
 
 // packages
+import { createHash } from "node:crypto";
 import {
   endOfDay,
   endOfMonth,
@@ -1167,11 +1168,25 @@ export const getPaidPast3Days = async () => {
     select: {
       id: true,
       name: true,
-      consultant: { select: { name: true, category: true } },
+      consultant: { select: { name: true } },
     },
     orderBy: { created_at: "desc" },
     take: 30,
   });
 
-  return orders;
+  // this goes to every home page visitor: a masked name and an opaque key, never the
+  // client's full name or the order id (the key stays stable so "seen" tracking still works)
+  return orders.map((order) => ({
+    id: createHash("sha256").update(order.id).digest("base64url").slice(0, 16),
+    name: maskClientName(order.name),
+    consultant: { name: order.consultant.name },
+  }));
 };
+
+// same masking the home notification applies (first and last letter), so the page renders the same
+function maskClientName(name: string): string {
+  const n = name.trim();
+  if (n.length <= 2) return n[0] + "*";
+  if (n.length === 3) return n[0] + "*" + n[n.length - 1];
+  return n[0] + "*".repeat(n.length - 2) + n[n.length - 1];
+}

@@ -11,12 +11,7 @@ import CopyButton from "@/components/shared/copy-button";
 import { participantAttendance } from "@/data/meetings";
 
 // utils
-import {
-  timeLabel,
-  meetingTime,
-  attendanceTime,
-  meetingFullLabel,
-} from "@/utils/date";
+import { attendanceTime, meetingFullLabel, meetingTime, timeLabel } from "@/utils/date";
 
 // types
 import { MeetingWithOrder, Reservation } from "@/types/admin";

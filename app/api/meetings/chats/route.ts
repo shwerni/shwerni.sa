@@ -1,20 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { UserRole } from "@/lib/generated/prisma/enums";
+import { NextResponse } from "next/server";
 import { getChatList } from "@/data/chats";
+import { userServer } from "@/lib/auth/server";
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const author = searchParams.get("author"); // user.id from session
-  const role = searchParams.get("role") as UserRole | null;
+// the author and role come from the session; the ?author= and ?role= query params are ignored
+export async function GET() {
+  const user = await userServer();
 
-  if (!author || !role) {
-    return NextResponse.json(
-      { error: "Missing author or role" },
-      { status: 400 },
-    );
+  if (!user?.id || !user.role) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const chats = await getChatList(author, role);
+  const chats = await getChatList(user.id, user.role);
 
   if (!chats) {
     return NextResponse.json(
@@ -23,5 +19,8 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  return NextResponse.json({ chats });
+  // the other party's participant token is a credential and the list never uses it
+  return NextResponse.json({
+    chats: chats.map((c) => ({ ...c, otherParticipantId: null })),
+  });
 }

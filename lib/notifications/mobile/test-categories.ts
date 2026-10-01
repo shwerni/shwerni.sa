@@ -1,4 +1,4 @@
-export interface TestCategoryPreset {
+interface TestCategoryPreset {
   title: string;
   description: string;
   category?: string;

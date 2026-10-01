@@ -4,7 +4,7 @@ import Link from "next/link";
 
 // utils
 import { findCategory } from "@/utils";
-import { dateToString } from "@/utils/date";
+import { riyadhDateString } from "@/utils/date";
 
 // prisma types
 import { Question } from "@/lib/generated/prisma/client";
@@ -141,7 +141,7 @@ export default function QuestionCard({ question, index }: Props) {
 
             {/* Date */}
             <span className="text-xs text-slate-400">
-              {dateToString(question.created_at)}
+              {riyadhDateString(question.created_at)}
             </span>
 
             {/* Arrow */}

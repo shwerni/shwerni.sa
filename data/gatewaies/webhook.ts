@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 import prisma from "@/lib/database/db";
 import type { RefundChannel } from "@/lib/generated/prisma/enums";
 

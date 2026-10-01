@@ -28,7 +28,7 @@ import {
   unauthorizedPhoneChangeByToken,
   userInfoChange,
   userPasswrodChange,
-} from "@/handlers/auth/userInfo";
+} from "@/actions/auth";
 
 // types
 import { User } from "@/lib/generated/prisma/client";
@@ -46,7 +46,7 @@ export default function UserSettings({
   time,
   date,
 }: {
-  user: User | null;
+  user: Omit<User, "password"> | null;
   time: string;
   date: string;
 }) {

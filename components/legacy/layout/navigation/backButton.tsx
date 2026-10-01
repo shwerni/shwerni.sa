@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 // icons
 import { ArrowLeft, Undo2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // props
 interface Props {

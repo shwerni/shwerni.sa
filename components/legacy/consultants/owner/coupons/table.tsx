@@ -20,10 +20,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import Confirm from "@/components/legacy/layout/navigation/confirm";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // prisma data
-import { deleteConsultantsCoupon } from "@/data/coupon";
+import { deleteConsultantsCoupon } from "@/actions/site";
 
 // prisma types
 import { Coupon } from "@/lib/generated/prisma/client";

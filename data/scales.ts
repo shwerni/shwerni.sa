@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 import {
   ScaleAnswerOption,
   Scale,
@@ -57,10 +57,6 @@ export async function getAllScaleSlugs(): Promise<{ slug: string }[]> {
     select: { slug: true },
   });
 }
-
-export type OrderScaleFullReport = Awaited<
-  ReturnType<typeof getOrderScaleFullReport>
->;
 
 // ── Main fetch ────────────────────────────────────────────────────────────────
 

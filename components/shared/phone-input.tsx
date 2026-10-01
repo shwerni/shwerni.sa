@@ -25,7 +25,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 // lib
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // constant locale
 import countries from "@/constants/phone/countries-phone.json";

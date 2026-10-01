@@ -16,7 +16,7 @@ import { Controller, useForm } from "react-hook-form";
 import PhoneInput from "../shared/phone-input";
 import { Field, FieldError, FieldLabel } from "../ui/field";
 import z from "zod";
-import { forgetpassowrd } from "@/handlers/auth/reset";
+import { forgetpassowrd } from "@/actions/auth";
 import { toast } from "../shared/toast";
 import { phoneNumber } from "@/utils";
 

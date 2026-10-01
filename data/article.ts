@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // prisma db
 import prisma from "@/lib/database/db";
 import { Prisma } from "@/lib/generated/prisma/client";
@@ -191,44 +191,6 @@ export const getRecommendedConsultants = async () => {
   }
 };
 
-// get all published questions
-export const getAllPublishedArticles = async () => {
-  try {
-    const Articles = await prisma.article.findMany({
-      where: { status: ArticleState.PUBLISHED },
-    });
-    return Articles;
-  } catch {
-    return null;
-  }
-};
-
-// get all published questions
-export const getAllPublishedArticlesIds = async () => {
-  try {
-    const Articles = await prisma.article.findMany({
-      where: { status: ArticleState.PUBLISHED },
-      select: { aid: true },
-    });
-    return Articles;
-  } catch {
-    return null;
-  }
-};
-
-// get question's title by qid
-export const getArticleTitleByBid = async (aid: number) => {
-  try {
-    const Article = await prisma.article.findFirst({
-      where: { aid },
-      select: { title: true },
-    });
-    return Article?.title;
-  } catch {
-    return null;
-  }
-};
-
 // get question by qid
 export const getArticleByAid = async (aid: number) => {
   try {
@@ -287,23 +249,6 @@ export async function incrementArticleRead(aid: number) {
     },
   });
 }
-
-// get Meta Data By pid
-export const getArticleMetaData = async (aid: number) => {
-  try {
-    const Article = await prisma.article.findFirst({
-      where: { aid },
-      select: {
-        title: true,
-        image: true,
-        consultant: { select: { name: true } },
-      },
-    });
-    return Article;
-  } catch {
-    return null;
-  }
-};
 
 export async function toggleArticleLike(
   aid: number,

@@ -1,7 +1,7 @@
 import { Theme, ThemeKey, themes } from "@/constants/theme/event";
 import { DiscountType } from "@/lib/generated/prisma/enums";
 
-export const round = (n: number) => Math.round(n * 100) / 100;
+const round = (n: number) => Math.round(n * 100) / 100;
 
 export const applyRule = (
   value: number,

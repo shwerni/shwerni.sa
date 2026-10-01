@@ -25,14 +25,14 @@ import { Controller, type UseFormReturn } from "react-hook-form";
 import { timeZone } from "@/lib/site/time";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { add25Minutes, dateToWeekDay } from "@/utils/date";
 
 // schema
 import { ProgramReservationFormType } from "@/schemas";
 
 // prisma data
-import { getConsultantAvailableTimes } from "@/data/consultant";
+import { getConsultantAvailableTimes } from "@/actions/consultant";
 
 // utils
 import { timeOptions } from "@/utils";

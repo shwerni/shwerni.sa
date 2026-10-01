@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 import { checkBotLimit } from "@/data/admin/bot";
 import { upsertWhatsappChat } from "@/data/whatsapp";
 import { handleBotReply } from "./bot";

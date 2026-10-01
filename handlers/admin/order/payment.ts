@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // React & Next
 import { redirect } from "next/navigation";
 
@@ -47,6 +47,7 @@ import { getFinanceConfig } from "@/data/admin/settings/finance";
 import { resolveConsultantPricing } from "@/data/event";
 import prisma from "@/lib/database/db";
 import { calculatePayment } from "@/utils/admin/payments";
+import { withTax } from "@/utils/tax";
 
 // on payment success
 export const onPaymentSuccess = async (order: Reservation) => {
@@ -223,7 +224,9 @@ export async function Pay(
   });
 
   const cost = payment.total; // pre-tax, discounted → Payment.total
-  const total = payment.totalWTax; // tax-inclusive → charged to the card
+  // tax-inclusive → charged to the card; computed from the stored (rounded) total so every
+  // later check (webhooks, mobile) gets exactly this amount back from the order
+  const total = withTax(cost);
 
   if (!Number.isFinite(total) || total <= 0) {
     return {

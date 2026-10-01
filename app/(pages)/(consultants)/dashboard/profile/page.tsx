@@ -4,7 +4,7 @@ import { Btitle } from "@/components/legacy/layout/titles";
 import UserSettings from "@/components/legacy/layout/settings";
 
 // lib
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 import { userServer } from "@/lib/auth/server";
 
 // prisma data

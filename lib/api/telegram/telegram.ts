@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 
 // prisma types
 import { UserRole } from "@/lib/generated/prisma/client";
@@ -102,19 +102,6 @@ export const telegram = async (data: string) => {
   try {
     // notify me telegram
     await sendMessage("1744134911", data);
-    // return
-    return true;
-  } catch {
-    // return
-    return false;
-  }
-};
-
-// notify customer service telegram
-export const telegramCService = async (data: string) => {
-  try {
-    // notify me telegram
-    await sendMessage("5421775862", data);
     // return
     return true;
   } catch {

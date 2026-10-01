@@ -1,5 +1,5 @@
 // icons
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { FileText, Download } from "lucide-react";
 
 // check if image

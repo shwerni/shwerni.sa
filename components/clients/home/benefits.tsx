@@ -6,7 +6,7 @@ import Title from "@/components/clients/shared/titles";
 import Section from "@/components/clients/shared/section";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // icons
 import { DollarSign, Medal, Shield } from "lucide-react";

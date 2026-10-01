@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 
 // icons
 import { Ban, Save, TriangleAlert } from 'lucide-react';
-import { confirmOathAcceptance } from '@/data/admin/tools/oath';
+import { confirmOathAcceptance } from "@/actions/consultant";
 import LoadingBtn from '@/components/legacy/layout/loadingBtn';
 import { ZToast } from '@/components/legacy/layout/toasts';
 

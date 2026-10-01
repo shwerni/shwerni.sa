@@ -27,7 +27,7 @@ import {
 } from "@/schemas/index";
 
 // handlers
-import { Pay } from "@/handlers/admin/order/payment";
+import { Pay } from "@/actions/booking";
 
 // types
 import { User } from "next-auth";

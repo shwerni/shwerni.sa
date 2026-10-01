@@ -17,14 +17,14 @@ import CopyButton from "@/components/shared/copy-button";
 import { OrderStatus } from "@/components/legacy/layout/zStatus";
 import PayBtn from "@/components/legacy/layout/orderCard/payButton";
 import OrderReason from "@/components/legacy/layout/orderCard/chat";
-import RefundBtn from "@/components/legacy/layout/orderCard/refundButton";
 
 // prisma types
 import { PaymentState, UserRole } from "@/lib/generated/prisma/enums";
 
 // utils
-import { meetingUrl, totalAfterTax } from "@/utils";
-import { dateToString, timeToArabic } from "@/utils/time";
+import { meetingUrl } from "@/utils";
+import { withTax } from "@/utils/tax";
+import { riyadhDateString, timeToArabic } from "@/utils/date";
 
 // types
 import { DateTime } from "@/types/types";
@@ -112,7 +112,7 @@ export default function OrderCard({ order, owner, time }: Props) {
                   {/* status */}
                   <OrderStatus payment={payment.payment} />
                   {/* total cost */}
-                  <span>{totalAfterTax(payment.total, payment.tax)} ر.س</span>
+                  <span>{withTax(payment.total).toFixed(2)} ر.س</span>
                   {/* reservation date */}
                   <span>{meeting?.[0].duration} دقيقة</span>
                 </div>
@@ -148,7 +148,7 @@ export default function OrderCard({ order, owner, time }: Props) {
                   <OrderStatus payment={payment.payment} />
                   {/* total */}
                   <span className="w-full flex justify-start">الاجمالي</span>
-                  <span>{totalAfterTax(payment.total, payment.tax)} ر.س</span>
+                  <span>{withTax(payment.total).toFixed(2)} ر.س</span>
                   {/* duration */}
                   <span className="w-full flex justify-start">
                     مدة الاستشارة
@@ -176,15 +176,8 @@ export default function OrderCard({ order, owner, time }: Props) {
                 </div>
               </CardContent>
               {/* card footer */}
-              {/* order refund & created at */}
-              {/* order refund */}
+              {/* refunds are handled only in the dashboard codebase */}
               <div className="flex justify-between items-center w-10/12 mx-auto mt-5">
-                {!owner && (
-                  <RefundBtn
-                    order={order}
-                    time={{ date: time.date, time: time.time }}
-                  />
-                )}
                 {!owner && (
                   <PayBtn
                     order={order}
@@ -193,7 +186,7 @@ export default function OrderCard({ order, owner, time }: Props) {
                 )}
                 {/* order created at */}
                 <div className="flex justify-end w-full">
-                  <h6>{dateToString(order.created_at)}</h6>
+                  <h6>{riyadhDateString(order.created_at)}</h6>
                 </div>
               </div>
             </AccordionContent>

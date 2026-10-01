@@ -17,7 +17,7 @@ import ConsultantImage from "@/components/clients/shared/consultant-image";
 
 // utils
 import { minutesToRead } from "@/utils";
-import { dateToString } from "@/utils/time";
+import { riyadhDateString } from "@/utils/date";
 
 // prisma data
 import { getRecommendedConsultants, getSimilarArticles } from "@/data/article";
@@ -120,7 +120,7 @@ const Recommendation = async () => {
                     <div className="flex items-center justify-between">
                       <div className="inline-flex items-center gap-1 text-xs text-gray-400">
                         <Calendar className="w-4 text-gray-400" />
-                        <h6>{dateToString(i.created_at)}</h6>
+                        <h6>{riyadhDateString(i.created_at)}</h6>
                       </div>
                       <div className="inline-flex items-center gap-1 text-xs text-gray-400">
                         <BookOpen className="w-4 text-gray-400" />

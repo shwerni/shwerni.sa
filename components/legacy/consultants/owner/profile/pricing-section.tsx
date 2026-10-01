@@ -16,12 +16,12 @@ import { FormSection } from "./form-section";
 
 // schema
 
+// utils
+import { withTax } from "@/utils/tax";
+
 // icons
 import { Wallet } from "lucide-react";
 import { ProfileFormValues } from "@/schemas/consultant/profile";
-
-// VAT shown to the consultant as the client-facing price
-const VAT_RATE = 0.15;
 
 // display-only minimums; the schema remains the source of truth
 const PRICE_FIELDS = [
@@ -75,7 +75,7 @@ export function PricingSection({ disabled }: Props) {
                   </div>
                   <FormDescription className="text-xs">
                     {value > 0
-                      ? `يدفع العميل ${(value * (1 + VAT_RATE)).toFixed(2)} ر.س شامل الضريبة`
+                      ? `يدفع العميل ${withTax(value).toFixed(2)} ر.س شامل الضريبة`
                       : `الحد الأدنى ${price.min} ر.س`}
                   </FormDescription>
                   <FormMessage />

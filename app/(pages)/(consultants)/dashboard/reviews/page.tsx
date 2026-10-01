@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 // prisma data
-import { getReviewsForConsultant } from "@/data/review";
+import { getReviewsForConsultant } from "@/actions/site";
 
 // prisma data
 
@@ -15,12 +15,14 @@ import { getReviewsForConsultant } from "@/data/review";
 import { findReview } from "@/utils";
 import { Btitle } from "@/components/legacy/layout/titles";
 import { Section } from "@/components/legacy/layout/section";
-import { dateToArString } from "@/utils/time";
+import { dateToArString } from "@/utils/date";
 import { Review } from "@/lib/generated/prisma/client";
 
 export default function ReviewsPage() {
   const [page, setPage] = React.useState(1);
-  const [reviews, setReviews] = React.useState<Review[]>([]);
+  const [reviews, setReviews] = React.useState<
+    Pick<Review, "id" | "name" | "comment" | "rate" | "status" | "created_at">[]
+  >([]);
   const [totalPages, setTotalPages] = React.useState(0);
   const [loading, setLoading] = React.useState(false);
 

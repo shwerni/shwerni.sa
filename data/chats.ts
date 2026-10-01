@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 import { checkMessageWithAI } from "@/lib/api/ai/chat-guard";
 // prisma db
 import prisma from "@/lib/database/db";
@@ -8,7 +8,7 @@ import { PaymentState, UserRole } from "@/lib/generated/prisma/enums";
 
 // lib
 import { notificationNewChatMessage } from "@/lib/notifications/site";
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 import { differenceInHours } from "date-fns";
 
 // create a new message
@@ -375,6 +375,23 @@ export async function getChatList(author: string, role: UserRole) {
     );
 
     return chats;
+  } catch {
+    return null;
+  }
+}
+
+// who may act in a meeting chat: its participants (by their random token) and its consultant
+export async function getMeetingAccess(mid: string) {
+  if (!mid) return null;
+
+  try {
+    return await prisma.meeting.findUnique({
+      where: { mid },
+      select: {
+        participants: { select: { participant: true, role: true } },
+        orders: { select: { consultant: { select: { userId: true } } } },
+      },
+    });
   } catch {
     return null;
   }

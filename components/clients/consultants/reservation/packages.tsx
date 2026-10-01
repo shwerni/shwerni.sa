@@ -9,7 +9,7 @@ import { Package, SessionType } from "@/lib/generated/prisma/browser";
 import { ReservationFormType } from "@/schemas";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // types
 import { Cost } from "@/types/data";

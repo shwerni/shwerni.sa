@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // prisma data
 import {
   getTabbyBuyerLoyalty,
@@ -9,6 +9,7 @@ import { updateTabbyPid } from "@/data/gatewaies/moyasar";
 
 // utils
 import { zencryption } from "@/utils/admin/encryption";
+import { withTax } from "@/utils/tax";
 
 // types
 import { Reservation } from "@/types/admin";
@@ -152,13 +153,14 @@ export const createTabbyCheckout = async (
 
 // url
 export const capturePayment = async (pid: string, amount: string) => {
-  // send capture a payment
+  // send capture a payment; only a 2xx response counts as captured (fetch doesn't throw on 4xx)
   try {
-    await tabby(`payments/${pid}/captures`, {
+    const response = await tabby(`payments/${pid}/captures`, {
       amount,
     });
+    return response.ok;
   } catch {
-    return null;
+    return false;
   }
 };
 
@@ -167,7 +169,12 @@ export const tabbyPreScoring = async (order: Reservation) => {
   // encrypted oid
   const zid = zencryption(order.oid);
   // body
-  const body = await tabbyBody(order, String(order.payment?.total), zid);
+  // same tax-inclusive charge as web
+  const body = await tabbyBody(
+    order,
+    String(order.payment ? withTax(order.payment.total) : 0),
+    zid,
+  );
   // return
   try {
     // create checkout

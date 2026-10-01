@@ -1,5 +1,5 @@
 // components
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // icons
 import { Check } from "lucide-react";

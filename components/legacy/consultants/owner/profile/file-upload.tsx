@@ -22,11 +22,11 @@ import { Button } from "@/components/ui/button";
 import { ZToast } from "@/components/legacy/layout/toasts";
 
 // lib
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { UploadButton } from "@/lib/upload";
 
 // prisma data
-import { saveUploadedFile, saveUploadedImage } from "@/data/uploads";
+import { saveUploadedFile, saveUploadedImage } from "@/actions/consultant";
 
 // schema
 import { type DocumentField, type ProfileFormValues } from "@/schemas/consultant/profile";

@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // prisma data
 import { updateMoyasarPid } from "@/data/gatewaies/moyasar";
 

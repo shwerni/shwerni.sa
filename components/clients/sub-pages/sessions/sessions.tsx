@@ -12,13 +12,13 @@ import PickDateTime from "../../shared/pick-date-time";
 
 // utils
 import { findParticipant } from "@/utils";
-import { dateToString } from "@/utils/date";
+import { calendarDayToString } from "@/utils/date";
 
 // prisma types
 import { Program } from "@/lib/generated/prisma/client";
 
 // prisma data
-import { selectSession } from "@/data/sessions";
+import { selectSession } from "@/actions/site";
 
 // types
 import { Reservation } from "@/types/admin";
@@ -56,7 +56,7 @@ const SessionPick = ({ order, program, session }: Props) => {
           const meeting = await selectSession(
             order.oid,
             time,
-            dateToString(date),
+            calendarDayToString(date),
             session,
           );
 

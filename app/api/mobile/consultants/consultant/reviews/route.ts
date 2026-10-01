@@ -1,6 +1,6 @@
 // data
 import { getConsultantPaginatedReviews } from "@/data/review";
-import { createGetRoute } from "@/lib/api/routes/create-get-route";
+import { createGetRoute } from "@/lib/api/routes/route-factory";
 import { Review } from "@/lib/generated/prisma/client";
 
 interface ReviewsResponse {
@@ -19,4 +19,4 @@ export const GET = createGetRoute<ReviewsResponse>(async (request) => {
   }
 
   return getConsultantPaginatedReviews(cid, cursor, limit);
-});
+}, { errorMessage: "failed to fetch" });

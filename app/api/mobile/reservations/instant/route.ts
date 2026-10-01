@@ -1,6 +1,6 @@
 // utils
 import { requireMobileUser } from "@/lib/auth/require-mobile-user";
-import { createPostRoute } from "@/lib/api/routes/create-post-route";
+import { createPostRoute } from "@/lib/api/routes/route-factory";
 import { phoneNumber } from "@/utils";
 import { HttpError } from "@/lib/api/http-error";
 import { InstantFormType } from "@/schemas";

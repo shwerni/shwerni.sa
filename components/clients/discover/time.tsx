@@ -4,7 +4,7 @@ import React from "react";
 
 // utils
 import { timeOptions } from "@/utils";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // icons
 import { Clock, Moon, Sun, Sunrise, Sunset } from "lucide-react";

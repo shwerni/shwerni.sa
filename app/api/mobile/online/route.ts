@@ -1,5 +1,5 @@
 // packages
-import { createGetRoute } from "@/lib/api/routes/create-get-route";
+import { createGetRoute } from "@/lib/api/routes/route-factory";
 import type { NextRequest } from "next/server";
 
 // utils
@@ -33,5 +33,5 @@ export const GET = createGetRoute<OnlineConsultantsResponse>(
       gender,
     });
     return { consultants };
-  },
+  }, { errorMessage: "failed to fetch" },
 );

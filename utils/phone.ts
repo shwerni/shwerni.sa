@@ -32,14 +32,14 @@ const GULF_RULES: GulfRule[] = [
 ];
 
 /** Strip spaces, dashes, parens, leading + or 00 */
-export function normalizePhone(raw: string): string {
+function normalizePhone(raw: string): string {
   let p = raw.trim().replace(/[\s\-()]/g, "");
   if (p.startsWith("+")) p = p.slice(1);
   if (p.startsWith("00")) p = p.slice(2);
   return p;
 }
 
-export type PhoneCheck = {
+type PhoneCheck = {
   valid: boolean;
   normalized: string;
   country?: string;
@@ -47,7 +47,7 @@ export type PhoneCheck = {
 };
 
 /** Validate a single phone number against Gulf country rules */
-export function checkGulfPhone(raw: string): PhoneCheck {
+function checkGulfPhone(raw: string): PhoneCheck {
   const normalized = normalizePhone(raw);
 
   if (!/^\d+$/.test(normalized)) {
@@ -82,36 +82,8 @@ export function checkGulfPhone(raw: string): PhoneCheck {
   return { valid: true, normalized, country: rule.country };
 }
 
-export function isValidGulfPhone(raw: string): boolean {
-  return checkGulfPhone(raw).valid;
-}
-
-/**
- * Filter + normalize a list of phones, keeping only valid Gulf numbers.
- * Also de-dupes.
- */
-export function filterValidGulfPhones(phones: (string | null | undefined)[]): string[] {
-  const seen = new Set<string>();
-  const result: string[] = [];
-
-  for (const raw of phones) {
-    if (!raw) continue;
-    const { valid, normalized } = checkGulfPhone(raw);
-    if (valid && !seen.has(normalized)) {
-      seen.add(normalized);
-      result.push(normalized);
-    }
-  }
-
-  return result;
-}
-
-/** Fisher-Yates shuffle — used so campaigns don't always hit numbers in DB insert order */
-export function shufflePhones<T>(arr: T[]): T[] {
-  const copy = [...arr];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
+// keeps the first 3 and last 4 digits so a token holder can't read the full number
+export function maskPhone(phone: string): string {
+  if (phone.length <= 7) return "•".repeat(phone.length);
+  return phone.slice(0, 3) + "•".repeat(phone.length - 7) + phone.slice(-4);
 }

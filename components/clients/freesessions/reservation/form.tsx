@@ -20,11 +20,11 @@ import StepDateTime from "@/components/clients/freesessions/reservation/steps/da
 import { phoneNumber } from "@/utils";
 
 // lib
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 
 // handlers
 import { runRecaptcha } from "@/handlers/admin/recaptcha";
-import { confirmFreeSession } from "@/handlers/admin/freesession";
+import { confirmFreeSession } from "@/actions/booking";
 
 // types
 import { User } from "next-auth";

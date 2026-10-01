@@ -56,7 +56,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { Gender, PaymentMethod, Relation } from "@/lib/generated/prisma/enums";
-import { confirmReconciliation } from "@/handlers/clients/order";
+import { confirmReconciliation } from "@/actions/booking";
 import { toast } from "@/components/shared/toast";
 import Section from "@/components/clients/shared/section";
 import PhoneInput from "@/components/shared/phone-input";

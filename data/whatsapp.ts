@@ -1,7 +1,7 @@
-"use server";
+import "server-only";
 // prisma data
 import prisma from "@/lib/database/db";
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 
 // lib
 
@@ -44,41 +44,6 @@ export async function upsertWhatsappChat(
     return true;
   } catch {
     // return
-    return null;
-  }
-}
-
-// get chat message
-export async function getWhatsappContact() {
-  try {
-    const chat = await prisma.waChat.findMany({
-      select: {
-        phone: true,
-        name: true,
-        waid: true,
-      },
-      orderBy: { last_message_at: "desc" },
-    });
-
-    // validate
-    if (!chat) return null;
-
-    // return
-    return chat;
-  } catch {
-    return null;
-  }
-}
-
-// get chat message
-export async function getWhatsappChat(waid: string) {
-  try {
-    // chat
-    return await prisma.message.findMany({
-      where: { chatId: waid },
-      orderBy: { time: "asc" },
-    });
-  } catch {
     return null;
   }
 }

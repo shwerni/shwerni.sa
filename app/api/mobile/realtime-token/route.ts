@@ -1,7 +1,7 @@
 // utils
 import { requireMobileUser } from "@/lib/auth/require-mobile-user";
 import { mintRealtimeToken } from "@/lib/api/realtime/mint-token";
-import { createGetRoute } from "@/lib/api/routes/create-get-route";
+import { createGetRoute } from "@/lib/api/routes/route-factory";
 
 // maps the full UserRole space down to what the realtime gateway
 // actually needs to distinguish for presence counting
@@ -17,4 +17,4 @@ export const GET = createGetRoute(async (request) => {
   const user = await requireMobileUser(request);
   const token = await mintRealtimeToken(user.id, toRealtimeRole(user.role));
   return { token };
-});
+}, { errorMessage: "failed to fetch" });

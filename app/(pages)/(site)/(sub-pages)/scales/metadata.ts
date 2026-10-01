@@ -102,17 +102,3 @@ export function buildScaleMetadata({
     robots: { index: true, follow: true },
   };
 }
-
-// ── Result page metadata factory ─────────────────────────────────────────────
-
-export function buildResultMetadata(scaleTitle: string, slug: string): Metadata {
-  return {
-    metadataBase: new URL(siteUrl),
-    title: `نتيجة ${scaleTitle}`,
-    description: `اطّلع على نتيجة ${scaleTitle} الخاصة بك واعرف توصياتنا لك.`,
-    robots: { index: false, follow: false }, // results are personal — no indexing
-    alternates: {
-      canonical: `${siteUrl}مقاييس/${slug}/نتيجة`,
-    },
-  };
-}

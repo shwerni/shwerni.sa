@@ -6,7 +6,7 @@ import Meetings from "@/components/clients/freesessions/meetings";
 import Error404 from "@/components/shared/error-404";
 
 // lib
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 
 // utils
 import { zdencryption } from "@/utils/admin/encryption";

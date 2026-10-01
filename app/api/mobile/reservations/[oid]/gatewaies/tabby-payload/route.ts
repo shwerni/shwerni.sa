@@ -1,4 +1,3 @@
-"use server";
 
 // packages
 import { NextRequest } from "next/server";
@@ -8,6 +7,7 @@ import { requireMobileUser } from "@/lib/auth/require-mobile-user";
 import { createPostRoute } from "@/lib/api/routes/route-factory";
 import prisma from "@/lib/database/db";
 import { zencryption } from "@/utils/admin/encryption";
+import { withTax } from "@/utils/tax";
 import { Reservation } from "@/types/admin";
 import { tabbyBody } from "@/lib/api/gatewaies/tabby";
 
@@ -30,7 +30,8 @@ export const POST = createPostRoute<
   const zid = zencryption(order.oid);
   const payload = await tabbyBody(
     order as Reservation,
-    String(order.payment.total),
+    // same tax-inclusive charge as web
+    String(withTax(order.payment.total)),
     zid,
   );
 

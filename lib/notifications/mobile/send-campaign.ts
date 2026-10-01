@@ -2,7 +2,7 @@
 import prisma from "@/lib/database/db";
 import { fanOutCampaign } from "./campaign-fanout";
 
-export interface SendCampaignInput {
+interface SendCampaignInput {
   // "instant" fans out and pushes right away, "scheduled" writes a row
   // the cron dispatch route picks up once timeToSend passes
   type: "instant" | "scheduled";

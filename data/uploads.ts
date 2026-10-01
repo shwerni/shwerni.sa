@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // prisma db
 import prisma from "@/lib/database/db";
 
@@ -20,22 +20,6 @@ export const saveUploadedImage = async (
         url,
       },
       select: {
-        url: true,
-      },
-    });
-    return images;
-  } catch {
-    return null;
-  }
-};
-
-// get images
-export const getUploadedImages = async () => {
-  // save image
-  try {
-    const images = await prisma.image.findMany({
-      select: {
-        key: true,
         url: true,
       },
     });

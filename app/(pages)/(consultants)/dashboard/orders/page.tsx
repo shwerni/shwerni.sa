@@ -6,7 +6,7 @@ import WrongPage from "@/components/legacy/layout/zErrors/site/wrongPage";
 import { getAllPaidOwnersOrdersByAuthor } from "@/data/order/reserveation";
 
 // lib
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 import { userServer } from "@/lib/auth/server";
 
 export default async function OwnersOrders() {

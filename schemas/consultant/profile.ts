@@ -13,7 +13,7 @@ import {
 import { BankAccount, Consultant } from "@/lib/generated/prisma/client";
 
 // lib
-import { formatIban } from "@/lib/iban";
+import { formatIban } from "@/lib/api/gatewaies/iban";
 import { BankAccountSchema } from "./iban";
 
 // consultants created after this date must upload a license regardless of category

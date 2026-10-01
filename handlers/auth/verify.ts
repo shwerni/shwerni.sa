@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 // React & Next
 import { redirect } from "next/navigation";
 
@@ -10,12 +10,18 @@ import { UserRole } from "@/lib/generated/prisma/enums";
 
 // database data
 import {
+  MAX_OTP_ATTEMPTS,
+  consumeVerificationAttempt,
+  deleteVerificationToken,
   generateVerificationToken,
-  getVerificationTokenByPhone,
   getVerificationTokenByToken,
+  otpMatches,
 } from "@/data/verificationTokens";
 import { getUserByPhone } from "@/data/user";
 import { CheckIsBlocked } from "@/data/blocked";
+
+// utils
+import { maskPhone } from "@/utils/phone";
 
 // prisma types
 
@@ -43,26 +49,42 @@ export const checkToken = async (token: string) => {
   // vakidate
   if (isBLocked) return { state: false, message: "هذا الحساب محظور" };
 
-  // success without message
-  return { phone: user.phone, name: user.name, otp: tokenExist.otp };
+  // the token is in the url, so only a masked phone goes back; never the otp
+  return { phone: maskPhone(tokenExist.phone) };
 };
 
 // after submiting the otp and checking all condations of the verification token with checkToken function
-export const verifyToken = async (phone: string, otp: string) => {
+export const verifyToken = async (token: string, otp: string) => {
   try {
-    // user exist
-    const userExist = await getUserByPhone(phone);
+    // counts this attempt and reads the token in one query (only a live, unexpired token)
+    const tokenExist = await consumeVerificationAttempt(token);
 
-    // check if token exist
-    const tokenExist = await getVerificationTokenByPhone(phone);
+    // missing or expired token: same messages as before
+    if (!tokenExist) {
+      const expired = await getVerificationTokenByToken(token);
+      return expired
+        ? { state: false, message: "انتهت صلاحية كود التحقق" }
+        : { state: false, message: "لا يوجد كود تفعيل لهذا الحساب" };
+    }
 
-    // if token and user exist
-    if (!tokenExist && !userExist)
-      return { state: false, message: "لا يوجد كود تفعيل لهذا الحساب" };
+    // phone of this token, never from the client
+    const phone = tokenExist.phone;
 
     // if otp is not matched
-    if (tokenExist?.otp !== otp)
+    if (!otpMatches(tokenExist.otp, otp)) {
+      // too many wrong tries: the user must request a new code
+      if (tokenExist.attempts >= MAX_OTP_ATTEMPTS) {
+        await deleteVerificationToken(tokenExist.id);
+        return { state: false, message: "انتهت صلاحية كود التحقق" };
+      }
       return { state: false, message: "رمز التحقق خطأ" };
+    }
+
+    // single use: the token goes before anything else happens
+    await deleteVerificationToken(tokenExist.id);
+
+    // user exist
+    const userExist = await getUserByPhone(phone);
 
     // update user phone verified to true
     const user = await prisma.user.update({
@@ -82,11 +104,6 @@ export const verifyToken = async (phone: string, otp: string) => {
         },
       });
     }
-
-    // delete current token
-    await prisma.verificationToken.delete({
-      where: { id: tokenExist?.id },
-    });
 
     // return { state: true, message: "تم التحقق بنجاح" };
   } catch (error) {

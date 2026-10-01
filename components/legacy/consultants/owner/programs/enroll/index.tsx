@@ -4,8 +4,8 @@ import React, { useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ZToast } from "@/components/legacy/layout/toasts";
-import { cn } from "@/lib/utils";
-import { EnrollOnProgram, toggleProgramState } from "@/data/programs";
+import { cn } from "@/utils/utils";
+import { EnrollOnProgram, toggleProgramState } from "@/actions/site";
 import { ProgramEnrollState } from "@/lib/generated/prisma/enums";
 
 interface ProgramEnrollProps {

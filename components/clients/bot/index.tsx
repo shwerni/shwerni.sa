@@ -14,14 +14,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bot, Send } from "lucide-react";
 
 // lib
-import { cn } from "@/lib/utils";
-import { SendChatBot } from "@/lib/api/ai/chat-bot";
+import { cn } from "@/utils/utils";
+import { SendChatBot } from "@/actions/ai";
 
 // hooks
 import { timeZone } from "@/lib/site/time";
 import { toast } from "@/components/shared/toast";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
-import { verifyRecaptcha } from "@/lib/api/recaptcha";
+import { verifyRecaptcha } from "@/actions/ai";
 import { nanoid } from "nanoid";
 
 // linkify

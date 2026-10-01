@@ -29,7 +29,7 @@ import ConsultantImage from "@/components/clients/shared/consultant-image";
 import { Consultant } from "@/lib/generated/prisma/client";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // icons
 import { CircleAlert, ChevronLeft } from "lucide-react";

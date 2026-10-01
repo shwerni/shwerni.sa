@@ -20,12 +20,11 @@ import {
 } from "@/components/ui/field";
 
 // utils
-import { meetingLabel } from "@/utils/date";
+import { meetingLabel, timeZone } from "@/utils/date";
 
 // icons
 import { CircleAlert, ChevronLeft, ChevronRight } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { timeZone } from "@/lib/site/time";
 
 // props
 interface Props {

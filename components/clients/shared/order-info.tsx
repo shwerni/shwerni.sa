@@ -1,7 +1,7 @@
 // components
 import { Separator } from "@/components/ui/separator";
 import { PaymentMethod } from "@/lib/generated/prisma/enums";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // types
 import { Reservation } from "@/types/admin";

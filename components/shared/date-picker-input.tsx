@@ -12,7 +12,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { isEnglish } from "@/utils";
 import { CalendarIcon } from "lucide-react";
 

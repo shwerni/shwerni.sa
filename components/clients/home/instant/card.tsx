@@ -9,7 +9,7 @@ import { CategoryBadge } from "@/components/shared/categories-badge";
 import ConsultantImage from "@/components/clients/shared/consultant-image";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 
 // prisma types
 import { Categories, Gender } from "@/lib/generated/prisma/enums";

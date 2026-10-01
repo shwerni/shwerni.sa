@@ -28,7 +28,7 @@ import CurrencyLabel from "@/components/clients/shared/currency-label";
 import DaysButtons from "@/components/clients/shared/days-buttons";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { dateToString } from "@/utils/time";
 import { timeOptions, phoneNumber } from "@/utils";
 import { calculatePayment } from "@/utils/admin/payments";
@@ -38,14 +38,14 @@ import { add25Minutes, dateToWeekDay, getDatesAhead } from "@/utils/date";
 import { timeZone } from "@/lib/site/time";
 
 // handlers
-import { Pay } from "@/handlers/admin/order/payment";
+import { Pay } from "@/actions/booking";
 import { runRecaptcha } from "@/handlers/admin/recaptcha";
 
 // schema
 import { reservationSchema } from "@/schemas";
 
 // data
-import { getConsultantAvailableTimes } from "@/data/consultant";
+import { getConsultantAvailableTimes } from "@/actions/consultant";
 
 // auth
 import { User } from "next-auth";

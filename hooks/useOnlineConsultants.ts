@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { createPusherClient } from "@/lib/api/pusher/pusher-client";
-import { getOnlineConsultantsList } from "@/data/online";
+import { getOnlineConsultantsList } from "@/actions/site";
 
 type ConsultantList = Awaited<ReturnType<typeof getOnlineConsultantsList>>;
 type ConsultantItem = ConsultantList[number];

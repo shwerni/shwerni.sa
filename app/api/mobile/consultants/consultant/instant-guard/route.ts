@@ -1,6 +1,6 @@
 // utils
 import { requireMobileUser } from "@/lib/auth/require-mobile-user";
-import { createGetRoute } from "@/lib/api/routes/create-get-route";
+import { createGetRoute } from "@/lib/api/routes/route-factory";
 import { getOwnerbyAuthor } from "@/data/consultant";
 import { HttpError } from "@/lib/api/http-error";
 import { checkUpcomingPaidSession } from "@/data/order/reserveation";
@@ -17,4 +17,4 @@ export const GET = createGetRoute<InstantGuardResponse>(async (request) => {
 
   const blocked = await checkUpcomingPaidSession(owner.cid);
   return { blocked };
-});
+}, { errorMessage: "failed to fetch" });

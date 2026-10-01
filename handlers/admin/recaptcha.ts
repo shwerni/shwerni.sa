@@ -1,5 +1,5 @@
 import { toast } from "@/components/shared/toast";
-import { verifyRecaptcha } from "@/lib/api/recaptcha";
+import { verifyRecaptcha } from "@/actions/ai";
 
 /**
  * Runs reCAPTCHA and verifies it with backend.

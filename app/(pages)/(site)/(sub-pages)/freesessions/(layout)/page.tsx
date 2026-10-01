@@ -9,7 +9,7 @@ import { Weekday } from "@/lib/generated/prisma/enums";
 // constants
 import UnavailableService from "@/components/shared/unavailable-service";
 import { mainRoute } from "@/constants/links";
-import { timeZone } from "@/lib/site/time";
+import { timeZone } from "@/utils/date";
 import { getDate, getDay } from "date-fns";
 import Filter, {
   FilterContent,

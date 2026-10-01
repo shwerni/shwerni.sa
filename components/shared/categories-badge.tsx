@@ -5,7 +5,7 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { findCategory } from "@/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 

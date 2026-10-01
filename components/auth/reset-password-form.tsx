@@ -22,7 +22,7 @@ import { toast } from "@/components/shared/toast";
 import { Field, FieldError, FieldLabel } from "../ui/field";
 
 // handlers
-import { verifyReset } from "@/handlers/auth/reset";
+import { verifyReset } from "@/actions/auth";
 
 // schemas
 import { ResetSchema } from "@/schemas";
@@ -35,12 +35,12 @@ type VerifyFormValues = z.infer<typeof ResetSchema>;
 
 // props
 interface Props {
-  otp: string;
-  name: string;
+  // masked phone, display only
   phone: string;
+  token: string;
 }
 
-const ResetPasswordForm: React.FC<Props> = ({ name, phone, otp }: Props) => {
+const ResetPasswordForm: React.FC<Props> = ({ phone, token }: Props) => {
   // states
   const [timeLeft, setTimeLeft] = React.useState(60);
   const [resendActive, setResendActive] = React.useState(false);
@@ -68,7 +68,7 @@ const ResetPasswordForm: React.FC<Props> = ({ name, phone, otp }: Props) => {
   // on sumbit
   const onSubmit = async (data: VerifyFormValues) => {
     // verify token
-    const response = await verifyReset(data, phone);
+    const response = await verifyReset(data, token);
 
     if (response.state) {
       // toast

@@ -1,8 +1,7 @@
 // utils
 import { sendNotification } from "@/lib/notifications/mobile/send-notification";
 import { Reservation } from "@/types/admin";
-import { meetingLabel } from "@/utils/date";
-import { meetingDateTime } from "@/utils/time";
+import { meetingDateTime, meetingLabel } from "@/utils/date";
 
 const REMINDER_MINUTES_BEFORE = 5;
 

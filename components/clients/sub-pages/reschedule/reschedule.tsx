@@ -21,10 +21,10 @@ import {
 
 // utils
 import { findParticipant } from "@/utils";
-import { dateToString } from "@/utils/date";
+import { calendarDayToString } from "@/utils/date";
 
 // prisma data
-import { rescheduleMeeting, meetingDone } from "@/data/reschedule";
+import { rescheduleMeeting, meetingDone } from "@/actions/site";
 import { Meeting, Participant } from "@/lib/generated/prisma/client";
 
 // prisma enums
@@ -106,7 +106,7 @@ const ReschedulePick = ({ meeting, order, rescheduled, ireason }: Props) => {
         try {
           await rescheduleMeeting(
             meeting.mid,
-            dateToString(date),
+            calendarDayToString(date),
             time,
             reason,
           );

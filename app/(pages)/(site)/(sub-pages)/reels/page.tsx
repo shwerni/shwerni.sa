@@ -12,7 +12,7 @@ import { ar } from "date-fns/locale";
 import { timeZone } from "@/lib/site/time";
 
 // utils
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { add25Minutes, getDatesAhead } from "@/utils/date";
 import { dateToString } from "@/utils/time";
 import { timeOptions } from "@/utils";
@@ -21,7 +21,8 @@ import { timeOptions } from "@/utils";
 
 // icons
 import { Briefcase, CalendarDays, Clock, MessageCircle, ChevronLeft } from "lucide-react";
-import { getAvailableTimesForDate, getConsultantsAvailableAt, ReelConsultant } from "./actions";
+import { getAvailableTimesForDate, getConsultantsAvailableAt } from "@/actions/reels";
+import type { ReelConsultant } from "./actions";
 
 // ─── Category labels ──────────────────────────────────────────────────────────
 
