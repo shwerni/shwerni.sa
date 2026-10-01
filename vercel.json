@@ -20,10 +20,6 @@
       "schedule": "*/15 * * * *"
     },
     {
-      "path": "/api/cron/debounce-cleanup",
-      "schedule": "*/20 * * * *"
-    },
-    {
       "path": "/api/cron/whatsapp-campaigns",
       "schedule": "*/10 * * * *"
     },
@@ -32,11 +28,11 @@
       "schedule": "* * * * *"
     },
     {
-      "path": "/api/cron/notifications/dispatch",
+      "path": "/api/cron/mobile/notifications/dispatch",
       "schedule": "* * * * *"
     },
     {
-      "path": "/api/cron/room/call",
+      "path": "/api/cron/mobile/room/call",
       "schedule": "*/5 * * * *"
     }
   ]

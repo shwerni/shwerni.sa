@@ -1335,3 +1335,36 @@ These are the only 3 `tsc` errors in the repo. Nothing imports these files yet, 
 
 - An order created before the cutoff and paid after the deploy (Tabby sandbox or Moyasar test) becomes PAID with its old amount.
 - A new order with a mismatching amount goes to HOLD with an alert.
+
+## 2026-10-01 · Item 3: vercel.json crons
+
+**Files changed**
+
+- `vercel.json`:
+  - `/api/cron/notifications/dispatch` → `/api/cron/mobile/notifications/dispatch` (`* * * * *`)
+  - `/api/cron/room/call` → `/api/cron/mobile/room/call` (`*/5 * * * *`)
+  - `/api/cron/debounce-cleanup` removed. There's no route for it, and its job (`cleanStaleDebounceRows()` in `lib/api/ai/bot/debounce.ts`) already runs every minute inside `/api/cron/wa-debounce-process`.
+  - All 8 remaining paths resolve to a route.
+
+**Live behaviour change:** the two corrected crons have **never run in production** (their paths didn't exist). After deploy, scheduled mobile push notifications start dispatching every minute, and session ring calls go out every 5 minutes. Anything queued in the past (unsent `Notification` rows, campaigns due) may go out on the first run.
+
+**CRON_SECRET check, every cron route**
+
+All 8 compare the `authorization` header to `` `Bearer ${process.env.CRON_SECRET}` `` and return 401 otherwise: `cancel-orders`, `mobile/notifications/dispatch` (GET and POST), `mobile/room/call` (GET and POST), `reschedule`, `shuffle/consultants`, `users/unverified`, `wa-debounce-process`, `whatsapp-campaigns`. **None missing.**
+
+Weaknesses, not changed:
+
+- If `CRON_SECRET` is ever unset, the expected value is `"Bearer undefined"`, and a request sending exactly that passes.
+- The compare isn't constant-time.
+
+A shared `isCronRequest()` that rejects when the secret is unset and uses `timingSafeEqual` would fix both.
+
+**Verified**
+
+- No source changed, so the build is the same as item 2's (passes).
+- `vercel.json` parses and every path exists.
+
+**Needs manual testing on the preview / after deploy**
+
+- Vercel → Settings → Cron Jobs lists the 8 jobs with the corrected paths.
+- Run `mobile/notifications/dispatch` and `mobile/room/call` once from the dashboard: 200, no unexpected flood of old notifications.
