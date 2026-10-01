@@ -11,10 +11,17 @@ import { LogInSchema } from "@/schemas";
 // data
 import { getUserByPhone } from "@/data/user";
 
+// lib
+import { checkHuman } from "@/lib/bot-protection";
+
 export default {
   providers: [
     Credentials({
       async authorize(credentials) {
+        // log mode: records the botid verdict, never blocks. covers direct posts to
+        // /api/auth/callback/credentials, which skip the login action
+        await checkHuman("nextauth-credentials");
+
         const validatedFields = LogInSchema.safeParse(credentials);
 
         if (!validatedFields.success) return null;

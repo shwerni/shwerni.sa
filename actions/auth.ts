@@ -20,13 +20,20 @@ import {
   verifyToken as verifyTokenHandler,
 } from "@/handlers/auth/verify";
 
+// lib
+import { checkHuman } from "@/lib/bot-protection";
+
 // public: credentials check
 export async function login(...args: Parameters<typeof loginHandler>) {
+  // log mode: records the botid verdict, never blocks
+  await checkHuman("login");
   return loginHandler(...args);
 }
 
 // public: account creation, then otp
 export async function register(...args: Parameters<typeof registerHandler>) {
+  // log mode: records the botid verdict, never blocks
+  await checkHuman("register");
   return registerHandler(...args);
 }
 
@@ -34,6 +41,8 @@ export async function register(...args: Parameters<typeof registerHandler>) {
 export async function forgetpassowrd(
   ...args: Parameters<typeof forgetpassowrdHandler>
 ) {
+  // log mode: records the botid verdict, never blocks
+  await checkHuman("forgetpassowrd");
   return forgetpassowrdHandler(...args);
 }
 
@@ -55,6 +64,8 @@ export async function verifyToken(
 export async function phoneToken(
   ...args: Parameters<typeof phoneTokenHandler>
 ) {
+  // log mode: records the botid verdict, never blocks
+  await checkHuman("phoneToken");
   return phoneTokenHandler(...args);
 }
 
@@ -76,5 +87,7 @@ export async function userPasswrodChange(
 export async function unauthorizedPhoneChangeByToken(
   ...args: Parameters<typeof unauthorizedPhoneChangeByTokenHandler>
 ) {
+  // log mode: records the botid verdict, never blocks
+  await checkHuman("unauthorizedPhoneChangeByToken");
   return unauthorizedPhoneChangeByTokenHandler(...args);
 }
