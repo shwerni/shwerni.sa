@@ -1439,3 +1439,17 @@ Nothing imports these files today, so they aren't bundled.
 - Each cron with the right `Authorization: Bearer <CRON_SECRET>` returns 200.
 - No header, a wrong secret, or `Bearer undefined` returns 401.
 - With `CRON_SECRET` unset on a preview, every cron returns 401.
+
+## 2026-10-01 · Removal 3: mobile reservation-info returns TAX_PERCENT
+
+**Files changed**
+
+- `app/api/mobile/consultants/[cid]/reservation-info/route.ts`: the response's `finance` object is now `{ ...finance, tax: TAX_PERCENT }`. The app always gets the rate that's charged (15), whatever the `finance.tax` setting says. Other `finance` fields (commission, payments, `couponEnabled`) and the response shape are unchanged.
+
+**Verified**
+
+- `npm run build` on the clean tree: passes.
+
+**Needs manual testing on the preview**
+
+- Mobile app: the reservation screen for a consultant shows tax 15 and the same total the payment charges (150 → 173).

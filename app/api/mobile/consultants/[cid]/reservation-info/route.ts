@@ -9,6 +9,9 @@ import {
 } from "@/data/consultant";
 import { getFinanceConfig } from "@/data/admin/settings/finance";
 
+// utils
+import { TAX_PERCENT } from "@/utils/tax";
+
 export const GET = createGetRoute<unknown, { cid: string }>(
   async (_request, { params }) => {
     const { cid: cidParam } = await params;
@@ -39,7 +42,8 @@ export const GET = createGetRoute<unknown, { cid: string }>(
       category: info.category,
       image: info.image,
       cost,
-      finance,
+      // the app shows the rate that is charged, not the finance.tax setting
+      finance: { ...finance, tax: TAX_PERCENT },
       unavailable: [...unavailable],
       isDiscount: undefined,
     };
