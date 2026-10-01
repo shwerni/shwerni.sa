@@ -8,11 +8,11 @@ import { useOnlineConsultants } from "@/hooks/useOnlineConsultants";
 // components
 import ConsultantCard from "./card";
 import Title from "../../shared/titles";
+import Section from "../../shared/section";
+import LoadingAnimation from "../../instant/skeleton";
 
 // icons
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import Section from "../../shared/section";
-import LoadingAnimation from "../../instant/skeleton";
 
 export default function InstantList() {
   // get online consultants

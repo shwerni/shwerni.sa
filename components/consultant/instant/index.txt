@@ -4,13 +4,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 // hooks
-import { useConsultantPresence } from "@/hooks/useOnlineConsultant";
+import { useConsultantPresence } from "@/hooks/realtime/useOnlineConsultant";
 
 // icons
-import { Bell, Wifi, Clock, Users, Loader2 } from "lucide-react";
+import { Bell, Wifi, Clock, Users, Loader2, Briefcase } from "lucide-react";
 
 export default function InstantDashboard({ userId }: { userId: string }) {
-  const { connected, onlineCount } = useConsultantPresence({ userId });
+  const { connected, counts } = useConsultantPresence({ userId });
   const router = useRouter();
 
   // Popup state
@@ -61,19 +61,15 @@ export default function InstantDashboard({ userId }: { userId: string }) {
     }, 45_000);
   };
 
-  // User confirmed presence
   const handleConfirm = () => {
-    // Clear countdown/redirect timers
     if (countdownIntervalRef.current)
       clearInterval(countdownIntervalRef.current);
     if (redirectTimeoutRef.current) clearTimeout(redirectTimeoutRef.current);
 
-    // 2. CRITICAL FIX: Clear the old popup interval before starting a new one!
     if (popupIntervalRef.current) clearInterval(popupIntervalRef.current);
 
     setShowPopup(false);
 
-    // Schedule next popup in 10 minutes
     popupIntervalRef.current = setInterval(
       () => {
         openPopup();
@@ -82,11 +78,9 @@ export default function InstantDashboard({ userId }: { userId: string }) {
     );
   };
 
-  // Start the 10-minute cycle once connected
   useEffect(() => {
     if (!connected) return;
 
-    // First popup after 10 minutes
     popupIntervalRef.current = setInterval(
       () => {
         openPopup();
@@ -144,7 +138,7 @@ export default function InstantDashboard({ userId }: { userId: string }) {
           </div>
 
           <div className="flex flex-col items-center space-y-1">
-            <Users className="w-6 h-6 text-blue-500" />
+            <Users className="w-6 h-6 text-theme-500" />
             <span className="text-sm font-medium text-gray-800">العملاء</span>
             <p className="text-xs text-gray-500">استقبل طلبات الجلسات فورًا</p>
           </div>
@@ -165,17 +159,26 @@ export default function InstantDashboard({ userId }: { userId: string }) {
         </div>
 
         <div className="flex flex-col items-center space-y-3 pt-6">
-          <div className="flex items-center gap-3">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-            </span>
+          <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col items-center gap-2">
+              <div className="w-10 h-10 rounded-xl bg-theme-50 flex items-center justify-center">
+                <Briefcase className="w-5 h-5 text-theme-700" />
+              </div>
+              <span className="text-xs text-slate-500">مستشارون متصلون</span>
+              <span className="text-2xl font-bold text-slate-900">
+                {counts.owners}
+              </span>
+            </div>
 
-            <p className="text-sm text-gray-500">عدد العملاء المتواجدين الآن</p>
-          </div>
-
-          <div className="text-4xl font-bold text-theme tracking-tight">
-            {onlineCount ?? 0}
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col items-center gap-2">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                <Users className="w-5 h-5 text-emerald-600" />
+              </div>
+              <span className="text-xs text-slate-500">عملاء متواجدون</span>
+              <span className="text-2xl font-bold text-slate-900">
+                {counts.clients}
+              </span>
+            </div>
           </div>
 
           <p className="text-xs text-gray-400 text-center max-w-xs">
