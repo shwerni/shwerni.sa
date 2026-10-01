@@ -1634,3 +1634,15 @@ Submit each form once as a guest unless noted. In the Vercel logs, confirm `[bot
 ## 2026-10-01 · Playbook checklist matches section 9
 
 - `docs/refactor-playbook.md`: the `createAction` `bot` line is unticked with the same note as `docs/security-refactor.md`. The option was never added; actions call `checkHuman` directly.
+
+## 2026-10-01 · Build fails if the BotID prefix changes
+
+- `next.config.ts`: `checkBotIdPrefix()` reads the UUID-shaped entry from `DynamicpublicRoutes` in `routes.ts` and searches every `.js`/`.mjs` file under `node_modules/botid/dist` for it. If the entry is missing or not found, it throws: "the prefix changed, routes.ts must be updated", plus the grep that finds the new prefix.
+- It runs only in the `next build` phase (`PHASE_PRODUCTION_BUILD`); dev and start load the config too. The config is exported as a function wrapped by `withBotId`, which supports that.
+- Why it lives in `next.config.ts`, not a script or `prebuild`: `/scripts` is gitignored, so a script there would never reach Vercel. A `prebuild` hook only runs through `npm run build`, while Vercel's build command can be overridden in the dashboard. `next.config.ts` loads on every `next build`, whatever the command.
+- `routes.ts`: the comment points at the check.
+
+**Verified**
+
+- With the prefix changed by one character, `next build` stopped right after loading the config with `Build error occurred` and the message above. Restored afterwards.
+- With the real prefix, `npm run build` on a clean tree passes, and the manifest check prints only `"data/event.ts"`.

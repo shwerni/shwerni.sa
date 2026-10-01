@@ -76,7 +76,8 @@ export const DynamicpublicRoutes = [
   // vercel botid challenge and telemetry (rewritten by withBotId in next.config.ts);
   // guests must reach them, or every guest request is classified as a bot.
   // botid doesn't export this prefix: it's hardcoded in node_modules/botid/dist/next/config
-  // (botid 1.5.11). re-check it on every botid upgrade; the first segment printed must match:
+  // (botid 1.5.11). `next build` fails if it's no longer there (checkBotIdPrefix in next.config.ts);
+  // the first segment printed here must match:
   // grep -oE '"/[0-9a-f-]{36}/[0-9a-f-]{36}[^"]*"' node_modules/botid/dist/next/config/index.mjs
   "/149e9513-01fa-4fb0-aad4-566afd725d1b",
 ];

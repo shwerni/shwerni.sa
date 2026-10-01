@@ -1,7 +1,38 @@
 import type { NextConfig } from "next";
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
 // packages
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { withBotId } from "botid/next/config";
+
+// routes
+import { DynamicpublicRoutes } from "./routes";
+
+// botid hardcodes its challenge prefix and doesn't export it. routes.ts lists it as public so
+// guests reach the challenge; if a botid upgrade changes it, proxy.ts would send every guest's
+// challenge to /login. runs on every `next build`, local and vercel, whatever the build command
+function checkBotIdPrefix() {
+  const uuid = /^\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+  const prefix = DynamicpublicRoutes.find((route) => uuid.test(route));
+  const dist = path.join(process.cwd(), "node_modules", "botid", "dist");
+
+  const found =
+    !!prefix &&
+    readdirSync(dist, { recursive: true, encoding: "utf8" })
+      .filter((file) => /\.(m?js)$/.test(file))
+      .some((file) =>
+        readFileSync(path.join(dist, file), "utf8").includes(`"${prefix}/`),
+      );
+
+  if (!found)
+    throw new Error(
+      `[botid] the challenge prefix ${prefix ?? "(missing)"} in routes.ts (DynamicpublicRoutes) ` +
+        "was not found in node_modules/botid: the prefix changed, routes.ts must be updated. " +
+        "find the new one with: grep -oE '\"/[0-9a-f-]{36}/[0-9a-f-]{36}[^\"]*\"' " +
+        "node_modules/botid/dist/next/config/index.mjs",
+    );
+}
 
 const nextConfig: NextConfig = {
   async redirects() {
@@ -66,4 +97,8 @@ const nextConfig: NextConfig = {
 };
 
 // botid: proxies its challenge script through this domain
-export default withBotId(nextConfig);
+export default withBotId((phase: string) => {
+  // builds only: dev and start load this config too
+  if (phase === PHASE_PRODUCTION_BUILD) checkBotIdPrefix();
+  return nextConfig;
+});
