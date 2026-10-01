@@ -1630,3 +1630,7 @@ Submit each form once as a guest unless noted. In the Vercel logs, confirm `[bot
 
 - Each commit: `npm run build` on a clean tree with `.next` deleted and nothing excluded beyond `["node_modules", "docs"]` passes (139/139), the manifest check prints only `"data/event.ts"`, and there is no `"use server"` in `lib/`, `data/` or `handlers/`.
 - `npx tsc --noEmit --incremental false`: 0 errors. A plain incremental `tsc` once reported two errors in `components/legacy/consultants/owner/profile/form.tsx` from a stale `tsconfig.tsbuildinfo`; the full run and the build's type check are clean.
+
+## 2026-10-01 · Playbook checklist matches section 9
+
+- `docs/refactor-playbook.md`: the `createAction` `bot` line is unticked with the same note as `docs/security-refactor.md`. The option was never added; actions call `checkHuman` directly.
