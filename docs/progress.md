@@ -1611,3 +1611,11 @@ Submit each form once as a guest unless noted. In the Vercel logs, confirm `[bot
 - `botid` 1.5.11 doesn't export its path prefix. Its type definitions export only `withBotId`, `initBotId`, `validateProtectedRoutes`, `BotIdClient` and `checkBotId`. The prefix is an internal constant in `node_modules/botid/dist/next/config/index.mjs` and the client bundles.
 - So `routes.ts` keeps the string `/149e9513-01fa-4fb0-aad4-566afd725d1b`, with a comment saying where it comes from and how to check it.
 - **Re-check on every `botid` upgrade.** Run `grep -oE '"/[0-9a-f-]{36}/[0-9a-f-]{36}[^"]*"' node_modules/botid/dist/next/config/index.mjs`. The first segment it prints must equal the entry in `routes.ts`. If it changed, update `routes.ts`; otherwise `proxy.ts` sends guests' BotID challenge requests to `/login` and every guest is classified as a bot.
+
+**2. Chat bot cap: guests 50 a day, logged-in users 15**
+
+- `data/admin/bot.ts`: `BOT_DAILY_LIMIT = 15` and `GUEST_BOT_DAILY_LIMIT = 50` replace the old local `limit = 15`. `checkBotLimit(key, limit = BOT_DAILY_LIMIT)`.
+- `actions/ai.ts` picks the cap from the session: `{ key: "user:<id>", limit: 15 }` for logged-in users, `{ key: "ip:<ip>", limit: 50 }` for guests. `lib/api/ai/chat-bot.ts` takes that cap as its first argument.
+- The WhatsApp bot (`lib/api/whatsapp/logic.ts`) still calls `checkBotLimit(from)`, so it stays at 15 per sender phone.
+- This replaces the chat-bot test in the BotID coverage entry. As a guest, message 51 gets the limit reply (it was 16), and a new tab with cleared storage on the same network is still at the limit. A logged-in user gets the limit reply on message 16.
+- Counters are per day, and the key format didn't change, so guests already counted today keep their count.

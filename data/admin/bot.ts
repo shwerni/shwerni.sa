@@ -4,10 +4,12 @@ import prisma from "@/lib/database/db";
 // pacakge
 import { startOfDay } from "date-fns";
 
-// limit
-const limit = 15;
+// daily message caps: whatsapp senders and logged-in web users
+export const BOT_DAILY_LIMIT = 15;
+// web guests are keyed per ip, so everyone behind one address shares this
+export const GUEST_BOT_DAILY_LIMIT = 50;
 
-export async function checkBotLimit(phone: string) {
+export async function checkBotLimit(phone: string, limit = BOT_DAILY_LIMIT) {
   // now
   const now = new Date();
 

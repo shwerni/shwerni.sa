@@ -2,6 +2,9 @@
 
 // hotfix wrappers: same signatures and return shapes as the server-only originals
 
+// prisma data
+import { BOT_DAILY_LIMIT, GUEST_BOT_DAILY_LIMIT } from "@/data/admin/bot";
+
 // lib
 import { aiConsultantSummary as aiConsultantSummaryApi } from "@/lib/api/ai/ai";
 import { SendChatBot as SendChatBotApi } from "@/lib/api/ai/chat-bot";
@@ -19,7 +22,7 @@ export async function aiConsultantSummary(
 }
 
 // public chat bot; the user argument comes from the session, never from the caller.
-// the daily cap is keyed on the session user, or the client ip for guests: from is
+// the daily cap is keyed on the session user (15), or the client ip for guests (50): from is
 // caller-supplied (a localStorage id), so it still names the chat but never counts usage
 export async function SendChatBot(
   message: string,
@@ -30,8 +33,10 @@ export async function SendChatBot(
   // log mode: records the botid verdict, never blocks
   await checkHuman("SendChatBot");
   const user = await sessionUser();
-  const limitKey = user ? `user:${user.id}` : `ip:${await getClientIp()}`;
-  return SendChatBotApi(limitKey, message, from, user ?? undefined, consultant);
+  const cap = user
+    ? { key: `user:${user.id}`, limit: BOT_DAILY_LIMIT }
+    : { key: `ip:${await getClientIp()}`, limit: GUEST_BOT_DAILY_LIMIT };
+  return SendChatBotApi(cap, message, from, user ?? undefined, consultant);
 }
 
 // public; reCAPTCHA is removed later in favour of BotID
