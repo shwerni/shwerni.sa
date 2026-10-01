@@ -1368,3 +1368,32 @@ A shared `isCronRequest()` that rejects when the secret is unset and uses `timin
 
 - Vercel → Settings → Cron Jobs lists the 8 jobs with the corrected paths.
 - Run `mobile/notifications/dispatch` and `mobile/room/call` once from the dashboard: 200, no unexpected flood of old notifications.
+
+## 2026-10-01 · Item 4: clean build, manifest, merge regression check
+
+**`npm run build` on the clean committed tree: FAILS** at type-check (compilation succeeds). All 3 `tsc` errors are in files added by `dd122be` ("after claudie code"), not by the hotfix or cleanup:
+
+1. `lib/api/ai/article/articles.tsx:153`: `importArticle()` (`article.ts`) returns `Promise<void>`, but its result is stored as `ImportResult`.
+2. `lib/api/ai/article/index.ts:4`, `lib/api/ai/article/specialties.ts:3`: `@google/genai` isn't in `package.json` or `node_modules`.
+
+**A deploy of `main` fails until this is fixed.** Options:
+
+- (a) Finish the feature: install `@google/genai` (a dependency change, needs your OK), have `importArticle` return its result, and move the three server files behind `actions/` with `server-only` (see below).
+- (b) Move `lib/api/ai/article/` out of the deployed tree, or add it to `tsconfig` `exclude`, until it's ready.
+
+Nothing imports these files today, so they aren't bundled.
+
+**Manifest check (CLAUDE.md):** prints only `"data/event.ts"` (its `"use cache"` registration). No Server Action is exposed outside `actions/`.
+
+**Did the merge bring back anything the hotfix removed?**
+
+- **`"use server"` in `data/`, `handlers/`, `lib/`: yes, 3 new files.**
+  - `lib/api/ai/article/article.ts`, `index.ts` and `specialties.ts` start with `"use server"`, and the client components `articles.tsx` / `spec.tsx` import them directly.
+  - They're not exposed today (nothing renders those components). The moment a page does, `importArticle`, `bulkImportArticles`, `bulkAddArticleSpecialties` and the image generators become **public, unauthenticated endpoints** that write articles and call a paid AI API.
+  - They need the hotfix pattern: `import "server-only"` plus guarded wrappers in `actions/` (admin only).
+- Elsewhere outside `actions/`: only `app/(pages)/(consultants)/dashboard/programs/[prid]/page.tsx`, known; it exposes its own page component, which checks the session.
+- **Imports of deleted files: none.** Every import in the tree resolves.
+- **Hotfix guards: all present.** 17 checks: OTP masking and attempt limit, session-bound account edits, `getUserById` omits the password, `uploadthing/delete` secret, chat route participant check, chats list and pusher session, Tabby and Moyasar server-to-server checks, Moyasar webhook secret, cancel-page owner guard, home notification masking, chat upload participant check, both Riyadh-date fixes, chat sender guard.
+- **Client imports of server folders:** `handlers/admin/recaptcha.ts` (client reCAPTCHA helper, expected until the reCAPTCHA phase) and `lib/api/gatewaies/iban.ts` (pure, no env or Prisma, safe in the browser; by the plan it belongs in `utils/`).
+
+**Section 9 of `docs/security-refactor.md`:** not ticked. CLAUDE.md requires a passing build.
