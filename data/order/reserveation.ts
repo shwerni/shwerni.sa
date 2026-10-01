@@ -744,7 +744,8 @@ export const getReservationPaymentByPid = async (pid: string) => {
     // get order
     const order = await prisma.order.findFirst({
       where: { payment: { pid } },
-      select: { payment: true },
+      // created_at: the amount checks accept old-formula amounts for pre-cutoff orders
+      select: { payment: true, created_at: true },
     });
 
     // if not exist

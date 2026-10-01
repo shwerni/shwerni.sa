@@ -18,7 +18,8 @@ interface VerifyResult {
  */
 export async function verifyMoyasarPayment(
   paymentId: string,
-  expectedTotal: number,
+  // every amount (sar) this order may carry; see acceptedChargeAmounts
+  expectedTotals: number[],
   expectedOid: number,
 ): Promise<VerifyResult> {
   const res = await fetch(`https://api.moyasar.com/v1/payments/${paymentId}`, {
@@ -29,7 +30,9 @@ export async function verifyMoyasarPayment(
 
   const moyasar = await res.json();
 
-  const amountMatches = moyasar.amount === Math.round(expectedTotal * 100);
+  const amountMatches = expectedTotals
+    .map((total) => Math.round(total * 100))
+    .includes(moyasar.amount);
   const currencyMatches = moyasar.currency === "SAR";
   const oidMatches = moyasar.metadata?.oid === expectedOid;
 

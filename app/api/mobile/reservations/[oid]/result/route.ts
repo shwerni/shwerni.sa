@@ -6,7 +6,7 @@ import { requireMobileUser } from "@/lib/auth/require-mobile-user";
 import { createGetRoute } from "@/lib/api/routes/route-factory";
 import prisma from "@/lib/database/db";
 import { isMoyasarSettledPaid, isMoyasarDefinitiveFailure } from "@/utils/gatewaies";
-import { withTax } from "@/utils/tax";
+import { acceptedChargeAmounts } from "@/utils/tax";
 
 // prisma types
 import { PaymentState } from "@/lib/generated/prisma/enums";
@@ -66,7 +66,10 @@ export const GET = createGetRoute<PaymentResultResponse, { oid: string }>(
       // payment was created for — comparing moyasar's own fields to each
       // other proves nothing about whether the order actually matches
       // same tax-inclusive charge as web, in halalas
-      const amountMatches = moyasar.amount === Math.round(withTax(order.payment.total) * 100);
+      // remove after 2026-10-09: pre-cutoff orders also accept the old formulas (in halalas)
+      const amountMatches = acceptedChargeAmounts(order.payment.total, order.created_at)
+        .map((total) => Math.round(total * 100))
+        .includes(moyasar.amount);
       const oidMatches = moyasar.metadata?.oid === order.oid;
 
       console.log("result");

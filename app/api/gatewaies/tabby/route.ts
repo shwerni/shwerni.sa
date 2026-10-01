@@ -15,7 +15,7 @@ import { tabbyPaymentDetails } from "@/lib/api/gatewaies/tabby";
 import { telegramAdmin } from "@/lib/api/telegram/telegram";
 
 // utils
-import { withTax } from "@/utils/tax";
+import { acceptedChargeAmounts, withTax } from "@/utils/tax";
 
 // prisma types
 import { PaymentState } from "@/lib/generated/prisma/enums";
@@ -60,8 +60,10 @@ export async function POST(request: Request) {
     if (status === "authorized") {
       // the same calculation Pay charges with
       const expected = withTax(payment.total);
+      // remove after 2026-10-09: pre-cutoff orders also accept the old formulas
+      const accepted = acceptedChargeAmounts(payment.total, order?.created_at);
       const amountMatches =
-        Number(details.amount) === expected && details.currency === "SAR";
+        accepted.includes(Number(details.amount)) && details.currency === "SAR";
 
       if (!amountMatches) {
         await updateOrderStatus(pid, PaymentState.HOLD);

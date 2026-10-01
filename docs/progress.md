@@ -1299,3 +1299,39 @@ These are the only 3 `tsc` errors in the repo. Nothing imports these files yet, 
 **Needs manual testing on the preview**
 
 - A new booking's `payment.tax` is 15 and the charge is unchanged (150 → 173).
+
+## 2026-10-01 · Item 2: transition for orders charged by the old formulas (remove after 2026-10-09)
+
+**Files changed**
+
+- `utils/tax.ts`: `LEGACY_CHARGE_CUTOFF` (placeholder `2026-10-02T00:00:00+03:00`, **set it to the deploy time**) and `acceptedChargeAmounts(total, createdAt)`.
+  - New orders accept `withTax(total)` only.
+  - Orders created before the cutoff also accept every whole number `round(t × 1.15)` can give for `t` within ±0.5 of the stored total (the unrounded price wasn't stored), computed with the old float expression, plus the old `totalAfterTax(total)`.
+- `data/order/reserveation.ts` `getReservationPaymentByPid`: also selects the order's `created_at`.
+- Amount checks now use the accepted list:
+  - `app/api/gatewaies/tabby/route.ts` (Tabby webhook)
+  - `handlers/gatewaies/moyasar.ts` (Moyasar callback, in halalas; its alert now says "halalas", which it was)
+  - `utils/gatewaies/verify/verify.ts` (`verifyMoyasarPayment` takes `expectedTotals: number[]`) via `mobile/reservations/[oid]/confirm`
+  - `mobile/reservations/[oid]/result`
+- Every transition line is marked `// remove after 2026-10-09`.
+
+**Checked:**
+
+| Case | Stored total | Old charge | Accepted before cutoff | Accepted after |
+| ---- | ------------ | ---------- | ---------------------- | -------------- |
+| 150 SAR | 150 | 173 | 172, 173 | 173 |
+| 50 SAR (float case) | 50 | 57 | 57, 58 | 58 |
+| 205 SAR at 51% | 100 | 116 | 114, 115, 116 | 115 |
+
+**Cutoff direction:** a later value only lets pre-deploy orders match a slightly wider set. An earlier value can send payments for orders created just before the deploy to HOLD with a Telegram alert.
+
+**Not covered (question):** before the hotfix, the mobile Tabby payload charged the **pre-tax** `payment.total`, and mobile Moyasar was checked against it. If any mobile payment from before the deploy is still open, it would go to HOLD. Add `total` itself to the pre-cutoff list if you want those to pass.
+
+**Verified**
+
+- Build (with the WIP exclusion): passes.
+
+**Needs manual testing on the preview**
+
+- An order created before the cutoff and paid after the deploy (Tabby sandbox or Moyasar test) becomes PAID with its old amount.
+- A new order with a mismatching amount goes to HOLD with an alert.

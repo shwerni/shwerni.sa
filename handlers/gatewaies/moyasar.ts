@@ -13,7 +13,7 @@ import { telegramAdmin } from "@/lib/api/telegram/telegram";
 import { moyasarInvoiceDetails } from "@/lib/api/gatewaies/moyasar";
 
 // utils
-import { withTax } from "@/utils/tax";
+import { acceptedChargeAmounts, withTax } from "@/utils/tax";
 import { isMoyasarDefinitiveFailure, type Status } from "@/utils/gatewaies";
 
 // types: only invoice_id is read, everything else in the body is ignored
@@ -52,8 +52,12 @@ async function CheckPaymentState(payment: Moyasar) {
   // paid: only when amount (halalas), currency and invoice all match this order
   if (invoice.status === "paid") {
     const expected = Math.round(withTax(orderPayment.total) * 100);
+    // remove after 2026-10-09: pre-cutoff orders also accept the old formulas (in halalas)
+    const accepted = acceptedChargeAmounts(orderPayment.total, order?.created_at).map(
+      (a) => Math.round(a * 100),
+    );
     const matches =
-      invoice.amount === expected &&
+      accepted.includes(invoice.amount) &&
       invoice.currency === "SAR" &&
       invoice.id === orderPayment.pid;
 
@@ -64,7 +68,7 @@ async function CheckPaymentState(payment: Moyasar) {
       // change state to hold
       await updateOrderStatus(pid, PaymentState.HOLD);
       await telegramAdmin(
-        `shwerni-error: moyasar invoice=${pid} paid ${invoice.amount} ${invoice.currency}, expected ${expected} SAR, order set to hold`,
+        `shwerni-error: moyasar invoice=${pid} paid ${invoice.amount} ${invoice.currency}, expected ${expected} halalas, order set to hold`,
       );
     }
     return;

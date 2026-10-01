@@ -5,7 +5,7 @@ import { NextRequest } from "next/server";
 import { requireMobileUser } from "@/lib/auth/require-mobile-user";
 import { createPostRoute } from "@/lib/api/routes/route-factory";
 import prisma from "@/lib/database/db";
-import { withTax } from "@/utils/tax";
+import { acceptedChargeAmounts } from "@/utils/tax";
 
 // prisma types
 import { PaymentMethod, PaymentState } from "@/lib/generated/prisma/enums";
@@ -84,7 +84,12 @@ export const POST = createPostRoute<PaymentResultResponse, { oid: string }>(
       const result =
         order.payment.method === PaymentMethod.tabby
           ? await verifyTabbyPayment(pid)
-          : await verifyMoyasarPayment(pid, withTax(order.payment.total), order.oid);
+          : await verifyMoyasarPayment(
+              pid,
+              // remove after 2026-10-09: pre-cutoff orders also accept the old formulas
+              acceptedChargeAmounts(order.payment.total, order.created_at),
+              order.oid,
+            );
 
       console.log(`[payment-result] gateway returned:`, result);
 
