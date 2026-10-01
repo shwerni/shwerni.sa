@@ -1603,3 +1603,11 @@ Submit each form once as a guest unless noted. In the Vercel logs, confirm `[bot
 - The chat cap per IP: guests behind one carrier NAT IPv4 address share the 15 messages a day.
 - None of the 54 actions use `lib/rate-limit.ts`. In log mode, OTP, coupon and chat-bot abuse stay as open as before.
 - Section 9 marks `bot` in `createAction` as done (`[x]`), but `lib/safe-action.ts` has no `bot` option. It's left untouched, by decision.
+
+## 2026-10-01 · BotID follow-ups
+
+**1. BotID path prefix in `routes.ts`**
+
+- `botid` 1.5.11 doesn't export its path prefix. Its type definitions export only `withBotId`, `initBotId`, `validateProtectedRoutes`, `BotIdClient` and `checkBotId`. The prefix is an internal constant in `node_modules/botid/dist/next/config/index.mjs` and the client bundles.
+- So `routes.ts` keeps the string `/149e9513-01fa-4fb0-aad4-566afd725d1b`, with a comment saying where it comes from and how to check it.
+- **Re-check on every `botid` upgrade.** Run `grep -oE '"/[0-9a-f-]{36}/[0-9a-f-]{36}[^"]*"' node_modules/botid/dist/next/config/index.mjs`. The first segment it prints must equal the entry in `routes.ts`. If it changed, update `routes.ts`; otherwise `proxy.ts` sends guests' BotID challenge requests to `/login` and every guest is classified as a bot.
