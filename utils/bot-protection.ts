@@ -1,16 +1,7 @@
-// Single source of truth for BotID, shared by instrumentation-client.ts.
+// single source of truth for botid's client protect list, read by instrumentation-client.ts.
 //
-// Server Actions POST to the URL of the page they're called from, so BotID
-// matches the PAGE path, not the action. Every page that calls an action with
-// `bot` set in createAction must be listed here, or checkBotId() fails there
-// and real users get blocked. Wildcards match one or more segments.
-//
-// Replace these with your real routes.
-export const BOT_PROTECTED_PATHS = [
-  // auth
-  "/login",
-  "/register",
-  "/forget-password",
-  // pages that open the guest booking flow
-  "/consultants/*",
-] as const;
+// server actions post to the url of the page they're called from, so botid matches the
+// page path, not the action. "/*" also matches "/" and covers every page; botid only adds
+// its headers to same-origin requests, so cross-origin calls (uploadthing, backend) are untouched.
+// the server side check is checkHuman() in lib/bot-protection.ts.
+export const BOT_PROTECTED_PATHS = ["/*"] as const;

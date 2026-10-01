@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 
+// packages
+import { withBotId } from "botid/next/config";
+
 const nextConfig: NextConfig = {
   async redirects() {
     return [
@@ -62,4 +65,5 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// botid: proxies its challenge script through this domain
+export default withBotId(nextConfig);

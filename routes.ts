@@ -73,6 +73,9 @@ export const DynamicpublicRoutes = [
   "/api/internal",
   "/api/revalidate",
   "/api/online",
+  // vercel botid challenge and telemetry (rewritten by withBotId in next.config.ts);
+  // guests must reach them, or every guest request is classified as a bot
+  "/149e9513-01fa-4fb0-aad4-566afd725d1b",
 ];
 
 /**
