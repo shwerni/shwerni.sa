@@ -5,7 +5,9 @@ import { handleBotReply } from "./bot";
 import { Consultant } from "@/lib/generated/prisma/client";
 import { User } from "next-auth";
 
+// limitKey is the daily cap key, set by the action from the session or the ip; never from the caller
 export async function SendChatBot(
+  limitKey: string,
   message: string,
   from: string,
   user?: User,
@@ -18,7 +20,7 @@ export async function SendChatBot(
   const name = consultant?.name || user?.name || from || "ضيف جديد";
 
   // allowed
-  const allowed = await checkBotLimit(from);
+  const allowed = await checkBotLimit(limitKey);
 
   // store in database
   await upsertWhatsappChat(from, from, name, message);
