@@ -31,9 +31,18 @@ export const verifyRecaptcha = async (token: string): Promise<boolean> => {
     // get token
     const result = await recaptchaToken(token);
 
-    // if valid
-    return result.success && result.score > 0.2;
-  } catch {
+    // valid
+    const valid = result.success && result.score > 0.2;
+
+    // failures only, never the token
+    if (!valid)
+      console.warn(
+        `[recaptcha] failed success=${result.success} score=${result.score ?? "-"} action=${result.action ?? "-"} hostname=${result.hostname ?? "-"} error-codes=${result["error-codes"]?.join(",") || "-"}`,
+      );
+
+    return valid;
+  } catch (err) {
+    console.error("[recaptcha] verify request failed", err);
     return false;
   }
 };
