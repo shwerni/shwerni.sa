@@ -1397,3 +1397,23 @@ Nothing imports these files today, so they aren't bundled.
 - **Client imports of server folders:** `handlers/admin/recaptcha.ts` (client reCAPTCHA helper, expected until the reCAPTCHA phase) and `lib/api/gatewaies/iban.ts` (pure, no env or Prisma, safe in the browser; by the plan it belongs in `utils/`).
 
 **Section 9 of `docs/security-refactor.md`:** not ticked. CLAUDE.md requires a passing build.
+
+## 2026-10-01 · Removal 1: article AI feature deleted
+
+**Files changed**
+
+- Deleted `lib/api/ai/article/`: `article-image.txt`, `article.ts`, `articles.tsx`, `index.ts`, `spec.tsx`, `specialties.ts`. These held article import, bulk import, specialty bulk-add, and Gemini image generation and upload.
+- No other file imported them: no route, page or component, and nothing in `package.json`. The only "article-image" hits elsewhere are image `alt` text.
+- `@google/genai` was never in `package.json`, so there was nothing to remove.
+- `GEMINI_APIKEY` was read only inside the deleted files; it can be removed from Vercel env if nothing else uses it.
+- Home page files (`components/clients/home/index.tsx`, `categories.tsx`, `home-cards.tsx`, also from `dd122be`) never imported the feature. Left unchanged.
+
+**Effect:** the three `"use server"` files in `lib/` and the three `tsc` errors are gone.
+
+**Verified**
+
+- `npm run build` on the clean tree, nothing excluded: **passes** (first time since the merge).
+
+**Needs manual testing on the preview**
+
+- Home page (cards, categories), articles list and article pages render as before.
