@@ -667,49 +667,71 @@ console.log(`[rateLimit] ${key} ${(performance.now() - t).toFixed(1)}ms`);
 
 ## 9. Open items and next steps
 
-### Mapping and hotfix
+Phase complete on 2026-10-02 (see the final entry in `docs/progress.md`).
+
+### Done
 
 - [x] Map the full server surface (`docs/reference/server-surface.md`, `docs/reference/project-map.md`)
-- [ ] Exclude `docs` from `tsconfig.json` so the reference example doesn't break the build
-- [ ] Hotfix tier 1: account takeover chain and account edits
-- [ ] Hotfix tier 2: mass `server-only` flip for server-only callers
-- [ ] Hotfix tier 3: `actions/` wrappers (same signatures and return shapes) for client-called functions; `reserve*` server-only
-- [ ] Hotfix tier 4: open routes (meeting chats, uploadthing delete, pusher auth)
-- [ ] Hotfix tier 5: Tabby verification and cancel page (approved proposal)
-- [ ] Check for damage: logs, database, possible `AUTH_SECRET` rotation, forced resets, legal check
-- [ ] Order-card refund button: decide whether to remove it or turn it into a refund request (refunds are handled in the dashboard)
-- [ ] Map the dashboard codebase with the same read-only prompt
-
-### Follow-ups found by the map
-
-- [ ] Auth: refresh role (and banned status) in the NextAuth `jwt` callback every 5 minutes; fix the empty-phone re-query
-- [ ] Link-based actions that trust a bare id: add tokens to new links (flow change, needs approval)
-- [ ] Reset/verify pages: exchange the URL token for an httpOnly cookie and redirect to a clean URL (keeps tokens away from ad pixels)
-- [ ] `chatAttachment`: per-IP rate limit once the rate-limit table exists
-- [ ] Harden mobile API routes: rate limits through the route wrappers, review Better Auth `set-password`
-
-### Refactor
-
-- [x] Write `lib/safe-action.ts`, `lib/rate-limit.ts`, `types/action.ts`, `utils/action-errors.ts`, `hooks/use-action.ts`
-- [ ] Commit the foundation files; wrap `auth()` in React `cache()`; `createAction` reads `user.role` from the session
-- [ ] Add the `RateLimit` model, unlogged migration and `pg_cron` cleanup
-- [ ] Convert `data/`, `handlers/` and server `lib/` files to `import "server-only"`
-- [ ] Rebuild actions in `actions/` with `createAction` and `useAction`; update client imports
-- [ ] Move `Pay`'s pricing into `services/pricing.ts`
-- [ ] Rebuild and confirm the manifest lists only `actions/` files, across all pages
-- [ ] Click through every form and mutation on a preview deployment
-
-### Bot protection and edge
-
-- [x] Review the reCAPTCHA implementation (found: client-only verification bypassable, verifier exposed as action, no action binding, no timeout)
+- [x] Exclude `docs` from `tsconfig.json` so the reference example doesn't break the build
+- [x] Hotfix tiers 1–5:
+  - the account takeover chain and account edits
+  - `server-only` for server-only callers
+  - `actions/` wrappers for client-called functions
+  - the open routes (meeting chats, uploadthing delete, pusher auth)
+  - Tabby verification and the cancel page
+- [x] Hotfix follow-ups:
+  - OTP attempt limit
+  - Moyasar verification
+  - chat uploads
+  - `getPaidPast3Days` masking
+  - the cancel page guard
+  - one tax calculation (`withTax`)
+- [x] Write and commit the foundation files: `lib/safe-action.ts`, `lib/rate-limit.ts`, `types/action.d.ts`, `utils/action-errors.ts`, `hooks/use-action.ts`. `userServer()` and `roleServer()` are confirmed in `lib/auth/server.ts`.
+- [x] No `"use server"` in `data/`, `handlers/` or `lib/`. The manifest check prints only the two `"use cache"` registrations, `data/event.ts` and `lib/api/google.ts`.
+- [x] Cron routes reject requests when `CRON_SECRET` is unset or wrong, compared in constant time (`5626215`)
+- [x] Review the reCAPTCHA implementation. Found: client-only verification that could be bypassed, the verifier exposed as an action, no action binding, no timeout.
 - [x] Decide bot protection: Vercel BotID with Deep Analysis (Vercel Pro); reCAPTCHA dropped
-- [ ] Add `bot: "log" | "enforce"` to `createAction`; `instrumentation-client.ts`; `utils/bot-protection.ts` (not done: `lib/safe-action.ts` has no `bot` option, and no action uses `createAction` yet. `instrumentation-client.ts` and `utils/bot-protection.ts` were added on 2026-10-01 in `e3d76ec`; until then the actions call `checkHuman` from `lib/bot-protection.ts` directly)
-- [ ] Install `botid`, wrap `next.config` with `withBotId`, list real protected page paths, enable Deep Analysis
-- [x] Remove reCAPTCHA: `app/layout.tsx`, `components/wrappers/recaptcha.tsx`, `lib/api/recaptcha.ts`, login, register, bot component, discover, marriage-awareness form, consultant / free-session / instant reservation forms, `RECAPTCHA_*` env (done 2026-10-02: code `939330e`, dependency `9d1fdf3`; the build passes and no page or chunk references recaptcha. Remove `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` and `RECAPTCHA_SECRET_KEY` from Vercel)
-- [x] Run protected actions with `bot: "log"` for a week, review the Firewall BotID view, then switch to `"enforce"` (switched to block on 2026-10-02 in `debfe54` by decision, without the log week; the build passes)
-- [ ] Add the two Vercel Firewall rules in Log mode, review traffic, then switch to Deny
-- [ ] Write the guest booking action with `createAction`, public order token and pending-order expiry
-- [ ] Check Vercel function region vs Supabase region
-- [ ] Plan mobile app attestation for OTP and booking API routes (BotID doesn't cover native apps)
+- [x] BotID in block mode (`e3d76ec` … `debfe54`):
+  - `withBotId`
+  - `instrumentation-client.ts` protecting POST `/*`
+  - `checkHuman` in 12 public actions and NextAuth `authorize`
+  - fails open when BotID itself errors
+  - Deep Analysis is a Vercel dashboard setting; confirm it's on.
+- [x] Remove reCAPTCHA: the code (`939330e`) and the dependency (`9d1fdf3`); the build passes and no page or chunk references it. Remove `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` and `RECAPTCHA_SECRET_KEY` from Vercel.
+- [x] Switch BotID from log to block (`debfe54`, by decision, without the log week)
+- [x] Rebuild and confirm the manifest lists only `actions/` files across all pages (checked after every commit)
+- [x] Unknown URLs answer 404 instead of redirecting to `/login`; `/.well-known/*` answers 404; `llms.txt` added; the sitemap lists only URLs that answer 200
 
-Open question: which Vercel region the main site's functions run in, and which region the Supabase project is in.
+### Later
+
+- [ ] Remove the payment transition code after 2026-10-09: `acceptedChargeAmounts` and `LEGACY_CHARGE_CUTOFF` in `utils/tax.ts`, and every line marked `remove after` in the Tabby and Moyasar checks and the mobile confirm/result routes
+- [ ] Search the logs for past abuse of the old exposed actions (`removeUnverifiedUsers`, `getAllUsers`, `getBankAccountByAuthor` and the others in section 1)
+- [ ] Per-phone rate limiting for OTP sends and coupon attempts:
+  - the `RateLimit` model is in the schema; the migration and `pg_cron` cleanup are still to do
+  - wire `lib/rate-limit.ts` into the actions
+  - per-IP limit for `chatAttachment`
+- [ ] Random public token for guest links (`selectSession`, `submitScaleResult`), instead of trusting a bare id
+- [ ] Pixels into GTM, plus a purchase `dataLayer` event (push 2 plan):
+  - remove the Meta, Snap and X pixels from the code
+  - page-view tags on a History Change trigger
+  - clean up the stale GTM triggers
+- [ ] Check the Vercel function region against the Supabase region
+- [ ] `Header`: move `"use client"` down to the menus (perf B3)
+- [ ] `createAction` migration:
+  - rebuild `actions/` with `createAction` and `useAction`
+  - the `bot` option
+  - `auth()` wrapped in React `cache()`
+  - the role read from the session
+  - the guest booking action with a public order token and pending-order expiry
+- [ ] Vercel Firewall rules: Log mode first, review traffic, then Deny
+
+Also still open from the original plan:
+
+- [ ] `import "server-only"` in the remaining files: 4 in `data/`, 2 in `handlers/`, about 30 in `lib/`. None is `"use server"`, so nothing is exposed.
+- [ ] Auth: refresh the role (and banned status) in the NextAuth `jwt` callback every 5 minutes
+- [ ] Reset and verify pages: exchange the URL token for an httpOnly cookie and redirect to a clean URL
+- [ ] Mobile: app attestation for the OTP and booking API routes (BotID doesn't cover native apps); rate limits through the route wrappers; review Better Auth `set-password`
+- [ ] Move `Pay`'s pricing into `services/pricing.ts`
+- [ ] Order-card refund button: remove it or turn it into a refund request
+- [ ] Map the dashboard codebase with the same read-only prompt
+- [ ] Click through every form and mutation on a preview deployment (test lists in `docs/progress.md`)

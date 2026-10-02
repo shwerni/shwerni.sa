@@ -18,6 +18,14 @@ Current work: the Server Actions security refactor in `docs/security-refactor.md
 
 Follow the "Code style" section of `docs/refactor-playbook.md`: lowercase comments, grouped import headers in its order, kebab-case files, named component exports.
 
+## Rules for new code
+
+- **Database queries live in `data/`**, and every file there starts with `import "server-only"`.
+- **Only `actions/` holds functions the client can call** (`"use server"`). Each one checks the session, the role and ownership before it does anything else.
+- **Public actions call `checkHuman`** (`lib/bot-protection.ts`) first, and return the action's existing failure result when it's false.
+- **Never trust ids, prices or user ids from the client.** Take the user from the session, look up the owner from the database, and compute prices on the server.
+- **Before every push**, run the manifest check from "After every phase".
+
 ## Decisions that override the plan
 
 - **Bot protection is Vercel BotID**, not reCAPTCHA or Turnstile. reCAPTCHA removal is its own phase (files listed in section 9 of the plan); don't mix it into other phases.

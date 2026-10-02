@@ -1881,3 +1881,63 @@ On Vercel the shell is served from the edge cache and the dynamic part streams p
 - A campaign card, when one is active, appears a moment later above the categories.
 - The join banner (logged out) streams in at the bottom.
 - The carousels start moving when scrolled into view, from their first slide.
+
+## 2026-10-02 · Phase complete
+
+The Server Actions security refactor phase is complete. The remaining work is in the "Later" list in section 9 of `docs/security-refactor.md` and `docs/refactor-playbook.md`.
+
+**What the phase delivered**
+
+- **Audit:** `docs/reference/server-surface.md` and `docs/reference/project-map.md`.
+- **Hotfix tiers 1–5:**
+  - the account takeover chain and account edits
+  - `server-only` for server-only callers
+  - `actions/` wrappers with the same signatures and return shapes
+  - the open routes (meeting chats, uploadthing delete, pusher auth)
+  - Tabby verification and the cancel page
+- **Follow-ups:**
+  - OTP attempt limit
+  - Moyasar verification
+  - chat uploads
+  - `getPaidPast3Days` masking
+  - the cancel page guard
+  - one integer tax calculation (`withTax`), with a payment transition until 2026-10-09
+- **Cleanup:**
+  - dead code removed
+  - date helpers in `utils/date.ts`
+  - merged route factories
+  - the article AI feature removed
+  - crons share `isCronRequest` and reject an unset `CRON_SECRET`
+- **Bot protection:**
+  - Google reCAPTCHA removed
+  - Vercel BotID in block mode on 12 public actions and NextAuth `authorize`
+  - each blocked action returns its existing failure result
+  - BotID errors fail open
+  - the chat-bot cap is keyed on the session or the IP
+- **Performance (home, mobile):**
+  - up-front JS from 1,565 KB / 477 KB gzipped to about 935 KB / 286 KB
+  - first-load image bytes on mobile from 418 KB to 67 KB
+  - the home page's static parts (header and hero) in the prerendered shell
+  - carousels autoplay only while visible
+  - the rating CSS inside the main stylesheet
+- **Discoverability and routing:**
+  - `llms.txt`
+  - `/.well-known/*` and unknown URLs answer 404
+  - the sitemap lists only URLs that answer 200
+
+**State at the end of the phase** (`main`, after `2e8a33b`)
+
+- `npm run build` on a clean tree with `.next` deleted passes (139/139).
+- The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`, both `"use cache"` registrations.
+- No `"use server"` in `lib/`, `data/` or `handlers/`. The only `"use server"` outside `actions/` is `app/(pages)/(consultants)/dashboard/programs/[prid]/page.tsx`, a known item.
+- No prerendered or cached output contains session data (scan of 893 prerendered files and `.next/cache`).
+- `CLAUDE.md` has a "Rules for new code" section for work after this phase.
+
+**Outside the repo**
+
+- Vercel env:
+  - remove `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`, `RECAPTCHA_SECRET_KEY` and `GEMINI_APIKEY`
+  - make sure `MOYASAR_WEBHOOK_SECRET` and `CRON_SECRET` are set
+- Vercel dashboard: confirm BotID Deep Analysis is on.
+- On 2026-10-09 or later: remove the payment transition code (first "Later" item).
+- Preview checks before each push: the test lists in the entries above. Check especially the logged-in header with two accounts, unknown URL → 404, the BotID logs (`isBot=false` for real users), and the payment redirects.
