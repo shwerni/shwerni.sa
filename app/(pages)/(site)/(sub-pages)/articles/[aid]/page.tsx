@@ -22,8 +22,14 @@ import { cacheLife } from "next/cache";
 // lib
 import { userServer } from "@/lib/auth/server";
 
+// seo
+import { JsonLd } from "@/components/seo/json-ld";
+import { breadcrumbList } from "@/components/seo/breadcrumbs";
+import { organizationId } from "@/components/seo/site-json-ld";
+
 // constants
 import { mainRoute } from "@/constants/links";
+import { defaultMetaApi } from "@/constants";
 
 // props
 interface Props {
@@ -51,15 +57,18 @@ const getProcessedArticle = async (aid: number) => {
   };
 };
 
+// meta data seo: extends defaultMetaApi (root layout); the title template adds "| شاورني".
+// a missing article (404) gets no metadata
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // aid
   const { aid } = await params;
+  const aidN = Number(aid);
 
   // get article
-  const result = await getProcessedArticle(Number(aid));
+  const result = await getProcessedArticle(aidN);
 
   // validate
-  if (!result) return { title: "المقال غير موجود" };
+  if (!result) return {};
 
   const { article, plainText } = result;
   const writer = article.consultant?.name ?? "مستشارين شاورني";
@@ -70,10 +79,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // SEO: specialty keywords
   const keywords = article.specialties.map((s) => s.specialty.name).join(", ");
 
-  const canonicalUrl = `${mainRoute}articles/${aid}`;
+  // the clean url, never with query params
+  const canonicalUrl = `${mainRoute}articles/${aidN}`;
 
   return {
-    title: `${article.title} | شاورني - المدونة`,
+    title: article.title,
     description,
     keywords,
     authors: [{ name: writer }],
@@ -83,20 +93,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
 
     openGraph: {
+      ...defaultMetaApi.openGraph,
       title: `${article.title} | شاورني`,
       description,
       type: "article",
       url: canonicalUrl,
-      locale: "ar_SA",
-      siteName: "شاورني",
-      images: [
-        {
-          url: article.image,
-          width: 1200,
-          height: 630,
-          alt: article.title,
-        },
-      ],
+      images: [{ url: article.image, alt: article.title }],
       // SEO: article-specific OG fields
       publishedTime: article.created_at.toISOString(),
       authors: [writer],
@@ -104,19 +106,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
 
     twitter: {
-      card: "summary_large_image",
+      ...defaultMetaApi.twitter,
       title: `${article.title} | شاورني`,
       description,
-      images: [article.image],
-    },
-
-    icons: `${mainRoute}favicon.ico`,
-
-    // SEO: robots directive
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: { index: true, follow: true },
+      images: [{ url: article.image, alt: article.title }],
     },
   };
 }
@@ -144,30 +137,38 @@ export default async function Page({ params }: Props) {
   // user liked
   const like = await getArticleLikes(articleId, userId);
 
-  // seo
-  const writer = result.article.consultant?.name ?? "مستشارين شاورني";
-  // jsonLd
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    headline: result.article.title,
-    image: result.article.image,
-    datePublished: result.article.created_at.toISOString(),
-    author: { "@type": "Person", name: writer },
-    publisher: {
-      "@type": "Organization",
-      name: "شاورني",
-      logo: { "@type": "ImageObject", url: `${mainRoute}layout/logo.png` },
-    },
-    description: result.plainText.slice(0, 160),
-    url: `${mainRoute}articles/${aid}`,
-  };
+  // structured data: the article and the breadcrumb trail
+  const url = `${mainRoute}articles/${articleId}`;
+  const { article } = result;
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Article",
+              "@id": `${url}#article`,
+              headline: article.title,
+              description: result.plainText.slice(0, 160).trimEnd(),
+              image: article.image,
+              datePublished: article.created_at.toISOString(),
+              // the consultant who wrote it, or shwerni when there is none
+              author: article.consultant?.name
+                ? { "@type": "Person", name: article.consultant.name }
+                : { "@id": organizationId },
+              publisher: { "@id": organizationId },
+              inLanguage: "ar-SA",
+              url,
+              mainEntityOfPage: url,
+            },
+            breadcrumbList([
+              { name: "مدونة المستشارين", path: "articles" },
+              { name: article.title, path: `articles/${articleId}` },
+            ]),
+          ],
+        }}
       />
       <Article
         article={result.article}
