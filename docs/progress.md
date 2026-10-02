@@ -1756,3 +1756,31 @@ Consultant photos are unchanged and not counted.
 | 12 | any site page | send a chat message | `SendChatBot` |
 
 Also check `/discover`, `/instant` and `/marriage-awareness`, which all go through `Pay`. Confirm that no page requests `recaptcha` (network tab), and that there are no `error=fail-open` lines.
+
+## 2026-10-02 · reCAPTCHA removal finished: dependency, Pay toasts, build
+
+Ziad discarded the local `package.json` changes, so the tree is clean and builds again.
+
+| Commit | Item |
+|---|---|
+| `9d1fdf3` | `npm uninstall react-google-recaptcha-v3`. That also removes `hoist-non-react-statics`, which only the reCAPTCHA package used. The lockfile also gains `hasInstallScript: true` for the existing `postinstall`. |
+| `a8c9604` | Discover, instant, marriage awareness and programs now show a `Pay` failure the same way the consultant booking form does. It's the same block: `toast.error` with `result.message`, or its generic fallback. Before, these forms ignored the result, so any failure, a BotID block included, showed nothing. On success `Pay` still redirects; Next rejects the action promise with the redirect, so the toast never runs on success. |
+
+**Verified**
+
+- `npm run build` on a clean tree with `.next` deleted passes (139/139) after `9d1fdf3` and again after `a8c9604`. These are the first builds that include `939330e` (reCAPTCHA removed) and `debfe54` (block mode).
+- The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`, both `"use cache"` registrations.
+- No `"use server"` in `lib/`, `data/` or `handlers/`. `tsc --noEmit --incremental false`: 0 errors.
+- No client chunk, prerendered page or server file in `.next` contains "recaptcha".
+- Home JS up front: 935 KB raw / 285 KB gzipped. `/login`: 1,376 / 374.
+- Section 9 of both refactor docs: reCAPTCHA removal ticked, and the switch to block ticked (log week skipped by decision).
+
+**Still to do outside the repo**
+
+- Remove `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` and `RECAPTCHA_SECRET_KEY` from Vercel.
+- If a preview still loads `recaptcha__en.js`, it comes from the GTM container (`GTM-5TGBGMNN`).
+
+**Needs testing on a preview**
+
+- The 13-row table in the previous entry.
+- Book once each on `/discover`, `/instant`, `/marriage-awareness` and `/programs/reserve/[prid]`; each should redirect to payment.
