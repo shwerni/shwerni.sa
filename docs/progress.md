@@ -1941,3 +1941,25 @@ The Server Actions security refactor phase is complete. The remaining work is in
 - Vercel dashboard: confirm BotID Deep Analysis is on.
 - On 2026-10-09 or later: remove the payment transition code (first "Later" item).
 - Preview checks before each push: the test lists in the entries above. Check especially the logged-in header with two accounts, unknown URL → 404, the BotID logs (`isBot=false` for real users), and the payment redirects.
+
+## 2026-10-02 · React #418 on the home page (`6f90c56`)
+
+**Cause:** the statistics counter (`components/clients/home/statistics/counter.tsx`) formatted its number with `toLocaleString(undefined, …)`, so it used the runtime's default locale.
+- The server (Node, Vercel included) uses `en-US`: `0`, `0.0`.
+- An Arabic-locale browser uses Arabic-Indic digits: `٠`, `٠٫٠`.
+- The hydration text differed for every Arabic-locale visitor.
+
+This was not caused by round 1: the server rendered `en-US` digits before too. Round 1 only made the counter part of the prerendered shell.
+
+**Fix:** the first render uses `en-US` on both sides. The visitor's locale applies right after hydration through `useSyncExternalStore` (server snapshot `false`, client snapshot `true`). The digits users end up seeing are unchanged.
+
+**Verified**
+
+- Reproduced with a local production build and headless Chrome driven over the DevTools protocol:
+  - With `Emulation.setLocaleOverride('ar-SA')`, `/` threw `Minified React error #418 (args[]=text)` from `3uqvlhpmcva8t.js`.
+  - With `en-US`, no error.
+- After the fix, `ar-SA` (twice) and `en-US` show no React errors. The counters read `٠+ ٠+ ٠٫٠/5` in Arabic and `0+ 0+ 0.0/5` in English after hydration, the same as before.
+- No React errors in `ar-SA` on `/consultants`, `/consultants/513`, `/articles`, `/programs`, `/freesessions`, `/discover`, `/instant` and `/scales`. Two 504s were the local image optimizer fetching remote uploadthing images.
+- `npm run build` on a clean tree with `.next` deleted passes. The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`, and there's no `"use server"` in `lib/`, `data/` or `handlers/`.
+
+**Note:** `components/ui/calendar.tsx` (booking date picker) also formats with the browser's default locale. It isn't on the home page, and no error showed on the booking pages tested.
