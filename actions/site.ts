@@ -67,8 +67,8 @@ export async function toggleArticleLike(
 export async function addArticleComment(
   ...[input]: Parameters<typeof addArticleCommentData>
 ) {
-  // log mode: records the botid verdict, never blocks
-  await checkHuman("addArticleComment");
+  // a bot gets the failure result this action already returns
+  if (!(await checkHuman("addArticleComment"))) return { success: false };
   const user = await sessionUser();
   return addArticleCommentData({ ...input, author: user?.id ?? undefined });
 }
@@ -79,8 +79,8 @@ export async function addArticleComment(
 export async function applyCoupon(
   ...[, code, cid]: Parameters<typeof applyCouponData>
 ) {
-  // log mode: records the botid verdict, never blocks
-  await checkHuman("applyCoupon");
+  // a bot gets the failure result this action already returns
+  if (!(await checkHuman("applyCoupon"))) return { state: false, message: "عذراً، الكود الذي أدخلته غير صحيح." };
   const user = await sessionUser();
   return applyCouponData(user?.id ?? "temp", code, cid);
 }
@@ -180,8 +180,8 @@ export async function selectSession(
 export async function acceptNewreview(
   ...[cid, owner, , name, comment, rate]: Parameters<typeof acceptNewreviewData>
 ) {
-  // log mode: records the botid verdict, never blocks
-  await checkHuman("acceptNewreview");
+  // a bot gets the failure result this action already returns
+  if (!(await checkHuman("acceptNewreview"))) return null;
   const user = await sessionUser();
   return acceptNewreviewData(cid, owner, user?.id ?? "guest", name, comment, rate);
 }

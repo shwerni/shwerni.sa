@@ -6,9 +6,10 @@ import { headers } from "next/headers";
 // packages
 import { checkBotId } from "botid/server";
 
-// "log" records every verdict and never blocks; "enforce" is a later phase
-// (each action then needs its own failure result, see docs/progress.md)
-export const BOTID_MODE: "log" | "enforce" = "log";
+// "block": a bot verdict makes checkHuman return false and the action returns its existing
+// failure result (table in docs/progress.md). "log" records verdicts without blocking.
+// every call is logged in both modes
+export const BOTID_MODE: "log" | "block" = "block";
 
 type Verdict = Awaited<ReturnType<typeof checkBotId>> | null;
 
@@ -32,8 +33,8 @@ async function verdict(): Promise<Verdict> {
   return pending;
 }
 
-// true when the request may go on. the calling page must match a path in utils/bot-protection.ts.
-// fails open: if botid itself errors, the request goes through
+// true when the request may go on: a human, or "log" mode. the calling page must match a path
+// in utils/bot-protection.ts. fails open: if botid itself errors, the request goes through
 export async function checkHuman(action: string): Promise<boolean> {
   const result = await verdict();
 

@@ -29,8 +29,8 @@ export async function SendChatBot(
   _user?: unknown,
   consultant?: Parameters<typeof SendChatBotApi>[4],
 ) {
-  // log mode: records the botid verdict, never blocks
-  await checkHuman("SendChatBot");
+  // a bot gets the failure result this action already returns
+  if (!(await checkHuman("SendChatBot"))) return "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى.";
   const user = await sessionUser();
   const cap = user
     ? { key: `user:${user.id}`, limit: BOT_DAILY_LIMIT }

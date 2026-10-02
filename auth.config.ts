@@ -18,9 +18,9 @@ export default {
   providers: [
     Credentials({
       async authorize(credentials) {
-        // log mode: records the botid verdict, never blocks. covers direct posts to
+        // a bot gets null, the same as wrong credentials. covers direct posts to
         // /api/auth/callback/credentials, which skip the login action
-        await checkHuman("nextauth-credentials");
+        if (!(await checkHuman("nextauth-credentials"))) return null;
 
         const validatedFields = LogInSchema.safeParse(credentials);
 

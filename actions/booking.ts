@@ -15,8 +15,8 @@ import { sessionUser } from "@/lib/auth/guards";
 
 // public: web booking and payment redirect
 export async function Pay(...[data]: Parameters<typeof PayHandler>) {
-  // log mode: records the botid verdict, never blocks
-  await checkHuman("Pay");
+  // a bot gets the failure result this action already returns
+  if (!(await checkHuman("Pay"))) return { state: false, message: "تعذّر إتمام العملية، برجاء المحاولة لاحقاً" };
   const user = await sessionUser();
   // guests: the forms send "temp" (discover sends "")
   const guest = data.user === "" ? "" : "temp";
@@ -27,8 +27,8 @@ export async function Pay(...[data]: Parameters<typeof PayHandler>) {
 export async function confirmFreeSession(
   ...[data]: Parameters<typeof confirmFreeSessionHandler>
 ) {
-  // log mode: records the botid verdict, never blocks
-  await checkHuman("confirmFreeSession");
+  // a bot gets the failure result this action already returns
+  if (!(await checkHuman("confirmFreeSession"))) return;
   const user = await sessionUser();
   return confirmFreeSessionHandler({ ...data, user: user?.id ?? "temp" });
 }
@@ -37,8 +37,8 @@ export async function confirmFreeSession(
 export async function confirmReconciliation(
   ...[, ...rest]: Parameters<typeof confirmReconciliationHandler>
 ) {
-  // log mode: records the botid verdict, never blocks
-  await checkHuman("confirmReconciliation");
+  // a bot gets the failure result this action already returns
+  if (!(await checkHuman("confirmReconciliation"))) return { state: false, message: "حدث حطأ ما برجاء المحاولة مرة اخري" };
   const user = await sessionUser();
   return confirmReconciliationHandler(user?.id ?? undefined, ...rest);
 }

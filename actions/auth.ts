@@ -25,15 +25,15 @@ import { checkHuman } from "@/lib/bot-protection";
 
 // public: credentials check
 export async function login(...args: Parameters<typeof loginHandler>) {
-  // log mode: records the botid verdict, never blocks
-  await checkHuman("login");
+  // a bot gets the failure result this action already returns
+  if (!(await checkHuman("login"))) return { state: false, message: "حدث حطأ ما" };
   return loginHandler(...args);
 }
 
 // public: account creation, then otp
 export async function register(...args: Parameters<typeof registerHandler>) {
-  // log mode: records the botid verdict, never blocks
-  await checkHuman("register");
+  // a bot gets the failure result this action already returns
+  if (!(await checkHuman("register"))) return { state: false, message: "حدث حطأ ما" };
   return registerHandler(...args);
 }
 
@@ -41,8 +41,8 @@ export async function register(...args: Parameters<typeof registerHandler>) {
 export async function forgetpassowrd(
   ...args: Parameters<typeof forgetpassowrdHandler>
 ) {
-  // log mode: records the botid verdict, never blocks
-  await checkHuman("forgetpassowrd");
+  // a bot gets the failure result this action already returns
+  if (!(await checkHuman("forgetpassowrd"))) return { state: false, message: "حدث خطأ ما برجاء اعادة المحاولة" };
   return forgetpassowrdHandler(...args);
 }
 
@@ -64,8 +64,8 @@ export async function verifyToken(
 export async function phoneToken(
   ...args: Parameters<typeof phoneTokenHandler>
 ) {
-  // log mode: records the botid verdict, never blocks
-  await checkHuman("phoneToken");
+  // a bot gets the failure result this action already returns
+  if (!(await checkHuman("phoneToken"))) return;
   return phoneTokenHandler(...args);
 }
 
@@ -87,7 +87,7 @@ export async function userPasswrodChange(
 export async function unauthorizedPhoneChangeByToken(
   ...args: Parameters<typeof unauthorizedPhoneChangeByTokenHandler>
 ) {
-  // log mode: records the botid verdict, never blocks
-  await checkHuman("unauthorizedPhoneChangeByToken");
+  // a bot gets the failure result this action already returns
+  if (!(await checkHuman("unauthorizedPhoneChangeByToken"))) return { state: false, message: "حدث حطأ ما" };
   return unauthorizedPhoneChangeByTokenHandler(...args);
 }
