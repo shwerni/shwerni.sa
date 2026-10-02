@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import Footer from "@/components/clients/footer";
 import Header from "@/components/clients/header/header";
 import ChatButton from "@/components/clients/bot/button";
+import { SiteJsonLd } from "@/components/seo/site-json-ld";
 
 // lib
 import { userServer } from "@/lib/auth/server";
@@ -20,6 +21,8 @@ export default function RootLayout({
 
   return (
     <div className="flex flex-col justify-between min-h-screen">
+      {/* organization and website structured data, once for every site page */}
+      <SiteJsonLd />
       <div>
         {/* header */}
         <Header userPromise={user} />
