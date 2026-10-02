@@ -1,5 +1,4 @@
 // packages
-import "@smastrom/react-rating/style.css";
 import { Rating, RoundedStar } from "@smastrom/react-rating";
 
 // props

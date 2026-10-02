@@ -5,7 +5,6 @@ import React from "react";
 
 // packages
 import { z } from "zod";
-import "@smastrom/react-rating/style.css";
 import { useForm } from "react-hook-form";
 import { Rating } from "@smastrom/react-rating";
 import { zodResolver } from "@hookform/resolvers/zod";
