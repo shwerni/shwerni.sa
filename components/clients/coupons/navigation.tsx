@@ -35,7 +35,7 @@ const CouponsNavigation = ({ current, total, pages }: Props) => {
         <PaginationContent>
           {current > 2 && (
             <>
-              <Button onClick={() => setPage(page - 1)} variant="outline">
+              <Button aria-label="الصفحة السابقة" onClick={() => setPage(page - 1)} variant="outline">
                 <ChevronLeftIcon />
               </Button>
               <PaginationItem>
@@ -65,7 +65,7 @@ const CouponsNavigation = ({ current, total, pages }: Props) => {
               <PaginationItem>
                 <PaginationEllipsis />
               </PaginationItem>
-              <Button onClick={() => setPage(page + 1)} variant="outline">
+              <Button aria-label="الصفحة التالية" onClick={() => setPage(page + 1)} variant="outline">
                 <ChevronRightIcon />
               </Button>
             </>

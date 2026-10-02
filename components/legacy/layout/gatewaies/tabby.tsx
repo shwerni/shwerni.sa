@@ -73,6 +73,7 @@ export const TabbyPromoScript = ({
         }}
       />
       <Button
+        aria-label="معلومات التقسيط عبر تابي"
         type="button"
         variant="ghost"
         data-tabby-info="installments"

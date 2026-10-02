@@ -387,6 +387,7 @@ export default function ChatClient({
           )}
 
           <Button
+            aria-label="المزيد من الخيارات"
             variant="ghost"
             size="icon"
             className="hidden sm:flex text-slate-400"

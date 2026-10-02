@@ -42,7 +42,7 @@ const Navigation = ({ current, total, pages }: Props) => {
           {current > 2 && (
             <>
               {/* previous button */}
-              <Button onClick={() => setPage(page - 1)} variant="outline">
+              <Button aria-label="الصفحة السابقة" onClick={() => setPage(page - 1)} variant="outline">
                 <ChevronLeftIcon />
               </Button>
               {/* previous ellipsis */}
@@ -78,7 +78,7 @@ const Navigation = ({ current, total, pages }: Props) => {
                 <PaginationEllipsis />
               </PaginationItem>
               {/* next button */}
-              <Button onClick={() => setPage(page + 1)} variant="outline">
+              <Button aria-label="الصفحة التالية" onClick={() => setPage(page + 1)} variant="outline">
                 <ChevronRightIcon />
               </Button>
             </>

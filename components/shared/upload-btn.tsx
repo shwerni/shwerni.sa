@@ -112,6 +112,7 @@ export function UploadField<T extends FieldValues>({
         {/* Clear button */}
         {done && !uploading && (
           <button
+            aria-label="إزالة الملف"
             type="button"
             onClick={clearUpload}
             className="absolute right-2 top-2 rounded-full p-0.5 text-gray-400 transition-colors hover:text-red-500"

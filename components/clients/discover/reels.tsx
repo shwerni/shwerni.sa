@@ -191,6 +191,7 @@ export default function Reels({
       {/* top bar */}
       <div className="shrink-0 bg-white border-b border-gray-100 px-5 py-3 flex items-center justify-between z-30">
         <button
+          aria-label="رجوع"
           type="button"
           onClick={onBack}
           className="w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"

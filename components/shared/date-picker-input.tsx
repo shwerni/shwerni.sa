@@ -66,6 +66,7 @@ export const DatePicker = ({ setDate, lang, date, disabled }: Props) => {
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild disabled={disabled}>
           <Button
+            aria-label="اختر التاريخ"
             variant="ghost"
             className={cn(
               "absolute top-1/2 right-2 -translate-y-1/2 p-1",

@@ -29,6 +29,7 @@ export default function AttachmentPreview({ file, onRemove }: Props) {
       )}
       <span className="max-w-35 truncate">{file.name}</span>
       <Button
+        aria-label="إزالة المرفق"
         type="button"
         variant="ghost"
         size="icon"

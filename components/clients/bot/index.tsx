@@ -287,6 +287,7 @@ const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
             dir="rtl"
           />
           <Button
+            aria-label="إرسال الرسالة"
             onClick={handleSend}
             size="icon"
             disabled={isSending}

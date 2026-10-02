@@ -14,6 +14,7 @@ export default function TopBar({
     <div className="bg-white border-b border-gray-100 px-5 py-1.5 flex items-center gap-3">
       {onBack && (
         <button
+          aria-label="رجوع"
           type="button"
           onClick={onBack}
           className="w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors shrink-0"
