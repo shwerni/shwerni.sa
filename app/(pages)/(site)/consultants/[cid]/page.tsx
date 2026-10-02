@@ -25,8 +25,17 @@ import {
   Gender,
 } from "@/lib/generated/prisma/client";
 
+// seo
+import { JsonLd } from "@/components/seo/json-ld";
+import { breadcrumbList } from "@/components/seo/breadcrumbs";
+import { organizationId } from "@/components/seo/site-json-ld";
+
+// utils
+import { findCategory } from "@/utils";
+
 // constants
 import { mainRoute } from "@/constants/links";
+import { defaultMetaApi } from "@/constants";
 
 // props
 type Props = {
@@ -52,32 +61,19 @@ const isConsultantVisible = (
   consultant.statusA === ConsultantState.PUBLISHED &&
   !!consultant.status;
 
-// meta data seo
+// meta data seo: extends defaultMetaApi (root layout); the title template adds "| شاورني".
+// a consultant the page hides (404) gets no metadata
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { cid } = await params;
-  const consultant = await getCachedConsultant(Number(cid));
+  const cidN = Number(cid);
+  const consultant = await getCachedConsultant(cidN);
 
   if (!isConsultantVisible(consultant)) return {};
 
-  const isMale = consultant.gender === Gender.MALE;
-  const genderLabel = isMale ? "المستشار" : "المستشارة";
-  const genderImage = isMale ? "male" : "female";
-
-  const image = consultant.image?.trim()
-    ? consultant.image
-    : `${mainRoute}layout/${genderImage}.jpg`;
-
-  const fullName = `${genderLabel} ${consultant.name ?? ""}`;
-  const title = `شاورني - ${fullName}`;
-  const description = `احجز جلساتك مع ${fullName} عبر شاورني — دعم نفسي بسرية تامة وأسعار مناسبة، في أي وقت ومن أي مكان.`;
-
-  const ogImage = {
-    url: image,
-    alt: `صورة ${fullName}`,
-    type: "image/jpg",
-    width: 1200,
-    height: 630,
-  };
+  const { fullName, specialty, image, url } = consultantSeo(consultant, cidN);
+  const title = specialty ? `${fullName} — ${specialty}` : fullName;
+  const description = `احجز جلساتك مع ${fullName}${specialty ? `، ${specialty}،` : ""} عبر شاورني بسرية تامة وأسعار مناسبة، في أي وقت ومن أي مكان.`;
+  const ogImage = { url: image, alt: `صورة ${fullName}` };
 
   return {
     title,
@@ -93,24 +89,45 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       "family counseling",
       "Saudi therapy",
     ],
+    // the clean url: query params (e.g. ?collaboration=) never reach the canonical
+    alternates: { canonical: url },
     openGraph: {
-      title,
-      description,
+      ...defaultMetaApi.openGraph,
       type: "profile",
-      url: `${mainRoute}consultants/${cid}`,
-      siteName: "شاورني | Shwerni",
+      title: `${title} | شاورني`,
+      description,
+      url,
       images: [ogImage],
     },
     twitter: {
-      card: "summary_large_image",
-      title,
+      ...defaultMetaApi.twitter,
+      title: `${title} | شاورني`,
       description,
-      creator: "@shwernisa",
       images: [ogImage],
     },
-    icons: `${mainRoute}favicon.ico`,
   };
 }
+
+// name, specialty (the category label the profile shows), image and clean url, shared by
+// the metadata and the json-ld
+const consultantSeo = (
+  consultant: NonNullable<Awaited<ReturnType<typeof getCachedConsultant>>>,
+  cid: number,
+) => {
+  const isMale = consultant.gender === Gender.MALE;
+  const genderLabel = isMale ? "المستشار" : "المستشارة";
+  const image = consultant.image?.trim()
+    ? consultant.image
+    : `${mainRoute}layout/${isMale ? "male" : "female"}.jpg`;
+
+  return {
+    name: consultant.name ?? "",
+    fullName: `${genderLabel} ${consultant.name ?? ""}`,
+    specialty: findCategory(consultant.category)?.label,
+    image,
+    url: `${mainRoute}consultants/${cid}`,
+  };
+};
 
 // return
 const Page = async ({ params, searchParams }: Props) => {
@@ -129,43 +146,30 @@ const Page = async ({ params, searchParams }: Props) => {
   // if consultant refused, show 404 only
   if (!isConsultantVisible(consultant)) return <Error404 />;
 
-  // jsonb object
-  const isMale = consultant.gender === Gender.MALE;
-  const genderLabel = isMale ? "المستشار" : "المستشارة";
-  const image = consultant.image?.trim()
-    ? consultant.image
-    : `${mainRoute}layout/${isMale ? "male" : "female"}.jpg`;
-
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    name: `${genderLabel} ${consultant.name ?? ""}`,
-    image,
-    url: `${mainRoute}consultants/${cid}`,
-    jobTitle: "مستشار",
-    worksFor: {
-      "@type": "Organization",
-      name: "شاورني",
-      url: mainRoute,
-    },
-    offers: {
-      "@type": "Service",
-      name: "جلسة استشارية",
-      provider: {
-        "@type": "Person",
-        name: consultant.name ?? "",
-      },
-      areaServed: "SA",
-      availableLanguage: "Arabic",
-      url: `${mainRoute}consultants/${cid}`,
-    },
-  };
+  // structured data: the consultant and the breadcrumb trail
+  const seo = consultantSeo(consultant, cidN);
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Person",
+              "@id": `${seo.url}#person`,
+              name: seo.name,
+              ...(seo.specialty && { jobTitle: seo.specialty }),
+              image: seo.image,
+              url: seo.url,
+              worksFor: { "@id": organizationId },
+            },
+            breadcrumbList([
+              { name: "المستشارون", path: "consultants" },
+              { name: seo.name, path: `consultants/${cidN}` },
+            ]),
+          ],
+        }}
       />
       <div className="space-y-4">
         <div className="max-w-6xl mx-auto px-4 sm:px-5 space-y-6">
