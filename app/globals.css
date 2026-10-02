@@ -1,4 +1,7 @@
 @import "tailwindcss";
+/* star ratings (reviews, consultant cards): part of the main stylesheet, so a streamed suspense
+   boundary never waits on a separate css file before it is revealed */
+@import "@smastrom/react-rating/style.css";
 @plugin "tailwindcss-animate";
 
 /* ============================================================

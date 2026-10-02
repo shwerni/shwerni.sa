@@ -21,9 +21,6 @@ import TwitterPixel from "@/components/legacy/layout/scripts/ads/twitterPixel";
 
 // css
 import "@/app/globals.css";
-// star ratings (reviews, consultant cards): loaded with the main stylesheet so a streamed
-// suspense boundary never waits on a separate css file before it is revealed
-import "@smastrom/react-rating/style.css";
 
 // constants
 import { defaultMetaApi } from "@/constants";
