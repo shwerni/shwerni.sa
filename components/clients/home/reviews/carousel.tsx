@@ -14,6 +14,9 @@ import {
 } from "@/components/ui/carousel";
 import ReviewCard from "@/components/clients/shared/review-card";
 
+// hooks
+import { useAutoplayWhileVisible } from "@/hooks/use-autoplay-while-visible";
+
 // utils
 import { cn } from "@/utils/utils";
 
@@ -31,14 +34,17 @@ const ReviewsCarousel = ({ reviews }: Props) => {
   const [current, setCurrent] = React.useState(0);
   const [api, setApi] = React.useState<CarouselApi>();
 
-  // carousel auto scroll
+  // carousel auto scroll, only while the carousel is on screen
   const plugin = React.useRef(
     Autoplay({
       delay: 4500,
       stopOnInteraction: false,
       stopOnMouseEnter: false,
+      playOnInit: false,
     })
   );
+  // eslint-disable-next-line react-hooks/refs
+  useAutoplayWhileVisible(api, plugin.current);
 
   // on change
   React.useEffect(() => {

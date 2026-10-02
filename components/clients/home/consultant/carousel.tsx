@@ -9,10 +9,14 @@ import Autoplay from "embla-carousel-autoplay";
 // components
 import {
   Carousel,
+  CarouselApi,
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
 import ConsultantCard from "@/components/clients/shared/consultant-card";
+
+// hooks
+import { useAutoplayWhileVisible } from "@/hooks/use-autoplay-while-visible";
 
 // types
 import { ConsultantCard as ConsultantCardType } from "@/types/layout";
@@ -23,20 +27,26 @@ interface Props {
 }
 
 const ConsultantsCarousel = ({ consultants }: Props) => {
-  // carousel auto scroll
+  const [api, setApi] = React.useState<CarouselApi>();
+
+  // carousel auto scroll, only while the carousel is on screen
   const plugin = React.useRef(
     Autoplay({
       delay: 2700,
       stopOnInteraction: false,
       stopOnMouseEnter: false,
+      playOnInit: false,
     }),
   );
+  // eslint-disable-next-line react-hooks/refs
+  useAutoplayWhileVisible(api, plugin.current);
 
   return (
     <Carousel
       // eslint-disable-next-line react-hooks/refs
       plugins={[plugin.current]}
       opts={{ loop: true, direction: "rtl" }}
+      setApi={setApi}
     >
       <CarouselContent>
         {consultants.map((i) => (
