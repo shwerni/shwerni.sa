@@ -13,6 +13,10 @@ import CardSkeleton from "@/components/clients/shared/card-skeleton";
 import ConsultantsHeader from "@/components/clients/consultants/header";
 import Search from "@/components/clients/consultants/reservation/search";
 import Filter, { FilterContent } from "@/components/clients/consultants/filter";
+import { CollectionJsonLd } from "@/components/seo/collection-json-ld";
+
+// prisma types
+import { Categories, Gender } from "@/lib/generated/prisma/enums";
 
 // prisma data
 import { getSpecialties } from "@/data/specialties";
@@ -20,20 +24,25 @@ import { getConsultants } from "@/data/consultant";
 
 // constants
 import { mainRoute } from "@/constants/links";
+import { defaultMetaApi } from "@/constants";
 
-// meta data seo
+// meta data seo: extends defaultMetaApi (root layout); the title template adds "| شاورني"
+const title = "المستشارون";
+const fullTitle = `${title} | شاورني`;
+const description =
+  "احجز جلساتك مع أخصائيين نفسيين موثوقين عبر شاورني بسرية تامة وأسعار مناسبة. دعم نفسي بجودة عالية في أي وقت ومن أي مكان.";
+const url = `${mainRoute}consultants`;
 const ogImage = {
   url: `${mainRoute}meta/consultants.jpeg`,
-  alt: "شاورني - المستشارون",
+  alt: fullTitle,
   type: "image/jpeg",
-  width: 1200,
-  height: 630,
+  width: 1080,
+  height: 1350,
 };
 
 export const metadata: Metadata = {
-  title: "شاورني - المستشارون",
-  description:
-    "احجز جلساتك مع أخصائيين نفسيين موثوقين عبر شاورني بسرية تامة وأسعار مناسبة. دعم نفسي بجودة عالية في أي وقت ومن أي مكان.",
+  title,
+  description,
   keywords: [
     "المستشارون",
     "المستشارين",
@@ -51,28 +60,21 @@ export const metadata: Metadata = {
     "خبير نفسي",
     "استشارة فورية",
   ],
-  alternates: {
-    canonical: `${mainRoute}consultants`,
-  },
+  // the same canonical for every search, filter and page combination
+  alternates: { canonical: url },
   openGraph: {
-    title: "شاورني - المستشارون",
-    type: "website",
-    url: `${mainRoute}consultants`,
-    siteName: "شاورني | Shwerni",
-    locale: "ar_SA",
-    description:
-      "احجز جلساتك مع أخصائيين نفسيين موثوقين عبر شاورني بسرية تامة وأسعار مناسبة. دعم نفسي بجودة عالية في أي وقت ومن أي مكان.",
+    ...defaultMetaApi.openGraph,
+    title: fullTitle,
+    description,
+    url,
     images: [ogImage],
   },
   twitter: {
-    card: "summary_large_image",
-    title: "شاورني - المستشارون",
-    description:
-      "احجز جلساتك مع أخصائيين نفسيين موثوقين عبر شاورني بسرية تامة وأسعار مناسبة. دعم نفسي بجودة عالية في أي وقت ومن أي مكان.",
-    creator: "@shwernisa",
+    ...defaultMetaApi.twitter,
+    title: fullTitle,
+    description,
     images: [ogImage],
   },
-  icons: `${mainRoute}favicon.ico`,
 };
 
 // filter data type — trimmed to active filters only
@@ -158,8 +160,28 @@ const ConsultantsList = async ({
   // get consultants — arrays passed directly, no split() needed
   const data = await getConsultants(safe, search, "random", categories, gender);
 
+  // the item list describes the default list only: first page, no search, every gender and category
+  const isDefaultList =
+    !search &&
+    safe === 1 &&
+    gender.length === Object.values(Gender).length &&
+    categories.length === Object.values(Categories).length;
+
   return (
     <>
+      <CollectionJsonLd
+        path="consultants"
+        name={fullTitle}
+        description={description}
+        items={
+          isDefaultList
+            ? data.items.map((c) => ({
+                name: c.name,
+                path: `consultants/${c.cid}`,
+              }))
+            : undefined
+        }
+      />
       <Consultants consultants={data.items} />
       <Navigation pages={data.pages} current={data.page} total={data.total} />
     </>
