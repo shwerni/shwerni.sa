@@ -1963,3 +1963,54 @@ This was not caused by round 1: the server rendered `en-US` digits before too. R
 - `npm run build` on a clean tree with `.next` deleted passes. The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`, and there's no `"use server"` in `lib/`, `data/` or `handlers/`.
 
 **Note:** `components/ui/calendar.tsx` (booking date picker) also formats with the browser's default locale. It isn't on the home page, and no error showed on the booking pages tested.
+
+## 2026-10-02 · SEO: metadata and JSON-LD for the six main pages
+
+| Commit | Change |
+|---|---|
+| `b56f27a` | `schema-dts` dev dependency (types only, `import type`) |
+| `462557e` | Organization and WebSite JSON-LD once in the `(site)` layout; the old root-layout JSON-LD removed; real `public/apple-touch-icon.png` |
+| `eb4cffc` | No site-wide canonical in `defaultMetaApi`; `/` owns its canonical; `WebPage` JSON-LD on home |
+| `f97c04c` | `/consultants` |
+| `c345554` | `/programs` |
+| `f688d61` | `/articles` |
+| `382165b` | `/contact-us` |
+| `fee3476` | `/terms` |
+
+**What changed**
+
+- `components/seo/json-ld.tsx`: a server helper that renders `<script type="application/ld+json">` with `JSON.stringify(data).replace(/</g, "\\u003c")`, typed with `schema-dts`.
+  - `site-json-ld.tsx`: Organization and WebSite.
+  - `collection-json-ld.tsx`: CollectionPage, plus an ItemList when items are given.
+  - `page-json-ld.tsx`: WebPage or ContactPage.
+- Organization:
+  - `www` URL; logo `layout/logo.png` (750×225); image `layout/shwerni.jpg`.
+  - `sameAs` is built from the footer's `socialMedia` list, without WhatsApp and with tracking parameters stripped: X `@shwernisa`, Instagram `shwernisa`, TikTok `@shwerni`, Snapchat. The YouTube channel is only linked from the home video section, so it's not included.
+  - Address: Riyadh, SA. Contact: `+966554117879` and `support@shwerni.com` (all shown in the footer and on `/contact-us`).
+  - `knowsAbout`: the four categories offered (psychological, family and marital, legal, personal) plus two English terms.
+- WebSite: `inLanguage: "ar-SA"`, publisher is the Organization. No SearchAction.
+- The root layout's old JSON-LD is removed. It was on every page including login and dashboard, used the non-`www` domain, marked every page as the home `WebPage`, pointed its logo at a missing file, and had a `?q=` SearchAction that the filter doesn't read.
+- `defaultMetaApi` no longer sets `alternates` (canonical, hreflang) or `openGraph.url`. Before, every page without its own metadata declared the home page as its canonical. The default image is declared at its real 1080×1350.
+- Per page:
+  - Titles without the "شاورني -" prefix; the template adds "| شاورني" once.
+  - Each page has its own canonical and `og:url`. OG and Twitter extend the defaults.
+  - Image sizes are real: `consultants.jpeg` 1080×1350, `programs.png` 1080×1080.
+  - Wording fixes: "مدونة المستشارين", "الشروط والأحكام", and Arabic descriptions for articles and terms instead of the English stubs.
+  - `/contact-us` had no metadata at all. It now has a title (the footer label) and a description of what the page shows.
+- List pages:
+  - The canonical is the bare path for every search, filter, order and page combination.
+  - The ItemList is rendered only for the default list (page 1, no search, default order and filters), from the items actually rendered: position, name, URL. No prices and no ratings.
+- `/consultants` no longer overrides `icons`, so it gets the Apple touch icon.
+- `public/apple-touch-icon.png`: 180×180, the brand mark (`layout/logo-sm.png`) on white. `icons.apple` already pointed to this path, but the file didn't exist.
+
+**Verified**
+
+- After each commit: `npm run build` on a clean tree with `.next` deleted passes, the manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`, and there's no `"use server"` in `lib/`, `data/` or `handlers/`.
+- `next start`, all six pages: title, description, canonical, OG, Twitter and Apple icon are as listed above, and the JSON-LD parses.
+- The ItemList on `/consultants` has 9 items, `/programs` 7 and `/articles` 9. It's absent on `/consultants?search=x` and `?page=2`.
+- Pages outside the scope no longer declare the home page as their canonical.
+
+**Found, not changed (out of scope)**
+
+- `/scales` declares its canonical as `https://www.shwerni.sa/مقاييس`, a path that doesn't exist (`scales/metadata.ts`).
+- Detail and other pages still override `icons` with the favicon only, so they have no Apple icon: consultant, article and program details, event, instant, free sessions, meetings.

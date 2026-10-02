@@ -724,6 +724,8 @@ Phase complete on 2026-10-02 (see the final entry in `docs/progress.md`).
   - the role read from the session
   - the guest booking action with a public order token and pending-order expiry
 - [ ] Vercel Firewall rules: Log mode first, review traffic, then Deny
+- [ ] SEO: canonicals and JSON-LD for the sub-pages (consultant, article and program detail pages); also fix the `/scales` canonical (`/مقاييس`) and drop the `icons` overrides that hide the apple-touch-icon
+- [ ] Proper 1200×630 OG images for link previews (the current ones are 1080×1350 and 1080×1080)
 
 Also still open from the original plan:
 
