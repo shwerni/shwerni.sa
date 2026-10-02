@@ -9,15 +9,29 @@ import Articles from "@/components/clients/articles/list";
 import Navigation from "@/components/clients/articles/navigation";
 import CardSkeleton from "@/components/clients/shared/card-skeleton";
 import Filter, { FilterContent } from "@/components/clients/articles/filter";
+import { CollectionJsonLd } from "@/components/seo/collection-json-ld";
 
 // prisma data
 import { getArticles } from "@/data/article";
 import { getSpecialties } from "@/data/specialties";
 
-// meta data seo
+// constants
+import { defaultMetaApi } from "@/constants";
+import { mainRoute } from "@/constants/links";
+
+// meta data seo: extends defaultMetaApi (root layout); the title template adds "| شاورني"
+const title = "مدونة المستشارين";
+const fullTitle = `${title} | شاورني`;
+const description = "مدونة شاورني — مقالات المستشارين";
+const url = `${mainRoute}articles`;
+
 export const metadata: Metadata = {
-  title: "شاورني | مدونة المستشارون",
-  description: "shwerni Blogs - شاورني مدونة المستشارون",
+  title,
+  description,
+  // the same canonical for every search, order and page combination
+  alternates: { canonical: url },
+  openGraph: { ...defaultMetaApi.openGraph, title: fullTitle, description, url },
+  twitter: { ...defaultMetaApi.twitter, title: fullTitle, description },
 };
 
 // type
@@ -118,8 +132,22 @@ const ArticlesList = async ({
   // get articles
   const data = await getArticles(safe, search, orderby);
 
+  // the item list describes the default list only: first page, newest first, no search or filters
+  const isDefaultList =
+    !search && safe === 1 && (!orderby || orderby === "newest") && !specialties;
+
   return (
     <>
+      <CollectionJsonLd
+        path="articles"
+        name={fullTitle}
+        description={description}
+        items={
+          isDefaultList
+            ? data.items.map((a) => ({ name: a.title, path: `articles/${a.aid}` }))
+            : undefined
+        }
+      />
       <Articles articles={data.items} />
       <Navigation pages={data.pages} current={data.page} total={data.total} />
     </>
