@@ -1706,3 +1706,53 @@ Consultant photos are unchanged and not counted.
 
 - The 50 KB hero logo icon SVG (`/svg/shwerni-logo-icon.svg`, shown at 25 px) is now three quarters of the image bytes on a phone. A smaller file would help. Not changed.
 - PageSpeed should be re-run on the preview; the numbers above are build-output measurements.
+
+## 2026-10-02 · reCAPTCHA removed, BotID in block mode
+
+**Not built.** `package.json` and `package-lock.json` have uncommitted stash-pop conflict markers in the working tree (Ziad's changes; `package.txt` is staged). Both `npm run build` and `next build` fail to parse `package.json`, and those files weren't touched. By decision, the code was committed after `tsc --noEmit --incremental false` only (0 errors). The build, the manifest check and the dependency removal wait until `package.json` is valid again.
+
+**0. Coverage check: nothing missing, so no fix commit.**
+
+- The 12 actions and `nextauth-credentials` call `checkHuman`, and every page that calls them is covered by the single `"/*"` POST entry.
+- All 8 forms that had reCAPTCHA lead to an action with `checkHuman`: login, register, chat bot, the consultant, instant and free-session reservation forms, discover, and marriage awareness.
+
+**1. reCAPTCHA removed (`939330e`)**
+
+- Root layout: the `GoogleReCaptchaProvider` wrapper, which loaded the script on every page. `components/wrappers/recaptcha.tsx` is deleted.
+- Token generation and the client-side verify step in all 8 forms.
+- `verifyRecaptcha`: the public action in `actions/ai.ts`, `lib/api/recaptcha.ts`, and the client helper `handlers/admin/recaptcha.ts` (`runRecaptcha`) are deleted.
+- `app/globals.css`: the `.grecaptcha-badge` rule.
+- There were no `captchaToken` fields in schemas or action inputs, and there is no CSP.
+- Still to do once `package.json` is valid: `npm uninstall react-google-recaptcha-v3`. Nothing imports it any more.
+
+**2. Block mode (`debfe54`)**
+
+- `BOTID_MODE = "block"`. When `checkHuman` returns false, each action returns the failure from the enforce-mode table above, and `authorize` returns `null`.
+- Fail-open on BotID errors and the log line on every call are unchanged.
+- Note: four `Pay` callers ignore its result (discover, instant, marriage awareness, programs), so a blocked user there sees no message. That is the same as any other `Pay` failure on those forms today.
+
+**3. `recaptcha__en.js`**
+
+- No code loads it any more. The provider was the only loader; the remaining `<Script>`s are Tabby and the Meta, Snap and Twitter pixels.
+- If a preview still loads it (the "duplicate"), it comes from outside the repo, most likely a tag in the GTM container `GTM-5TGBGMNN`.
+
+**4. Env vars to remove from Vercel:** `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` and `RECAPTCHA_SECRET_KEY`. These are the only ones the code read.
+
+**Needs testing on a preview**, once a build passes. Submit each once as a real user. Expect `[botid] action=<name> mode=block isBot=false` in the logs and the form to succeed.
+
+| # | Page | Do | Log name |
+|---|---|---|---|
+| 1 | `/login` | log in with a verified account (NextAuth) | `login` then `nextauth-credentials` |
+| 2 | `/register` | register | `register` |
+| 3 | `/forget-password` | request a reset | `forgetpassowrd` |
+| 4 | `/account` (unverified phone) | press verify | `phoneToken` |
+| 5 | `/dashboard/profile` | change phone | `unauthorizedPhoneChangeByToken` |
+| 6 | `/consultants/[cid]` | book up to payment | `Pay` |
+| 7 | `/consultants/[cid]` | apply a coupon | `applyCoupon` |
+| 8 | `/consultants/[cid]` | post a review | `acceptNewreview` |
+| 9 | `/freesessions/consultants/[cid]` | book a free session | `confirmFreeSession` |
+| 10 | `/reconciliation` | submit | `confirmReconciliation` |
+| 11 | `/articles/[aid]` | comment | `addArticleComment` |
+| 12 | any site page | send a chat message | `SendChatBot` |
+
+Also check `/discover`, `/instant` and `/marriage-awareness`, which all go through `Pay`. Confirm that no page requests `recaptcha` (network tab), and that there are no `error=fail-open` lines.

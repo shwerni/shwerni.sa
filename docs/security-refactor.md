@@ -710,8 +710,8 @@ console.log(`[rateLimit] ${key} ${(performance.now() - t).toFixed(1)}ms`);
 - [x] Decide bot protection: Vercel BotID with Deep Analysis (Vercel Pro); reCAPTCHA dropped
 - [ ] Add `bot: "log" | "enforce"` to `createAction`; `instrumentation-client.ts`; `utils/bot-protection.ts` (not done: `lib/safe-action.ts` has no `bot` option, and no action uses `createAction` yet. `instrumentation-client.ts` and `utils/bot-protection.ts` were added on 2026-10-01 in `e3d76ec`; until then the actions call `checkHuman` from `lib/bot-protection.ts` directly)
 - [ ] Install `botid`, wrap `next.config` with `withBotId`, list real protected page paths, enable Deep Analysis (code done 2026-10-01, `e3d76ec`: protect list is `"/*"`, `checkHuman` in 12 actions plus NextAuth `authorize`; Deep Analysis is a dashboard step, still open)
-- [ ] Remove reCAPTCHA: `app/layout.tsx`, `components/wrappers/recaptcha.tsx`, `lib/api/recaptcha.ts`, login, register, bot component, discover, marriage-awareness form, consultant / free-session / instant reservation forms, `RECAPTCHA_*` env
-- [ ] Run protected actions with `bot: "log"` for a week, review the Firewall BotID view, then switch to `"enforce"`
+- [ ] Remove reCAPTCHA: `app/layout.tsx`, `components/wrappers/recaptcha.tsx`, `lib/api/recaptcha.ts`, login, register, bot component, discover, marriage-awareness form, consultant / free-session / instant reservation forms, `RECAPTCHA_*` env (code removed 2026-10-02 in `939330e`. Not ticked: no build could run, because `package.json` has uncommitted conflict markers in the working tree; the `react-google-recaptcha-v3` dependency and the `RECAPTCHA_*` env vars are still to remove)
+- [ ] Run protected actions with `bot: "log"` for a week, review the Firewall BotID view, then switch to `"enforce"` (switched to block on 2026-10-02 in `debfe54` by decision, without the log week. Not ticked until a build passes)
 - [ ] Write the guest booking action with `createAction`, public order token and pending-order expiry
 - [ ] Rebuild and confirm the manifest lists only `actions/` files, across all pages
 - [ ] Click through every form and mutation on a preview deployment
