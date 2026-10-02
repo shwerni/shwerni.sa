@@ -1,9 +1,9 @@
 // React & Next
 import { Metadata } from "next";
 import { connection } from "next/server";
+import { notFound } from "next/navigation";
 
 // components
-import Error404 from "@/components/shared/error-404";
 import Article from "@/components/clients/articles/article/article";
 
 // prisma data
@@ -128,8 +128,8 @@ export default async function Page({ params }: Props) {
   // get article
   const result = await getProcessedArticle(articleId);
 
-  // validate
-  if (!result) return <Error404 />;
+  // a missing or unpublished article answers 404 (the site not-found page)
+  if (!result) notFound();
 
   // increment
   await incrementArticleRead(articleId);

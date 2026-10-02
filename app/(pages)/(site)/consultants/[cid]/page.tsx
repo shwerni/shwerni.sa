@@ -2,9 +2,9 @@
 import { Metadata } from "next";
 import { Suspense } from "react";
 import { cacheLife } from "next/cache";
+import { notFound } from "next/navigation";
 
 // components
-import Error404 from "@/components/shared/error-404";
 import CardSkeleton from "@/components/clients/shared/card-skeleton";
 import CollaborationBadge from "@/components/shared/collaboration-badge";
 import Consultant from "@/components/clients/consultants/consultant/consultant";
@@ -143,8 +143,8 @@ const Page = async ({ params, searchParams }: Props) => {
   // consultant
   const consultant = await getCachedConsultant(cidN);
 
-  // if consultant refused, show 404 only
-  if (!isConsultantVisible(consultant)) return <Error404 />;
+  // a hidden or missing consultant answers 404 (the site not-found page)
+  if (!isConsultantVisible(consultant)) notFound();
 
   // structured data: the consultant and the breadcrumb trail
   const seo = consultantSeo(consultant, cidN);

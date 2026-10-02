@@ -2,6 +2,7 @@
 import { Metadata } from "next";
 import { Suspense } from "react";
 import { cacheLife } from "next/cache";
+import { notFound } from "next/navigation";
 
 // components
 import Program from "@/components/clients/programs/program/program";
@@ -94,6 +95,11 @@ const Page = async ({ params }: Props) => {
 
   // parse prid as number
   const pridN = Number(prid);
+
+  // a missing or unpublished program answers 404 (the site not-found page), checked here
+  // before anything streams; the Program component keeps its own check as a fallback
+  const program = await getProgramMetaData(pridN);
+  if (!program || program.status !== ProgramState.PUBLISHED) notFound();
 
   return (
     <div className="space-y-4">
