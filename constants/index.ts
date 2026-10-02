@@ -108,9 +108,11 @@ const siteHandle = "@shwernisa";
 const siteUrl = mainRoute;
 const ogImage = `${siteUrl}meta/shwerni.jpeg`;
 
-const title = "شاورني | منصة الاستشارات النفسية والأسرية";
-const description =
+export const siteTitle = "شاورني | منصة الاستشارات النفسية والأسرية";
+const title = siteTitle;
+export const siteDescription =
   "شاورني منصة سعودية تربطك بأفضل المستشارين بسرية وخصوصية تامة — احجز جلستك الآن.";
+const description = siteDescription;
 
 export const defaultMetaApi: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -178,16 +180,11 @@ export const defaultMetaApi: Metadata = {
     "منصة موثوقة للاستشارات",
   ],
 
-  alternates: {
-    canonical: siteUrl,
-    languages: {
-      "ar-SA": siteUrl,
-    },
-  },
+  // no alternates (canonical) or openGraph.url here: each page sets its own, so a page
+  // without one no longer declares the home page as its canonical
 
   openGraph: {
     type: "website",
-    url: siteUrl,
     siteName,
     locale: "ar_SA",
     title,
@@ -197,8 +194,8 @@ export const defaultMetaApi: Metadata = {
         url: ogImage,
         alt: `${siteName} - shwerni`,
         type: "image/jpeg",
-        width: 1200,
-        height: 630,
+        width: 1080,
+        height: 1350,
       },
     ],
   },
@@ -213,8 +210,8 @@ export const defaultMetaApi: Metadata = {
       {
         url: ogImage,
         alt: `${siteName} - shwerni`,
-        width: 1200,
-        height: 630,
+        width: 1080,
+        height: 1350,
       },
     ],
   },
