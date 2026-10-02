@@ -15,10 +15,39 @@ import CopyButton from "@/components/shared/copy-button";
 import Image from "next/image";
 import Link from "next/link";
 import { LinkButton } from "@/components/shared/link-button";
+import { PageJsonLd } from "@/components/seo/page-json-ld";
+
+// React & Next
+import type { Metadata } from "next";
+
+// constants
+import { defaultMetaApi } from "@/constants";
+import { mainRoute } from "@/constants/links";
+
+// meta data seo: extends defaultMetaApi (root layout); the title template adds "| شاورني"
+const title = "تواصل معنا";
+const fullTitle = `${title} | شاورني`;
+const description =
+  "الأسئلة الشائعة وطرق التواصل مع شاورني: واتساب والهاتف والبريد الإلكتروني";
+const url = `${mainRoute}contact-us`;
+
+export const metadata: Metadata = {
+  title,
+  description,
+  alternates: { canonical: url },
+  openGraph: { ...defaultMetaApi.openGraph, title: fullTitle, description, url },
+  twitter: { ...defaultMetaApi.twitter, title: fullTitle, description },
+};
 
 const Page = () => {
   return (
     <div className="max-w-3xl mx-auto space-y-8">
+      <PageJsonLd
+        type="ContactPage"
+        path="contact-us"
+        name={fullTitle}
+        description={description}
+      />
       {/* frequent questions */}
       <div className="space-y-4">
         <div className="flex flex-col items-center gap-5">
