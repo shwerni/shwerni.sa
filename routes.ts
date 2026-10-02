@@ -88,6 +88,27 @@ export const DynamicpublicRoutes = [
 ];
 
 /**
+ * private paths: logged-out visitors are redirected to /login. a path matches when it equals a
+ * prefix or continues it with "/". everything that is neither public nor listed here reaches
+ * next, so unknown urls get a real 404 instead of a redirect to /login.
+ * "/api" keeps every non-public api route behind a session, as before.
+ * @type {string[]}
+ */
+export const protectedPrefixes = [
+  // user pages
+  "/account",
+  "/favorite",
+  "/orders",
+  "/logout",
+  // reconciliation requests
+  "/reconciliation",
+  // consultant dashboard
+  "/dashboard",
+  // apis not listed as public above
+  "/api",
+];
+
+/**
  * routes which will be used for authentication actions
  * @type {string}
  */

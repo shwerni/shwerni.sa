@@ -3,6 +3,7 @@ import { getToken } from "next-auth/jwt";
 import {
   authRoutes,
   publicRoutes,
+  protectedPrefixes,
   apiAuthPrefix,
   DynamicpublicRoutes,
 } from "@/routes";
@@ -36,7 +37,14 @@ export async function proxy(req: NextRequest) {
   )
     return NextResponse.next();
 
-  // ✅ 3. only verify token when actually needed (auth + protected routes)
+  // ✅ 3. neither an auth route nor a private path: next answers (unknown urls get a 404)
+  const isAuthRoute = authRoutes.includes(pathname);
+  const isProtected = protectedPrefixes.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
+  if (!isAuthRoute && !isProtected) return NextResponse.next();
+
+  // ✅ 4. only verify token when actually needed (auth + protected routes)
   const token = await getToken({
     req,
     secret: process.env.AUTH_SECRET,
@@ -45,7 +53,6 @@ export async function proxy(req: NextRequest) {
   });
 
   const isLoggedIn = !!token;
-  const isAuthRoute = authRoutes.includes(pathname);
 
   if (isAuthRoute) {
     if (isLoggedIn) return NextResponse.redirect(new URL("/", nextUrl));
