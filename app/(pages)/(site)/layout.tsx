@@ -1,4 +1,7 @@
 // React & Next
+import { Suspense } from "react";
+
+// components
 import Footer from "@/components/clients/footer";
 import Header from "@/components/clients/header/header";
 import ChatButton from "@/components/clients/bot/button";
@@ -25,8 +28,11 @@ export default function RootLayout({
       </div>
       {/* footer */}
       <Footer />
-      {/* ai bot btn */}
-      <ChatButton />
+      {/* ai bot btn: it reads the current time while rendering (greeting timestamp), which
+          prerendering treats as request-time, so it streams in its own boundary */}
+      <Suspense fallback={null}>
+        <ChatButton />
+      </Suspense>
     </div>
   );
 }
