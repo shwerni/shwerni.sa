@@ -29,24 +29,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     },
     {
-      url: `${mainRoute}available`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
-      url: `${mainRoute}contact`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
-      url: `${mainRoute}consultant`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
       url: `${mainRoute}programs`,
       lastModified: now,
       changeFrequency: "monthly",
@@ -63,10 +45,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // data
   const { consultants, articles, programs } = data;
 
-  // dynamic routes
+  // dynamic routes (canonical paths: /consultant/:cid redirects to /consultants/:cid)
   const dynamicRoutes: MetadataRoute.Sitemap = [
     ...consultants.map((c) => ({
-      url: `${mainRoute}consultant/${c.cid}`,
+      url: `${mainRoute}consultants/${c.cid}`,
       lastModified: now,
       changeFrequency: "monthly" as const,
       priority: 0.7,

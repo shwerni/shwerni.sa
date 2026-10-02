@@ -4,6 +4,7 @@ import prisma from "@/lib/database/db";
 
 // prisma types
 import {
+  ApprovalState,
   ArticleState,
   ConsultantState,
   ProgramState,
@@ -27,11 +28,12 @@ export async function siteMapDynamic() {
       select: { aid: true, created_at: true, },
     });
 
-    // consultants
+    // consultants: the same visibility rule as /consultants/[cid], so no entry is a 404
     const consultants = await prisma.consultant.findMany({
       where: {
         status: true,
         statusA: ConsultantState.PUBLISHED,
+        approved: ApprovalState.APPROVED,
       },
       select: {
         cid: true,
