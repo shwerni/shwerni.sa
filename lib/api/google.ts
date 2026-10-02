@@ -1,5 +1,6 @@
 import "server-only";
 import { google } from "googleapis";
+import { cacheLife } from "next/cache";
 
 // get meetings
 function getMeetClient() {
@@ -45,38 +46,48 @@ type Video = {
 };
 
 export async function getYouTubeVideos(count: number = 5): Promise<Video[]> {
+  try {
+    return await fetchYouTubeVideos(count);
+  } catch {
+    // errors aren't cached, so the next request tries again
+    return [];
+  }
+}
+
+// cached for hours (revalidates hourly, like the old fetch revalidate: 3600), so the home
+// page doesn't wait on a live youtube api call. throws on failure so an empty list is never cached
+async function fetchYouTubeVideos(count: number): Promise<Video[]> {
+  "use cache";
+  cacheLife("hours");
+
   // security
   const API_KEY = process.env.YOUTUBE_API_KEY;
   const CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID;
 
   // get 5 videos from the channel
   const url = `https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&channelId=${CHANNEL_ID}&part=snippet,id&order=date&maxResults=${count}&type=video&videoDuration=short`;
-  try {
-    const res = await fetch(url, {
-      // revalidate every 1 hour (3600 seconds) so you don't waste API quota
-      next: { revalidate: 3600 },
-    });
+  const res = await fetch(url, {
+    // revalidate every 1 hour (3600 seconds) so you don't waste API quota
+    next: { revalidate: 3600 },
+  });
 
-    if (!res.ok) return [];
+  if (!res.ok) throw new Error(`youtube api ${res.status}`);
 
-    const data = await res.json();
+  const data = await res.json();
 
-    // transform data
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return data.items.map((item: any) => ({
-      id: item.id.videoId,
-      title: item.snippet.title
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .replace(/&amp;/g, "&"),
-      thumbnail: item.snippet.thumbnails.medium.url,
-      date: new Date(item.snippet.publishedAt).toLocaleDateString("ar-EG", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }),
-    }));
-  } catch {
-    return [];
-  }
+  // transform data
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return data.items.map((item: any) => ({
+    id: item.id.videoId,
+    title: item.snippet.title
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, "&"),
+    thumbnail: item.snippet.thumbnails.medium.url,
+    date: new Date(item.snippet.publishedAt).toLocaleDateString("ar-EG", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }),
+  }));
 }

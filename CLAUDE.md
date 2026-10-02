@@ -33,7 +33,7 @@ Follow the "Code style" section of `docs/refactor-playbook.md`: lowercase commen
 ## After every phase
 
 1. `npm run build` passes.
-2. The actions manifest exposes only `actions/` files. This should print only `"data/event.ts"` (its `"use cache"` registration, not a Server Action):
+2. The actions manifest exposes only `actions/` files. This should print only `"data/event.ts"` and `"lib/api/google.ts"` (their `"use cache"` registrations, `$$RSC_SERVER_CACHE_*`, not Server Actions):
    `grep -oE '"(data|handlers|lib)/[^"]*"' .next/server/server-reference-manifest.json | sort -u`
 3. Append to `docs/progress.md`: date, phase, files changed, what was verified, open questions.
 4. Tick the matching item in section 9 of `docs/security-refactor.md` only when 1 and 2 pass.
