@@ -2014,3 +2014,65 @@ This was not caused by round 1: the server rendered `en-US` digits before too. R
 
 - `/scales` declares its canonical as `https://www.shwerni.sa/مقاييس`, a path that doesn't exist (`scales/metadata.ts`).
 - Detail and other pages still override `icons` with the favicon only, so they have no Apple icon: consultant, article and program details, event, instant, free sessions, meetings.
+
+## 2026-10-03 · SEO for detail pages; accessible names for icon-only controls
+
+**Push state found at the start:** the SEO round (`b56f27a` … `ef43563`, including `eb4cffc`, which removes the home canonical from `defaultMetaApi`) was committed locally but not pushed. `origin/main` was at `dd78f5f`. That is why production `/consultants/148` still declared the home page as its canonical.
+
+| Commit | Change |
+|---|---|
+| `22c21ab` | `/consultants/[cid]`: metadata, `Person` + `BreadcrumbList`; `components/seo/breadcrumbs.ts` |
+| `95675c3` | `/articles/[aid]`: metadata, `Article` + `BreadcrumbList` |
+| `97eaa6d` | `/programs/[prid]`: metadata, `Service` + `BreadcrumbList` |
+| `1fbf498` | Header menu button: `aria-label="القائمة"` |
+| `d82006a` | Arabic `aria-label`s on the other 21 icon-only controls |
+
+**Detail pages**
+
+- `generateMetadata` extends `defaultMetaApi` and uses only data each page already loads.
+  - **Consultant:** name and specialty (the category label the profile shows, e.g. "استشاري نفسي"). The fixed "دعم نفسي" in the description was wrong for legal or personal consultants; the specialty replaces it.
+  - **Article:** title, plus the existing 160-character excerpt as the description.
+  - **Program:** "برنامج <name>", plus the program description.
+- Titles carry the brand once, through the template.
+- The canonical and `og:url` are always the clean `/consultants/<cid>`, `/articles/<aid>` or `/programs/<prid>`. Query params never reach them.
+- The program `og:url` was `https://www.shwerni.sa//program/<prid>` (double slash, wrong path).
+- Made-up 1200×630 image sizes and `icons` overrides are removed from these pages.
+- Pages that render the 404 component get no metadata at all:
+  - consultants not approved, published and active
+  - missing articles
+  - programs that are missing or not published
+- JSON-LD through the escaped helper:
+  - **Person:** name, `jobTitle` = specialty, image, url, `worksFor` the organization. The old inline `Person.offers` (not a Person property) is gone. No `AggregateRating`.
+  - **Article:** headline, description, image, `datePublished`. The author is the consultant, or the organization when there is none; the publisher is the organization.
+  - **Service** for programs: a consultation program with consultants, sessions and a price fits Service; Course would claim course info the page doesn't have. Category as shown, provider the organization, area SA. No `offers`, because the page shows its own tax calculation.
+  - **BreadcrumbList:** الرئيسية › (المستشارون | مدونة المستشارين | برامجنا الاستشارية) › name.
+
+**Accessibility**
+
+- An AST scan of every `.tsx` found buttons and links with no `aria-label`, `aria-labelledby` or `title`, and only an icon inside. Text, sr-only text and image `alt` count as names.
+- 22 found:
+  - the header menu button
+  - 6 × pagination previous and next
+  - the chat-bot send button
+  - the attachment remove button
+  - 2 × the meeting-chat "more" button
+  - 2 × discover back
+  - Tabby installments info
+  - the date-picker trigger
+  - the upload clear button
+- All now have Arabic labels. The rescan reports 0. Nothing visible changed.
+
+**Verified**
+
+- After each commit: `npm run build` on a clean tree with `.next` deleted passes, the manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`, and there's no `"use server"` in `lib/`, `data/` or `handlers/`.
+- `next start`:
+  - **`/consultants/148`:** "المستشارة منى رغفاوي — استشاري نفسي | شاورني", canonical `/consultants/148` (the same with `?collaboration=abc`), Person + breadcrumb.
+  - **`/articles/314`:** canonical `/articles/314` (the same with `?ref=x`), Article + breadcrumb.
+  - **`/programs/11`:** "برنامج الذكاء المالي في ميزانية الأسرة | شاورني", canonical `/programs/11`, Service + breadcrumb.
+  - **`/consultants/999999` and `/programs/999999`:** site defaults only, no canonical, no entity JSON-LD.
+
+**Found, not changed**
+
+- Soft 404s: missing or hidden consultants, articles and programs answer **200** with the 404 component, not a 404 status.
+- `getArticleByAid` doesn't filter by status, so unpublished articles are readable (and indexable) by id.
+- The `/scales` canonical and the remaining `icons` overrides are still open (in Later).
