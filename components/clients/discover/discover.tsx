@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 // components
+import { toast } from "@/components/shared/toast";
 import Header from "@/components/clients/header/header";
 import Reels from "@/components/clients/discover/reels";
 import TimeStep from "@/components/clients/discover/time";
@@ -158,7 +159,13 @@ export default function Discover({ user, finance }: Props) {
       data.beneficiaryPhone && phoneNumber(data.beneficiaryPhone);
 
     // pay — Pay computes the price server-side
-    await Pay(data);
+    const result = await Pay(data);
+
+    if (!result || result.state === false) {
+      toast.error({
+        message: result?.message ?? "حدث خطأ ما، برجاء المحاولة مرة أخرى",
+      });
+    }
   }
 
   const stepOrder = ["date", "time", "reel", "info", "payment"];

@@ -132,7 +132,13 @@ export default function ReservationForm({
     data.phone = phoneNumber(data.phone);
 
     // pay — Pay resolves the program's price server-side
-    await Pay(data);
+    const result = await Pay(data);
+
+    if (!result || result.state === false) {
+      toast.error({
+        message: result?.message ?? "حدث خطأ ما، برجاء المحاولة مرة أخرى",
+      });
+    }
   }
 
   return (

@@ -108,7 +108,13 @@ export default function InstantReservationForm({ user, finance }: Props) {
     data.phone = phoneNumber(data.phone);
 
     // pay
-    await Pay(data);
+    const result = await Pay(data);
+
+    if (!result || result.state === false) {
+      toast.error({
+        message: result?.message ?? "حدث خطأ ما، برجاء المحاولة مرة أخرى",
+      });
+    }
   }
 
   return (

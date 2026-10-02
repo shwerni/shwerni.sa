@@ -208,7 +208,13 @@ export default function AwarenessForm({
         ? "735e8e69-fcf7-47ff-a3ec-e8302bb2985f"
         : "763594ee-8459-4339-a5dc-4184dd1efdfb";
 
-    await Pay({ ...data, gender: data.gender });
+    const result = await Pay({ ...data, gender: data.gender });
+
+    if (!result || result.state === false) {
+      toast.error({
+        message: result?.message ?? "حدث خطأ ما، برجاء المحاولة مرة أخرى",
+      });
+    }
   }
 
   return (
