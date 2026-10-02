@@ -1784,3 +1784,26 @@ Ziad discarded the local `package.json` changes, so the tree is clean and builds
 
 - The 13-row table in the previous entry.
 - Book once each on `/discover`, `/instant`, `/marriage-awareness` and `/programs/reserve/[prid]`; each should redirect to payment.
+
+## 2026-10-02 · AI discoverability: llms.txt and well-known 404s
+
+**Before.** Nothing in `public/` or `app/` served `/llms.txt` or anything under `/.well-known/`. Those paths aren't in the proxy matcher's excluded file types and weren't public routes, so `proxy.ts` sent logged-out visitors (crawlers, Lighthouse) a 307 to `/login`, which answered 200 HTML.
+
+| Commit | Change |
+|---|---|
+| `509d775` | `public/llms.txt` in the llmstxt.org format: H1, a one-paragraph English and Arabic summary, then H2 link lists. It covers consultants, discover, instant, programs, free sessions, articles and Q&A, scales and marriage awareness, how booking works, terms and privacy, and contact. Only public pages, with absolute `https://www.shwerni.sa` URLs. `/llms.txt` is added to `publicRoutes` in `routes.ts`. |
+| `7ed6dd1` | `/.well-known` is a public prefix in `DynamicpublicRoutes`. Nothing exists under it, so every path answers Next's not-found page with status 404. There is no ai-catalog: Shwerni offers no agent tools or APIs. |
+
+**Verified**
+
+- `npm run build` on a clean tree with `.next` deleted passes (139/139). The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`, and there's no `"use server"` in `lib/`, `data/` or `handlers/`.
+- `next start` locally, as a logged-out visitor:
+  - `/llms.txt` → 200 `text/plain`.
+  - These all return 404 `text/html`: `/.well-known/ai-catalog.json`, `ard.json`, `security.txt`, `assetlinks.json`, `apple-app-site-association` and `openid-configuration`.
+  - `/robots.txt` and `/sitemap.xml` → 200.
+
+**Open notes, not changed**
+
+- Any other unknown path (for example `/some-random-page`) still sends logged-out visitors a 307 to `/login` instead of a 404.
+- `app/sitemap.ts` still lists `/available`, `/contact` and `/consultant`, which redirect or don't exist.
+- No `apple-app-site-association` or Apple Pay merchant file exists. They're only needed if the mobile app's universal links or Apple Pay domain verification depend on this domain.
