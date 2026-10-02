@@ -148,6 +148,7 @@ export const getSimilarArticles = async () => {
       LENGTH(a.article) AS length,
       a.created_at
     FROM "articles" a
+    WHERE a.status = 'PUBLISHED'::"ArticleState"
     ORDER BY RANDOM()
     LIMIT 3
   `;
@@ -191,11 +192,11 @@ export const getRecommendedConsultants = async () => {
   }
 };
 
-// get question by qid
+// a published article by aid (the public article page); anything else reads as missing
 export const getArticleByAid = async (aid: number) => {
   try {
-    const article = await prisma.article.findUnique({
-      where: { aid },
+    const article = await prisma.article.findFirst({
+      where: { aid, status: ArticleState.PUBLISHED },
       include: {
         consultant: { select: { name: true, rate: true, gender: true } },
         specialties: { select: { specialty: true } },
