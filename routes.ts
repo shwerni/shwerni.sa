@@ -74,6 +74,10 @@ export const DynamicpublicRoutes = [
   "/api/internal",
   "/api/revalidate",
   "/api/online",
+  // well-known files are public by definition. none exist here (no public/.well-known), so
+  // every path answers next's 404 instead of a redirect to /login (200 html), which made
+  // crawlers and lighthouse read ai-catalog.json, ard.json etc. as present
+  "/.well-known",
   // vercel botid challenge and telemetry (rewritten by withBotId in next.config.ts);
   // guests must reach them, or every guest request is classified as a bot.
   // botid doesn't export this prefix: it's hardcoded in node_modules/botid/dist/next/config
