@@ -1646,3 +1646,63 @@ Submit each form once as a guest unless noted. In the Vercel logs, confirm `[bot
 
 - With the prefix changed by one character, `next build` stopped right after loading the config with `Build error occurred` and the message above. Restored afterwards.
 - With the real prefix, `npm run build` on a clean tree passes, and the manifest check prints only `"data/event.ts"`.
+
+## 2026-10-02 · Performance: home page on mobile (items 1–7)
+
+No UI, UX or logic change intended. Items 8–11 (pixels, reCAPTCHA scoping, YouTube Suspense, cache headers) were skipped by decision.
+
+| Commit | Item | Files |
+|---|---|---|
+| `5a63f35` | 1. `randomId` moved to server-only `utils/random.ts` | `utils/index.ts`, `utils/random.ts` (new), `data/rooms.ts` |
+| `a1b5b8d` | 2. Hero as one art-directed `<picture>`; raw hero PNG preloads removed | `app/layout.tsx`, `components/clients/home/hero.tsx` |
+| `e971b39` | 3. Below-the-fold home images lazy | `components/clients/shared/card.tsx` (optional `priority`, default `true`), `components/clients/home/categories.tsx`, `components/clients/home/home-cards.tsx`, `components/clients/home/join.tsx` |
+| `6b4ccc1` | 4. YouTube thumbnails lazy | `components/clients/home/youtube/videos.tsx` |
+| `7ce0af6` | 5. YouTube list cached with `"use cache"` (`cacheLife("hours")`) | `lib/api/google.ts`, `CLAUDE.md` (expected manifest output) |
+| `c55d100` | 6. pusher-js loaded after mount | `hooks/useOnlineConsultants.ts` |
+| `7aad20e` | 7. `DivMotion` in CSS + IntersectionObserver | `components/shared/div-motion.tsx` |
+
+**Notes per item**
+
+- 1: `utils/index.ts` is imported by about 26 client components. Its `crypto` import made the bundler ship browser polyfills for `crypto`, `stream` and `buffer`. `randomId` is used only by `data/rooms.ts`.
+- 2: Each screen size now downloads one optimized image (desktop from 640 px up, mobile below, the same breakpoint as Tailwind `sm`), eager with `fetchpriority=high`. `<picture class="contents">` keeps the old layout. There is no `<link rel=preload>` any more; the image is discovered with the streamed hero, as before.
+- 3: The six cards are inside `hidden md:block`, so phones no longer fetch them at all. No `sizes` was added: the card images are at most 518 px wide and Next never enlarges, so it would save nothing.
+- 5: Before, every home render waited on a live YouTube API call outside any Suspense boundary. A failed call throws inside the cache, so an empty list is never cached; the caller still gets `[]`. The manifest check now prints `"data/event.ts"` and `"lib/api/google.ts"`, both `$$RSC_SERVER_CACHE_0` cache registrations, not Server Actions. CLAUDE.md is updated.
+- 6: The subscription already started after mount. A `cancelled` flag skips it if the component unmounts while pusher loads. Also used by the instant booking step.
+- 7: Same variants and values, 2.5 s default duration, `cubic-bezier(0.22, 1, 0.36, 1)`, delay, `-100px` margin, runs once. The server renders the same start styles motion did; checked by rendering the old motion version with `react-dom/server`: `opacity:0;transform:translateY(30px)`, `opacity:0;filter:blur(8px)`, `opacity:0;transform:scale(0.96)`. motion is still used by the reservation coupon and gift steps.
+
+**JS loaded up front** (first-load chunks from `.next/diagnostics/route-bundle-stats.json`, `noModule` polyfills excluded; gzip level 9)
+
+| Page | Before (`e3fe84c`) | After (`7aad20e`) |
+|---|---|---|
+| `/` | 1,565 KB raw / 477 KB gz, 24 scripts | 941 KB raw / 287 KB gz, 22 scripts |
+| `/login` | 1,810 KB / 504 KB | 1,383 KB / 377 KB |
+| `/consultants/[cid]` | 2,150 KB / 617 KB | 1,705 KB / 483 KB |
+
+Home by step (raw / gz): item 1 → 1,138 / 350, items 2–5 → unchanged (images and server), item 6 → 1,080 / 332, item 7 → 941 / 287.
+
+**Image bytes on first load on mobile** (412 px at 1.75×, each image encoded the way Next's optimizer does: AVIF at quality 55, effort 3, no enlargement)
+
+| Image | Before | After |
+|---|---|---|
+| raw `hero-mobile.png` preload | 319 KB, eager | not fetched |
+| hero mobile (optimized, w=750) | 4 KB, eager | 4 KB, eager |
+| hero desktop (hidden on phones) | 5 KB, eager | not fetched |
+| hero logo icon SVG (not optimizable) | 50 KB, eager | 50 KB, eager |
+| header logo (w=384) | 13 KB, eager | 13 KB, eager |
+| category cards ×3 unique (desktop-only) | 18 KB, eager | not fetched |
+| join banner (bottom) | 9 KB, eager | on scroll |
+| YouTube thumbnails ×11 (external) | eager | on scroll |
+| **Total at load** | **418 KB + 11 thumbnails** | **67 KB** |
+
+Consultant photos are unchanged and not counted.
+
+**Verified**
+
+- After each commit: `npm run build` on a clean tree with `.next` deleted passes (139/139).
+- After each commit, the manifest check prints `"data/event.ts"`, plus `"lib/api/google.ts"` from item 5.
+- No `"use server"` in `lib/`, `data/` or `handlers/`. `tsc --noEmit --incremental false`: 0 errors.
+
+**Open notes**
+
+- The 50 KB hero logo icon SVG (`/svg/shwerni-logo-icon.svg`, shown at 25 px) is now three quarters of the image bytes on a phone. A smaller file would help. Not changed.
+- PageSpeed should be re-run on the preview; the numbers above are build-output measurements.
