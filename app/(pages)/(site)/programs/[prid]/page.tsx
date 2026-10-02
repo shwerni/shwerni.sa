@@ -10,8 +10,12 @@ import ProgramSkeleton from "@/components/clients/programs/skeleton";
 // prisma data
 import { getProgramInfo } from "@/data/programs";
 
+// prisma types
+import { ProgramState } from "@/lib/generated/prisma/enums";
+
 // constants
 import { mainRoute } from "@/constants/links";
+import { defaultMetaApi } from "@/constants";
 
 // cache meta data
 const getProgramMetaData = async (prid: number) => {
@@ -23,29 +27,36 @@ const getProgramMetaData = async (prid: number) => {
   return consultant;
 };
 
-// meta data seo
-
+// meta data seo: extends defaultMetaApi (root layout); the title template adds "| شاورني".
+// a program the page hides (missing or not published: 404) gets no metadata
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ prid: string }>;
 }): Promise<Metadata> {
   const { prid } = await params;
-  const program = await getProgramMetaData(Number(prid));
-  const pageTitle = `برنامج ${program?.title ?? ""} - شاورني`;
+  const pridN = Number(prid);
+  const program = await getProgramMetaData(pridN);
+
+  if (!program || program.status !== ProgramState.PUBLISHED) return {};
+
+  const title = `برنامج ${program.title}`;
   const description =
-    program?.description ??
+    program.description ||
     "برنامج استشاري مميز مقدم من خلال منصة شاورني لمساعدتك في تطوير ذاتك وتحقيق أهدافك.";
   const image =
-    program?.image && program.image.trim().length > 0
+    program.image && program.image.trim().length > 0
       ? program.image
       : `${mainRoute}other/programs.png`;
+  // the clean url, never with query params
+  const url = `${mainRoute}programs/${pridN}`;
+  const ogImage = { url: image, alt: `صورة ${program.title}` };
 
   return {
-    title: pageTitle,
+    title,
     description,
     keywords: [
-      program?.title ?? "",
+      program.title,
       "شاورني",
       "برنامج استشاري",
       "استشارات",
@@ -54,38 +65,20 @@ export async function generateMetadata({
       "نمو شخصي",
       "تحقيق الأهداف",
     ],
+    alternates: { canonical: url },
     openGraph: {
-      title: pageTitle,
-      type: "website",
-      url: `${mainRoute}/program/${prid}`,
-      siteName: "شاورني | Shwerni",
+      ...defaultMetaApi.openGraph,
+      title: `${title} | شاورني`,
       description,
-      images: [
-        {
-          url: image,
-          alt: `صورة ${program?.title ?? "البرنامج"}`,
-          type: "image/png",
-          width: 1200,
-          height: 630,
-        },
-      ],
+      url,
+      images: [ogImage],
     },
     twitter: {
-      card: "summary_large_image",
-      title: pageTitle,
+      ...defaultMetaApi.twitter,
+      title: `${title} | شاورني`,
       description,
-      creator: "@shwernisa",
-      images: [
-        {
-          url: image,
-          alt: `shwerni ${program?.title ?? "البرنامج"}`,
-          width: 1200,
-          height: 630,
-          type: "image/png",
-        },
-      ],
+      images: [ogImage],
     },
-    icons: `${mainRoute}favicon.ico`,
   };
 }
 
