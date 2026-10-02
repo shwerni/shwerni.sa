@@ -8,7 +8,6 @@ import { BOT_DAILY_LIMIT, GUEST_BOT_DAILY_LIMIT } from "@/data/admin/bot";
 // lib
 import { aiConsultantSummary as aiConsultantSummaryApi } from "@/lib/api/ai/ai";
 import { SendChatBot as SendChatBotApi } from "@/lib/api/ai/chat-bot";
-import { verifyRecaptcha as verifyRecaptchaApi } from "@/lib/api/recaptcha";
 import { isConsultant, sessionUser } from "@/lib/auth/guards";
 import { checkHuman } from "@/lib/bot-protection";
 import { getClientIp } from "@/lib/rate-limit";
@@ -39,9 +38,3 @@ export async function SendChatBot(
   return SendChatBotApi(cap, message, from, user ?? undefined, consultant);
 }
 
-// public; reCAPTCHA is removed later in favour of BotID
-export async function verifyRecaptcha(
-  ...args: Parameters<typeof verifyRecaptchaApi>
-) {
-  return verifyRecaptchaApi(...args);
-}

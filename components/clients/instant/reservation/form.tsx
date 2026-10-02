@@ -5,7 +5,6 @@ import React from "react";
 // packages
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 // components
 import { toast } from "@/components/shared/toast";
@@ -18,7 +17,6 @@ import { calculatePayment } from "@/utils/admin/payments";
 
 // handlers
 import { Pay } from "@/actions/booking";
-import { runRecaptcha } from "@/handlers/admin/recaptcha";
 
 // utils
 import { addNMinutes } from "@/utils/date";
@@ -39,9 +37,6 @@ interface Props {
 export default function InstantReservationForm({ user, finance }: Props) {
   // steps
   const [step, setStep] = React.useState(0);
-
-  // reCaptcha-v3
-  const { executeRecaptcha } = useGoogleReCaptcha();
 
   const { time, iso } = addNMinutes();
 
@@ -109,10 +104,6 @@ export default function InstantReservationForm({ user, finance }: Props) {
   };
 
   async function onSubmit(data: InstantFormType) {
-    // recaptcha
-    const token = await runRecaptcha(executeRecaptcha);
-    if (!token) return;
-
     // validate phones
     data.phone = phoneNumber(data.phone);
 

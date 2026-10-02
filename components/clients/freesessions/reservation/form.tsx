@@ -5,7 +5,6 @@ import React from "react";
 // packages
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 // schema
 import { freeSessionSchema, freeSessionSchemaType } from "@/schemas";
@@ -23,7 +22,6 @@ import { phoneNumber } from "@/utils";
 import { timeZone } from "@/utils/date";
 
 // handlers
-import { runRecaptcha } from "@/handlers/admin/recaptcha";
 import { confirmFreeSession } from "@/actions/booking";
 
 // types
@@ -44,9 +42,6 @@ export default function ReservationForm({ cid, user, consultant }: Props) {
 
   // steps
   const [step, setStep] = React.useState(0);
-
-  // reCaptcha-v3
-  const { executeRecaptcha } = useGoogleReCaptcha();
 
   // time
   const { iso } = timeZone();
@@ -113,12 +108,6 @@ export default function ReservationForm({ cid, user, consultant }: Props) {
   };
 
   async function onSubmit(data: freeSessionSchemaType) {
-    // recaptcha
-    const token = await runRecaptcha(executeRecaptcha);
-
-    // validate
-    if (!token) return;
-
     // validate phones
     data.phone = phoneNumber(data.phone);
 

@@ -7,7 +7,6 @@ import Link from "next/link";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 // components
 import {
@@ -24,9 +23,6 @@ import { toast } from "@/components/shared/toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import PhoneInput from "@/components/shared/phone-input";
 import PasswordInput from "@/components/shared/password-input";
-
-// lib
-import { verifyRecaptcha } from "@/actions/ai";
 
 // utils
 import { phoneNumber } from "@/utils";
@@ -53,52 +49,11 @@ const LogInForm = () => {
     },
   });
 
-  // reCaptcha-v3
-  const { executeRecaptcha } = useGoogleReCaptcha();
-
   // on submit
   async function onSubmit(data: z.infer<typeof LogInSchema>) {
     // start loading
     setLoading(true);
 
-    // reCaptcha-v3 handler
-    if (!executeRecaptcha) {
-      // toast
-      toast.error({
-        title: "حدث خطأ ما",
-        message:
-          "حدثت مشكلة اثناء التحقق من الامان, برجاء المحاولة لاحقا او تواصل مع الدعم",
-      });
-
-      // loading
-      setLoading(false);
-
-      // return
-      return;
-    }
-
-    // execute recaptcha
-    const token = await executeRecaptcha();
-
-    // verify recaptcha
-    const recaptcha = await verifyRecaptcha(token);
-
-    // validate
-    if (!token || !recaptcha) {
-      // toast
-      toast.error({
-        title: "حدث خطأ ما",
-        message:
-          "حدثت مشكلة اثناء التحقق من الامان, برجاء المحاولة لاحقا او تواصل مع الدعم",
-      });
-
-      // loading
-      setLoading(false);
-
-      // return
-      return;
-    }
-    
     // handle register fields submited data
     const log = await login(phoneNumber(data.phone), data.password);
 

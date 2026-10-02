@@ -14,9 +14,6 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 // components
 import { Toaster } from "@/components/ui/sonner";
 
-// google recaptcha
-import ReCaptchaWrapper from "@/components/wrappers/recaptcha";
-
 // scripts
 import MetaPixel from "@/components/legacy/layout/scripts/ads/metaPixel";
 import SnapPixel from "@/components/legacy/layout/scripts/ads/snapPixel";
@@ -67,19 +64,17 @@ export default async function RootLayout({
       </head>
       {/* main app */}
       <body className={font.className}>
-        <ReCaptchaWrapper>
-          <main className="max-w-437.5 mx-auto">
-            {/* top loader */}
-            <NextTopLoader />
-            {/* nuqs adaptar */}
-            <NuqsAdapter>
-              {/* children */}
-              {children}
-            </NuqsAdapter>
-          </main>
-          {/* toast */}
-          <Toaster richColors expand={true} />
-        </ReCaptchaWrapper>
+        <main className="max-w-437.5 mx-auto">
+          {/* top loader */}
+          <NextTopLoader />
+          {/* nuqs adaptar */}
+          <NuqsAdapter>
+            {/* children */}
+            {children}
+          </NuqsAdapter>
+        </main>
+        {/* toast */}
+        <Toaster richColors expand={true} />
         {/* google ads mangaer */}
         <GoogleTagManager gtmId="GTM-5TGBGMNN" />
       </body>

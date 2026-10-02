@@ -32,8 +32,6 @@ import { ReservationFormType, reservationSchema } from "@/schemas";
 // types
 import { FinanceConfig } from "@/types/data";
 import { User } from "next-auth";
-import { runRecaptcha } from "@/handlers/admin/recaptcha";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { phoneNumber } from "@/utils";
 import { Pay } from "@/actions/booking";
 import { Stepper } from "./stepper";
@@ -82,9 +80,6 @@ export default function Discover({ user, finance }: Props) {
     React.useState<Categories | null>(null);
   const [flatTimes, setFlatTimes] = React.useState<string[]>([]);
   const [loadingTimes, setLoadingTimes] = React.useState(false);
-
-  // reCaptcha-v3
-  const { executeRecaptcha } = useGoogleReCaptcha();
 
   // Form initialization
   const form = useForm<ReservationFormType>({
@@ -157,10 +152,6 @@ export default function Discover({ user, finance }: Props) {
 
   // form sumbit
   async function onSubmit(data: ReservationFormType) {
-    // recaptcha
-    const token = await runRecaptcha(executeRecaptcha);
-    if (!token) return;
-
     // validate phones
     data.phone = phoneNumber(data.phone);
     data.beneficiaryPhone =

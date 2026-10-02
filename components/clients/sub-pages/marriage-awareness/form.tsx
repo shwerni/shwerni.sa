@@ -9,7 +9,6 @@ import { ar } from "date-fns/locale";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { isSameDay, startOfDay, addDays } from "date-fns";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 // components
 import {
@@ -39,7 +38,6 @@ import { timeZone } from "@/lib/site/time";
 
 // handlers
 import { Pay } from "@/actions/booking";
-import { runRecaptcha } from "@/handlers/admin/recaptcha";
 
 // schema
 import { reservationSchema } from "@/schemas";
@@ -119,7 +117,6 @@ export default function AwarenessForm({
 }: Props) {
   const [step, setStep] = React.useState(0);
   const [loadingTimes, setLoadingTimes] = React.useState(false);
-  const { executeRecaptcha } = useGoogleReCaptcha();
 
   const steps = ["الموعد", "البيانات", "التأكيد والدفع"];
 
@@ -205,9 +202,6 @@ export default function AwarenessForm({
   }
 
   async function onSubmit(data: AwarenessFormType) {
-    const token = await runRecaptcha(executeRecaptcha);
-    if (!token) return;
-
     data.phone = phoneNumber(data.phone);
     data.scale =
       form.getValues("gender") === Gender.MALE

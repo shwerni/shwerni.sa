@@ -7,7 +7,6 @@ import Image from "next/image";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 // components
 import {
@@ -23,9 +22,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/shared/toast";
 import PhoneInput from "@/components/shared/phone-input";
 import PasswordInput from "@/components/shared/password-input";
-
-// lib
-import { verifyRecaptcha } from "@/actions/ai";
 
 // prisma types
 import { UserRole } from "@/lib/generated/prisma/enums";
@@ -64,51 +60,10 @@ const RegisterForm = () => {
     },
   });
 
-  // reCaptcha-v3
-  const { executeRecaptcha } = useGoogleReCaptcha();
-
   // on submit
   async function onSubmit(data: z.infer<typeof RegisterSchema>) {
     // start loading
     setLoading(true);
-
-    // reCaptcha-v3 handler
-    if (!executeRecaptcha) {
-      // toast
-      toast.error({
-        title: "حدث خطأ ما",
-        message:
-          "حدثت مشكلة اثناء التحقق من الامان, برجاء المحاولة لاحقا او تواصل مع الدعم",
-      });
-
-      // loading
-      setLoading(false);
-
-      // return
-      return;
-    }
-
-    // execute recaptcha
-    const token = await executeRecaptcha();
-
-    // verify recaptcha
-    const recaptcha = await verifyRecaptcha(token);
-
-    // validate
-    if (!token || !recaptcha) {
-      // toast
-      toast.error({
-        title: "حدث خطأ ما",
-        message:
-          "حدثت مشكلة اثناء التحقق من الامان, برجاء المحاولة لاحقا او تواصل مع الدعم",
-      });
-
-      // loading
-      setLoading(false);
-
-      // return
-      return;
-    }
 
     // handle register fields submited data
     const reg = await register(

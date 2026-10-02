@@ -5,7 +5,6 @@ import React from "react";
 // packages
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 // components
 import { toast } from "@/components/shared/toast";
@@ -20,7 +19,6 @@ import { calculatePayment } from "@/utils/admin/payments";
 
 // handlers
 import { Pay } from "@/actions/booking";
-import { runRecaptcha } from "@/handlers/admin/recaptcha";
 
 // prisma types
 import { SessionType, Weekday } from "@/lib/generated/prisma/enums";
@@ -68,9 +66,6 @@ export default function ReservationForm({
 
   // steps
   const [step, setStep] = React.useState(0);
-
-  // reCaptcha-v3
-  const { executeRecaptcha } = useGoogleReCaptcha();
 
   // form
   const form = useForm<ReservationFormType>({
@@ -168,15 +163,6 @@ export default function ReservationForm({
   };
 
   async function onSubmit(data: ReservationFormType) {
-    // recaptcha
-    const token = await runRecaptcha(executeRecaptcha);
-
-    // validate
-    if (!token) {
-      toast.error({ message: "فشل التحقق الأمني، برجاء إعادة المحاولة" });
-      return;
-    }
-
     // validate phones
     data.phone = phoneNumber(data.phone);
     data.beneficiaryPhone =

@@ -19,9 +19,6 @@ import { SendChatBot } from "@/actions/ai";
 
 // hooks
 import { timeZone } from "@/lib/site/time";
-import { toast } from "@/components/shared/toast";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
-import { verifyRecaptcha } from "@/actions/ai";
 import { nanoid } from "nanoid";
 
 // linkify
@@ -124,9 +121,6 @@ const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
     return () => cancelAnimationFrame(raf);
   }, [messages]);
 
-  // reCaptcha-v3
-  const { executeRecaptcha } = useGoogleReCaptcha();
-
   const handleSend = React.useCallback(async () => {
     // validate
     if (!input.trim() || isSending) return;
@@ -134,43 +128,7 @@ const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
     // time
     const { iso } = timeZone();
 
-    // reCaptcha-v3 handler
-    if (!executeRecaptcha) {
-      // toast
-      toast.error({
-        title: "حدث خطأ ما",
-        message:
-          "حدثت مشكلة اثناء التحقق من الامان, برجاء المحاولة لاحقا او تواصل مع الدعم",
-      });
-      // loading
-      setIsSending(false);
-
-      // return
-      return;
-    }
-
     try {
-      // execute recaptcha
-      const token = await executeRecaptcha();
-
-      // verify recaptcha
-      const recaptcha = await verifyRecaptcha(token);
-
-      // validate
-      if (!token || !recaptcha) {
-        // toast
-        toast.error({
-          title: "حدث خطأ ما",
-          message:
-            "حدثت مشكلة اثناء التحقق من الامان, برجاء المحاولة لاحقا او تواصل مع الدعم",
-        });
-        // loading
-        setIsSending(false);
-
-        // return
-        return;
-      }
-
       setIsSending(true);
 
       const userMessage: Message = {
@@ -220,7 +178,7 @@ const BotChat = ({ onClose, setMessages, messages }: ChatProps) => {
     } finally {
       setIsSending(false);
     }
-  }, [executeRecaptcha, from, input, isSending, setMessages]);
+  }, [from, input, isSending, setMessages]);
 
   // Allow Enter to send (Shift+Enter for newline)
   const handleKeyDown = React.useCallback(
