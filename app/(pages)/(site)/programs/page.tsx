@@ -17,42 +17,40 @@ import { getSpecialties } from "@/data/specialties";
 import { mainRoute } from "@/constants/links";
 import { defaultMetaApi } from "@/constants";
 import Programs from "@/components/clients/programs/list";
+import { CollectionJsonLd } from "@/components/seo/collection-json-ld";
 
-// meta data seo
+// meta data seo: extends defaultMetaApi (root layout); the title template adds "| شاورني"
+const title = "برامجنا الاستشارية";
+const fullTitle = `${title} | شاورني`;
+const description =
+  "استفد من استشارات متخصصة تساعدك على تطوير ذاتك وتحقيق أهدافك بثقة. شاورني يقدّم برامج مهنية وشخصية بإشراف خبراء معتمدين. احجز استشارتك اليوم!";
+const url = `${mainRoute}programs`;
+const ogImage = {
+  url: `${mainRoute}other/programs.png`,
+  alt: "برامج شاورني",
+  type: "image/png",
+  width: 1080,
+  height: 1080,
+};
+
 export const metadata: Metadata = {
-  title: "شاورني – برامجنا الاستشارية",
-  description:
-    "استفد من استشارات متخصصة تساعدك على تطوير ذاتك وتحقيق أهدافك بثقة. شاورني يقدّم برامج مهنية وشخصية بإشراف خبراء معتمدين. احجز استشارتك اليوم!",
+  title,
+  description,
   keywords: defaultMetaApi.keywords,
+  // the same canonical for every search, filter, order and page combination
+  alternates: { canonical: url },
   openGraph: {
     ...defaultMetaApi.openGraph,
-    title: "شاورني – برامجنا الاستشارية",
-    description:
-      "استفد من استشارات متخصصة تساعدك على تطوير ذاتك وتحقيق أهدافك بثقة. شاورني يقدّم برامج مهنية وشخصية بإشراف خبراء معتمدين. احجز استشارتك اليوم!",
-    images: [
-      {
-        url: `${mainRoute}other/programs.png`,
-        alt: "برامج شاورني",
-        type: "image/png",
-        width: 1200,
-        height: 630,
-      },
-    ],
+    title: fullTitle,
+    description,
+    url,
+    images: [ogImage],
   },
   twitter: {
     ...defaultMetaApi.twitter,
-    title: "شاورني – برامجنا الاستشارية",
-    description:
-      "استفد من استشارات متخصصة تساعدك على تطوير ذاتك وتحقيق أهدافك بثقة. شاورني يقدّم برامج مهنية وشخصية بإشراف خبراء معتمدين. احجز استشارتك اليوم!",
-    images: [
-      {
-        url: `${mainRoute}other/programs.png`,
-        alt: "برامج شاورني",
-        width: 1200,
-        height: 630,
-        type: "image/png",
-      },
-    ],
+    title: fullTitle,
+    description,
+    images: [ogImage],
   },
 };
 
@@ -149,8 +147,22 @@ const ProgramsList = async ({
     specialties,
   );
 
+  // the item list describes the default list only: first page, newest first, no search or filters
+  const isDefaultList =
+    !search && safe === 1 && (!orderby || orderby === "newest") && !specialties && !categories;
+
   return (
     <>
+      <CollectionJsonLd
+        path="programs"
+        name={fullTitle}
+        description={description}
+        items={
+          isDefaultList
+            ? data.items.map((p) => ({ name: p.title, path: `programs/${p.prid}` }))
+            : undefined
+        }
+      />
       <Programs programs={data.items} />
       <Navigation pages={data.pages} current={data.page} total={data.total} />
     </>
