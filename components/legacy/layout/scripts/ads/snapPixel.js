@@ -12,9 +12,7 @@ export default function SnapPixel() {
       u.parentNode.insertBefore(r,u);})(window,document,
       'https://sc-static.net/scevent.min.js');
       
-      snaptr('init', 'ee632780-7ddf-4ecf-816c-1060fa4b4229', {
-        'user_email': '_INSERT_USER_EMAIL_'
-      });
+      snaptr('init', 'ee632780-7ddf-4ecf-816c-1060fa4b4229');
       
       snaptr('track', 'PAGE_VIEW');`}
     </Script>
