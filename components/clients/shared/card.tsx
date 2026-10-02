@@ -21,6 +21,8 @@ interface CardProps extends VariantProps<typeof cardContainer> {
   iconSize?: number;
   button?: React.ReactNode;
   src?: string;
+  // background image priority; pass false for cards below the first screen so they load lazily
+  priority?: boolean;
   className?: string;
   variant?: "white" | "default" | "black";
   // "blue" / "sky" kept as names for existing callers — both follow the brand theme
@@ -38,6 +40,7 @@ const Card: React.FC<CardProps> = ({
   description,
   button,
   src,
+  priority = true,
   className,
   variant = "default",
   bg = "default",
@@ -95,7 +98,7 @@ const Card: React.FC<CardProps> = ({
             alt={title || "card"}
             fill
             className="object-cover"
-            priority
+            priority={priority}
           />
           <div className="absolute inset-0 bg-black/1" />
         </>

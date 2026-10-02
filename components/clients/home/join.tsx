@@ -39,7 +39,6 @@ const Join = async () => {
           src="/layout/join.png"
           alt="join-us"
           fill
-          priority
           className="object-cover"
         />
         <div className="absolute inset-0 bg-black/55 z-2" />

@@ -42,7 +42,7 @@ const HomeCards = () => {
             />
           </div>
           <div className="hidden sm:block sm:col-span-2">
-            <Card src="/layout/categories-1.png" />
+            <Card src="/layout/categories-1.png" priority={false} />
           </div>
         </DivMotion>
         {/* 2st group */}
@@ -59,6 +59,7 @@ const HomeCards = () => {
               </Button>
             }
             src="/layout/categories-2.png"
+            priority={false}
           />
           <Card
             href={url(CategoriesType.LAW)}
@@ -80,6 +81,7 @@ const HomeCards = () => {
             description="طوّر حياتك واتخذ قراراتك بثقة مع استشاري شخصي خبير ، بخصوصية تامة واستشارات فورية احترافية وسرعة"
             Icon={Goal}
             src="/layout/categories-3.png"
+            priority={false}
             button={
               <Button className="bg-gray-500 text-white border border-white">
                 تمتّع بخدمتك الآن
