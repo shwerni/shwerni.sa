@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { createPusherClient } from "@/lib/api/pusher/pusher-client";
+import type PusherClient from "pusher-js";
 import { getOnlineConsultantsList } from "@/actions/site";
 
 type ConsultantList = Awaited<ReturnType<typeof getOnlineConsultantsList>>;
@@ -33,23 +33,35 @@ export function useOnlineConsultants() {
       await fetchList(false);
     })();
     
-    const pusher = createPusherClient("guest");
-    const channel = pusher.subscribe("public-consultant-status");
+    // pusher-js is loaded after mount, so it isn't part of the page's first-load javascript;
+    // the subscription already started after mount, so the timing is the same
+    let cancelled = false;
+    let pusher: PusherClient | null = null;
+    let channel: ReturnType<PusherClient["subscribe"]> | null = null;
 
-    channel.bind("status-changed", (data: StatusChangedPayload) => {
-      setConsultants((prev) => {
-        if (data.isOnline) {
-          const exists = prev.some((c) => c.userId === data.userId);
-          return exists ? prev : [...prev, data.consultant];
-        } else {
-          return prev.filter((c) => c.userId !== data.userId);
-        }
+    void import("@/lib/api/pusher/pusher-client").then(({ createPusherClient }) => {
+      // unmounted while loading
+      if (cancelled) return;
+
+      pusher = createPusherClient("guest");
+      channel = pusher.subscribe("public-consultant-status");
+
+      channel.bind("status-changed", (data: StatusChangedPayload) => {
+        setConsultants((prev) => {
+          if (data.isOnline) {
+            const exists = prev.some((c) => c.userId === data.userId);
+            return exists ? prev : [...prev, data.consultant];
+          } else {
+            return prev.filter((c) => c.userId !== data.userId);
+          }
+        });
       });
     });
 
     return () => {
-      channel.unbind_all();
-      pusher.unsubscribe("public-consultant-status");
+      cancelled = true;
+      channel?.unbind_all();
+      pusher?.unsubscribe("public-consultant-status");
     };
   }, [fetchList]);
 
