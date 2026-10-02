@@ -3,7 +3,7 @@ import "server-only";
 import prisma from "@/lib/database/db";
 
 // utils
-import { randomId } from "@/utils";
+import { randomId } from "@/utils/random";
 
 // prisma types
 import { UserRole } from "@/lib/generated/prisma/enums";

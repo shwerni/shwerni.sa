@@ -38,12 +38,7 @@ import { dateTimeToString } from "./time";
 import { mainRoute } from "@/constants/links";
 
 // packages
-import crypto from "crypto";
 import { Participant } from "@/lib/generated/prisma/client";
-
-// create random id
-export const randomId = (length: number = 10) =>
-  crypto.randomBytes(length / 2).toString("hex");
 
 // check langauge
 export const isEnglish = (lang?: Lang): boolean => lang === "en";
