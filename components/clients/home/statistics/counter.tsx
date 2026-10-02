@@ -1,6 +1,12 @@
 "use client";
 // React & Next
 import React from "react";
+// node's default locale on the server (vercel included)
+const SERVER_LOCALE = "en-US";
+
+// nothing to subscribe to: only the server/browser split of useSyncExternalStore is needed
+const noopSubscribe = () => () => {};
+
 // props
 interface Props {
   value: number;
@@ -17,6 +23,15 @@ export const Counter = ({
   suffix = "+",
 }: Props) => {
   const [count, setCount] = React.useState(0);
+
+  // the number is formatted with the visitor's locale (arabic browsers show ٠١٢…). the server and
+  // the prerendered shell have no browser locale, so the first render uses SERVER_LOCALE on both
+  // sides (no hydration mismatch, react #418) and switches to the visitor's locale right after
+  const inBrowser = React.useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
   const ref = React.useRef<HTMLHeadingElement | null>(null);
   const started = React.useRef(false);
   React.useEffect(() => {
@@ -49,7 +64,7 @@ export const Counter = ({
   }, [value, delay, duration, decimals]);
   return (
     <h5 className="text-theme-200 font-semibold text-2xl sm:text-4xl" ref={ref}>
-      {count.toLocaleString(undefined, {
+      {count.toLocaleString(inBrowser ? undefined : SERVER_LOCALE, {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,
       })}
