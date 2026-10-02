@@ -90,6 +90,7 @@ export default function ShawerniVideos({ videos }: { videos: Video[] }) {
               <img
                 src={activeVideo?.thumbnail}
                 alt={activeVideo?.title}
+                loading="lazy"
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
               />
               <span className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent" />
@@ -138,6 +139,7 @@ export default function ShawerniVideos({ videos }: { videos: Video[] }) {
                 <img
                   src={video.thumbnail}
                   alt={video.title}
+                  loading="lazy"
                   className={cn(
                     "w-full h-full object-cover transition-opacity",
                     isActive
