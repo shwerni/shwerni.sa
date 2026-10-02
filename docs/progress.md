@@ -1807,3 +1807,77 @@ Ziad discarded the local `package.json` changes, so the tree is clean and builds
 - Any other unknown path (for example `/some-random-page`) still sends logged-out visitors a 307 to `/login` instead of a 404.
 - `app/sitemap.ts` still lists `/available`, `/contact` and `/consultant`, which redirect or don't exist.
 - No `apple-app-site-association` or Apple Pay merchant file exists. They're only needed if the mobile app's universal links or Apple Pay domain verification depend on this domain.
+
+## 2026-10-02 · Round 1: 404s, sitemap, Snap, home shell, carousels, rating CSS
+
+| Commit | Item |
+|---|---|
+| `c3074d4` | 1. `proxy.ts` redirects logged-out visitors to `/login` only on private paths; unknown URLs reach Next's 404 |
+| `0b0163b` | 2. Sitemap lists only URLs that answer 200 |
+| `c0f6937` | 3. Snap pixel no longer sends the `'_INSERT_USER_EMAIL_'` placeholder |
+| `114570f`, `ed99c97` | 4. Home static parts in the prerendered shell; the session, campaign card, join and chat button stream in their own Suspense boundaries |
+| `bb839e8` | 5. Home carousels autoplay only while on screen |
+| `40df78d`, `14f60b2` | 6. Star-rating CSS loads with the main stylesheet |
+
+**1. Protected paths**
+
+- Before: every path that was neither in `publicRoutes`, `DynamicpublicRoutes` nor `authRoutes` was private. Logged-out visitors on any unknown URL got a 307 to `/login`.
+- After: `protectedPrefixes` in `routes.ts` lists `/account`, `/favorite`, `/orders`, `/logout`, `/reconciliation`, `/dashboard` and `/api`. A path matches when it equals a prefix or continues it with `/`. `/api` keeps every non-public API route behind a session, as before.
+- Checked by script: none of the app's 64 existing pages changes its logged-out behaviour. The 24 previously private pages are all covered by those prefixes.
+- `next start`, logged out:
+  - `/some-random-page` and `/consultants/not-a-number/x` → 404.
+  - `/dashboard`, `/dashboard/orders`, `/account`, `/orders`, `/reconciliation`, `/logout` and `/api/unknown` → 307 to `/login`.
+  - `/login`, `/terms` and `/llms.txt` → 200.
+
+**2. Sitemap**
+
+- Removed `/available` (redirects to `/discover`), `/contact` (404) and `/consultant` (redirects).
+- Consultant entries used `/consultant/:cid`, which redirects. They now use the canonical `/consultants/:cid` instead of being dropped.
+- They also list only approved consultants (`approved: APPROVED`, in `data/seo.ts`), the same rule the consultant page applies; the others are 404s.
+- Checked with `next start`: all 593 entries answer 200 (home, articles, programs, 266 articles, 317 consultants, 7 programs).
+
+**4. Home shell**
+
+- Before: the site layout awaited the session at the top, so the whole site sat behind the root `loading.tsx` boundary. The prerendered shell for `/` was 12 KB: just the spinner.
+- After, the layout passes `userServer()` unawaited. The header reads it with `use()` inside its own Suspense boundary; the fallback is the header without the account menu.
+- `HomeCampaign` (the categories campaign card, dated per request) and `Join` (logged-out only) have their own boundaries.
+- The chat button reads the current time while rendering (its greeting timestamp), which prerendering treats as request-time data. That was what still kept the site behind the root boundary, found by a test build. It now streams in its own boundary.
+- Result: the prerendered shell for `/` is about 190 KB with the header and the hero. The root boundary is revealed by an inline `$RC` right after the hero's segment, with no server work in between.
+
+**How "nothing user-specific is cached or prerendered" was verified**
+
+- Every `"use cache"` function (17) takes no arguments or only public ids (`cid`, `aid`, `prid`, placement, count). Next forbids `cookies()`/`headers()` inside `"use cache"`, so none can read the session.
+- A scan of all 893 prerendered files under `.next/server/app` (HTML, flight data, segments, metadata) and of `.next/cache` found no session-shaped data: `email`, `phone`, `role`, `emailVerified`/`phoneVerified`, session `expires`, `"user":{`, and the account menu's texts. A positive control string was matched.
+- The only session read on the home route is `userServer()` in the site layout. It is consumed only inside the header's Suspense boundary (`HeaderSheetWithUser`) and inside `Join`'s boundary, so it renders only in the per-request dynamic part.
+- A request with an invalid session cookie produced `JWTSessionError` in the server log during that request, so the session is read per request, not at build time.
+
+**Response headers for `/`** (local `next start`, logged out; the same with a session cookie)
+
+| | Before | After |
+|---|---|---|
+| `Cache-Control` | `private, no-cache, no-store, max-age=0, must-revalidate` | unchanged |
+| `x-nextjs-prerender` / `x-nextjs-postponed` | `1` / `1` | unchanged |
+| prerender mode | `PARTIALLY_STATIC`, revalidate 3600, expire 86400 | unchanged |
+| prerendered shell | 12 KB (spinner only) | ~190 KB (header and hero) |
+
+On Vercel the shell is served from the edge cache and the dynamic part streams per request with the private header. The prerender manifest bypasses the shell for `Chrome-Lighthouse` and crawler user agents. Those get a full dynamic render, where the hero now also streams early instead of after the root boundary.
+
+**5–6**
+
+- Carousels: autoplay starts paused (`playOnInit: false`). The new hook `useAutoplayWhileVisible` plays it while embla's root node is in the viewport and stops it when it leaves. Delay, loop, RTL and the no-stop-on-hover/touch behaviour are unchanged.
+- Rating CSS: it was imported by three components, so it became a separate 5 KB stylesheet that the root boundary waited for (`$RR`). `40df78d` moved the import to the root layout, but Turbopack still emitted a separate file. `14f60b2` uses `@import` in `globals.css`, so the rules are now inside the main stylesheet: `/`, `/consultants` and `/articles` all load one 174 KB main CSS file that contains `rr--`. Every reveal on `/` is a plain `$RC` with no CSS wait.
+
+**Verified after each commit**
+
+- `npm run build` on a clean tree with `.next` deleted passes (139/139).
+- The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`.
+- No `"use server"` in `lib/`, `data/` or `handlers/`.
+- `tsc --noEmit --incremental false`: 0 errors.
+
+**Visible changes to check**
+
+- The account menu (logged in) appears a moment after the rest of the header.
+- The chat button appears once the dynamic part arrives.
+- A campaign card, when one is active, appears a moment later above the categories.
+- The join banner (logged out) streams in at the bottom.
+- The carousels start moving when scrolled into view, from their first slide.
