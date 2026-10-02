@@ -1,0 +1,41 @@
+# شاورني (Shwerni)
+
+> Shwerni is a Saudi online consultation booking platform in Arabic: people book private sessions with accredited psychological, family, marital, legal and personal consultants. شاورني منصة سعودية لحجز الاستشارات أونلاين مع مستشارين معتمدين في المجالات النفسية والأسرية والزوجية والقانونية والشخصية، بخصوصية تامة.
+
+## المستشارون (Consultants)
+
+- [المستشارون](https://www.shwerni.sa/consultants): جميع المستشارين مع التخصص والتقييمات والأسعار، ومنها يتم الحجز
+- [اكتشف المستشارين حسب وقتك](https://www.shwerni.sa/discover): اختر اليوم والوقت أولاً ثم المستشار المتاح فيه
+- [الاستشارة الفورية](https://www.shwerni.sa/instant): جلسة الآن مع مستشار متصل
+
+## البرامج (Programs)
+
+- [برامجنا الاستشارية](https://www.shwerni.sa/programs): البرامج الاستشارية المتاحة للتسجيل
+
+## الجلسات المجانية (Free sessions)
+
+- [الجلسات المجانية](https://www.shwerni.sa/freesessions): حجز جلسة مجانية مع المستشارين المشاركين
+
+## المقالات (Articles)
+
+- [مدونة شاورني](https://www.shwerni.sa/articles): مقالات المستشارين
+- [سؤال وجواب](https://www.shwerni.sa/questions): أسئلة الزوار وإجابات المستشارين
+
+## المقاييس (Scales)
+
+- [المقاييس](https://www.shwerni.sa/scales): مقاييس واختبارات نفسية مع النتيجة
+- [مقياس جاهزية الوعي للزواج](https://www.shwerni.sa/marriage-awareness)
+
+## كيف يتم الحجز (How booking works)
+
+- [اختر المستشار](https://www.shwerni.sa/consultants): أو [اختر الوقت أولاً](https://www.shwerni.sa/discover)، ثم حدد مدة الجلسة والموعد
+- [أدخل بياناتك وادفع إلكترونياً](https://www.shwerni.sa/consultants): الدفع عبر ميسّر أو التقسيط عبر تابي، ويمكن تطبيق كوبون خصم
+- [الجلسات المجانية](https://www.shwerni.sa/freesessions): تُحجز بدون دفع
+
+## الشروط والخصوصية (Terms and privacy)
+
+- [الشروط والأحكام وسياسة الخصوصية](https://www.shwerni.sa/terms)
+
+## تواصل معنا (Contact)
+
+- [تواصل معنا](https://www.shwerni.sa/contact-us)

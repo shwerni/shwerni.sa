@@ -18,6 +18,7 @@ export const publicRoutes = [
   "/discover",
   "/event/eid",
   // public files
+  "/llms.txt",
   "/apple-developer-merchantid-domain-association",
   "/.well-known/apple-developer-merchantid-domain-association",
   // site map
