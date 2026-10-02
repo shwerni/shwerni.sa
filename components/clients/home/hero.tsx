@@ -1,5 +1,5 @@
 // React & Next
-import Image from "next/image";
+import Image, { getImageProps } from "next/image";
 
 // components
 import { IconLabel } from "@/components/shared/icon-label";
@@ -8,29 +8,35 @@ import { LinkButton } from "@/components/shared/link-button";
 // icons
 import { ArrowLeft } from "lucide-react";
 
+// one art-directed <picture>: each screen size downloads only its own background
+// (two <Image>s hidden by css both downloaded, the hidden one included)
+const heroImage = {
+  alt: "hero background",
+  fill: true,
+  sizes: "100vw",
+  loading: "eager",
+  fetchPriority: "high",
+} as const;
+
 const Hero = () => {
+  const {
+    props: { srcSet: desktopSrcSet },
+  } = getImageProps({ ...heroImage, src: "/layout/hero-desktop.png" });
+  const {
+    props: { srcSet: mobileSrcSet, ...mobileImage },
+  } = getImageProps({ ...heroImage, src: "/layout/hero-mobile.png" });
+
   return (
     <div className="relative w-full min-h-[60vh] flex items-center justify-center sm:justify-start">
-      {/* desktop background image */}
-      <Image
-        src="/layout/hero-desktop.png"
-        alt="hero background"
-        fill
-        priority
-        fetchPriority="high"
-        className="hidden sm:block object-cover"
-        sizes="100vw"
-      />
-      {/* mobile background image */}
-      <Image
-        src="/layout/hero-mobile.png"
-        alt="hero background"
-        fill
-        priority
-        fetchPriority="high"
-        className="sm:hidden object-cover"
-        sizes="100vw"
-      />
+      {/* background image: desktop from sm (640px) up, mobile below.
+          "contents" keeps <picture> out of the flex layout, like the old absolutely-placed images */}
+      <picture className="contents">
+        <source media="(min-width: 640px)" srcSet={desktopSrcSet} sizes="100vw" />
+        <source media="(max-width: 639px)" srcSet={mobileSrcSet} sizes="100vw" />
+        {/* alt comes from getImageProps */}
+        {/* eslint-disable-next-line jsx-a11y/alt-text */}
+        <img {...mobileImage} className="object-cover" />
+      </picture>
 
       {/* overlay */}
       <div className="absolute inset-0 bg-black/40" />

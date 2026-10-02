@@ -64,18 +64,6 @@ export default async function RootLayout({
     >
       <head>
         <JsonLd />
-        <link
-          rel="preload"
-          as="image"
-          href="/layout/hero-mobile.png"
-          media="(max-width: 639px)"
-        />
-        <link
-          rel="preload"
-          as="image"
-          href="/layout/hero-desktop.png"
-          media="(min-width: 640px)"
-        />
       </head>
       {/* main app */}
       <body className={font.className}>
