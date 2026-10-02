@@ -1,5 +1,6 @@
 // React & Next
 import Link from "next/link";
+import { Suspense } from "react";
 
 // components
 import ScalesCta from "./scales";
@@ -24,12 +25,11 @@ import Family from "@/public/svg/icons/categories-family.svg";
 import Psychic from "@/public/svg/icons/categories-psychic.svg";
 import { EventCard } from "../sub-pages/event/event-card";
 
-const Categories = async () => {
+const Categories = () => {
   const url = (category: CategoriesType) => {
     return `/consultants?categories=${category}`;
   };
 
-  const campaign = await getActiveCampaignFor("HOME_CARD");
 
   const categories = [
     {
@@ -87,7 +87,9 @@ const Categories = async () => {
       {/* title */}
       <Title title="تلائم أهدافك وتحقق نتائجك" subTitle="مجالات واسعة" />
       {/* event card */}
-      {campaign && <EventCard campaign={campaign} />}
+      <Suspense fallback={null}>
+        <HomeCampaign />
+      </Suspense>
       {/* cards */}
       {/* handle better instead of just hide */}
       <div className="hidden md:block space-y-5">
@@ -200,6 +202,13 @@ const Categories = async () => {
       </div>
     </Section>
   );
+};
+
+// active home campaign card: decided per request (start/end dates), so it streams in its own
+// suspense boundary and the rest of the section stays in the prerendered shell
+const HomeCampaign = async () => {
+  const campaign = await getActiveCampaignFor("HOME_CARD");
+  return campaign ? <EventCard campaign={campaign} /> : null;
 };
 
 export default Categories;

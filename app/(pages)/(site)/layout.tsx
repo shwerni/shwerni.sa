@@ -6,19 +6,20 @@ import ChatButton from "@/components/clients/bot/button";
 // lib
 import { userServer } from "@/lib/auth/server";
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // user
-  const user = await userServer();
+  // not awaited: the header reads it inside its own suspense boundary, so the session is only
+  // ever read in the request's dynamic part and the layout stays in the prerendered shell
+  const user = userServer();
 
   return (
     <div className="flex flex-col justify-between min-h-screen">
       <div>
         {/* header */}
-        <Header user={user} />
+        <Header userPromise={user} />
         {/* children */}
         {children}
       </div>

@@ -1,3 +1,6 @@
+// React & Next
+import { Suspense } from "react";
+
 // components
 import Hero from "@/components/clients/home/hero";
 import Join from "@/components/clients/home/join";
@@ -47,8 +50,11 @@ const Home = async () => {
       <Benefits />
       {/* youtube */}
       <Podcast />
-      {/* join us */}
-      <Join />
+      {/* join us: shown to logged-out visitors only, so it reads the session in its own
+          suspense boundary and stays out of the prerendered shell */}
+      <Suspense fallback={null}>
+        <Join />
+      </Suspense>
     </>
   );
 };
