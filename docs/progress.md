@@ -2076,3 +2076,58 @@ This was not caused by round 1: the server rendered `en-US` digits before too. R
 - Soft 404s: missing or hidden consultants, articles and programs answer **200** with the 404 component, not a 404 status.
 - `getArticleByAid` doesn't filter by status, so unpublished articles are readable (and indexable) by id.
 - The `/scales` canonical and the remaining `icons` overrides are still open (in Later).
+
+## 2026-10-03 · Published-only articles; notFound() on detail pages
+
+| Commit | Change |
+|---|---|
+| `e14ae24` | Only published articles are readable |
+| `bd67bc8` | Hidden or missing consultants, articles and programs call `notFound()`; `app/(pages)/(site)/not-found.tsx` |
+
+**1. Articles**
+
+- `getArticleByAid` (used only by the public article page) now requires `status: PUBLISHED` (`findFirst`), so an unpublished id reads as missing.
+- `getSimilarArticles` (the 3 "similar articles" on every article page) had no status filter and could link to unpublished articles. It now filters like the list.
+- Already filtered: the list (`getArticles`) and the sitemap (`siteMapDynamic`). `llms.txt` is static and links only to `/articles`.
+- Production check (read-only GETs): every article id not in the sitemap answers "المقال غير موجود", so no unpublished article exists right now. The leak was latent.
+
+**2. notFound()**
+
+- `/consultants/[cid]`: `notFound()` when the consultant isn't approved, published and active.
+- `/articles/[aid]`: `notFound()` when the article is missing or unpublished.
+- `/programs/[prid]`: the page checks the cached program before rendering and calls `notFound()` when it's missing or unpublished. The `Program` component keeps its own check as a fallback.
+- `app/(pages)/(site)/not-found.tsx` renders the same `Error404` content inside the site header and footer. `app/not-found.tsx` sits above the site layout and would drop them.
+
+**Status codes measured with `next start`**
+
+| URL | Before (`e14ae24`) | After (`bd67bc8`) |
+|---|---|---|
+| `/consultants/148` (visible) | 200, `index, follow` | 200, `index, follow` |
+| `/consultants/999999`, `/consultants/abc` | 200, `index, follow` | **200, `noindex`** (plus the default `index, follow`) |
+| `/articles/314` (published) | 200 | 200 |
+| `/articles/313`, `/articles/999999` | 200, `index, follow` | **200, `noindex`** |
+| `/programs/11` (published) | 200 | 200 |
+| `/programs/999999` | 200, `index, follow` | **200, `noindex`** |
+| `/no-such-page` | 404, `noindex` | 404, `noindex` |
+
+The same results with a Googlebot and a Chrome-Lighthouse user agent.
+
+**Why they stay 200**
+
+- The response streams. The site layout's prerendered shell, the root `app/loading.tsx` boundary and the header's Suspense boundary are flushed, with the status line, before the page component runs. So when `notFound()` is thrown, the status is already 200.
+- Next.js handles this by streaming the not-found UI and injecting `<meta name="robots" content="noindex">`.
+- The page also keeps the default `index, follow` from `defaultMetaApi`. Google applies the most restrictive directive, so `noindex` wins. These URLs aren't in the sitemap either.
+
+**Options for a real 404 (not applied)**
+
+- Decide in `proxy.ts`, before rendering, with a cached existence lookup per detail URL. That adds a lookup to every detail request.
+- Remove the root `loading.tsx` boundary, so nothing streams before the page. That changes the navigation spinner site-wide.
+
+**Smaller option**
+
+- Drop `index: true, follow: true` from `defaultMetaApi.robots` (they're the default anyway, and `googleBot`'s preview settings can stay), so a 404 carries only `noindex`.
+
+**Verified**
+
+- After each commit: `npm run build` on a clean tree with `.next` deleted passes, the manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`, and there's no `"use server"` in `lib/`, `data/` or `handlers/`.
+- The not-found pages render inside the site header (checked in the HTML).

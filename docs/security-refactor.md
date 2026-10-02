@@ -733,6 +733,7 @@ Phase complete on 2026-10-02 (see the final entry in `docs/progress.md`).
 - [x] Rebuild and confirm the manifest lists only `actions/` files across all pages (checked after every commit)
 - [x] Unknown URLs answer 404 instead of redirecting to `/login`; `/.well-known/*` answers 404; `llms.txt` added; the sitemap lists only URLs that answer 200
 - [x] SEO: metadata and JSON-LD for the six main pages and the consultant, article and program detail pages; Arabic aria-labels on every icon-only control
+- [x] Only published articles are readable (`e14ae24`)
 
 ### Later
 
@@ -757,8 +758,7 @@ Phase complete on 2026-10-02 (see the final entry in `docs/progress.md`).
   - the guest booking action with a public order token and pending-order expiry
 - [ ] Vercel Firewall rules: Log mode first, review traffic, then Deny
 - [ ] SEO leftovers: the `/scales` canonical (`/مقاييس`); the `icons` overrides that hide the apple-touch-icon (event, instant, free sessions, meetings, program reserve); canonicals for the other sub-pages
-- [ ] Real 404 status for missing or hidden consultants, articles and programs (they answer 200 with the 404 component)
-- [ ] Articles: only published articles should be readable by id (`getArticleByAid` doesn't filter by status)
+- [ ] Real 404 status for missing or hidden consultants, articles and programs: they call notFound() since `bd67bc8` but answer 200 + `noindex` because the response streams first (options in `docs/progress.md`, 2026-10-03)
 - [ ] Proper 1200×630 OG images for link previews (the current ones are 1080×1350 and 1080×1080)
 
 Also still open from the original plan:
