@@ -1,0 +1,218 @@
+// ═══════════════════════════════════════════════════════════════
+// CENTERS — schema changes
+// owned by the main site repo (prisma/schema.prisma + prisma/models/*.prisma)
+// applied with `prisma db push` by Ziad — no migrations. additive only:
+// new models, nullable columns, enum values, indexes; nothing dropped or renamed
+// ═══════════════════════════════════════════════════════════════
+
+// ───────── enum changes ─────────
+// UserRole        → add CENTER
+// OwnerType       → leave untouched in v1 (renaming an enum value with existing rows is risky);
+//                   centerId is the only source of truth for "is a center consultant"
+// FinanceCategory → add CENTER_PAYOUT
+// CenterState     → already exists in prisma/models/roles.prisma (PUBLISHED HOLD HIDDEN); reuse, don't redeclare
+// CouponType      → CENTER already exists; no change
+// TimingType      → already exists (ONLINE ONSITE); no change
+
+enum CenterMemberRole {
+  OWNER
+  STAFF
+}
+
+enum CenterBankState {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ───────── new models ─────────
+
+// a stub `model Center { id String @id @default(cuid()) @@map("centers") }` already exists in
+// prisma/models/roles.prisma, and the db has no centers rows (or no table yet).
+// phase 1 extends that stub in place into this model; don't declare a second Center
+model Center {
+  id     String      @id @default(cuid())
+  ceid   Int         @unique @default(autoincrement())
+  slug   String      @unique
+  status CenterState @default(HIDDEN)
+
+  // profile
+  name        String
+  description String?  @db.Text
+  logo        String?
+  cover       String?
+  gallery     String[]
+  themeKey    String   @default("midnight")
+  themeVars   Json? // { primary, accent, ... } same shape idea as EventCampaign
+
+  // location
+  city     String
+  district String?
+  address  String
+  lat      Float
+  lng      Float
+
+  // contact
+  phone    String
+  whatsapp String?
+  email    String?
+
+  // legal
+  crNumber      String? // السجل التجاري
+  vatNumber     String?
+  licenseNumber String?
+
+  // onsite details
+  preference GenderPreference @default(BOTH)
+  amenities  String[] // parking, women section, accessibility ...
+  policy     String?          @db.Text // arrival / cancellation rules for onsite
+
+  // our cut (whole percent). the center keeps the rest and pays its consultants itself.
+  // Int because orders snapshot the center's % as Payment.commission = 100 - platformRate (Int)
+  platformRate Int @default(20)
+
+  sort_key   Float    @default(0)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+
+  // @relations
+  members        CenterMember[]
+  consultants    Consultant[]
+  workHours      CenterWorkHour[]
+  closures       CenterClosure[]
+  bankAccounts   CenterBankAccount[]
+  coupons        Coupon[]
+  discounts      Discount[]
+  orders         Order[]
+  financeEntries FinanceEntry[]
+
+  @@index([status, sort_key])
+  @@map("centers")
+}
+
+// accounts created manually by admin — no sign-up path for this role
+model CenterMember {
+  id         String           @id @default(cuid())
+  role       CenterMemberRole @default(OWNER)
+  created_at DateTime         @default(now())
+
+  // @relations
+  userId   String @unique // one center per account for now
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  centerId Int
+  center   Center @relation(fields: [centerId], references: [ceid], onDelete: Cascade)
+
+  @@index([centerId])
+  @@map("center_members")
+}
+
+model CenterWorkHour {
+  id    Int     @id @default(autoincrement())
+  day   Weekday
+  open  String // "09:00"
+  close String // "17:00"  — multiple rows per day allowed for split shifts
+
+  // @relations
+  centerId Int
+  center   Center @relation(fields: [centerId], references: [ceid], onDelete: Cascade)
+
+  @@unique([centerId, day, open])
+  @@map("center_work_hours")
+}
+
+model CenterClosure {
+  id     String   @id @default(cuid())
+  date   DateTime @db.Date
+  reason String?
+
+  // @relations
+  centerId Int
+  center   Center @relation(fields: [centerId], references: [ceid], onDelete: Cascade)
+
+  @@unique([centerId, date])
+  @@map("center_closures")
+}
+
+// IBAN changes need admin approval; old APPROVED row stays in use until then
+model CenterBankAccount {
+  id         String          @id @default(cuid())
+  iban       String
+  bankCode   String
+  holderName String
+  state      CenterBankState @default(PENDING)
+
+  // actor snapshots
+  reviewedById   String?
+  reviewedByName String?
+  reviewedAt     DateTime?
+  reviewNote     String?   @db.Text
+
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+
+  // @relations
+  centerId Int
+  center   Center @relation(fields: [centerId], references: [ceid], onDelete: Cascade)
+
+  @@index([centerId, state])
+  @@map("center_bank_accounts")
+}
+
+// ───────── changes to existing models ─────────
+
+// model Consultant {
+//   userId   String?  @unique                       // was required
+//   user     User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   centerId Int?
+//   center   Center?  @relation(fields: [centerId], references: [ceid])
+//
+//   @@index([centerId, status, statusA, approved, sort_key])  // serves both center page and centerId IS NULL listing
+// }
+
+// model ConsultantTiming {
+//   userId String?   // nullable: center consultants have no user. keep the column (minimal change)
+//   user   User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+//
+//   // unchanged: type TimingType @default(ONLINE) and @@unique([consultantId, day, time])
+//   // stay as they are — one type per slot. all existing rows are ONLINE
+// }
+
+// model Meeting {
+//   mode TimingType @default(ONLINE)   // per meeting, packages can mix. new: the mode is stored nowhere today
+// }
+
+// model Order {
+//   centerId Int?    // set at creation from consultant.centerId, never from client input
+//   center   Center? @relation(fields: [centerId], references: [ceid])
+//
+//   @@index([centerId, created_at])
+// }
+
+// model Payment {
+//   // `commission Int` (existing, unchanged) = the provider's % — the consultant's % on platform
+//   // orders, the center's % (100 - Center.platformRate, e.g. 80) on center orders.
+//   // written at order creation as today. do NOT add Payment.platformRate
+//   platformShare Float?   // written once when payment → PAID (both PAID paths: updateOrderStatus, payAllByWallet)
+//   centerShare   Float?   // null for platform orders; base = Payment.total (after discount, before VAT)
+//                          // refunds reduce both proportionally, at read time
+// }
+
+// model Coupon {
+//   centerId Int?    // must equal consultant.centerId in applyCoupon (null matches null)
+//   center   Center? @relation(fields: [centerId], references: [ceid])
+// }
+
+// model Discount {
+//   centerId Int?    // admin dashboard applies the rule when expanding categories into DiscountConsultant rows;
+//   center   Center? @relation(fields: [centerId], references: [ceid])  // getActiveDiscountFor guards it on the main site
+// }
+
+// model FinanceEntry {
+//   centerId Int?    // for CENTER_PAYOUT entries
+//   center   Center? @relation(fields: [centerId], references: [ceid], onDelete: SetNull)
+//   @@index([centerId])
+// }
+
+// model User {
+//   centerMember CenterMember?
+// }

@@ -8,7 +8,7 @@ Current work: the Server Actions security refactor in `docs/security-refactor.md
 - **Do not change UI or UX.** No changes to markup, styling, Arabic copy, component structure, loading states or user-visible flows unless a task explicitly says so. The only allowed new user-facing text is error messages for new error codes.
 - **Do not change business logic.** Pricing, discounts, coupons, booking rules, slot rules, payment flow (Moyasar, Tabby) and notifications behave exactly as before. Paid and order status changes go through `updateOrderStatus()`. Move and wrap code; don't rewrite it. If a security fix would change behavior, stop and ask.
 - **Never read, print or edit `.env*` files.** Secrets never get the `NEXT_PUBLIC_` prefix.
-- **Never run Prisma migrations against a remote database.** Three codebases share it. Use `npx prisma migrate dev --create-only`, edit the SQL as the plan says, then stop and ask.
+- **Never apply anything to the remote database.** Three codebases share it. This repo owns the schema (`prisma/schema.prisma` + `prisma/models/*.prisma`). There are no migrations: Ziad applies schema changes with `prisma db push`, and only Ziad does. Claude Code edits the schema files, runs `npx prisma validate` and `npx prisma generate`, then stops and asks. Never run `prisma db push`, `prisma migrate` or write SQL against the database.
 - **No git push, deploys, force operations or dependency upgrades** beyond what the plan lists.
 - **Only commit files your task changed.** Other uncommitted changes in the working tree belong to Ziad; never stage them.
 - **Payments and webhooks** (`handlers/` for Moyasar, Tabby, cron, and their `route.ts`): propose changes, don't apply them without approval.
