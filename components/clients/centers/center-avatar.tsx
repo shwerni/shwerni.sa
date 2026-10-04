@@ -28,7 +28,7 @@ export function CenterAvatar({ name, image, gender, size, className }: Props) {
       alt={`صورة ${name}`}
       width={size}
       height={size}
-      className={cn("rounded-2xl object-cover bg-slate-100", className)}
+      className={cn("shrink-0 rounded-2xl bg-muted object-cover", className)}
       style={{ width: size, height: size }}
     />
   );

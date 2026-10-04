@@ -8,6 +8,13 @@ import { parseISO } from "date-fns";
 
 // components
 import { toast } from "@/components/shared/toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
+import { BookingSteps } from "@/components/clients/centers/booking/booking-steps";
+import { BookingSummary } from "@/components/clients/centers/booking/booking-summary";
 
 // actions
 import { Pay } from "@/actions/booking";
@@ -24,6 +31,7 @@ import {
 } from "@/lib/generated/prisma/enums";
 
 // schemas
+import { schemas } from "@/schemas/schemas";
 import { ReservationFormType, reservationSchema } from "@/schemas";
 
 // types
@@ -46,7 +54,13 @@ import {
 } from "@/utils/date";
 
 // icons
-import { Loader2, MonitorSmartphone, TicketPercent } from "lucide-react";
+import {
+  ChevronRight,
+  CreditCard,
+  Loader2,
+  MonitorSmartphone,
+  TicketPercent,
+} from "lucide-react";
 
 // props
 interface Props {
@@ -70,6 +84,8 @@ const PHASES = [
   { key: "noon", label: "ظهراً" },
   { key: "night", label: "مساءً" },
 ] as const;
+const STEPS = ["المدة", "اليوم", "الوقت", "بياناتك", "الدفع"];
+const LAST = STEPS.length - 1;
 
 // methods Pay can hand off to a gateway
 const PAY_METHODS: PaymentMethod[] = [
@@ -77,9 +93,10 @@ const PAY_METHODS: PaymentMethod[] = [
   PaymentMethod.tabby,
 ];
 
-// booking panel for a center consultant. every price, coupon and the order itself are
-// resolved on the server by the same pipeline as the platform (applyCoupon, Pay).
-// mode is ONLINE in this phase; the onsite phase adds a mode choice and mode-filtered slots
+// booking for a center consultant as a stepped flow (duration → day → time → details → payment).
+// every price, coupon and the order itself are resolved on the server by the same pipeline as
+// the platform (applyCoupon, Pay). mode is ONLINE in this phase; the onsite phase adds a mode
+// choice and mode-filtered slots
 export function BookingPanel({
   cid,
   consultant,
@@ -92,6 +109,9 @@ export function BookingPanel({
 }: Props) {
   // session mode (ONLINE only for now)
   const [mode] = React.useState<TimingType>(TimingType.ONLINE);
+
+  // flow
+  const [step, setStep] = React.useState(0);
 
   // choices
   const [duration, setDuration] = React.useState<Duration>("30");
@@ -228,243 +248,316 @@ export function BookingPanel({
     });
   }
 
-  const step = "flex flex-col gap-3 border-b border-slate-100 pb-5";
-  const stepTitle = "text-sm font-bold text-slate-900";
-  const chip = (active: boolean) =>
+  // the step's requirement before moving on (the final submit validates everything again)
+  function stepError(s: number): string | null {
+    if (s === 1 && !day) return "اختر اليوم";
+    if (s === 2 && !time) return "اختر وقت الجلسة";
+    if (s === 3) {
+      const n = schemas.name.safeParse(name);
+      if (!n.success) return n.error.issues[0]?.message ?? "الاسم غير صالح";
+      const p = schemas.phone.safeParse(phoneNumber(phone));
+      if (!p.success) return p.error.issues[0]?.message ?? "رقم الجوال غير صالح";
+    }
+    return null;
+  }
+
+  function next() {
+    if (step === LAST) return submit();
+    const error = stepError(step);
+    if (error) {
+      toast.info({ message: error });
+      return;
+    }
+    setStep((s) => s + 1);
+  }
+
+  const back = () => setStep((s) => Math.max(0, s - 1));
+  const ctaLabel = step === LAST ? "تأكيد الحجز والدفع" : "التالي";
+  const ctaDisabled = submitting || (step === LAST && methods.length === 0);
+
+  // option rows / chips
+  const option = (active: boolean) =>
     cn(
-      "rounded-xl border px-3 py-2 text-sm transition disabled:pointer-events-none disabled:opacity-35",
+      "rounded-xl border text-sm transition disabled:pointer-events-none disabled:opacity-35",
       active
-        ? "border-transparent text-white"
-        : "border-slate-200 bg-white text-slate-700 hover:border-slate-400",
+        ? "border-(--center-accent) bg-(--center-soft) text-(--center-accent-text)"
+        : "border-border/70 bg-background hover:border-foreground/30",
     );
-  const activeStyle = { background: "var(--center-accent)" };
+
+  const dayLabel = day ? `${getDayName(day)} ${day.slice(8)}` : null;
+  const timeLabel = time ? (itimes[time]?.label ?? time) : null;
+
+  const cta = (
+    <button
+      type="button"
+      onClick={next}
+      disabled={ctaDisabled}
+      className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-(--center-accent) font-semibold text-(--center-accent-foreground) transition hover:opacity-90 disabled:opacity-60"
+    >
+      {submitting && <Loader2 className="size-4 animate-spin" />}
+      {ctaLabel}
+    </button>
+  );
 
   return (
-    <section
-      id="booking"
-      className="flex flex-col gap-5 rounded-3xl border border-slate-200 bg-white p-5 sm:p-6"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-slate-900">احجز جلستك</h2>
-        {mode === TimingType.ONLINE && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-            <MonitorSmartphone className="size-3.5" />
-            أونلاين
-          </span>
-        )}
-      </div>
-
-      {/* duration */}
-      <div className={step}>
-        <h3 className={stepTitle}>مدة الجلسة</h3>
-        <div className="grid grid-cols-3 gap-2">
-          {DURATIONS.map((d) => {
-            const active = duration === d;
-            const discounted = cost[d] < original[d];
-            return (
-              <button
-                key={d}
-                type="button"
-                onClick={() => setDuration(d)}
-                className={cn(chip(active), "flex flex-col items-center gap-0.5")}
-                style={active ? activeStyle : undefined}
-              >
-                <span className="font-semibold">{d} دقيقة</span>
-                <span className="text-xs">
-                  {cost[d]} ر.س
-                  {discounted && (
-                    <span className="ms-1 line-through opacity-70">{original[d]}</span>
-                  )}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* day */}
-      <div className={step}>
-        <h3 className={stepTitle}>اليوم</h3>
-        <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
-          {days.map((d) => {
-            const off = unavailable.includes(dateToWeekDay(parseISO(d)));
-            return (
-              <button
-                key={d}
-                type="button"
-                disabled={off}
-                onClick={() => pickDay(d)}
-                className={cn(chip(day === d), "flex flex-col items-center")}
-                style={day === d ? activeStyle : undefined}
-              >
-                <span className="text-xs">{getDayName(d)}</span>
-                <span className="font-semibold">{d.slice(8)}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* time */}
-      <div className={step}>
-        <h3 className={stepTitle}>الوقت</h3>
-        {!day ? (
-          <p className="text-sm text-slate-500">اختر يوماً لعرض المواعيد المتاحة</p>
-        ) : loadingSlots ? (
-          <p className="inline-flex items-center gap-2 text-sm text-slate-500">
-            <Loader2 className="size-4 animate-spin" />
-            جارٍ تحميل المواعيد
-          </p>
-        ) : !slots || PHASES.every((p) => !slots[p.key]?.length) ? (
-          <p className="text-sm text-slate-500">لا توجد مواعيد متاحة في هذا اليوم</p>
-        ) : (
-          PHASES.filter((p) => slots[p.key]?.length).map((p) => (
-            <div key={p.key} className="flex flex-col gap-2">
-              <span className="text-xs text-slate-500">{p.label}</span>
-              <div className="flex flex-wrap gap-2">
-                {slots[p.key]!.map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setTime(t)}
-                    className={chip(time === t)}
-                    style={time === t ? activeStyle : undefined}
-                  >
-                    {itimes[t]?.label ?? t}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* client */}
-      <div className={step}>
-        <h3 className={stepTitle}>بياناتك</h3>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="الاسم"
-            aria-label="الاسم"
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
-          />
-          <input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="رقم الجوال (9665XXXXXXXX)"
-            aria-label="رقم الجوال"
-            inputMode="tel"
-            dir="ltr"
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
-          />
-        </div>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          maxLength={200}
-          rows={2}
-          placeholder="ملاحظات للمستشار (اختياري)"
-          aria-label="ملاحظات"
-          className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
-        />
-      </div>
-
-      {/* coupon */}
-      {couponAllowed && (
-        <div className={step}>
-          <h3 className={cn(stepTitle, "inline-flex items-center gap-1.5")}>
-            <TicketPercent className="size-4" />
-            كوبون خصم
-          </h3>
-          <div className="flex gap-2">
-            <input
-              value={couponInput}
-              onChange={(e) => {
-                setCouponInput(e.target.value);
-                setCoupon(null);
-              }}
-              placeholder="أدخل الكود"
-              aria-label="كود الخصم"
-              dir="ltr"
-              className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm uppercase outline-none focus:border-slate-400"
-            />
-            <button
-              type="button"
-              onClick={checkCoupon}
-              disabled={checkingCoupon || !couponInput.trim()}
-              className="rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-800 disabled:opacity-50"
-            >
-              {checkingCoupon ? <Loader2 className="size-4 animate-spin" /> : "تطبيق"}
-            </button>
-          </div>
-          {coupon && (
-            <p className="text-sm text-emerald-700">
-              تم تطبيق خصم {coupon.percent}%
-            </p>
+    <>
+      <section
+        id="booking"
+        className="flex scroll-mt-24 flex-col gap-5 rounded-2xl border border-border/70 bg-card p-5"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-semibold">احجز جلستك</h2>
+          {mode === TimingType.ONLINE && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs">
+              <MonitorSmartphone className="size-3.5" strokeWidth={1.75} />
+              أونلاين
+            </span>
           )}
         </div>
-      )}
 
-      {/* payment */}
-      <div className="flex flex-col gap-3">
-        <h3 className={stepTitle}>طريقة الدفع</h3>
-        {methods.length === 0 ? (
-          <p className="text-sm text-slate-500">الدفع غير متاح حالياً</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {methods.map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setMethod(m)}
-                className={chip(method === m)}
-                style={method === m ? activeStyle : undefined}
-              >
-                {paymentMethodLabel(m)}
-              </button>
-            ))}
+        <BookingSteps steps={STEPS} current={step} />
+
+        {/* 1. duration */}
+        {step === 0 && (
+          <div className="flex flex-col gap-2">
+            {DURATIONS.map((d) => {
+              const active = duration === d;
+              const discounted = cost[d] < original[d];
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDuration(d)}
+                  aria-pressed={active}
+                  className={cn(option(active), "flex items-center justify-between px-4 py-3")}
+                >
+                  <span className="font-medium">{d} دقيقة</span>
+                  <span className="text-sm">
+                    {discounted && (
+                      <span className="me-2 text-xs text-muted-foreground line-through">
+                        {original[d]}
+                      </span>
+                    )}
+                    <span className="font-semibold">{cost[d]}</span> ر.س
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
 
-        <div className="rounded-2xl bg-slate-50 p-4 text-sm">
-          <div className="flex justify-between text-slate-600">
-            <span>سعر الجلسة</span>
-            <span>{summary.subTotal} ر.س</span>
+        {/* 2. day */}
+        {step === 1 && (
+          <div className="grid grid-cols-4 gap-2">
+            {days.map((d) => {
+              const off = unavailable.includes(dateToWeekDay(parseISO(d)));
+              const active = day === d;
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  disabled={off}
+                  onClick={() => pickDay(d)}
+                  aria-pressed={active}
+                  className={cn(option(active), "flex flex-col items-center gap-0.5 py-2.5")}
+                >
+                  <span className="text-xs">{getDayName(d)}</span>
+                  <span className="text-base font-semibold">{d.slice(8)}</span>
+                </button>
+              );
+            })}
           </div>
-          <div className="mt-1 flex justify-between font-bold text-slate-900">
-            <span>الإجمالي شامل الضريبة</span>
-            <span>{summary.totalWTax} ر.س</span>
+        )}
+
+        {/* 3. time */}
+        {step === 2 &&
+          (loadingSlots ? (
+            <div className="grid grid-cols-3 gap-2">
+              {Array.from({ length: 6 }, (_, i) => (
+                <Skeleton key={i} className="h-10 rounded-xl" />
+              ))}
+            </div>
+          ) : !slots || PHASES.every((p) => !slots[p.key]?.length) ? (
+            <p className="rounded-xl bg-muted/60 p-4 text-center text-sm text-muted-foreground">
+              لا توجد مواعيد متاحة في هذا اليوم، اختر يوماً آخر
+            </p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {PHASES.filter((p) => slots[p.key]?.length).map((p) => (
+                <div key={p.key} className="flex flex-col gap-2">
+                  <span className="text-xs text-muted-foreground">{p.label}</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {slots[p.key]!.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setTime(t)}
+                        aria-pressed={time === t}
+                        className={cn(option(time === t), "h-10")}
+                      >
+                        {itimes[t]?.label ?? t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+
+        {/* 4. details */}
+        {step === 3 && (
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="booking-name">الاسم</Label>
+              <Input
+                id="booking-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="h-10 rounded-xl"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="booking-phone">رقم الجوال</Label>
+              <Input
+                id="booking-phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="9665XXXXXXXX"
+                inputMode="tel"
+                dir="ltr"
+                className="h-10 rounded-xl"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="booking-notes">ملاحظات للمستشار (اختياري)</Label>
+              <Textarea
+                id="booking-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                maxLength={200}
+                rows={3}
+                className="rounded-xl"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 5. payment */}
+        {step === 4 && (
+          <div className="flex flex-col gap-4">
+            {couponAllowed && (
+              <div className="flex flex-col gap-1.5">
+                <Label
+                  htmlFor="booking-coupon"
+                  className="inline-flex items-center gap-1.5"
+                >
+                  <TicketPercent className="size-4" strokeWidth={1.75} />
+                  كوبون خصم
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="booking-coupon"
+                    value={couponInput}
+                    onChange={(e) => {
+                      setCouponInput(e.target.value);
+                      setCoupon(null);
+                    }}
+                    dir="ltr"
+                    className="h-10 flex-1 rounded-xl uppercase"
+                  />
+                  <button
+                    type="button"
+                    onClick={checkCoupon}
+                    disabled={checkingCoupon || !couponInput.trim()}
+                    className="inline-flex h-10 items-center rounded-xl border border-border px-4 text-sm font-medium transition hover:bg-muted disabled:opacity-50"
+                  >
+                    {checkingCoupon ? <Loader2 className="size-4 animate-spin" /> : "تطبيق"}
+                  </button>
+                </div>
+                {coupon && (
+                  <p className="text-sm text-(--center-accent-text)">
+                    تم تطبيق خصم {coupon.percent}%
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium">طريقة الدفع</span>
+              {methods.length === 0 ? (
+                <p className="text-sm text-muted-foreground">الدفع غير متاح حالياً</p>
+              ) : (
+                methods.map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setMethod(m)}
+                    aria-pressed={method === m}
+                    className={cn(option(method === m), "flex items-center gap-2 px-4 py-3")}
+                  >
+                    <CreditCard className="size-4" strokeWidth={1.75} />
+                    {paymentMethodLabel(m)}
+                  </button>
+                ))
+              )}
+            </div>
+
+            <label className="flex items-start gap-2 text-sm">
+              <Checkbox
+                checked={accepted}
+                onCheckedChange={(v) => setAccepted(v === true)}
+                className="mt-0.5"
+              />
+              <span>
+                أوافق على{" "}
+                <Link href="/terms" className="underline" target="_blank">
+                  الشروط والأحكام
+                </Link>
+              </span>
+            </label>
+          </div>
+        )}
+
+        {/* desktop: summary + navigation inside the panel */}
+        <div className="flex flex-col gap-3 border-t border-border/60 pt-4">
+          <BookingSummary
+            duration={duration}
+            dayLabel={dayLabel}
+            timeLabel={timeLabel}
+            totalWithTax={summary.totalWTax}
+            className="hidden lg:flex"
+          />
+          <div className="flex items-center gap-2">
+            {step > 0 && (
+              <button
+                type="button"
+                onClick={back}
+                className="inline-flex h-11 items-center gap-1 rounded-xl px-3 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              >
+                <ChevronRight className="size-4" strokeWidth={1.75} />
+                رجوع
+              </button>
+            )}
+            <div className="hidden flex-1 lg:block">{cta}</div>
           </div>
         </div>
+      </section>
 
-        <label className="flex items-start gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={accepted}
-            onChange={(e) => setAccepted(e.target.checked)}
-            className="mt-1"
+      {/* mobile: sticky summary + cta, above the iphone home indicator */}
+      <div
+        id="booking-bar"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur lg:hidden"
+      >
+        <div className="mx-auto flex max-w-xl flex-col gap-2.5">
+          <BookingSummary
+            duration={duration}
+            dayLabel={dayLabel}
+            timeLabel={timeLabel}
+            totalWithTax={summary.totalWTax}
           />
-          <span>
-            أوافق على{" "}
-            <Link href="/terms" className="underline" target="_blank">
-              الشروط والأحكام
-            </Link>
-          </span>
-        </label>
-
-        <button
-          type="button"
-          onClick={submit}
-          disabled={submitting || methods.length === 0}
-          className="inline-flex items-center justify-center gap-2 rounded-2xl py-3 font-bold text-white transition disabled:opacity-60"
-          style={activeStyle}
-        >
-          {submitting && <Loader2 className="size-4 animate-spin" />}
-          تأكيد الحجز والدفع
-        </button>
+          {cta}
+        </div>
       </div>
-    </section>
+    </>
   );
 }

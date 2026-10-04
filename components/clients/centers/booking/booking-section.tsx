@@ -30,7 +30,7 @@ export async function BookingSection({ cid }: Props) {
 
   if (!info || !pricing || !finance)
     return (
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 text-center text-slate-600">
+      <div className="rounded-2xl border border-border/70 bg-card p-6 text-center text-sm text-muted-foreground">
         الحجز غير متاح حالياً، برجاء المحاولة لاحقاً
       </div>
     );

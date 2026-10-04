@@ -566,11 +566,21 @@ Use one route group (for example `app/(center)/center/...`), with a layout that 
 
 ## 13. Theme
 
-- `themeKey` is a preset (add `constants/theme/center.ts`, or reuse `constants/theme/event.ts` presets if they fit).
-- `themeVars` are overrides, validated by a strict zod schema with a **fixed set of keys**. Suggested keys: `primary`, `primaryForeground`, `accent`, `accentForeground`, plus optional dark-mode counterparts.
-- **Values must be colors only**, in the same format the site's CSS variables use. Never accept raw CSS strings.
-- **Contrast check server-side:** `primary` vs `primaryForeground` and `accent` vs `accentForeground` must meet WCAG AA (4.5:1). Reject with a clear Arabic message otherwise.
-- **Apply** in the center layouts (public and dashboard) as CSS custom properties on a wrapper element. Only center pages change.
+- The page stays **neutral** (the site's `background` / `muted` / `foreground` tokens). The center's theme is an **accent only**: primary buttons, active states, icon-square tints, small highlights and the header accent line. There are never full-page color floods.
+- `themeKey` is one of the curated accent palettes in `constants/theme/center.ts`: `emerald`, `teal`, `sky`, `indigo`, `violet`, `rose`, `amber`, `slate`.
+  - `midnight`, the column default, maps to `indigo`, and unknown keys fall back to `indigo`.
+  - The event presets (`constants/theme/event.ts`) are separate and unchanged.
+- Each palette has five colors:
+  - `accent`: buttons, active states
+  - `accentForeground`: text on accent, AA ≥ 4.5:1
+  - `accentText`: accent text and icons on white or tint, AA ≥ 4.5:1
+  - `tint`: icon squares, badges
+  - `soft`: hero gradient, highlighted rows
+- `themeVars` are overrides of exactly those five keys, validated by a strict zod schema with that **fixed set of keys**.
+- **Values must be hex colors only.** Never accept raw CSS strings. `utils/center-theme.ts` also drops anything else at render time.
+- **Contrast check server-side** when saving overrides: `accent` vs `accentForeground`, and `accentText` vs white, must meet WCAG AA (4.5:1). Reject with a clear Arabic message otherwise.
+- **Apply** in the center layouts (public and dashboard) as CSS custom properties on a wrapper element: `--center-accent`, `--center-accent-foreground`, `--center-accent-text`, `--center-tint`, `--center-soft`. Only center pages change.
+- The site has no dark mode, so the palettes are light-only.
 - **Logo and cover** go through the existing image upload flow.
 
 ---

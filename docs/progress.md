@@ -2381,3 +2381,55 @@ No pricing or payment logic is duplicated. The display total uses the existing `
 - `npm run build` on a clean `.next` passes, with the three routes as partial prerender.
 - The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`, and there's no `"use server"` in `lib/`, `data/` or `handlers/`.
 - A `next start` guest check, before the seed: `/centers` shows the empty state; an unknown or hidden center and its consultant page render not-found with `noindex`; `/consultants/148` is unchanged.
+
+## 2026-10-04 · Centers: public pages redesign (UI/UX only)
+
+The visual reference was `docs/centers/ui-reference.png` (not committed): neutral shadcn surfaces, slim cards with one hairline border, small lucide icons (`strokeWidth` 1.75) in soft rounded-xl squares, and the center's theme as an accent only.
+
+**Routing**
+
+- `/centers` (the directory) stays in the site layout.
+- `/centers/[slug]/**` moved with `git mv` to a new route group, `app/(pages)/(center)/`, with its own `layout.tsx`. That layout resolves the center (same `resolveCenter`, `notFound()` when it returns null) and renders the theme shell, a slim sticky topbar, the page, and a quiet footer.
+  - **Topbar:** logo or monogram + name, anchors to عن المركز / المستشارون / الموقع, an accent احجز button and a 2px accent line.
+  - **Footer:** the Shwerni logo, "مدعوم من شاورني" and a link to shwerni.sa.
+- `(center)/not-found.tsx` shows the site's 404 content with the quiet footer.
+- `viewport-fit=cover` is set on center pages only, so `env(safe-area-inset-bottom)` works.
+- The admin preview bar and `noindex` behave as before.
+
+**Palettes** (`constants/theme/center.ts`)
+
+- emerald, teal, sky, indigo, violet, rose, amber, slate. Each has `accent`, `accentForeground`, `accentText`, `tint` and `soft`, all AA.
+- `midnight` (the column default) → indigo.
+- `utils/center-theme.ts` maps them to `--center-*` variables and keeps the hex-only override validation.
+- The site has no dark mode (`<html class="light">`, no `.dark` styles), so the palettes are light-only.
+
+**Pages**
+
+- **Center home:**
+  - a hero (cover or a soft accent gradient, logo or monogram, name, gender badge, city, two-line description)
+  - quick-info stat tiles (city, working days, consultant count), streamed
+  - about, with the policy as a quiet note
+  - the consultant grid, streamed with skeleton cards
+  - location (Google Maps button), hours (today highlighted after mount, Riyadh time), amenities (icon chips)
+  - Hours and amenities are hidden when empty.
+- **Consultant page:**
+  - a profile header (photo, name, title, rating + count, category, years), then about, experience and education
+  - the booking panel as a stepped flow (المدة → اليوم → الوقت → بياناتك → الدفع). Same state, same `getConsultantAvailableTimes` / `applyCoupon` / `Pay` calls and the same payload.
+  - Details-step checks use the existing `schemas.name` / `schemas.phone`.
+  - The panel is sticky on desktop. On mobile, a fixed bottom summary + CTA bar pads for `env(safe-area-inset-bottom)`, and the shell adds matching bottom space via `has-[#booking-bar]`, so the footer is never covered.
+- **Directory:** a slim neutral card (logo or monogram, name, city, consultant count, hover lift), shadcn button chips for the city filter, and an empty state.
+- **Skeletons:** a `loading.tsx` for the directory, the center home and the consultant page, plus per-section `Suspense` fallbacks.
+
+**Unchanged:** `data/center/*`, the cache wrappers and tags (`center.ts` moved byte-for-byte), `Pay`, pricing, coupons and the booking payload. `center-header.tsx` and `center-info.tsx` were replaced and removed.
+
+**Verified**
+
+- `npx tsc --noEmit` passes.
+- `npm run build` on a clean `.next` passes; the two route groups share `/centers` without conflict.
+- The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`.
+- A `next start` guest check against the seeded, published `test-center`:
+  - `/centers` is in the site layout and lists it.
+  - `/centers/test-center` has no site navbar, has the center footer, `viewport-fit=cover` and every section (about, consultants, location, hours, amenities, "الأحد – الخميس").
+  - A consultant page renders the booking panel and the mobile bar.
+  - `cid 1` and `/centers/nope` return not-found with `noindex` inside the center chrome.
+  - `/consultants/148` is unchanged.

@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
 // components
-import { CenterShell } from "@/components/clients/centers/center-shell";
+import { BookingPanelSkeleton } from "@/components/clients/centers/skeletons";
 import { BookingSection } from "@/components/clients/centers/booking/booking-section";
 import { CenterConsultantProfile } from "@/components/clients/centers/center-consultant-profile";
 
@@ -58,34 +58,22 @@ export default async function Page({ params }: Props) {
   const resolved = await resolveCenter(slug);
   if (!resolved || !Number.isInteger(cidN)) notFound();
 
-  const { center, preview } = resolved;
+  const { center } = resolved;
   const consultant = await fetchCenterConsultant(center.ceid, cidN);
   if (!consultant) notFound();
 
   return (
-    <CenterShell
-      themeKey={center.themeKey}
-      themeVars={center.themeVars}
-      preview={preview}
-    >
-      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-5">
-        <div className="lg:col-span-3">
-          <CenterConsultantProfile
-            consultant={consultant}
-            center={{ slug: center.slug, name: center.name }}
-          />
-        </div>
-        <div className="lg:col-span-2">
-          {/* prices and slots are live, never cached */}
-          <Suspense
-            fallback={
-              <div className="h-96 animate-pulse rounded-3xl bg-slate-100" />
-            }
-          >
-            <BookingSection cid={consultant.cid} />
-          </Suspense>
-        </div>
+    <div className="mx-auto grid max-w-6xl gap-8 px-4 pt-6 pb-10 lg:grid-cols-[1fr_380px] lg:pb-16">
+      <CenterConsultantProfile
+        consultant={consultant}
+        center={{ slug: center.slug, name: center.name }}
+      />
+      <div className="lg:sticky lg:top-20 lg:self-start">
+        {/* prices and slots are live, never cached */}
+        <Suspense fallback={<BookingPanelSkeleton />}>
+          <BookingSection cid={consultant.cid} />
+        </Suspense>
       </div>
-    </CenterShell>
+    </div>
   );
 }
