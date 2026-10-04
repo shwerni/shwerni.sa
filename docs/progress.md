@@ -2284,3 +2284,50 @@ Platform behavior is unchanged: every existing consultant, coupon and order has 
 
 - `getConsultant` has no center version yet; it comes with the center pages, filtered by `centerId`.
 - The mobile `consultants/[cid]/times` route still returns slot times for any cid (booking data, no profile fields).
+
+## 2026-10-04 · Centers phase 3: pricing, coupons and money (main site)
+
+Plan: `docs/centers/CENTERS_SPEC.md` §3, §7, §8. Ziad's read-only check found no `CENTER`-type coupons and no `used_coupons` rows of that type.
+
+**Changes**
+
+| File | Change |
+|---|---|
+| `data/event.ts` `getActiveDiscountFor` | the `DiscountConsultant` link counts only if the consultant and the discount are both platform, or the discount's center contains this consultant (§8). One query, no extra lookup. `resolveConsultantPricing` itself is unchanged. |
+| `data/coupon.ts` `applyCoupon` | `coupon.centerId` must equal the consultant's `centerId` (null matches null). A `CENTER` coupon with a `consultantId` applies only to that consultant. Reuses the existing "another consultant" message. |
+| `data/order/reserveation.ts` `reserveConsultant` | `Order.centerId` comes from the consultant. A center order's `Payment.commission` is `100 − Center.platformRate`. |
+| `utils/order-split.ts` (new, pure) | `computeOrderSplit`, `paidSplit` (center orders only, once only) and `shareAfterRefunds` (refunds are VAT-inclusive SAR; `Payment.tax` is a percent) |
+| `data/order/reserveation.ts` `orderStatusPaid` and `data/wallet.ts` `payAllByWallet` | both PAID paths add `platformShare`/`centerShare` to the PAID write for center orders (§7.1). The wallet path reads `centerId` and the payment snapshot first. |
+| `data/dues.ts` | `getAllDuesOwner` and `getDuesOwnenByMonth` filter `centerId: null`. That covers the dues page, the month filter and the bot's `BotConsultantDues`. |
+| `data/center/dues.ts` (new, server-only, no caller yet) | `getCenterDues(centerId)`: earned (Σ `centerShare` less proportional refunds, at read time), paid (Σ `CENTER_PAYOUT`), balance, the order rows and a by-consultant grouping. Throws on a non-finite `centerId`. |
+
+**No change for platform rows** (reviewed in the diff):
+
+- Discounts: every current link satisfies the first `OR` branch.
+- Coupons: null equals null; no `CENTER` coupons exist.
+- Orders: `center` is null, so the commission is computed as before and `centerId` is written as null, the default.
+- Both PAID writes: `paidSplit(null, …)` returns `{}`.
+- Dues: every existing order has `centerId = null`.
+- The only additions are reads: one consultant lookup in `applyCoupon`, and one order lookup on the wallet-only PAID path.
+
+**Tests**
+
+- The repo has no test setup, so none was added.
+- The util was checked with a throwaway `node --test` script that isn't committed. It covers:
+  - the split examples, plus a sweep showing the two shares always sum exactly
+  - partial, zero and over-full refunds, including the rounded full refund 58 → 50
+  - `paidSplit` for platform, already-written and new center orders
+
+  All pass.
+- Spec §7.1 wants identical unit tests in the dashboard repo, and a runner is still to be chosen there.
+
+**Verified**
+
+- `npx tsc --noEmit` passes.
+- `npm run build` on a clean `.next` passes; all 139 pages pre-render.
+- The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`, and there's no `"use server"` in `lib/`, `data/` or `handlers/`.
+
+**Open**
+
+- Refunds recorded from the admin dashboard (bank transfer, wallet, cash) must also be VAT-inclusive SAR. This repo writes only Moyasar refunds, which are.
+- The bank-transfer PAID path lives in the admin dashboard and needs the same `paidSplit` logic.

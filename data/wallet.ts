@@ -13,6 +13,7 @@ import {
 import { onPaymentSuccess } from "@/handlers/admin/order/payment";
 
 // utils
+import { paidSplit } from "@/utils/order-split";
 import { withTax } from "@/utils/tax";
 import { dateTimeToString } from "@/utils/time";
 
@@ -160,6 +161,17 @@ export const payAllByWallet = async (
 
     if (!debited) return null;
 
+    // center orders: platform/center split, written with the PAID update (centers spec §7.1)
+    const current = await prisma.order.findUnique({
+      where: { oid },
+      select: {
+        centerId: true,
+        payment: {
+          select: { total: true, commission: true, platformShare: true },
+        },
+      },
+    });
+
     const order = await prisma.order.update({
       where: { oid },
       data: {
@@ -168,6 +180,9 @@ export const payAllByWallet = async (
             pid: zid,
             method: PaymentMethod.wallet,
             payment: PaymentState.PAID,
+            ...(current?.payment
+              ? paidSplit(current.centerId, current.payment)
+              : {}),
           },
         },
         info: {

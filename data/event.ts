@@ -69,6 +69,11 @@ const getActiveDiscountFor = async (cid: number) => {
           startDate: { lte: now },
           endDate: { gte: now },
         },
+        // centers spec §8: discount.centerId must equal the consultant's centerId (null matches null)
+        OR: [
+          { consultant: { centerId: null }, discount: { centerId: null } },
+          { discount: { center: { is: { consultants: { some: { cid } } } } } },
+        ],
       },
       include: { discount: true },
       orderBy: { discountId: "desc" },

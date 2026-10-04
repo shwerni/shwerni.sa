@@ -25,6 +25,7 @@ import {
 // utils
 import { orderInfoLabel } from "@/utils";
 import { dateToString } from "@/utils/date";
+import { paidSplit } from "@/utils/order-split";
 import { aboveAndLowerTime, dateTimeToString } from "@/utils/time";
 
 import {
@@ -75,7 +76,12 @@ export const reserveConsultant = async (
     // get owner data (unfiltered: booking works for center consultants too)
     const owner = await prismaAll.consultant.findFirst({
       where: { cid: data.cid },
-      select: { name: true, commission: true },
+      select: {
+        name: true,
+        commission: true,
+        centerId: true,
+        center: { select: { platformRate: true } },
+      },
     });
 
     if (!owner || !owner.name)
@@ -85,11 +91,16 @@ export const reserveConsultant = async (
         message: "هذا المستشار غير متاح حالياً",
       };
 
-    const { name, commission } = owner;
+    const { name, commission, centerId, center } = owner;
 
-    // commission: consultant's own rate, falling back to the SERVER default —
+    // commission: a center order snapshots the center's % (100 - platformRate, centers spec §7.1);
+    // otherwise the consultant's own rate, falling back to the SERVER default —
     // never the client's claimed rate
-    const oCommission = commission ? commission : commissionRate;
+    const oCommission = center
+      ? 100 - center.platformRate
+      : commission
+        ? commission
+        : commissionRate;
 
     // client name
     const clinetName =
@@ -115,6 +126,7 @@ export const reserveConsultant = async (
         origin,
         author: data.user,
         consultantId: data.cid,
+        centerId, // from the consultant, never from client input
         name: clinetName,
         phone: clientPhone,
         type: data.type,
@@ -919,6 +931,8 @@ export const orderStatusPaid = async (pid: string) => {
         where: { pid },
         data: {
           payment: PaymentState.PAID,
+          // center orders: platform/center split, written once (centers spec §7.1)
+          ...paidSplit(order.centerId, payment),
           order: {
             update: {
               info: {

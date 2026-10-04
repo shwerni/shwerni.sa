@@ -1,6 +1,6 @@
 import "server-only";
 // prisma db
-import prisma from "@/lib/database/db";
+import prisma, { prismaAll } from "@/lib/database/db";
 
 // packages
 import { parseISO, isBefore, isAfter, startOfDay } from "date-fns";
@@ -32,6 +32,22 @@ export const applyCoupon = async (user: string, code: string, cid: number) => {
 
     // check if coupon belong to this consultant
     if (coupon.consultantId !== cid && coupon.type === CouponType.CONSULTANT)
+      return { state: false, message: "هذا الكود مخصص لمستشار آخر." };
+
+    // centers spec §8: a coupon applies only when coupon.centerId === the consultant's centerId
+    // (null matches null), so platform coupons never reach center consultants and vice versa.
+    // a CENTER coupon can narrow to one of its center's consultants through consultantId
+    const owner = await prismaAll.consultant.findUnique({
+      where: { cid },
+      select: { centerId: true },
+    });
+    if ((coupon.centerId ?? null) !== (owner?.centerId ?? null))
+      return { state: false, message: "هذا الكود مخصص لمستشار آخر." };
+    if (
+      coupon.type === CouponType.CENTER &&
+      coupon.consultantId !== null &&
+      coupon.consultantId !== cid
+    )
       return { state: false, message: "هذا الكود مخصص لمستشار آخر." };
 
     // if user not sign

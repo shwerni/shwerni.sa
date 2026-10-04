@@ -16,6 +16,8 @@ export const getAllDuesOwner = async (cid: number) => {
       where: {
         consultantId: cid,
         payment: { payment: PaymentState.PAID },
+        // center orders are paid to the center, never to a consultant (centers spec §3.9)
+        centerId: null,
       },
       orderBy: {
         created_at: "desc",
@@ -63,6 +65,8 @@ export const getDuesOwnenByMonth = async (range: string, cid: number) => {
       where: {
         consultantId: cid,
         payment: { payment: PaymentState.PAID },
+        // center orders are paid to the center, never to a consultant (centers spec §3.9)
+        centerId: null,
         due_at: {
           gte: startDate,
           lt: endDate,
