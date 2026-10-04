@@ -223,6 +223,8 @@ export async function getCouponsForHome(): Promise<CouponConsultant[]> {
       co.status = true
       AND co."statusA" = ${ConsultantState.PUBLISHED}::"ConsultantState"
       AND co.approved = ${ApprovalState.APPROVED}::"ApprovalState"
+      AND co."centerId" IS NULL
+      AND c."centerId" IS NULL
       AND c.status = ${CouponState.PUBLISHED}::"CouponState"
       AND c.visibility = ${CouponVisibility.PUBLIC}::"CouponVisibility"
       AND (c.starts_at IS NULL OR c.starts_at::date <= CURRENT_DATE)
@@ -250,7 +252,11 @@ export const getCoupons = async (page: number = 1, search: string = "") => {
       consultant: search
         ? { name: { contains: search, mode: "insensitive" as const } }
         : undefined,
+      // platform coupons only
+      centerId: null,
       AND: [
+        // not tied to a center consultant (coupons without a consultant stay)
+        { NOT: { consultant: { is: { centerId: { not: null } } } } },
         // starts_at null or in the past means it has started
         { OR: [{ starts_at: null }, { starts_at: { lte: now } }] },
         // expires_at null or in the future means it hasn't expired

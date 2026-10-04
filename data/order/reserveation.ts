@@ -1,6 +1,6 @@
 import "server-only";
 // prisma db
-import prisma from "@/lib/database/db";
+import prisma, { prismaAll } from "@/lib/database/db";
 
 // packages
 import { createHash } from "node:crypto";
@@ -72,8 +72,8 @@ export const reserveConsultant = async (
         message: `هذا الموعد (${dateToString(data.date)} - ${data.time}) تم حجزه بالفعل، برجاء اختيار وقت آخر`,
       };
 
-    // get owner data
-    const owner = await prisma.consultant.findFirst({
+    // get owner data (unfiltered: booking works for center consultants too)
+    const owner = await prismaAll.consultant.findFirst({
       where: { cid: data.cid },
       select: { name: true, commission: true },
     });
@@ -1165,6 +1165,8 @@ export const getPaidPast3Days = async () => {
     where: {
       created_at: { gte: start },
       payment: { payment: PaymentState.PAID },
+      // public ticker: platform orders only
+      centerId: null,
     },
     select: {
       id: true,

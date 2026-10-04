@@ -87,11 +87,19 @@ export const getArticles = async (
     ? Prisma.sql`AND LOWER(a.title) LIKE LOWER(${`%${search}%`})`
     : Prisma.empty;
 
+  // platform only: drop articles by a center consultant (articles without a consultant stay)
+  const platformOnly = Prisma.sql`
+    AND NOT EXISTS (
+      SELECT 1 FROM "consultants" cx
+      WHERE cx."cid" = a."consultantId" AND cx."centerId" IS NOT NULL
+    )`;
+
   const result = await prisma.$queryRaw<{ count: bigint }[]>`
     SELECT COUNT(*)::bigint AS count
     FROM "articles" a
     WHERE a.status = 'PUBLISHED'::"ArticleState"
       ${where}
+      ${platformOnly}
   `;
 
   const total = Number(result[0]?.count ?? 0);
@@ -115,6 +123,7 @@ export const getArticles = async (
     LEFT JOIN "article_likes" al ON al."articleId" = a.id
     WHERE a.status = 'PUBLISHED'::"ArticleState"
       ${where}
+      ${platformOnly}
     GROUP BY a.id, a.aid, a.title, a.article, a.image, a.category,
              a.created_at, c.name, c.rate
     ORDER BY ${clause}
@@ -182,6 +191,7 @@ export const getRecommendedConsultants = async () => {
       FROM "consultants" c
       WHERE c."statusA" = 'PUBLISHED'
         AND c."approved" = 'APPROVED'
+        AND c."centerId" IS NULL
       ORDER BY RANDOM()
       LIMIT 3
     `;
@@ -196,7 +206,12 @@ export const getRecommendedConsultants = async () => {
 export const getArticleByAid = async (aid: number) => {
   try {
     const article = await prisma.article.findFirst({
-      where: { aid, status: ArticleState.PUBLISHED },
+      where: {
+        aid,
+        status: ArticleState.PUBLISHED,
+        // not by a center consultant (articles without a consultant stay)
+        NOT: { consultant: { is: { centerId: { not: null } } } },
+      },
       include: {
         consultant: { select: { name: true, rate: true, gender: true } },
         specialties: { select: { specialty: true } },
@@ -331,7 +346,12 @@ export async function addArticleComment(input: AddArticleCommentInput) {
 
 export async function getArticleComments(aid: number) {
   return prisma.articleComment.findMany({
-    where: { articleId: aid, status: CommentState.PUBLISHED },
+    where: {
+      articleId: aid,
+      status: CommentState.PUBLISHED,
+      // not by a center consultant (comments without a consultant stay)
+      NOT: { consultant: { is: { centerId: { not: null } } } },
+    },
     orderBy: [{ consultantId: "asc" }, { created_at: "desc" }],
     include: {
       consultant: {

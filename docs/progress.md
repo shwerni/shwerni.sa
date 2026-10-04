@@ -2226,3 +2226,61 @@ Existing consultants all have a user, so current behavior is unchanged.
 1. Ziad runs the read-only `prisma migrate diff --from-config-datasource --to-schema prisma --script` and checks it.
 2. Ziad runs `prisma db push`.
 3. Only then rebuild and push this commit. Deploying it before step 2 breaks every query that selects the new columns.
+
+## 2026-10-04 · Centers phase 2: leak protection (main site)
+
+Plan: `docs/centers/CENTERS_SPEC.md` §6, approved with three decisions:
+
+1. Only direct consultant reads move to `prismaAll`.
+2. Mobile `reservation-info` stays discovery.
+3. `getConsultant` gets only the discovery filter.
+
+**Clients** (`lib/database/db.ts`)
+
+- The default export `prisma` is now the safe client: a `$extends` query extension injects `centerId: null` into every consultant `findMany`/`findFirst*`/`findUnique*`/`count`/`aggregate`/`groupBy`, unless `where.centerId` is set (`undefined` counts as not set).
+- `prismaAll` is the plain client.
+- All 13 `$transaction` calls compile unchanged; an interactive `tx` keeps the extension.
+
+**`prismaAll`, for direct consultant reads that center orders reach**
+
+- `getConsultantCost` → `resolveConsultantPricing` → `Pay`
+- `reserveConsultant`'s consultant lookup
+- `getOwnerByCid` (reschedule and package-session pages)
+- the new `getConsultantInfoForBooking` (reserve component)
+
+The rest of the paid path (`updateOrderStatus`, `onPaymentSuccess`, wallet, rooms, sessions, reschedule, notifications, Telegram, WhatsApp, webhooks, refunds, crons) reads the consultant only nested under `order`/`meeting`, which the extension doesn't touch.
+
+**Discovery filters**
+
+- Raw SQL `"centerId" IS NULL` in:
+  - `getConsultants` (count and items), `getConsultant`, `getPuslishedConsultantsForHome`
+  - `getArticles` (`NOT EXISTS` in the count and items), `getRecommendedConsultants`
+  - `getCouponsForHome` (consultant and coupon)
+  - `getDiscountConsultants` (count and items)
+  - `getFavorites`, `getFavoriteConsultants`
+  - `getFreeSessionConsultants` (count and items)
+  - the four online lists
+  - `getProgram`
+  - reels `getConsultantsAvailableAt`
+  - `getReviewsForHome`
+- Prisma filters:
+  - `getArticleByAid`, `getArticleComments`, `getQuestionByQid`, `getConsultantsPackages`
+  - `getCoupons` (coupon `centerId: null` plus consultant)
+  - reels timings (both copies)
+  - `getPaidPast3Days` (order `centerId: null`)
+  - `getConsultantReviews`, `getConsultantPaginatedReviews`
+
+Platform behavior is unchanged: every existing consultant, coupon and order has `centerId = null`.
+
+**Verified**
+
+- `npx tsc --noEmit` passes.
+- `npm run build` on a clean `.next` passes; all 139 pages pre-render against live data with the new filters.
+- The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`, and there's no `"use server"` in `lib/`, `data/` or `handlers/`.
+- Every raw query that mentions `consultants` has the filter, except `recordInstantSnapshot` (doesn't read the table) and `reshuffleConsultants` (a write).
+- `prismaAll` is used only at the four sites above.
+
+**Open**
+
+- `getConsultant` has no center version yet; it comes with the center pages, filtered by `centerId`.
+- The mobile `consultants/[cid]/times` route still returns slot times for any cid (booking data, no profile fields).

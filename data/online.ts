@@ -57,6 +57,7 @@ export async function checkIsAnyConsultantOnline(): Promise<boolean> {
     AND c."statusA" = 'PUBLISHED'
     AND c."approved" = 'APPROVED'
     AND c."status" = true
+    AND c."centerId" IS NULL
     AND NOT ${BUSY_SUBQUERY}
   `);
   return Number(result[0]?.count ?? 0) > 0;
@@ -70,6 +71,7 @@ export async function getOnlineConsultantsList(): Promise<OnlineConsultant[]> {
     AND c."statusA" = 'PUBLISHED'
     AND c."approved" = 'APPROVED'
     AND c."status" = true
+    AND c."centerId" IS NULL
     AND NOT ${BUSY_SUBQUERY}
   `);
 }
@@ -83,6 +85,7 @@ async function getAvailableCount(): Promise<number> {
     AND c."statusA" = 'PUBLISHED'
     AND c."approved" = 'APPROVED'
     AND c."status" = true
+    AND c."centerId" IS NULL
     AND NOT ${BUSY_SUBQUERY}
   `);
   return Number(result[0]?.count ?? 0);
@@ -394,6 +397,7 @@ export async function getConsultantsOnline(
       WHERE
         c."userId" = ANY(${userIds}::text[])
         AND c.status = true
+        AND c."centerId" IS NULL
         AND c.approved = ${ApprovalState.APPROVED}::"ApprovalState"
         AND (${filters.categories?.length ?? 0} = 0 OR c.category = ANY(${filters.categories ?? []}::"Categories"[]))
         AND (${filters.gender ?? null}::text IS NULL OR c.gender = ${filters.gender ?? null}::"Gender")

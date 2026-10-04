@@ -269,6 +269,7 @@ export const getFreeSessionConsultants = async (
           c."status"   = true
           AND c."statusA"  = 'PUBLISHED'::"ConsultantState"
           AND c."approved" = 'APPROVED'::"ApprovalState"
+          AND c."centerId" IS NULL
           AND ft."status"  = true
           AND ft."activeWeek" = ${currentWeekStart}
           ${searchWhere}
@@ -308,6 +309,7 @@ export const getFreeSessionConsultants = async (
           c."status"   = true
           AND c."statusA"  = 'PUBLISHED'::"ConsultantState"
           AND c."approved" = 'APPROVED'::"ApprovalState"
+          AND c."centerId" IS NULL
           AND ft."status"  = true
           AND ft."activeWeek" = ${currentWeekStart}
           ${searchWhere}

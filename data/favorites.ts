@@ -18,7 +18,8 @@ export async function getFavorites(userId: string) {
       FROM "favorites" f
       JOIN "consultants" c
         ON c."cid" = f."consultantId"
-      WHERE f."userId" = ${userId};
+      WHERE f."userId" = ${userId}
+        AND c."centerId" IS NULL;
     `;
 
     return result[0] ?? { favorites: [], consultants: [] };
@@ -88,6 +89,7 @@ WHERE f."userId" = ${userId}
 AND c.status = true
 AND c."statusA" = 'PUBLISHED'
 AND c.approved = 'APPROVED'
+AND c."centerId" IS NULL
 
 ORDER BY f.created_at DESC
 `;

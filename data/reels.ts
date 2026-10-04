@@ -48,6 +48,7 @@ export async function getAvailableTimesForDate(
         status: true,
         statusA: ConsultantState.PUBLISHED,
         approved: ApprovalState.APPROVED,
+        centerId: null,
       },
     },
     select: { time: true },
@@ -86,6 +87,7 @@ export async function getConsultantsAvailableAt(
       -- Postgres requires strict casting for Prisma Enums in Raw SQL
       AND c."statusA" = 'PUBLISHED'::"ConsultantState"
       AND c.approved = 'APPROVED'::"ApprovalState"
+      AND c."centerId" IS NULL
       AND ct.day = ${weekday}::"Weekday"
       AND ct.time = ${time}
       

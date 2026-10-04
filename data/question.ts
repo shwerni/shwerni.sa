@@ -21,7 +21,11 @@ export const getAllPublishedQuestion = async () => {
 export const getQuestionByQid = async (qid: number) => {
   try {
     const question = await prisma.question.findFirst({
-      where: { qid },
+      where: {
+        qid,
+        // not answered by a center consultant (questions without a consultant stay)
+        NOT: { consultant: { is: { centerId: { not: null } } } },
+      },
       include: {
         consultant: {
           select: {

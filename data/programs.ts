@@ -186,6 +186,7 @@ export const getProgram = async (prid: number) => {
         WHERE pc."programId" = p.prid
           AND pc.active = true
           AND pc.status = 'APPROVED'
+          AND c."centerId" IS NULL
       ) pc ON true
       WHERE p.prid = ${prid}
     `);

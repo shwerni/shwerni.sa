@@ -11,7 +11,12 @@ export async function getConsultantsPackages(
   status?: boolean,
 ) {
   return await prisma.package.findMany({
-    where: { consultantId, isActive: status },
+    where: {
+      consultantId,
+      isActive: status,
+      // packages are platform-only in v1 (centers spec §4)
+      NOT: { consultant: { is: { centerId: { not: null } } } },
+    },
   });
 }
 

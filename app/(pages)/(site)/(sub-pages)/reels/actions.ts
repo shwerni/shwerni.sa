@@ -57,6 +57,7 @@ export async function getAvailableTimesForDate(
         status: true,
         statusA: ConsultantState.PUBLISHED,
         approved: ApprovalState.APPROVED,
+        centerId: null,
       },
     },
     select: { time: true },

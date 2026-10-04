@@ -30,6 +30,7 @@ export const getReviewsForHome = async () => {
       JOIN "consultants" c ON r."consultantId" = c."cid"
       WHERE r.status::text = ${ReviewState.PUBLISHED}
         AND r.rate > 4
+        AND c."centerId" IS NULL
       ORDER BY RANDOM()
       LIMIT 10
     `;
@@ -255,7 +256,12 @@ export const getConsultantPaginatedReviews = async (
 ): Promise<ReviewsPage> => {
   try {
     const reviews = await prisma.review.findMany({
-      where: { consultantId: cid, status: ReviewState.PUBLISHED },
+      where: {
+        consultantId: cid,
+        status: ReviewState.PUBLISHED,
+        // platform consultants only
+        consultant: { centerId: null },
+      },
       orderBy: { created_at: "desc" },
       take: limit + 1,
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),

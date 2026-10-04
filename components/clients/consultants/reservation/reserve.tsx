@@ -4,7 +4,10 @@ import Reservation from "@/components/clients/consultants/reservation/form";
 import DiscountBadge from "@/components/clients/sub-pages/event/discount-badge";
 
 // prisma data
-import { getConsultantInfo, getUnavailableWeekdays } from "@/data/consultant";
+import {
+  getConsultantInfoForBooking,
+  getUnavailableWeekdays,
+} from "@/data/consultant";
 import { getFinanceConfig } from "@/data/admin/settings/finance";
 
 // lib
@@ -30,7 +33,7 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
   // packages
   const [info, unavailable, finance, packages, pricing, campaign] =
     await Promise.all([
-      getConsultantInfo(cid),
+      getConsultantInfoForBooking(cid),
       getUnavailableWeekdays(cid),
       getFinanceConfig(),
       getConsultantsPackages(cid, true),

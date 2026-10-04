@@ -3,7 +3,7 @@ import "server-only";
 import { getDay, parseISO } from "date-fns";
 
 // prisma db
-import prisma from "@/lib/database/db";
+import prisma, { prismaAll } from "@/lib/database/db";
 import { Consultant, Coupon, Prisma } from "@/lib/generated/prisma/client";
 
 // prisma types
@@ -145,6 +145,7 @@ export const getConsultants = async (
         AND c."status" = true
         AND c."statusA" = 'PUBLISHED'
         AND c."approved" = 'APPROVED'
+        AND c."centerId" IS NULL
         ${searchWhere}
         ${costWhere}
         ${categoryWhere}
@@ -193,6 +194,7 @@ export const getConsultants = async (
         AND c."status" = true
         AND c."statusA" = 'PUBLISHED'
         AND c."approved" = 'APPROVED'
+        AND c."centerId" IS NULL
         ${searchWhere}
         ${costWhere}
         ${categoryWhere}
@@ -275,6 +277,7 @@ WHERE c.cid = ${cid}
 AND c.status = true
 AND c."statusA" = 'PUBLISHED'
 AND c.approved = 'APPROVED'
+AND c."centerId" IS NULL
 
 GROUP BY c.id, c.cid
 `;
@@ -285,32 +288,50 @@ GROUP BY c.id, c.cid
   }
 };
 
+// consultant basic data, shared by the profile and the reserve form
+const consultantInfoSelect = {
+  name: true,
+  image: true,
+  gender: true,
+  approved: true,
+  statusA: true,
+  status: true,
+  category: true,
+  DiscountConsultant: {
+    select: {
+      status: true,
+      discountId: true,
+    },
+  },
+} satisfies Prisma.ConsultantSelect;
+
 // get consultant basic data | meta data consutant
+// discovery: platform consultants only (safe client)
 export const getConsultantInfo = async (cid: number) => {
   try {
     // get current times
     const consultant = await prisma.consultant.findFirst({
       where: { cid },
-      select: {
-        name: true,
-        image: true,
-        gender: true,
-        approved: true,
-        statusA: true,
-        status: true,
-        category: true,
-        DiscountConsultant: {
-          select: {
-            status: true,
-            discountId: true,
-          },
-        },
-      },
+      select: consultantInfoSelect,
     });
     // return
     return consultant || null;
   } catch {
     // return
+    return null;
+  }
+};
+
+// same data for the reserve form: unfiltered, so booking works for center consultants too.
+// on the platform route the page has already 404'd a center consultant before this runs
+export const getConsultantInfoForBooking = async (cid: number) => {
+  try {
+    const consultant = await prismaAll.consultant.findFirst({
+      where: { cid },
+      select: consultantInfoSelect,
+    });
+    return consultant || null;
+  } catch {
     return null;
   }
 };
@@ -362,7 +383,12 @@ export const getConsultantReviews = async (cid: number) => {
   try {
     // get current times
     const consultant = await prisma.review.findMany({
-      where: { consultantId: cid, status: ReviewState.PUBLISHED },
+      where: {
+        consultantId: cid,
+        status: ReviewState.PUBLISHED,
+        // platform consultants only
+        consultant: { centerId: null },
+      },
     });
     // return
     return consultant || [];
@@ -520,9 +546,10 @@ export const getUnavailableWeekdays = async (
 };
 
 // get consultant cost
+// unfiltered: the base price behind resolveConsultantPricing → Pay, for center consultants too
 export const getConsultantCost = async (cid: number) => {
   try {
-    const cost = await prisma.consultant.findUnique({
+    const cost = await prismaAll.consultant.findUnique({
       where: {
         cid,
       },
@@ -583,6 +610,7 @@ GREATEST(
         c.status = true
         AND c."statusA" = ${ConsultantState.PUBLISHED}::"ConsultantState"
         AND c.approved = ${ApprovalState.APPROVED}::"ApprovalState"
+        AND c."centerId" IS NULL
       ORDER BY RANDOM()
       LIMIT 15;
     `;
@@ -594,10 +622,11 @@ GREATEST(
 };
 
 // get consultant by cid
+// unfiltered: reschedule and package-session pages of a booked order, center consultants too
 export const getOwnerByCid = async (cid: number) => {
   try {
     // get all conultants owners
-    const owner = await prisma.consultant.findFirst({
+    const owner = await prismaAll.consultant.findFirst({
       where: {
         cid: cid,
       },

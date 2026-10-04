@@ -130,6 +130,7 @@ export const getDiscountConsultants = async (
         c."status" = true
         AND c."statusA"  = 'PUBLISHED'::"ConsultantState"
         AND c."approved" = 'APPROVED'::"ApprovalState"
+        AND c."centerId" IS NULL
         AND dc."discountId" = ${discount}
         AND dc."status" = true
         ${searchWhere}
@@ -171,6 +172,7 @@ export const getDiscountConsultants = async (
         c."status" = true
         AND c."statusA"  = 'PUBLISHED'::"ConsultantState"
         AND c."approved" = 'APPROVED'::"ApprovalState"
+        AND c."centerId" IS NULL
         AND dc."discountId" = ${discount}
         AND dc."status" = true
         ${searchWhere}
