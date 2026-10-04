@@ -58,6 +58,7 @@ export default async function MeetingChatPage({ params, searchParams }: Props) {
           name: consultant.name,
           image: consultant.image,
           gender: consultant.gender,
+          centerSlug: consultant.center?.slug ?? null,
         }}
         participantId={participantId}
         senderRole={currentParticipant.role}

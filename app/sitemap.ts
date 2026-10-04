@@ -6,9 +6,11 @@ import type { MetadataRoute } from "next";
 
 // prisma data
 import { siteMapDynamic } from "@/data/seo";
+import { getSitemapCenters } from "@/data/center/centers";
 
 // constants
 import { mainRoute } from "@/constants/links";
+import { CENTERS_ENABLED } from "@/constants/centers";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // time
@@ -67,8 +69,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 
+  // centers: /centers, each published center and its public consultants (from launch)
+  const centerRoutes: MetadataRoute.Sitemap = [];
+  if (CENTERS_ENABLED) {
+    const centers = await getSitemapCenters();
+    centerRoutes.push({
+      url: `${mainRoute}centers`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.6,
+    });
+    for (const c of centers) {
+      centerRoutes.push({
+        url: `${mainRoute}centers/${c.slug}`,
+        lastModified: c.updated_at,
+        changeFrequency: "weekly",
+        priority: 0.7,
+      });
+      for (const k of c.consultants)
+        centerRoutes.push({
+          url: `${mainRoute}centers/${c.slug}/consultants/${k.cid}`,
+          lastModified: k.updated_at,
+          changeFrequency: "monthly",
+          priority: 0.6,
+        });
+    }
+  }
+
   // return
-  return [...staticRoutes, ...dynamicRoutes];
+  return [...staticRoutes, ...dynamicRoutes, ...centerRoutes];
 }
 
 // // React & Next

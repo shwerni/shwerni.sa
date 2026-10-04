@@ -1,6 +1,9 @@
 // types
 import { Link } from "@/types/layout";
 
+// constants
+import { CENTERS_ENABLED } from "@/constants/centers";
+
 // lucide icons
 import {
   CreditCard,
@@ -18,6 +21,7 @@ import {
   Video,
   Wallet,
   FlaskConical,
+  Building2,
   Star,
   MessageCircleQuestion,
   MessageCircleQuestionIcon,
@@ -85,6 +89,10 @@ export const navLinks: Link[] = [
     link: "/consultants",
     icon: Users,
   },
+  // centers: shown from launch (CENTERS_ENABLED)
+  ...(CENTERS_ENABLED
+    ? [{ label: "المراكز", link: "/centers", icon: Building2 }]
+    : []),
   {
     label: "المدونة",
     link: "/articles",

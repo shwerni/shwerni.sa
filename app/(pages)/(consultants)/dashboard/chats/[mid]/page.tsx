@@ -32,6 +32,7 @@ export default async function MeetingChatPage({
               title: true,
               image: true,
               gender: true,
+              center: { select: { slug: true } },
             },
           },
         },
@@ -62,6 +63,7 @@ export default async function MeetingChatPage({
         name: consultant.name,
         image: consultant.image,
         gender: consultant.gender,
+        centerSlug: consultant.center?.slug ?? null,
       }}
       participantId={participantId}
       senderRole={currentParticipant.role}

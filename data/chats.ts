@@ -166,6 +166,8 @@ export async function getChatMeeting(mid: string) {
                 title: true,
                 image: true,
                 gender: true,
+                // a center consultant's page lives under its center
+                center: { select: { slug: true } },
               },
             },
           },

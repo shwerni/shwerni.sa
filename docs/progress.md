@@ -2331,3 +2331,53 @@ Plan: `docs/centers/CENTERS_SPEC.md` §3, §7, §8. Ziad's read-only check found
 
 - Refunds recorded from the admin dashboard (bank transfer, wallet, cash) must also be VAT-inclusive SAR. This repo writes only Moyasar refunds, which are.
 - The bank-transfer PAID path lives in the admin dashboard and needs the same `paidSplit` logic.
+
+## 2026-10-04 · Centers: public pages (main site)
+
+**Design:** a fresh UI (`components/clients/centers/*`) that reuses no platform card, profile or reserve UI. Booking goes through the platform's server pipeline only:
+
+- `getConsultantInfoForBooking`, `resolveConsultantPricing`, `getUnavailableWeekdays`, `getFinanceConfig`
+- the `getConsultantAvailableTimes`, `applyCoupon` and `Pay` actions
+
+No pricing or payment logic is duplicated. The display total uses the existing `calculatePayment`, and `Pay` recomputes it on the server.
+
+**Routes** (already public in `routes.ts`)
+
+| Route | What it shows |
+|---|---|
+| `/centers` | published centers by `sort_key`; nuqs city filter (`lib/nuqs/centers.ts`); cards with logo, name, city/district, description, consultant count |
+| `/centers/[slug]` | the theme as CSS variables on a wrapper (`utils/center-theme.ts`: event presets, known keys only, hex colors only); cover, logo, about, address + Google Maps link, work hours with split shifts, amenities, gender preference; grid of published+approved consultants |
+| `/centers/[slug]/consultants/[cid]` | profile (rating + count, no review list) and the booking panel, ONLINE only. The panel holds a `mode`, so ONSITE can be added next. Not-found unless the consultant belongs to the center and is published+approved |
+
+**Data** (`data/center/*`, server-only, `prismaAll`, explicit `centerId`)
+
+- `getPublishedCenters`, `getPublishedCenterBySlug`, `getCenterBySlugAnyStatus` (admin preview), `getSitemapCenters`
+- `getCenterConsultants`, and `getCenterConsultant`: the center version of `getConsultant` with `centerId = ceid`, public columns only
+- Both consultant functions reject a non-finite center id.
+
+**Caching:** the `"use cache"` wrappers are in `app/(pages)/(site)/centers/[slug]/center.ts`, so `data/` registers nothing new. Tags: `centers`, `center:{ceid}` (a slug miss is tagged `centers`), `center-consultants:{ceid}`. Pricing and slots are uncached.
+
+**Hidden centers:** not-found for the public. A logged-in ADMIN gets a preview with a "hidden" bar and `noindex`. The session is read only when the published lookup misses.
+
+**Launch flag:** `CENTERS_ENABLED = false` (`constants/centers.ts`) gates the المراكز menu link and the sitemap entries (`/centers`, centers, center consultants).
+
+**After payment**
+
+- Audited: success and paid pages, client order pages, WhatsApp, Telegram and push notifications have no consultant-profile link.
+- The expired-chat "تحدث مع المستشار" link (client chat and its dashboard copy) now uses `consultantPath(cid, centerSlug)` (`utils/consultant-path.ts`). It's a center route for center orders and the same `/consultants/{cid}` for platform orders.
+
+**Seed:** `scripts/seed-test-center.ts`
+
+- It isn't committed, because `/scripts` is gitignored, and it hasn't been run.
+- Usage: `npx tsx scripts/seed-test-center.ts 9665XXXXXXXX`.
+- The phone is required and goes to both consultants and the center.
+- It creates a HIDDEN `test-center`, Sunday–Thursday work hours, and two approved, published, user-less consultants with ONLINE hourly slots. It's idempotent.
+
+**Spec:** §9 and §10 now say: fresh design, same server pipeline, ONLINE first, client-only booking, admin preview, launch flag. §9 also documents the ONSITE WhatsApp templates (variables, the maps button, the non-empty / no-newline rules, and that `order_new_owner` stays for ONLINE).
+
+**Verified**
+
+- `npx tsc --noEmit` passes.
+- `npm run build` on a clean `.next` passes, with the three routes as partial prerender.
+- The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`, and there's no `"use server"` in `lib/`, `data/` or `handlers/`.
+- A `next start` guest check, before the seed: `/centers` shows the empty state; an unknown or hidden center and its consultant page render not-found with `noindex`; `/consultants/148` is unchanged.

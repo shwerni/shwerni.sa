@@ -36,6 +36,7 @@ import {
   Ban,
 } from "lucide-react";
 import { timeZone } from "@/utils/date";
+import { consultantPath } from "@/utils/consultant-path";
 import Link from "next/link";
 import { differenceInHours } from "date-fns";
 
@@ -89,6 +90,8 @@ interface ChatClientProps {
     name: string;
     image: string | null;
     gender: Gender;
+    // a center consultant's page lives under its center
+    centerSlug: string | null;
   };
   participantId: string;
   senderRole: UserRole;
@@ -469,7 +472,7 @@ export default function ChatClient({
               asChild
               className="mt-2 bg-theme hover:bg-theme/90 text-white rounded-xl"
             >
-              <Link href={`/consultants/${consultant.cid}`}>
+              <Link href={consultantPath(consultant.cid, consultant.centerSlug)}>
                 تحدث مع المستشار
               </Link>
             </Button>

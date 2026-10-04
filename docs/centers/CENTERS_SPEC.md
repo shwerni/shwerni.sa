@@ -339,7 +339,10 @@ Centers can create `Discount` and `Coupon` rows for their own center only. `cent
 
 ## 9. Booking and onsite
 
-The booking UI and flow are the **same components** as today, reached from the center route.
+The center booking UI is a **fresh design** (§10). It goes through the **same server pipeline** as the platform: `getConsultantInfoForBooking`, `resolveConsultantPricing`, `getUnavailableWeekdays` and the `getConsultantAvailableTimes`, `applyCoupon` and `Pay` actions. No pricing, coupon or payment logic is duplicated.
+
+- **Online first:** the public-pages phase books ONLINE only. ONSITE is the next phase. The booking panel holds a session `mode`, so ONSITE adds a mode choice and mode-filtered slots without restructuring.
+- **Client-only booking:** no gift/beneficiary booking, packages, collaboration links or scales on center pages.
 
 **Timings and availability**
 
@@ -381,10 +384,34 @@ The booking UI and flow are the **same components** as today, reached from the c
 
 **WhatsApp templates for ONSITE.** These are new Meta templates. Ziad names them and submits them to Meta:
 
-- `order_onsite_client` goes to the client: center name, address, map link, policy. It has **no** `meeting-url` button.
-- `order_new_center` goes to the center's `whatsapp` number when a center order is paid.
+- **`order_onsite_client`** goes to the client. It has **no** `meeting-url` button.
+  - Body variables:
+    1. client name
+    2. order number
+    3. consultant
+    4. center name
+    5. address
+    6. total
+    7. duration
+    8. session date/time
+    9. arrival policy
+  - A dynamic URL button: `https://www.google.com/maps?q={{1}}`, where `{{1}}` is `"lat,lng"`.
+- **`order_new_center`** goes to the center's `whatsapp` number. It's sent for **every** center order, online and onsite.
+  - Body variables:
+    1. center name
+    2. client name
+    3. consultant
+    4. order number
+    5. session type (حضورية / عن بُعد)
+    6. duration
+    7. session date/time
 
-The existing templates with the `meeting-url` button (`lib/notifications/site.ts`) stay for ONLINE meetings.
+**Template variable rules:**
+
+- A variable can never be empty. A center with no policy sends "لا توجد تعليمات إضافية".
+- A variable can never contain a line break. Newlines in the address or policy are replaced with "، ".
+
+The existing templates with the `meeting-url` button (`lib/notifications/site.ts`) stay for ONLINE meetings. Center consultants keep receiving `order_new_owner` for ONLINE sessions, since it carries the `meeting-url` button. What they receive for ONSITE sessions is decided in the ONSITE phase.
 
 **Reminders.** The only pre-session reminder is the mobile push 5 minutes before (`lib/notifications/mobile/notify/reservation.ts`, sent by `cron/mobile/notifications/dispatch`). There is no web or WhatsApp pre-session reminder. For ONSITE meetings, extend that push with the center address.
 
@@ -394,7 +421,9 @@ The existing templates with the `meeting-url` button (`lib/notifications/site.ts
 
 ## 10. Public pages (main site)
 
-**Navigation:** add a **المراكز** entry to the main navigation and menu.
+**Design:** every center page is a **fresh design** (`components/clients/centers/*`). They don't reuse the platform consultant card, profile or reserve UI. Booking still uses the platform's server pipeline (§9).
+
+**Navigation:** add a **المراكز** entry to the main navigation and menu. It sits behind `CENTERS_ENABLED` (`constants/centers.ts`) and is turned on at launch. The same flag adds the published centers and their consultant pages to the sitemap.
 
 **`/centers`**
 
@@ -409,16 +438,16 @@ The existing templates with the `meeting-url` button (`lib/notifications/site.ts
 - Location: written address plus a map link (and an embedded map if one is already used elsewhere on the site).
 - Work hours and amenities.
 - Gender preference badge.
-- Grid of the center's published and approved consultants, using the **existing consultant card**, with links to `/centers/[slug]/consultants/[cid]`.
+- Grid of the center's published and approved consultants (its own card design), with links to `/centers/[slug]/consultants/[cid]`.
 
 **`/centers/[slug]/consultants/[cid]`**
 
-- The existing consultant profile and reserve components, reused, with the center's theme.
+- A new profile layout (rating and review count only; the review list comes later) and a new booking panel, with the center's theme.
 - Must 404 if the consultant does not belong to that center, or is not published and approved.
 
 **Every link or share URL** that points at a center consultant uses the center route, never the platform `/consultants/[cid]` route.
 
-**Unpublished centers:** if `status` is not PUBLISHED, return 404 for the center page and everything under it.
+**Unpublished centers:** if `status` is not PUBLISHED, return 404 for the center page and everything under it. The exception is a logged-in ADMIN, who sees a preview (with a "hidden" bar and `noindex`) before launch.
 
 **Rendering:** pages are statically rendered and cached as described in §15. Slot availability stays dynamic, as today.
 
