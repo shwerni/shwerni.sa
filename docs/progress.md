@@ -2131,3 +2131,51 @@ The same results with a Googlebot and a Chrome-Lighthouse user agent.
 
 - After each commit: `npm run build` on a clean tree with `.next` deleted passes, the manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`, and there's no `"use server"` in `lib/`, `data/` or `handlers/`.
 - The not-found pages render inside the site header (checked in the HTML).
+
+## 2026-10-04 · Role escalation at sign-up (web and mobile)
+
+Found during the Centers audit (`docs/centers/AUDIT.md` §7).
+
+**Holes**
+
+1. Web: the public `register` Server Action passed `role` from the client straight to `createUser`. Anyone could sign up as `ADMIN` (or any role), verify their own phone and log in with it.
+2. Mobile (Better Auth 1.6.23): `role` is an `additionalFields` entry with `input: true`. The create hook allow-listed USER/OWNER, but nothing guarded `/api/mobile/auth/update-user`. Any signed-in app user could send `{ "role": "ADMIN" }` and change their role on the shared `users` row, which the web login then reads.
+
+**Fixes**
+
+| File | Change |
+|---|---|
+| `actions/auth.ts` | `register` rejects any role outside the allowlist `[USER, OWNER]`, returning the existing failure result |
+| `lib/auth/mobile-auth.ts` | `databaseHooks.user.update.before` throws `BAD_REQUEST` ("role is not allowed to be set") when an update contains `role`. This is the same error `input: false` gives on update. |
+| `actions/site.ts` | `applyCoupon` return type pinned to the data function's. Type-only: the bot early return from `dfacb60` had widened it, and 9 `tsc` errors in the three coupon forms followed. `next build` didn't flag them. |
+
+**Why not `input: false` on mobile `role`**
+
+- Mobile sign-up (`/phone-number/verify` with `signUpOnVerification`) reads `role` from the request body, and the create hook keeps USER or OWNER.
+- With `input: false`, Better Auth would replace it with the default, `USER`, so consultants could no longer sign up from the app.
+- The update hook closes the hole and keeps sign-up as it was.
+
+**Other places checked**
+
+None of these take a role from input:
+
+- Every other `user.create`/`update`/`updateMany` sets explicit fields only:
+  - `handlers/auth/verify.ts`, `handlers/auth/userInfo.ts`, `handlers/auth/reset.ts`
+  - `app/api/mobile/auth/set-password`, `app/api/mobile/account/profile/{name,phone,password}`
+  - the phone and password hooks in `mobile-auth.ts`
+- NextAuth has only the Credentials provider, so there's no OAuth path. Its `jwt` callback reads `role` from the database.
+- `legacy-password-login` creates a `MobileAccount` only.
+
+No code in this repo changes `User.role` after creation now. Admin role changes happen in the admin dashboard repo.
+
+**Verified**
+
+- `npx tsc --noEmit` passes (it had 9 errors before the `actions/site.ts` fix).
+- `npm run build` on a clean tree passes.
+- The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`.
+
+**Open**
+
+- Check production for accounts that already abused this. The query is in the commit report: users whose role isn't USER or OWNER.
+- A mobile user could also have switched USER ↔ OWNER through `update-user` before this fix. That's lower impact, since the dashboard still needs a consultant row and admin approval.
+- If the app itself calls `updateUser({ role })` (for example, "become a consultant" after sign-up), that call now fails. Not seen in this repo; the app repo should be checked.

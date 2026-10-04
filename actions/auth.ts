@@ -23,6 +23,12 @@ import {
 // lib
 import { checkHuman } from "@/lib/bot-protection";
 
+// prisma types
+import { UserRole } from "@/lib/generated/prisma/enums";
+
+// the only roles a public sign-up may pick (allowlist)
+const SIGNUP_ROLES: UserRole[] = [UserRole.USER, UserRole.OWNER];
+
 // public: credentials check
 export async function login(...args: Parameters<typeof loginHandler>) {
   // a bot gets the failure result this action already returns
@@ -34,6 +40,8 @@ export async function login(...args: Parameters<typeof loginHandler>) {
 export async function register(...args: Parameters<typeof registerHandler>) {
   // a bot gets the failure result this action already returns
   if (!(await checkHuman("register"))) return { state: false, message: "حدث حطأ ما" };
+  // the role comes from the client: anything but USER or OWNER is rejected
+  if (!SIGNUP_ROLES.includes(args[0])) return { state: false, message: "حدث حطأ ما" };
   return registerHandler(...args);
 }
 

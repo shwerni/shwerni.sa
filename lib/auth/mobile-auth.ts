@@ -46,6 +46,16 @@ export const mobileAuth = betterAuth({
           return { data: { ...user, role } };
         },
       },
+      update: {
+        // role is an input field only so sign-up can pick USER or OWNER;
+        // no client update (e.g. /update-user) may change it afterwards
+        before: async (data) => {
+          if ("role" in data)
+            throw new APIError("BAD_REQUEST", {
+              message: "role is not allowed to be set",
+            });
+        },
+      },
     },
   },
   emailAndPassword: {

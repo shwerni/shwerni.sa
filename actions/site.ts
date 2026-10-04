@@ -78,7 +78,7 @@ export async function addArticleComment(
 // public; the user argument comes from the session, guests are "temp"
 export async function applyCoupon(
   ...[, code, cid]: Parameters<typeof applyCouponData>
-) {
+): ReturnType<typeof applyCouponData> {
   // a bot gets the failure result this action already returns
   if (!(await checkHuman("applyCoupon"))) return { state: false, message: "عذراً، الكود الذي أدخلته غير صحيح." };
   const user = await sessionUser();
