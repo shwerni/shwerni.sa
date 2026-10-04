@@ -11,15 +11,12 @@ interface Props {
   lng: number;
 }
 
-// address and a google maps button from the center's coordinates
+// address and a google maps link from the center's coordinates
 export function CenterLocation({ address, lat, lng }: Props) {
   return (
-    <section
-      id="location"
-      className="flex scroll-mt-24 flex-col gap-4 rounded-2xl border border-border/70 bg-card p-5"
-    >
-      <div className="flex items-center gap-3">
-        <IconSquare icon={MapPin} />
+    <section id="location" className="scroll-mt-24 space-y-3">
+      <div className="flex items-center gap-2.5">
+        <IconSquare icon={MapPin} size="sm" />
         <h2 className="font-semibold">الموقع</h2>
       </div>
       <p className="leading-7 text-muted-foreground">{address}</p>
@@ -27,7 +24,7 @@ export function CenterLocation({ address, lat, lng }: Props) {
         href={`https://www.google.com/maps?q=${lat},${lng}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-auto inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-background text-sm font-medium text-(--center-accent-text) transition hover:bg-(--center-soft)"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-(--center-primary) underline-offset-4 hover:underline"
       >
         فتح في خرائط جوجل
         <ExternalLink className="size-4" strokeWidth={1.75} />

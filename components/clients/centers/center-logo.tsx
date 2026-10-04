@@ -10,7 +10,7 @@ interface Props {
   logo: string | null;
   // px
   size: number;
-  // accent: monogram on the center's accent; neutral: on muted (directory)
+  // accent: monogram on the center's primary; neutral: on muted (directory)
   tone?: "accent" | "neutral";
   className?: string;
 }
@@ -30,7 +30,7 @@ export function CenterLogo({ name, logo, size, tone = "accent", className }: Pro
         "grid shrink-0 place-items-center overflow-hidden rounded-2xl",
         !logo &&
           (tone === "accent"
-            ? "bg-(--center-accent) text-(--center-accent-foreground)"
+            ? "bg-(--center-primary) text-(--center-primary-foreground)"
             : "bg-muted text-foreground/70"),
         logo && "bg-card",
         className,

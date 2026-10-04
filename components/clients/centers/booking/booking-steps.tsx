@@ -17,7 +17,7 @@ export function BookingSteps({ steps, current }: Props) {
             key={s}
             className={cn(
               "h-1 flex-1 rounded-full transition-colors",
-              i <= current ? "bg-(--center-accent)" : "bg-muted",
+              i <= current ? "bg-(--center-primary)" : "bg-muted",
             )}
           />
         ))}

@@ -34,30 +34,27 @@ export function CenterHours({ hours }: Props) {
   if (days.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card p-5">
-      <div className="flex items-center gap-3">
-        <IconSquare icon={Clock} />
+    <section className="space-y-3">
+      <div className="flex items-center gap-2.5">
+        <IconSquare icon={Clock} size="sm" />
         <h2 className="font-semibold">ساعات العمل</h2>
       </div>
-      <ul className="flex flex-col gap-0.5 text-sm">
+      <ul className="-mx-2 text-sm">
         {days.map((d) => {
           const isToday = d.day === today;
           return (
             <li
               key={d.day}
               className={cn(
-                "flex items-center justify-between gap-3 rounded-lg px-3 py-2",
-                isToday && "bg-(--center-soft) text-(--center-accent-text)",
+                "flex items-center justify-between gap-3 rounded-lg px-2 py-1.5",
+                isToday && "bg-(--center-accent) font-medium text-(--center-primary)",
               )}
             >
-              <span className={cn("font-medium", isToday && "font-semibold")}>
+              <span>
                 {WeekdayAr[d.day]}
                 {isToday && <span className="ms-1.5 text-xs">(اليوم)</span>}
               </span>
-              <span
-                className={cn(!isToday && "text-muted-foreground")}
-                dir="ltr"
-              >
+              <span className={cn(!isToday && "text-muted-foreground")} dir="ltr">
                 {d.shifts.map((s) => `${s.open} – ${s.close}`).join("  ·  ")}
               </span>
             </li>

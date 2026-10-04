@@ -2433,3 +2433,51 @@ The visual reference was `docs/centers/ui-reference.png` (not committed): neutra
   - A consultant page renders the booking panel and the mobile bar.
   - `cid 1` and `/centers/nope` return not-found with `noindex` inside the center chrome.
   - `/consultants/148` is unchanged.
+
+## 2026-10-04 · Centers: public pages UI/UX fixes
+
+The problems were confirmed from `docs/centers/current-home.png`, and the target style from `docs/centers/ui-reference.png` (neither committed):
+
+- an empty gradient box with no cover
+- the monogram clipped under the cover
+- the description shown twice
+- boxed stat tiles
+- consultants pushed below the fold
+
+**Themes** (`constants/theme/center.ts`, `utils/center-theme.ts`)
+
+- Eight multi-color themes with Arabic names: ليلي `night`, زمردي `emerald`, محيطي `ocean`, ملكي `royal`, بنفسجي `lavender`, وردي `rose`, صحراوي `desert`, زيتوني `olive`.
+- Each has `primary` / `primaryForeground` (CTA, active states), `secondary` / `secondarySoft` (chips, badges, icon squares; a different hue or a neutral) and `accent` (a faint wash).
+- AA was computed for every pair: on-primary 5.0–17.9; secondary on soft 4.8–7.0; secondary on white 4.9–7.6.
+- Legacy keys are mapped (`midnight` → `night`, …). Overrides are still hex-only.
+- CSS variables: `--center-primary`, `--center-primary-foreground`, `--center-secondary`, `--center-secondary-soft`, `--center-accent`.
+
+**Center home: new order**
+
+1. **Hero:**
+   - The logo (relative z-10, above the cover, never clipped), name, gender badge, city/district and one description line.
+   - Inline quick-info chips (working days, consultant count, streamed).
+   - "احجز موعد" (primary → `#consultants`) and "الموقع" (→ `#location`).
+   - With no cover it's a compact hero on the faint accent wash, with no empty gradient box.
+2. **Consultants** ("اختر مستشارك"): borderless cards on `bg-muted/50`, an accent wash on hover.
+3. **Compact info:** about (the full description, once) with the policy as a quiet inline note; then location, hours (today on the accent wash) and amenities (secondary chips). There are no card boxes; one hairline separates the info area.
+
+**Booking panel**
+
+- The phone field is the shared `components/shared/phone-input.tsx`. It holds E.164; the same `phoneNumber()` → `9665…` runs at submit, so the payload is unchanged.
+- The details step follows `steps/details.tsx`: `Field` / `FieldLabel` / `FieldError`, red `*`, inline errors, and the WhatsApp note.
+- Day buttons follow `shared/days-buttons.tsx` in the center's colors, since that component hard-codes the platform blue.
+- Server calls and the payload are unchanged.
+
+**Unchanged:** `data/`, `actions/`, `handlers/`, `center.ts`, pricing and payment.
+
+**Verified**
+
+- `npx tsc --noEmit` passes.
+- `npm run build` on a clean `.next` passes.
+- The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`.
+- A `next start` check of the seeded `test-center`:
+  - the HTML order is hero → `#consultants` → `#about` → `#location`
+  - the old gradient box is gone, and the compact hero is used
+  - the description renders in exactly two visible paragraphs (the one-line preview and the full about text)
+  - the consultant page renders the booking panel and the mobile bar

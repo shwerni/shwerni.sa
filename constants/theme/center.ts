@@ -1,76 +1,98 @@
 // constants/theme/center.ts
-// center accent palettes (centers spec §13). the page stays neutral; the palette only colors
-// buttons, active states, icon squares and small highlights.
-//   accent            primary buttons, active states
-//   accentForeground  text on accent (AA ≥ 4.5:1)
-//   accentText        accent-colored text and icons on white or tint (AA ≥ 4.5:1)
-//   tint              icon-square background, badges
-//   soft              the lightest wash: hero gradient, highlighted rows
-export const centerPalettes = {
+// center themes (centers spec §13). the page stays neutral; color is used sparingly:
+//   primary           CTA buttons, active states
+//   primaryForeground text on primary (AA ≥ 4.5:1)
+//   secondary         icons and text of chips, badges and icon squares (a different but
+//                     harmonious hue, or a neutral), AA ≥ 4.5:1 on secondarySoft and on white
+//   secondarySoft     background of those chips and icon squares
+//   accent            a faint wash for soft backgrounds (compact hero, today's row)
+export const centerThemes = {
+  night: {
+    name: "ليلي",
+    primary: "#0f172a",
+    primaryForeground: "#ffffff",
+    secondary: "#475569",
+    secondarySoft: "#f1f5f9",
+    accent: "#eff6ff",
+  },
   emerald: {
-    accent: "#047857",
-    accentForeground: "#ffffff",
-    accentText: "#047857",
-    tint: "#d1fae5",
-    soft: "#ecfdf5",
+    name: "زمردي",
+    primary: "#047857",
+    primaryForeground: "#ffffff",
+    secondary: "#57534e",
+    secondarySoft: "#f5f5f4",
+    accent: "#ecfdf5",
   },
-  teal: {
-    accent: "#0f766e",
-    accentForeground: "#ffffff",
-    accentText: "#0f766e",
-    tint: "#ccfbf1",
-    soft: "#f0fdfa",
+  ocean: {
+    name: "محيطي",
+    primary: "#0369a1",
+    primaryForeground: "#ffffff",
+    secondary: "#0f766e",
+    secondarySoft: "#f0fdfa",
+    accent: "#f0f9ff",
   },
-  sky: {
-    accent: "#0369a1",
-    accentForeground: "#ffffff",
-    accentText: "#0369a1",
-    tint: "#e0f2fe",
-    soft: "#f0f9ff",
+  royal: {
+    name: "ملكي",
+    primary: "#4338ca",
+    primaryForeground: "#ffffff",
+    secondary: "#a16207",
+    secondarySoft: "#fefce8",
+    accent: "#eef2ff",
   },
-  indigo: {
-    accent: "#4f46e5",
-    accentForeground: "#ffffff",
-    accentText: "#4338ca",
-    tint: "#e0e7ff",
-    soft: "#eef2ff",
-  },
-  violet: {
-    accent: "#7c3aed",
-    accentForeground: "#ffffff",
-    accentText: "#6d28d9",
-    tint: "#ede9fe",
-    soft: "#f5f3ff",
+  lavender: {
+    name: "بنفسجي",
+    primary: "#6d28d9",
+    primaryForeground: "#ffffff",
+    secondary: "#be185d",
+    secondarySoft: "#fdf2f8",
+    accent: "#f5f3ff",
   },
   rose: {
-    accent: "#e11d48",
-    accentForeground: "#ffffff",
-    accentText: "#be123c",
-    tint: "#ffe4e6",
-    soft: "#fff1f2",
+    name: "وردي",
+    primary: "#be123c",
+    primaryForeground: "#ffffff",
+    secondary: "#57534e",
+    secondarySoft: "#f5f5f4",
+    accent: "#fff1f2",
   },
-  amber: {
-    accent: "#f59e0b",
-    accentForeground: "#1c1917",
-    accentText: "#b45309",
-    tint: "#fef3c7",
-    soft: "#fffbeb",
+  desert: {
+    name: "صحراوي",
+    primary: "#b45309",
+    primaryForeground: "#ffffff",
+    secondary: "#0f766e",
+    secondarySoft: "#f0fdfa",
+    accent: "#fffbeb",
   },
-  slate: {
-    accent: "#1e293b",
-    accentForeground: "#ffffff",
-    accentText: "#334155",
-    tint: "#e2e8f0",
-    soft: "#f8fafc",
+  olive: {
+    name: "زيتوني",
+    primary: "#3f6212",
+    primaryForeground: "#ffffff",
+    secondary: "#92400e",
+    secondarySoft: "#fffbeb",
+    accent: "#f7fee7",
   },
 } as const;
 
-export type CenterPaletteKey = keyof typeof centerPalettes;
-export type CenterPalette = { [K in keyof (typeof centerPalettes)["indigo"]]: string };
+export type CenterThemeKey = keyof typeof centerThemes;
 
-// keys stored before the palettes existed (Center.themeKey defaults to "midnight")
-export const legacyPaletteKeys: Record<string, CenterPaletteKey> = {
-  midnight: "indigo",
+// the colors of a theme (its display name aside)
+export type CenterThemeColors = {
+  primary: string;
+  primaryForeground: string;
+  secondary: string;
+  secondarySoft: string;
+  accent: string;
 };
 
-export const defaultCenterPalette: CenterPaletteKey = "indigo";
+// keys stored before these themes existed (Center.themeKey defaults to "midnight")
+export const legacyThemeKeys: Record<string, CenterThemeKey> = {
+  midnight: "night",
+  slate: "night",
+  indigo: "royal",
+  violet: "lavender",
+  sky: "ocean",
+  teal: "ocean",
+  amber: "desert",
+};
+
+export const defaultCenterTheme: CenterThemeKey = "night";

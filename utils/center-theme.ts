@@ -3,59 +3,60 @@ import type { CSSProperties } from "react";
 
 // constants
 import {
-  CenterPalette,
-  CenterPaletteKey,
-  centerPalettes,
-  defaultCenterPalette,
-  legacyPaletteKeys,
+  CenterThemeColors,
+  CenterThemeKey,
+  centerThemes,
+  defaultCenterTheme,
+  legacyThemeKeys,
 } from "@/constants/theme/center";
 
-// keys a center may override (centers spec §13)
-const PALETTE_KEYS = [
+// colors a center may override (centers spec §13)
+const COLOR_KEYS = [
+  "primary",
+  "primaryForeground",
+  "secondary",
+  "secondarySoft",
   "accent",
-  "accentForeground",
-  "accentText",
-  "tint",
-  "soft",
 ] as const;
 
 // colors only: #rgb, #rrggbb or #rrggbbaa
 const HEX_COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
-// the palette of a theme key (legacy keys mapped, unknown keys fall back to the default)
-const paletteFor = (key?: string | null): CenterPalette => {
-  const k = key ? (legacyPaletteKeys[key] ?? key) : defaultCenterPalette;
-  return (
-    centerPalettes[k as CenterPaletteKey] ?? centerPalettes[defaultCenterPalette]
-  );
+// the theme of a key (legacy keys mapped, unknown keys fall back to the default)
+const themeFor = (key?: string | null) => {
+  const k = key ? (legacyThemeKeys[key] ?? key) : defaultCenterTheme;
+  return centerThemes[k as CenterThemeKey] ?? centerThemes[defaultCenterTheme];
 };
 
-// a center's palette plus its overrides. unknown keys and non-color values are dropped,
+// a center's theme colors plus its overrides. unknown keys and non-color values are dropped,
 // so stored theme data can never inject css
-export const centerTheme = (key?: string | null, vars?: unknown): CenterPalette => {
-  const preset = paletteFor(key);
+export const centerTheme = (
+  key?: string | null,
+  vars?: unknown,
+): CenterThemeColors => {
+  const preset = themeFor(key);
   const overrides =
     vars && typeof vars === "object" ? (vars as Record<string, unknown>) : {};
 
   return Object.fromEntries(
-    PALETTE_KEYS.map((k) => {
+    COLOR_KEYS.map((k) => {
       const value = overrides[k];
       return [
         k,
         typeof value === "string" && HEX_COLOR.test(value) ? value : preset[k],
       ];
     }),
-  ) as CenterPalette;
+  ) as CenterThemeColors;
 };
 
-// the palette as css custom properties for the center wrapper
+// the theme as css custom properties for the center wrapper
 export const centerThemeStyle = (key?: string | null, vars?: unknown) => {
   const t = centerTheme(key, vars);
   return {
+    "--center-primary": t.primary,
+    "--center-primary-foreground": t.primaryForeground,
+    "--center-secondary": t.secondary,
+    "--center-secondary-soft": t.secondarySoft,
     "--center-accent": t.accent,
-    "--center-accent-foreground": t.accentForeground,
-    "--center-accent-text": t.accentText,
-    "--center-tint": t.tint,
-    "--center-soft": t.soft,
   } as CSSProperties;
 };

@@ -7,7 +7,7 @@ import type { LucideIcon } from "lucide-react";
 // props
 interface Props {
   icon: LucideIcon;
-  // accent: the center's tint; neutral: muted (directory, shared surfaces)
+  // accent: the center's secondary colors; neutral: muted (directory, shared surfaces)
   tone?: "accent" | "neutral";
   size?: "sm" | "md";
   className?: string;
@@ -27,7 +27,7 @@ export function IconSquare({
         "grid shrink-0 place-items-center rounded-xl",
         size === "md" ? "size-9" : "size-7 rounded-lg",
         tone === "accent"
-          ? "bg-(--center-tint) text-(--center-accent-text)"
+          ? "bg-(--center-secondary-soft) text-(--center-secondary)"
           : "bg-muted text-foreground/70",
         className,
       )}

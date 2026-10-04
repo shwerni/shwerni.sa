@@ -1,16 +1,14 @@
 // components
-import { IconSquare } from "@/components/clients/centers/icon-square";
 import { WeekdayAr } from "@/components/shared/unavailable-service";
 
 // prisma types
 import { Weekday } from "@/lib/generated/prisma/enums";
 
 // icons
-import { CalendarDays, MapPin, Users, type LucideIcon } from "lucide-react";
+import { CalendarDays, Users, type LucideIcon } from "lucide-react";
 
 // props
 interface Props {
-  city: string;
   workDays: Weekday[];
   consultants: number;
 }
@@ -27,33 +25,24 @@ export const workDaysLabel = (days: Weekday[]) => {
   return idx.map((i) => WeekdayAr[order[i]]).join("، ");
 };
 
-// quick facts as small stat tiles
-export function CenterQuickInfo({ city, workDays, consultants }: Props) {
+// quick facts as light inline chips (no boxes)
+export function CenterQuickInfo({ workDays, consultants }: Props) {
   const days = workDaysLabel(workDays);
-  const items: { label: string; value: string; icon: LucideIcon }[] = [
-    { label: "المدينة", value: city, icon: MapPin },
-    ...(days ? [{ label: "أيام العمل", value: days, icon: CalendarDays }] : []),
-    {
-      label: "المستشارون",
-      value: consultants > 0 ? String(consultants) : "قريباً",
-      icon: Users,
-    },
+  const items: { text: string; icon: LucideIcon }[] = [
+    ...(days ? [{ text: days, icon: CalendarDays }] : []),
+    ...(consultants > 0 ? [{ text: `${consultants} مستشار`, icon: Users }] : []),
   ];
 
+  if (items.length === 0) return null;
+
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+    <ul className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
       {items.map((it) => (
-        <div
-          key={it.label}
-          className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card p-4 last:col-span-2 sm:last:col-span-1"
-        >
-          <div className="min-w-0">
-            <p className="truncate font-semibold">{it.value}</p>
-            <p className="text-xs text-muted-foreground">{it.label}</p>
-          </div>
-          <IconSquare icon={it.icon} />
-        </div>
+        <li key={it.text} className="inline-flex items-center gap-1.5">
+          <it.icon className="size-4 text-(--center-secondary)" strokeWidth={1.75} />
+          {it.text}
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

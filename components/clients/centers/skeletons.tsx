@@ -6,10 +6,7 @@ export function CardGridSkeleton({ count = 6 }: { count?: number }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: count }, (_, i) => (
-        <div
-          key={i}
-          className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-4"
-        >
+        <div key={i} className="flex items-center gap-3 rounded-2xl bg-muted/50 p-3">
           <Skeleton className="size-14 rounded-2xl" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-2/3" />
@@ -21,34 +18,37 @@ export function CardGridSkeleton({ count = 6 }: { count?: number }) {
   );
 }
 
-// the quick-info tiles
+// the inline quick-info chips in the hero
 export function QuickInfoSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      {Array.from({ length: 3 }, (_, i) => (
-        <Skeleton
-          key={i}
-          className="h-18.5 rounded-2xl last:col-span-2 sm:last:col-span-1"
-        />
-      ))}
+    <div className="mt-1 flex gap-4">
+      <Skeleton className="h-4 w-28" />
+      <Skeleton className="h-4 w-20" />
     </div>
   );
 }
 
-// center home: hero, quick info and the consultant grid
+// center home: compact hero, then the consultant grid
 export function CenterHomeSkeleton() {
   return (
-    <div className="mx-auto max-w-6xl space-y-10 px-4 pb-16 pt-4">
-      <div>
-        <Skeleton className="h-40 w-full rounded-3xl sm:h-56" />
-        <Skeleton className="-mt-10 ms-5 size-20 rounded-2xl border-4 border-background sm:size-24" />
-        <div className="mt-4 space-y-2">
+    <div className="mx-auto flex max-w-6xl flex-col gap-12 px-4 pb-16 pt-4">
+      <div className="flex flex-col gap-5 rounded-3xl bg-muted/40 px-5 py-6 sm:flex-row sm:items-end sm:px-8 sm:py-8">
+        <Skeleton className="size-20 rounded-2xl" />
+        <div className="flex-1 space-y-2">
           <Skeleton className="h-7 w-56" />
           <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-4 w-72 max-w-full" />
+          <QuickInfoSkeleton />
+        </div>
+        <div className="flex gap-2">
+          <Skeleton className="h-10 w-28 rounded-xl" />
+          <Skeleton className="h-10 w-24 rounded-xl" />
         </div>
       </div>
-      <QuickInfoSkeleton />
-      <CardGridSkeleton />
+      <div className="space-y-4">
+        <Skeleton className="h-5 w-32" />
+        <CardGridSkeleton />
+      </div>
     </div>
   );
 }

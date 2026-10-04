@@ -69,7 +69,7 @@ export function CenterConsultantProfile({ consultant, center }: Props) {
             <span className="text-border" aria-hidden>
               |
             </span>
-            <span className="rounded-full bg-(--center-tint) px-2.5 py-0.5 text-xs font-medium text-(--center-accent-text)">
+            <span className="rounded-full bg-(--center-secondary-soft) px-2.5 py-0.5 text-xs font-medium text-(--center-secondary)">
               {findCategory(consultant.category)?.label}
             </span>
             <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs">
@@ -117,7 +117,7 @@ export function CenterConsultantProfile({ consultant, center }: Props) {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 {l.items.map((item) => (
                   <li key={item} className="flex gap-2 leading-6">
-                    <span className="mt-2.5 size-1.5 shrink-0 rounded-full bg-(--center-accent)" />
+                    <span className="mt-2.5 size-1.5 shrink-0 rounded-full bg-(--center-secondary)" />
                     {item}
                   </li>
                 ))}

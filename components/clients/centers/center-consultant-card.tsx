@@ -20,12 +20,14 @@ interface Props {
   slug: string;
 }
 
-// a consultant in a center's grid: slim, one hairline border, a small lift on hover
+// a consultant in a center's grid: borderless on a light surface, tinted on hover
 export function CenterConsultantCard({ consultant, slug }: Props) {
+  const category = findCategory(consultant.category);
+
   return (
     <Link
       href={consultantPath(consultant.cid, slug)}
-      className="group flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-4 transition hover:-translate-y-0.5 hover:shadow-sm"
+      className="group flex items-center gap-3 rounded-2xl bg-muted/50 p-3 transition hover:bg-(--center-accent)"
     >
       <CenterAvatar
         name={consultant.name}
@@ -36,10 +38,9 @@ export function CenterConsultantCard({ consultant, slug }: Props) {
       <div className="min-w-0 flex-1">
         <h3 className="truncate font-semibold">{consultant.name}</h3>
         <p className="truncate text-sm text-muted-foreground">{consultant.title}</p>
-        <div className="mt-1.5 flex items-center gap-2 text-xs">
-          <span className="rounded-full bg-(--center-tint) px-2 py-0.5 font-medium text-(--center-accent-text)">
-            {findCategory(consultant.category)?.category ??
-              findCategory(consultant.category)?.label}
+        <div className="mt-1 flex items-center gap-2 text-xs">
+          <span className="rounded-full bg-(--center-secondary-soft) px-2 py-0.5 font-medium text-(--center-secondary)">
+            {category?.category ?? category?.label}
           </span>
           {consultant.rate > 0 && (
             <span className="inline-flex items-center gap-0.5 text-muted-foreground">
@@ -49,10 +50,13 @@ export function CenterConsultantCard({ consultant, slug }: Props) {
           )}
         </div>
       </div>
-      <ChevronLeft
-        className="size-4 shrink-0 text-muted-foreground transition group-hover:-translate-x-0.5 group-hover:text-(--center-accent-text)"
-        strokeWidth={1.75}
-      />
+      <span className="hidden shrink-0 items-center gap-1 text-xs font-medium text-(--center-primary) sm:inline-flex">
+        احجز
+        <ChevronLeft
+          className="size-4 transition group-hover:-translate-x-0.5"
+          strokeWidth={1.75}
+        />
+      </span>
     </Link>
   );
 }

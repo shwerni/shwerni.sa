@@ -10,6 +10,8 @@ import { parseISO } from "date-fns";
 import { toast } from "@/components/shared/toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import PhoneInput from "@/components/shared/phone-input";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -59,6 +61,7 @@ import {
   CreditCard,
   Loader2,
   MonitorSmartphone,
+  CircleAlert,
   TicketPercent,
 } from "lucide-react";
 
@@ -122,7 +125,14 @@ export function BookingPanel({
 
   // client
   const [name, setName] = React.useState(user?.name ?? "");
-  const [phone, setPhone] = React.useState(user?.phone ?? "");
+  // the shared PhoneInput works in E.164 (+9665…); phoneNumber() strips it back to digits at submit
+  const [phone, setPhone] = React.useState(
+    user?.phone ? `+${phoneNumber(user.phone)}` : "",
+  );
+  const [fieldErrors, setFieldErrors] = React.useState<{
+    name?: string;
+    phone?: string;
+  }>({});
   const [notes, setNotes] = React.useState("");
 
   // coupon
@@ -253,10 +263,17 @@ export function BookingPanel({
     if (s === 1 && !day) return "اختر اليوم";
     if (s === 2 && !time) return "اختر وقت الجلسة";
     if (s === 3) {
+      // shown inline under each field, like the platform details step
       const n = schemas.name.safeParse(name);
-      if (!n.success) return n.error.issues[0]?.message ?? "الاسم غير صالح";
       const p = schemas.phone.safeParse(phoneNumber(phone));
-      if (!p.success) return p.error.issues[0]?.message ?? "رقم الجوال غير صالح";
+      const errors = {
+        name: n.success ? undefined : (n.error.issues[0]?.message ?? "الاسم غير صالح"),
+        phone: p.success
+          ? undefined
+          : (p.error.issues[0]?.message ?? "رقم الجوال غير صالح"),
+      };
+      setFieldErrors(errors);
+      return errors.name ?? errors.phone ?? null;
     }
     return null;
   }
@@ -265,7 +282,8 @@ export function BookingPanel({
     if (step === LAST) return submit();
     const error = stepError(step);
     if (error) {
-      toast.info({ message: error });
+      // details errors are already inline
+      if (step !== 3) toast.info({ message: error });
       return;
     }
     setStep((s) => s + 1);
@@ -280,7 +298,7 @@ export function BookingPanel({
     cn(
       "rounded-xl border text-sm transition disabled:pointer-events-none disabled:opacity-35",
       active
-        ? "border-(--center-accent) bg-(--center-soft) text-(--center-accent-text)"
+        ? "border-(--center-primary) bg-(--center-accent) text-(--center-primary)"
         : "border-border/70 bg-background hover:border-foreground/30",
     );
 
@@ -292,7 +310,7 @@ export function BookingPanel({
       type="button"
       onClick={next}
       disabled={ctaDisabled}
-      className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-(--center-accent) font-semibold text-(--center-accent-foreground) transition hover:opacity-90 disabled:opacity-60"
+      className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-(--center-primary) font-semibold text-(--center-primary-foreground) transition hover:opacity-90 disabled:opacity-60"
     >
       {submitting && <Loader2 className="size-4 animate-spin" />}
       {ctaLabel}
@@ -347,8 +365,10 @@ export function BookingPanel({
         )}
 
         {/* 2. day */}
+        {/* day buttons follow components/clients/shared/days-buttons.tsx (day name over the
+            date), in the center's colors: that component hard-codes the platform blue */}
         {step === 1 && (
-          <div className="grid grid-cols-4 gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             {days.map((d) => {
               const off = unavailable.includes(dateToWeekDay(parseISO(d)));
               const active = day === d;
@@ -359,10 +379,15 @@ export function BookingPanel({
                   disabled={off}
                   onClick={() => pickDay(d)}
                   aria-pressed={active}
-                  className={cn(option(active), "flex flex-col items-center gap-0.5 py-2.5")}
+                  className={cn(
+                    "flex w-17 flex-col items-center justify-center gap-0.5 rounded-lg border px-2.5 py-1.5 transition disabled:pointer-events-none disabled:opacity-35",
+                    active
+                      ? "border-(--center-primary) bg-(--center-primary) text-(--center-primary-foreground)"
+                      : "border-border bg-background hover:border-foreground/30",
+                  )}
                 >
-                  <span className="text-xs">{getDayName(d)}</span>
-                  <span className="text-base font-semibold">{d.slice(8)}</span>
+                  <span className="text-sm font-medium">{getDayName(d)}</span>
+                  <span className="text-sm font-medium">{d.slice(8)}</span>
                 </button>
               );
             })}
@@ -405,28 +430,48 @@ export function BookingPanel({
           ))}
 
         {/* 4. details */}
+        {/* details follow components/clients/consultants/reservation/steps/details.tsx */}
         {step === 3 && (
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="booking-name">الاسم</Label>
-              <Input
-                id="booking-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="h-10 rounded-xl"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="booking-phone">رقم الجوال</Label>
-              <Input
-                id="booking-phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="9665XXXXXXXX"
-                inputMode="tel"
-                dir="ltr"
-                className="h-10 rounded-xl"
-              />
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-1">
+              <Field data-invalid={!!fieldErrors.name}>
+                <FieldLabel htmlFor="booking-name">
+                  <span className="font-medium text-red-700">* </span>الاسم
+                </FieldLabel>
+                <Input
+                  id="booking-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  aria-invalid={!!fieldErrors.name}
+                  placeholder="اكتب اسمك"
+                />
+                {fieldErrors.name && (
+                  <FieldError errors={[{ message: fieldErrors.name }]} />
+                )}
+              </Field>
+              <div className="space-y-2">
+                <Field data-invalid={!!fieldErrors.phone}>
+                  <FieldLabel htmlFor="booking-phone">
+                    <span className="font-medium text-red-700">* </span>رقم الهاتف
+                  </FieldLabel>
+                  <div dir="ltr">
+                    <PhoneInput
+                      id="booking-phone"
+                      value={phone}
+                      onChange={(v) => setPhone(v ?? "")}
+                      aria-invalid={!!fieldErrors.phone}
+                      placeholder="50000000"
+                    />
+                  </div>
+                  {fieldErrors.phone && (
+                    <FieldError errors={[{ message: fieldErrors.phone }]} />
+                  )}
+                </Field>
+                <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <CircleAlert className="size-4" strokeWidth={1.75} />
+                  يجب أن يكون مربوط بالواتس اب
+                </p>
+              </div>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="booking-notes">ملاحظات للمستشار (اختياري)</Label>
@@ -475,7 +520,7 @@ export function BookingPanel({
                   </button>
                 </div>
                 {coupon && (
-                  <p className="text-sm text-(--center-accent-text)">
+                  <p className="text-sm text-(--center-secondary)">
                     تم تطبيق خصم {coupon.percent}%
                   </p>
                 )}

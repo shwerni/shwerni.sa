@@ -566,20 +566,34 @@ Use one route group (for example `app/(center)/center/...`), with a layout that 
 
 ## 13. Theme
 
-- The page stays **neutral** (the site's `background` / `muted` / `foreground` tokens). The center's theme is an **accent only**: primary buttons, active states, icon-square tints, small highlights and the header accent line. There are never full-page color floods.
-- `themeKey` is one of the curated accent palettes in `constants/theme/center.ts`: `emerald`, `teal`, `sky`, `indigo`, `violet`, `rose`, `amber`, `slate`.
-  - `midnight`, the column default, maps to `indigo`, and unknown keys fall back to `indigo`.
+- The page stays **neutral** (the site's `background` / `muted` / `foreground` tokens). Color is used sparingly; there are never full-page color floods.
+- `themeKey` is one of eight curated multi-color themes in `constants/theme/center.ts`. Each has an Arabic display name.
+
+  | key | name | primary | secondary on secondarySoft | accent |
+  |---|---|---|---|---|
+  | `night` | ليلي | `#0f172a` | `#475569` on `#f1f5f9` | `#eff6ff` |
+  | `emerald` | زمردي | `#047857` | `#57534e` on `#f5f5f4` | `#ecfdf5` |
+  | `ocean` | محيطي | `#0369a1` | `#0f766e` on `#f0fdfa` | `#f0f9ff` |
+  | `royal` | ملكي | `#4338ca` | `#a16207` on `#fefce8` | `#eef2ff` |
+  | `lavender` | بنفسجي | `#6d28d9` | `#be185d` on `#fdf2f8` | `#f5f3ff` |
+  | `rose` | وردي | `#be123c` | `#57534e` on `#f5f5f4` | `#fff1f2` |
+  | `desert` | صحراوي | `#b45309` | `#0f766e` on `#f0fdfa` | `#fffbeb` |
+  | `olive` | زيتوني | `#3f6212` | `#92400e` on `#fffbeb` | `#f7fee7` |
+
+  - The text on primary is white for every theme.
+  - Legacy keys map as follows: `midnight` (the column default) and `slate` → `night`; `indigo` → `royal`; `violet` → `lavender`; `sky` and `teal` → `ocean`; `amber` → `desert`.
+  - Unknown keys fall back to `night`.
   - The event presets (`constants/theme/event.ts`) are separate and unchanged.
-- Each palette has five colors:
-  - `accent`: buttons, active states
-  - `accentForeground`: text on accent, AA ≥ 4.5:1
-  - `accentText`: accent text and icons on white or tint, AA ≥ 4.5:1
-  - `tint`: icon squares, badges
-  - `soft`: hero gradient, highlighted rows
+- Each theme has five colors:
+  - `primary`: CTA buttons, active states
+  - `primaryForeground`: text on primary, AA ≥ 4.5:1
+  - `secondary`: icons and text of chips, badges and icon squares; a different but harmonious hue, or a neutral; AA ≥ 4.5:1 on `secondarySoft` and on white
+  - `secondarySoft`: background of those chips and icon squares
+  - `accent`: a faint wash (compact hero, today's row, hover)
 - `themeVars` are overrides of exactly those five keys, validated by a strict zod schema with that **fixed set of keys**.
 - **Values must be hex colors only.** Never accept raw CSS strings. `utils/center-theme.ts` also drops anything else at render time.
-- **Contrast check server-side** when saving overrides: `accent` vs `accentForeground`, and `accentText` vs white, must meet WCAG AA (4.5:1). Reject with a clear Arabic message otherwise.
-- **Apply** in the center layouts (public and dashboard) as CSS custom properties on a wrapper element: `--center-accent`, `--center-accent-foreground`, `--center-accent-text`, `--center-tint`, `--center-soft`. Only center pages change.
+- **Contrast check server-side** when saving overrides: `primary` vs `primaryForeground`, and `secondary` vs `secondarySoft` and vs white, must meet WCAG AA (4.5:1). Reject with a clear Arabic message otherwise.
+- **Apply** in the center layouts (public and dashboard) as CSS custom properties on a wrapper element: `--center-primary`, `--center-primary-foreground`, `--center-secondary`, `--center-secondary-soft`, `--center-accent`. Only center pages change.
 - The site has no dark mode, so the palettes are light-only.
 - **Logo and cover** go through the existing image upload flow.
 

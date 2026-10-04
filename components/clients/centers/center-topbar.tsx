@@ -21,9 +21,9 @@ export function CenterTopbar({ slug, name, logo }: Props) {
   ];
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur supports-backdrop-filter:bg-background/70">
       {/* the header accent */}
-      <div className="h-0.5 bg-(--center-accent)" />
+      <div className="h-0.5 bg-(--center-primary)" />
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
         <Link href={home} className="flex min-w-0 items-center gap-2.5">
           <CenterLogo name={name} logo={logo} size={32} className="rounded-lg" />
@@ -44,7 +44,7 @@ export function CenterTopbar({ slug, name, logo }: Props) {
 
         <Link
           href={`${home}#consultants`}
-          className="ms-auto inline-flex h-9 shrink-0 items-center rounded-xl bg-(--center-accent) px-4 text-sm font-semibold text-(--center-accent-foreground) transition hover:opacity-90 sm:ms-0"
+          className="ms-auto inline-flex h-9 shrink-0 items-center rounded-xl bg-(--center-primary) px-4 text-sm font-semibold text-(--center-primary-foreground) transition hover:opacity-90 sm:ms-0"
         >
           احجز
         </Link>

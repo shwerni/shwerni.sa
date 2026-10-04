@@ -85,18 +85,18 @@ async function ConsultantsGrid({ ceid, slug }: { ceid: number; slug: string }) {
   );
 }
 
-// quick facts; the consultant count streams with the grid's cached list
+// inline quick facts in the hero; the consultant count streams with the grid's cached list
 async function QuickInfo({ center }: { center: PublicCenter }) {
   const consultants = await fetchCenterConsultants(center.ceid);
   return (
     <CenterQuickInfo
-      city={center.city}
       workDays={center.workHours.map((h) => h.day)}
       consultants={consultants.length}
     />
   );
 }
 
+// order: hero (who + how to book) → consultants (the main content) → compact info
 export default async function Page({ params }: Props) {
   const { slug } = await params;
   const resolved = await resolveCenter(slug);
@@ -106,25 +106,31 @@ export default async function Page({ params }: Props) {
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-12 px-4 pb-16 pt-4">
-      <CenterHero center={center} />
-
-      <Suspense fallback={<QuickInfoSkeleton />}>
-        <QuickInfo center={center} />
-      </Suspense>
-
-      <CenterAbout description={center.description} policy={center.policy} />
+      <CenterHero
+        center={center}
+        chips={
+          <Suspense fallback={<QuickInfoSkeleton />}>
+            <QuickInfo center={center} />
+          </Suspense>
+        }
+      />
 
       <section id="consultants" className="scroll-mt-24 space-y-4">
-        <h2 className="text-lg font-semibold">مستشارو المركز</h2>
+        <h2 className="text-lg font-semibold">اختر مستشارك</h2>
         <Suspense fallback={<CardGridSkeleton count={3} />}>
           <ConsultantsGrid ceid={center.ceid} slug={center.slug} />
         </Suspense>
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <CenterLocation address={center.address} lat={center.lat} lng={center.lng} />
-        <CenterHours hours={center.workHours} />
-        <CenterAmenities amenities={center.amenities} />
+      <div className="grid gap-x-12 gap-y-10 border-t border-border/60 pt-10 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <CenterAbout description={center.description} policy={center.policy} />
+        </div>
+        <div className="flex flex-col gap-8">
+          <CenterLocation address={center.address} lat={center.lat} lng={center.lng} />
+          <CenterHours hours={center.workHours} />
+          <CenterAmenities amenities={center.amenities} />
+        </div>
       </div>
     </div>
   );
