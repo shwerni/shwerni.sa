@@ -66,6 +66,9 @@ export const POST = createPostRoute<unknown, Params>(
       : meeting.orders.name;
     const callerImage = isConsultant ? meeting.orders.consultant.image : null;
 
+    // center consultants have no user, so there is no one to ring
+    if (!targetUserId) return { rung: false };
+
     const rung = await dispatchIncomingCall(targetUserId, {
       eventId: randomUUID(),
       serverCallId: mid,

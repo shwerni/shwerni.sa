@@ -11,6 +11,7 @@ enum UserRole {
   COLLABORATOR
   DESIGNER
   ACCOUNTANT
+  CENTER
 }
 
 // auth
@@ -35,6 +36,7 @@ model User {
   Consultant          Consultant[]
   ConsultantTiming    ConsultantTiming[]
   collaboration       Collaboration?
+  centerMember        CenterMember?
   articleLikes        ArticleLike[]
   articleComments     ArticleComment[]
   questions           Question[]

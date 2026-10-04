@@ -104,7 +104,7 @@ export interface zUsers {
 // reservation
 export type Reservation = Order & {
   consultant: {
-    userId: string;
+    userId: string | null;
     name: string;
     phone: string;
   };
@@ -172,7 +172,7 @@ export type MeetingWithOrder = Meeting & {
   orders: Order & {
     payment?: Payment | null;
     consultant?: {
-      userId: string;
+      userId: string | null;
       name: string;
       phone: string;
       image?: string | null;

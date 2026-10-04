@@ -15,7 +15,7 @@ import { Categories, Gender } from "@/lib/generated/prisma/enums";
 
 // types
 type OnlineConsultant = {
-  userId: string;
+  userId: string | null;
   cid: number;
   name: string;
   image: string | null;

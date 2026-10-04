@@ -151,7 +151,8 @@ export async function handlePresenceWebhook(userId: string, isOnline: boolean) {
     isAvailable = busy.length === 0;
   }
 
-  await trigger(userId, isAvailable, consultant);
+  // found by userId, so its userId is this one (the column is nullable for center consultants)
+  await trigger(userId, isAvailable, { ...consultant, userId });
 }
 
 async function broadcastConsultantBusy(userId: string) {
@@ -172,7 +173,8 @@ async function broadcastConsultantBusy(userId: string) {
   if (!consultant) return;
 
   // isOnline: false removes them from every client list immediately
-  await trigger(userId, false, consultant);
+  // (found by userId, so its userId is this one)
+  await trigger(userId, false, { ...consultant, userId });
 }
 
 // reserve a new order (meeting) with owner — instant flow
@@ -284,8 +286,9 @@ export const reserveInstant = async (
         },
       });
 
-    // deactivate online state
-    await broadcastConsultantBusy(order.consultant.userId);
+    // deactivate online state (center consultants have no user, so no presence)
+    if (order.consultant.userId)
+      await broadcastConsultantBusy(order.consultant.userId);
 
     return { state: true, order } satisfies ReserveResult<typeof order>;
   } catch (err) {

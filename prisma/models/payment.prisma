@@ -59,17 +59,19 @@ enum WalletTransactionType {
 }
 
 model Payment {
-  id           String         @id @default(cuid())
-  pid          String?        @unique
-  commission   Int
-  total        Float
-  tax          Float
-  payment      PaymentState
-  method       PaymentMethod?
-  paid         Float?
-  credit       Float?         @default(0)
-  wallet       Float?
-  cancelled_at DateTime?
+  id            String         @id @default(cuid())
+  pid           String?        @unique
+  commission    Int // the provider's %: the consultant's %, or the center's % (100 - Center.platformRate)
+  total         Float
+  tax           Float
+  payment       PaymentState
+  method        PaymentMethod?
+  paid          Float?
+  credit        Float?         @default(0)
+  wallet        Float?
+  cancelled_at  DateTime?
+  platformShare Float? // written once when payment → PAID
+  centerShare   Float? // null for platform orders; base = Payment.total (after discount, before VAT)
 
   // @relations
   orderId    Int?        @unique
@@ -147,6 +149,8 @@ model Coupon {
   // @relations
   consultantId Int? // optional field
   consultant   Consultant? @relation(fields: [consultantId], references: [cid])
+  centerId     Int? // must equal consultant.centerId in applyCoupon (null matches null)
+  center       Center?     @relation(fields: [centerId], references: [ceid], onDelete: Restrict)
 
   @@map("coupons")
 }
@@ -180,6 +184,8 @@ model Discount {
 
   // @relations
   DiscountConsultant DiscountConsultant[]
+  centerId           Int? // must equal consultant.centerId (null matches null)
+  center             Center?              @relation(fields: [centerId], references: [ceid], onDelete: Restrict)
 
   @@map("discounts")
 }

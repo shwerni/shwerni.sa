@@ -4,10 +4,143 @@ enum CenterState {
   HIDDEN
 }
 
-model Center {
-  id String @id @default(cuid())
+enum CenterMemberRole {
+  OWNER
+  STAFF
+}
 
+enum CenterBankState {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Center {
+  id     String      @id @default(cuid())
+  ceid   Int         @unique @default(autoincrement())
+  slug   String      @unique
+  status CenterState @default(HIDDEN)
+
+  // profile
+  name        String
+  description String?  @db.Text
+  logo        String?
+  cover       String?
+  gallery     String[]
+  themeKey    String   @default("midnight")
+  themeVars   Json? // { primary, accent, ... } same shape idea as EventCampaign
+
+  // location
+  city     String
+  district String?
+  address  String
+  lat      Float
+  lng      Float
+
+  // contact
+  phone    String
+  whatsapp String?
+  email    String?
+
+  // legal
+  crNumber      String? // السجل التجاري
+  vatNumber     String?
+  licenseNumber String?
+
+  // onsite details
+  preference GenderPreference @default(BOTH)
+  amenities  String[] // parking, women section, accessibility ...
+  policy     String?          @db.Text // arrival / cancellation rules for onsite
+
+  // our cut (whole percent). the center keeps the rest and pays its consultants itself.
+  // Int because orders snapshot the center's % as Payment.commission = 100 - platformRate (Int)
+  platformRate Int @default(20)
+
+  sort_key   Float    @default(0)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+
+  // @relations
+  members        CenterMember[]
+  consultants    Consultant[]
+  workHours      CenterWorkHour[]
+  closures       CenterClosure[]
+  bankAccounts   CenterBankAccount[]
+  coupons        Coupon[]
+  discounts      Discount[]
+  orders         Order[]
+  financeEntries FinanceEntry[]
+
+  @@index([status, sort_key])
   @@map("centers")
+}
+
+// accounts created manually by admin — no sign-up path for this role
+model CenterMember {
+  id         String           @id @default(cuid())
+  role       CenterMemberRole @default(OWNER)
+  created_at DateTime         @default(now())
+
+  // @relations
+  userId   String @unique // one center per account for now
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  centerId Int
+  center   Center @relation(fields: [centerId], references: [ceid], onDelete: Cascade)
+
+  @@index([centerId])
+  @@map("center_members")
+}
+
+model CenterWorkHour {
+  id    Int     @id @default(autoincrement())
+  day   Weekday
+  open  String // "09:00"
+  close String // "17:00"  — multiple rows per day allowed for split shifts
+
+  // @relations
+  centerId Int
+  center   Center @relation(fields: [centerId], references: [ceid], onDelete: Cascade)
+
+  @@unique([centerId, day, open])
+  @@map("center_work_hours")
+}
+
+model CenterClosure {
+  id     String   @id @default(cuid())
+  date   DateTime @db.Date
+  reason String?
+
+  // @relations
+  centerId Int
+  center   Center @relation(fields: [centerId], references: [ceid], onDelete: Cascade)
+
+  @@unique([centerId, date])
+  @@map("center_closures")
+}
+
+// IBAN changes need admin approval; old APPROVED row stays in use until then
+model CenterBankAccount {
+  id         String          @id @default(cuid())
+  iban       String
+  bankCode   String
+  holderName String
+  state      CenterBankState @default(PENDING)
+
+  // actor snapshots
+  reviewedById   String?
+  reviewedByName String?
+  reviewedAt     DateTime?
+  reviewNote     String?   @db.Text
+
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+
+  // @relations
+  centerId Int
+  center   Center @relation(fields: [centerId], references: [ceid], onDelete: Cascade)
+
+  @@index([centerId, state])
+  @@map("center_bank_accounts")
 }
 
 model Collaboration {

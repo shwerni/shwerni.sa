@@ -58,7 +58,7 @@ export async function getDuesOwnenByMonth(
 // session user only; author and phone come from the session
 export async function saveConsultant(
   ...[, , ...rest]: Parameters<typeof saveConsultantHandler>
-) {
+): ReturnType<typeof saveConsultantHandler> {
   const user = await sessionUser();
   if (!user || !user.phone) return { state: false, message: "بيانات خاطئة" };
   return saveConsultantHandler(user.id, user.phone, ...rest);

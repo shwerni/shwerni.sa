@@ -2179,3 +2179,50 @@ No code in this repo changes `User.role` after creation now. Admin role changes 
 - Check production for accounts that already abused this. The query is in the commit report: users whose role isn't USER or OWNER.
 - A mobile user could also have switched USER ↔ OWNER through `update-user` before this fix. That's lower impact, since the dashboard still needs a consultant row and admin approval.
 - If the app itself calls `updateUser({ role })` (for example, "become a consultant" after sign-up), that call now fails. Not seen in this repo; the app repo should be checked.
+
+## 2026-10-04 · Centers phase 1: schema
+
+The changes from `docs/centers/centers.prisma` are applied to `prisma/models/*.prisma`.
+
+**Schema**
+
+| File | Change |
+|---|---|
+| `prisma/models/roles.prisma` | `Center` stub extended in place. New enums `CenterMemberRole` and `CenterBankState`. New models `CenterMember`, `CenterWorkHour`, `CenterClosure` and `CenterBankAccount`. |
+| `prisma/models/user.prisma` | `UserRole` gains `CENTER`. `User.centerMember` added. |
+| `prisma/models/consultant.prisma` | `Consultant.userId` becomes nullable; `centerId`/`center` added, with an index on `(centerId, status, statusA, approved, sort_key)`. `ConsultantTiming.userId` becomes nullable. |
+| `prisma/models/reservation.prisma` | `Order.centerId` added (index on `centerId, created_at`). `Meeting.mode` added. |
+| `prisma/models/payment.prisma` | `Payment.platformShare` and `centerShare` added. `Coupon.centerId` and `Discount.centerId` added. |
+| `prisma/models/finance.prisma` | `FinanceCategory` gains `CENTER_PAYOUT`. `FinanceEntry.centerId` added. |
+
+The relations from `Consultant`, `Coupon`, `Discount`, `Order` and `FinanceEntry` to `Center` use `onDelete: Restrict`: centers are never deleted, only hidden. The center-owned models keep `Cascade`.
+
+`prisma validate` and `prisma generate` pass. Nothing was pushed to the database.
+
+**Type fixes from the nullable `userId`**
+
+Existing consultants all have a user, so current behavior is unchanged.
+
+| File:line | Fix |
+|---|---|
+| `types/admin.d.ts:107`, `:175` | `Reservation.consultant.userId` and `MeetingWithOrder…consultant.userId` become `string \| null` (type only) |
+| `components/clients/sub-pages/marriage-awareness/card.tsx:18` | the local `OnlineConsultant.userId` becomes `string \| null` (type only) |
+| `app/api/cron/mobile/room/call/route.ts:64`, `:121` | skips a meeting whose consultant has no user (nobody to ring) |
+| `app/api/mobile/room/[mid]/ring/route.ts:70`, `app/api/mobile/room/ring/[mid]/route.ts:70` | returns `{ rung: false }` when the side to ring has no user |
+| `data/online.ts:155`, `:177` | passes `{ ...consultant, userId }` to `trigger`; the row was found by that `userId`, so the value is the same |
+| `data/online.ts:290` | `broadcastConsultantBusy` runs only when the consultant has a user |
+| `actions/consultant.ts:61` | `saveConsultant`'s return type pinned to the handler's; inference lost narrowing after the `Consultant` type changed (same fix as `applyCoupon` in `cca7dd0`) |
+| `components/clients/home/coupons/carousel.tsx:54` | the static placeholder coupon gets `centerId: null` (new `Coupon` field) |
+
+**Verified**
+
+- `npx tsc --noEmit` passes.
+- The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`.
+- **`npm run build` fails at prerender** until the schema is pushed. The home page's campaign query (`prisma.eventCampaign.findFirst`, which includes `discount`) selects `discounts.centerId`, which doesn't exist in the live database yet (P2022). Compilation and the TypeScript step pass.
+- An offline diff of the HEAD schema against the new schema (`migrate diff --from-schema … --to-schema prisma --script`) shows additive statements only.
+
+**Order of operations (blocking)**
+
+1. Ziad runs the read-only `prisma migrate diff --from-config-datasource --to-schema prisma --script` and checks it.
+2. Ziad runs `prisma db push`.
+3. Only then rebuild and push this commit. Deploying it before step 2 breaks every query that selects the new columns.

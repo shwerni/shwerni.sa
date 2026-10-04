@@ -164,7 +164,7 @@ model CenterBankAccount {
 //   userId   String?  @unique                       // was required
 //   user     User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 //   centerId Int?
-//   center   Center?  @relation(fields: [centerId], references: [ceid])
+//   center   Center?  @relation(fields: [centerId], references: [ceid], onDelete: Restrict)
 //
 //   @@index([centerId, status, statusA, approved, sort_key])  // serves both center page and centerId IS NULL listing
 // }
@@ -183,7 +183,7 @@ model CenterBankAccount {
 
 // model Order {
 //   centerId Int?    // set at creation from consultant.centerId, never from client input
-//   center   Center? @relation(fields: [centerId], references: [ceid])
+//   center   Center? @relation(fields: [centerId], references: [ceid], onDelete: Restrict)
 //
 //   @@index([centerId, created_at])
 // }
@@ -199,17 +199,17 @@ model CenterBankAccount {
 
 // model Coupon {
 //   centerId Int?    // must equal consultant.centerId in applyCoupon (null matches null)
-//   center   Center? @relation(fields: [centerId], references: [ceid])
+//   center   Center? @relation(fields: [centerId], references: [ceid], onDelete: Restrict)
 // }
 
 // model Discount {
 //   centerId Int?    // admin dashboard applies the rule when expanding categories into DiscountConsultant rows;
-//   center   Center? @relation(fields: [centerId], references: [ceid])  // getActiveDiscountFor guards it on the main site
+//   center   Center? @relation(fields: [centerId], references: [ceid], onDelete: Restrict)  // getActiveDiscountFor guards it on the main site
 // }
 
 // model FinanceEntry {
 //   centerId Int?    // for CENTER_PAYOUT entries
-//   center   Center? @relation(fields: [centerId], references: [ceid], onDelete: SetNull)
+//   center   Center? @relation(fields: [centerId], references: [ceid], onDelete: Restrict)
 //   @@index([centerId])
 // }
 

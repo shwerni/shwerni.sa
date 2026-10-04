@@ -46,8 +46,10 @@ model Order {
   info           String[]
   packageId      String?
   origin         OrderOrigin @default(PLATFORM)
+  centerId       Int? // set at creation from consultant.centerId, never from client input
 
   // @relations
+  center         Center?         @relation(fields: [centerId], references: [ceid], onDelete: Restrict)
   guest          Guest?
   payment        Payment?
   meeting        Meeting[]
@@ -66,7 +68,8 @@ model Order {
   transactions WalletTransaction[] 
   bankTransferRequest BankTransferRequest?
   financeEntries      FinanceEntry[]
-  
+
+  @@index([centerId, created_at])
   @@map("orders")
 }
 
@@ -81,6 +84,7 @@ model Meeting {
   checked    Boolean   @default(false)
   ringedAt   DateTime?
   recalledAt DateTime?
+  mode       TimingType @default(ONLINE) // per meeting, packages can mix
 
   // @relations
   orderId       Int

@@ -51,6 +51,7 @@ const CouponsCarousel = ({ coupons }: Props) => {
     limits: null,
     created_at: new Date(),
     consultantId: null,
+    centerId: null,
     consultant: {
       name: "منصة شاورني",
       image: "/layout/logo-sm.png",

@@ -40,7 +40,7 @@ enum ProgramEnrollState {
 
 model Consultant {
   id            String           @id @default(cuid())
-  userId        String           @unique
+  userId        String?          @unique
   type          OwnerType        @default(INDEPENDENT)
   cid           Int              @unique @default(autoincrement())
   status        Boolean
@@ -75,7 +75,9 @@ model Consultant {
   sort_key      Float            @default(0)
 
   // @relations
-  user                     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                     User?                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  centerId                 Int?
+  center                   Center?               @relation(fields: [centerId], references: [ceid], onDelete: Restrict)
   orders                   Order[]
   articles                 Article[]
   Coupon                   Coupon[]
@@ -96,6 +98,7 @@ model Consultant {
     
   @@index([sort_key])
   @@index([status, statusA, approved, sort_key])
+  @@index([centerId, status, statusA, approved, sort_key])
   @@map("consultants")
 }
 
@@ -106,8 +109,8 @@ model ConsultantTiming {
   type TimingType @default(ONLINE)
 
   // @relations
-  userId       String
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String? // nullable: center consultants have no user
+  user         User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
   consultantId Int
   consultant   Consultant @relation(fields: [consultantId], references: [cid])
 

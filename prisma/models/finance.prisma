@@ -37,6 +37,7 @@ enum FinanceCategory {
     SALES
     ORDER_TRANSACTION 
     INVESTMENT
+    CENTER_PAYOUT
     OTHER
 }
 
@@ -153,8 +154,12 @@ model FinanceEntry {
  // the order this entry paid for (bank transfers) — optional, most entries have none
   orderId Int?
   order   Order? @relation(fields: [orderId], references: [oid], onDelete: SetNull)
+  // the center a CENTER_PAYOUT entry paid
+  centerId Int?
+  center   Center? @relation(fields: [centerId], references: [ceid], onDelete: Restrict)
 
   @@index([orderId])
+  @@index([centerId])
 
     @@index([date])
     @@index([type, category])

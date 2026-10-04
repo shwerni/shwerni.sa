@@ -59,8 +59,12 @@ async function dispatchRings() {
       name: meeting.orders.name,
       image: null,
     };
+    // center consultants have no user, so there is no one to ring
+    const consultantUserId = meeting.orders.consultant.userId;
+    if (!consultantUserId) continue;
+
     const consultant = {
-      id: meeting.orders.consultant.userId,
+      id: consultantUserId,
       name: meeting.orders.consultant.name,
       image: meeting.orders.consultant.image,
     };
@@ -112,8 +116,12 @@ async function dispatchRecalls() {
       name: meeting.orders.name,
       image: null,
     };
+    // center consultants have no user, so there is no one to ring
+    const consultantUserId = meeting.orders.consultant.userId;
+    if (!consultantUserId) continue;
+
     const consultant = {
-      id: meeting.orders.consultant.userId,
+      id: consultantUserId,
       name: meeting.orders.consultant.name,
       image: meeting.orders.consultant.image,
     };
