@@ -10,40 +10,51 @@ import {
   ProgramState,
 } from "@/lib/generated/prisma/enums";
 
-// all
-export async function siteMapDynamic() {
+// sitemap rows, one query per sitemap type (app/sitemaps/*). each list matches its page's
+// visibility rule, so no entry is a 404 or noindex
+
+// consultants: the same rule as /consultants/[cid] (status, published, approved). the safe
+// client adds centerId: null, so center consultants (who live under /centers) are excluded
+export async function siteMapConsultants() {
   try {
-    // connect on build
-    await prisma.$connect();
-
-    // programs
-    const programs = await prisma.program.findMany({
-      where: { status: ProgramState.PUBLISHED },
-      select: { prid: true, updated_at: true },
-    });
-
-    //  articles
-    const articles = await prisma.article.findMany({
-      where: { status: ArticleState.PUBLISHED },
-      select: { aid: true, created_at: true, },
-    });
-
-    // consultants: the same visibility rule as /consultants/[cid], so no entry is a 404
-    const consultants = await prisma.consultant.findMany({
+    return await prisma.consultant.findMany({
       where: {
         status: true,
         statusA: ConsultantState.PUBLISHED,
         approved: ApprovalState.APPROVED,
       },
-      select: {
-        cid: true,
-        updated_at: true,
-      },
+      // cid only: the consultants sitemap has no lastmod (updated_at moves on presence updates)
+      select: { cid: true },
+      orderBy: { cid: "asc" },
     });
-    // return
-    return { consultants, articles, programs };
   } catch {
-    // return
-    return null;
+    return [];
+  }
+}
+
+// articles: published only, like /articles/[aid]. the article table has no updated_at, so
+// created_at is the stored date
+export async function siteMapArticles() {
+  try {
+    return await prisma.article.findMany({
+      where: { status: ArticleState.PUBLISHED },
+      select: { aid: true, created_at: true },
+      orderBy: { aid: "asc" },
+    });
+  } catch {
+    return [];
+  }
+}
+
+// programs: published only, like /programs/[prid]
+export async function siteMapPrograms() {
+  try {
+    return await prisma.program.findMany({
+      where: { status: ProgramState.PUBLISHED },
+      select: { prid: true, updated_at: true },
+      orderBy: { prid: "asc" },
+    });
+  } catch {
+    return [];
   }
 }

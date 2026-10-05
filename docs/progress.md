@@ -2519,3 +2519,38 @@ Search Console flags slow LCP (2.3–4.0s per URL) on article pages. The home fi
   - `articles/[aid]/loading.tsx`
 - Removing the root `loading.tsx` would put content truly in place on every page. It's a site-wide UX change, so it's left for a separate decision, the same option as the soft-404 note.
 - Articles published after a build render on their first request (the skeleton, then the content) until the next build.
+
+## 2026-10-06 · Sitemap index with one sitemap per page type
+
+Goal: Search Console reports indexing per page type (about 609 URLs, so the split is for reporting, not size).
+
+**Structure** (route handlers, which give readable URLs; `generateSitemaps` makes no index, and nested `sitemap.ts` files would give `/sitemaps/<type>/sitemap.xml`)
+
+| URL | Source | Content |
+|---|---|---|
+| `/sitemap.xml` | `app/sitemap.xml/route.ts` | sitemapindex of the per-type sitemaps (`centers` only when `CENTERS_ENABLED`) |
+| `/sitemaps/static.xml` | `app/sitemaps/static.xml/route.ts` | `/`, `/consultants`, `/articles`, `/programs`, `/coupons`, `/contact-us`, `/terms`: indexable, own canonical, no lastmod |
+| `/sitemaps/consultants.xml` | `…/consultants.xml/route.ts` | active, published, approved platform consultants (the safe client excludes center consultants). No lastmod: `updated_at` also moves on presence updates |
+| `/sitemaps/articles.xml` | `…/articles.xml/route.ts` | published articles; lastmod = `created_at` (the table has no `updated_at`; no schema change, Ziad's decision) |
+| `/sitemaps/programs.xml` | `…/programs.xml/route.ts` | published programs; lastmod = `updated_at` |
+| `/sitemaps/centers.xml` | `…/centers.xml/route.ts` | `/centers`, published centers and their public consultants (`updated_at`). It returns 404 until launch |
+
+- **Shared:** `app/sitemaps/_lib/sitemap.ts` (types, the XML writer with escaping, the URL helpers built on `mainRoute`).
+- **Data:** `data/seo.ts` `siteMapDynamic` is replaced by `siteMapConsultants` / `siteMapArticles` / `siteMapPrograms`, one query per sitemap.
+- **Revalidation:** each data sitemap uses `"use cache"` + `cacheLife("weeks")`, the old `revalidate = 604800`. Segment `revalidate` doesn't apply to route handlers under Cache Components; the old `/sitemap.xml` was in fact dynamic (`ƒ`), with `new Date()` on every URL. All sitemap routes now build as `○` (data ones: 1w revalidate / 30d expire).
+- **Removed:** `priority` and `changeFrequency`, and the old `app/sitemap.ts` with its commented-out version.
+- **`proxy.ts`:** the matcher also skips `sitemaps/`. The regex was tested: `/sitemap.xml`, `/sitemaps/*.xml` and `/robots.txt` skip the proxy, and pages still run it.
+- **`robots.ts`:** already points to `https://www.shwerni.sa/sitemap.xml` (unchanged).
+
+**Verified**
+
+- `npx tsc --noEmit` passes.
+- `npm run build` on a clean `.next` passes.
+- The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`.
+- `next start`:
+  - the index lists 4 sitemaps
+  - URL counts: static 7, consultants 317, articles 278, programs 7
+  - centers.xml returns 404
+  - all 331 static, consultant and program URLs answer 200 with no `noindex` (articles weren't loaded, because each view writes a read count to production)
+  - every `<loc>` is absolute `https://www.shwerni.sa/…`, with no trailing slash except home, which matches its canonical
+- One build showed transient first-attempt "took more than 60 seconds" retries, on unchanged routes too. The next clean build had none.
