@@ -26,8 +26,8 @@ const Statistics = async () => {
       label: "دقيقة من الاستشارات الأسرية",
     },
     {
-      value: data.avgRate || 4.8,
-      label: "رضا المستشارين",
+      value: data.avgRate || 4.9,
+      label: "رضا المستفيدين",
       decimals: 1,
       suffix: "/5",
     },

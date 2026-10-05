@@ -29,15 +29,20 @@ const Footer = () => {
   // data
   const legal = [
     {
-      title: "توثيق التجارة الالكترونية",
-      value: "0000125559",
-      image: "/svg/footer/footer-verified.svg",
+      title: "السجل التجاري",
+      value: "7030789221",
+      image: "/svg/footer/ministry-of-commerce.svg",
     },
     {
       title: "الرقم الضريبي",
       value: "311678040900003",
       image: "/svg/footer/footer-vat.svg",
     },
+    // {
+    //   title: "توثيق التجارة الالكترونية",
+    //   value: "0000125559",
+    //   image: "/svg/footer/footer-verified.svg",
+    // },
   ];
 
   return (
