@@ -1,26 +1,18 @@
 // React & Next
 import { Metadata } from "next";
-import { connection } from "next/server";
 import { notFound } from "next/navigation";
 
 // components
 import Article from "@/components/clients/articles/article/article";
 
 // prisma data
-import {
-  getArticleByAid,
-  getArticleLikes,
-  incrementArticleRead,
-} from "@/data/article";
+import { getArticleByAid, getPublishedArticleAids } from "@/data/article";
 
 // utils
 import { htmlToText } from "@/utils";
 
 // prisma data
 import { cacheLife } from "next/cache";
-
-// lib
-import { userServer } from "@/lib/auth/server";
 
 // seo
 import { JsonLd } from "@/components/seo/json-ld";
@@ -34,6 +26,14 @@ import { defaultMetaApi } from "@/constants";
 // props
 interface Props {
   params: Promise<{ aid: string }>;
+}
+
+// every published article is prerendered: the cached article (title, cover, body) is in the
+// static html. articles published after the build render on their first request.
+// per-user and per-view parts stream in their own suspense boundaries (article/viewer.tsx)
+export async function generateStaticParams() {
+  const articles = await getPublishedArticleAids();
+  return articles.map((a) => ({ aid: String(a.aid) }));
 }
 
 const getProcessedArticle = async (aid: number) => {
@@ -115,27 +115,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function Page({ params }: Props) {
-  // connection() marks this route as dynamic.
-  await connection();
-
-  // user
-  const userId = (await userServer())?.id || null;
-
   // aid
   const { aid } = await params;
   const articleId = Number(aid);
 
-  // get article
+  // get article (cached)
   const result = await getProcessedArticle(articleId);
 
   // a missing or unpublished article answers 404 (the site not-found page)
   if (!result) notFound();
-
-  // increment
-  await incrementArticleRead(articleId);
-
-  // user liked
-  const like = await getArticleLikes(articleId, userId);
 
   // structured data: the article and the breadcrumb trail
   const url = `${mainRoute}articles/${articleId}`;
@@ -174,9 +162,6 @@ export default async function Page({ params }: Props) {
         article={result.article}
         body={result.body}
         side={result.side}
-        userId={userId}
-        liked={like?.liked}
-        likes={like?.count}
       />
     </>
   );

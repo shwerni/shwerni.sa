@@ -202,6 +202,18 @@ export const getRecommendedConsultants = async () => {
   }
 };
 
+// published article ids, prerendered as static pages (generateStaticParams of /articles/[aid])
+export const getPublishedArticleAids = async () => {
+  try {
+    return await prisma.article.findMany({
+      where: { status: ArticleState.PUBLISHED },
+      select: { aid: true },
+    });
+  } catch {
+    return [];
+  }
+};
+
 // a published article by aid (the public article page); anything else reads as missing
 export const getArticleByAid = async (aid: number) => {
   try {

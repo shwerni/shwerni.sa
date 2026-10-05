@@ -2481,3 +2481,41 @@ The problems were confirmed from `docs/centers/current-home.png`, and the target
   - the old gradient box is gone, and the compact hero is used
   - the description renders in exactly two visible paragraphs (the one-line preview and the full about text)
   - the consultant page renders the booking panel and the mobile bar
+
+## 2026-10-05 · LCP: /articles/[aid] renders the cached article without per-user or per-view work
+
+Search Console flags slow LCP (2.3–4.0s per URL) on article pages. The home fixes are from 2026-10-02 (`a1b5b8d`, `e971b39`, `114570f`, …). Articles never had LCP work.
+
+**Before**
+
+- `page.tsx` called `connection()`, so the whole page rendered per request.
+- No article markup (the title, the cover and its preload) was sent until this serial chain finished:
+  1. `userServer()`
+  2. the cached article
+  3. `await incrementArticleRead()`, a database write on every view
+  4. `getArticleLikes()`, two queries
+
+**Changes**
+
+| File | Change |
+|---|---|
+| `app/(pages)/(site)/(sub-pages)/articles/[aid]/page.tsx` | no `connection()`, session, read write or likes query; `generateStaticParams` prerenders every published article; `notFound()` unchanged |
+| `components/clients/articles/article/viewer.tsx` (new) | `ArticleLike` (session + likes), `ArticleLikeFallback` (the same 24px button, not clickable, so no layout shift), `ArticleCommentForm` (session), `ArticleReadTracker`. The tracker does `connection()` then `after()` → `incrementArticleRead`, catches and logs errors, and never runs during the build prerender. |
+| `components/clients/articles/article/article.tsx` | no per-user props; the like button, comment form and read tracker each sit in their own `<Suspense>`; the cover image keeps `priority` + `sizes` and gets `fetchPriority="high"` |
+| `data/article.ts` | `getPublishedArticleAids()` |
+
+**Verified**
+
+- `npx tsc --noEmit` passes.
+- `npm run build` on a clean `.next` passes: `◐ /articles/[aid]` with revalidate 1d, expire 1w, and 278 article paths prerendered (420 static pages, up from 142).
+- The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`, and there's no `"use server"` in `lib/`, `data/` or `handlers/`.
+- In `.next/server/app/articles/64.html`, the title and cover are in the static HTML. The cover has a `<head>` preload and `fetchpriority="high"`.
+- I didn't load article pages with `next start`, because each view writes the read count to the production database.
+
+**Open**
+
+- The article content still sits inside two Suspense boundaries in the static HTML, revealed by inline scripts in the same document:
+  - the root `app/loading.tsx` (a site-wide spinner, which wraps every page including home)
+  - `articles/[aid]/loading.tsx`
+- Removing the root `loading.tsx` would put content truly in place on every page. It's a site-wide UX change, so it's left for a separate decision, the same option as the soft-404 note.
+- Articles published after a build render on their first request (the skeleton, then the content) until the next build.

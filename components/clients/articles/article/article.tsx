@@ -6,9 +6,13 @@ import { Suspense } from "react";
 // components
 import Stars from "../../shared/stars";
 import ArticleComments from "../comments";
-import { ArticleLikeButton } from "./like";
+import {
+  ArticleCommentForm,
+  ArticleLike,
+  ArticleLikeFallback,
+  ArticleReadTracker,
+} from "./viewer";
 import { Badge } from "@/components/ui/badge";
-import AddArticleComment from "../add-comments";
 import CopyButton from "@/components/shared/copy-button";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import ShareButtons from "@/components/shared/share-buttons";
@@ -48,28 +52,23 @@ type ArtilceType = ArticlePrisma & {
 };
 
 // props
+// cached article data only: per-user parts (likes, session) stream in their own suspense
 interface Props {
   article: ArtilceType;
   body: string;
-  liked: boolean;
-  likes: number;
-  userId: string | null;
   side: {
     h3: string;
     p: string;
   }[];
 }
 
-const Article = async ({
-  article,
-  userId,
-  body,
-  side,
-  liked,
-  likes,
-}: Props) => {
+const Article = async ({ article, body, side }: Props) => {
   return (
     <article className="my-5 px-3 space-y-8">
+      {/* view counter: runs after the response, request time only */}
+      <Suspense fallback={null}>
+        <ArticleReadTracker aid={article.aid} />
+      </Suspense>
       {/* content */}
       <div className="flex flex-col md:grid grid-cols-8 gap-x-2 gap-y-5">
         {/* right side */}
@@ -85,6 +84,7 @@ const Article = async ({
               alt={article.title}
               fill
               priority
+              fetchPriority="high"
               sizes="(max-width: 768px) 100vw, 66vw"
               className="object-cover rounded"
             />
@@ -154,12 +154,9 @@ const Article = async ({
                 hideLabel={true}
               />
             </div>
-            <ArticleLikeButton
-              aid={article.aid}
-              userId={userId}
-              liked={liked}
-              iLikes={likes}
-            />
+            <Suspense fallback={<ArticleLikeFallback aid={article.aid} />}>
+              <ArticleLike aid={article.aid} />
+            </Suspense>
           </div>
           {/* consultant */}
         </div>
@@ -174,7 +171,7 @@ const Article = async ({
         {/* comments */}
         <div className="flex-1 max-w-xl">
           <Suspense fallback={<CardSkeleton count={3} />}>
-            <AddArticleComment aid={article.aid} author={userId} />
+            <ArticleCommentForm aid={article.aid} />
             <ArticleComments aid={article.aid} />
           </Suspense>
         </div>
