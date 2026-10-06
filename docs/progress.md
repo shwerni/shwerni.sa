@@ -2554,3 +2554,62 @@ Goal: Search Console reports indexing per page type (about 609 URLs, so the spli
   - all 331 static, consultant and program URLs answer 200 with no `noindex` (articles weren't loaded, because each view writes a read count to production)
   - every `<loc>` is absolute `https://www.shwerni.sa/…`, with no trailing slash except home, which matches its canonical
 - One build showed transient first-attempt "took more than 60 seconds" retries, on unchanged routes too. The next clean build had none.
+
+## 2026-10-07 · Center dashboard, part A (auth, overview, orders, profile, theme)
+
+Spec: `CENTERS_SPEC.md` §11, §13, §16, §19. Decisions: order detail shows the client name only (like the consultant dashboard; the phone is revisited in the onsite phase); orders filter by session date; mobile nav is a bottom bar (نظرة عامة، الطلبات، الملف) plus "المزيد" (a sheet with المظهر).
+
+**Auth**
+
+| File | Change |
+|---|---|
+| `data/user.ts` `getUserLogin` | the web login allows `USER`, `OWNER` and `CENTER`. The management login now excludes `CENTER` too (before, `notIn [USER, OWNER]` would have let a center account in) |
+| `handlers/auth/login.ts` | CENTER → `/center` |
+| `routes.ts` | `/center` added to `protectedPrefixes` (matched as `/center` or `/center/…`, never `/centers`) |
+| `components/clients/header/submenu.tsx` | CENTER menu entry "لوحة المركز" → `/center` |
+| `components/legacy/layout/zErrors/auth/role.tsx` | a CENTER message ("بالمراكز") |
+| `data/center/require-center.ts` (new) | `requireCenter()` per §11.1 (session → role CENTER → CenterMember → finite centerId; throws `CenterAccessError`), plus `getCenterMembership` |
+
+- Sign-up is unchanged: `register` allows USER/OWNER only; mobile has a create allowlist and an update hook blocking role changes.
+- Nothing in the app creates a `CenterMember`.
+- Existing areas already reject CENTER: the `(user)` layout requires USER, and `/dashboard` requires OWNER.
+- There's no plain `startsWith("/center")` anywhere.
+
+**Dashboard** (`app/(pages)/(center-dashboard)/center/…`, its own layout with no Shwerni navbar, `noindex`)
+
+- **Data:** `data/center/dashboard.ts`. Every query is scoped by the `centerId` from `requireCenter()`; client ids (`cid`, `oid`) only narrow an already-scoped query.
+  - `getCenterOverview`: upcoming PAID sessions (Riyadh date), and pending approvals (consultants + bank accounts)
+  - `getCenterOrders`: search by order number or name; filters for consultant, session date range and payment state; 10 per page
+  - `getCenterOrder`: `{ oid, centerId }`
+  - `getCenterConsultantOptions`, `getCenterSettings`, `updateCenterProfile`, `updateCenterTheme`
+- **Actions:** `actions/center/settings.ts` is the first use of `createAction`, with `auth: [CENTER]`.
+  - Each handler calls `requireCenter()` first and returns `forbidden` without a membership.
+  - `saveCenterProfile` (`schemas/center.ts`): no slug, status, platformRate, sort_key, ceid or legal numbers; logo and cover must be uploadthing URLs.
+  - `saveCenterTheme`: one of the 8 themes plus hex-only overrides. AA is checked server-side (`utils/contrast.ts`), with new error codes `contrast_primary` and `contrast_secondary`.
+  - Saves call `updateTag("center:{ceid}")`; profile saves also call `updateTag("centers")`.
+- **Pages:**
+  - overview: this month's earned (from `getCenterDues`), balance, pending approvals, today's and upcoming bookings
+  - orders: nuqs filters, pagination, read-only detail
+  - profile: react-hook-form, the existing `UploadField` for logo and cover, inside `UploadThingWrapper`
+  - theme: theme cards with Arabic names, a live preview and overrides
+  - Each page calls `requireCenter()` itself. `loading.tsx` uses a skeleton.
+- **Nav** (`components/center-dashboard/nav.tsx`): a desktop sidebar with everything, and the mobile bottom bar + "المزيد" sheet, above the safe area.
+
+**Fixes**
+
+- `resolveCenter` (public center pages): a hidden center previews for an ADMIN (any center) or a CENTER member of **that** center only (same bar and `noindex`).
+- `reserveConsultant`: booking a consultant whose center isn't PUBLISHED returns the existing "not available" result before any order is created. No preview exception.
+
+**Seed** (`scripts/seed-test-center.ts`, gitignored, not run)
+
+- Usage: `<notifyPhone> <loginPhone> <password>`.
+- It creates or refreshes a CENTER user (bcryptjs cost 10, like register; `phoneVerified` set) and a `CenterMember` OWNER for test-center.
+- It aborts if the login phone belongs to a non-CENTER user.
+
+**Verified**
+
+- `npx tsc --noEmit` passes.
+- `npm run build` on a clean `.next` passes, with no timeouts. Routes `/center`, `/center/orders`, `/center/orders/[oid]`, `/center/profile` and `/center/theme` are all ◐; `/centers…` is unchanged.
+- The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"` (plus the new `actions/center/settings.ts`, as expected).
+- `next start`, logged out: `/center…` returns 307 to `/login`; `/centers` and `/centers/test-center` return 200.
+- The logged-in dashboard needs the seeded CENTER account; not checked yet.

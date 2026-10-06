@@ -104,6 +104,8 @@ export const protectedPrefixes = [
   "/reconciliation",
   // consultant dashboard
   "/dashboard",
+  // center dashboard (matched as "/center" or "/center/…", never the public "/centers")
+  "/center",
   // apis not listed as public above
   "/api",
 ];

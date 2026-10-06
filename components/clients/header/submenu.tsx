@@ -75,6 +75,21 @@ export const SubMenu = ({ user }: SubMenuProps) => {
       </>
     );
 
+  // center account: its own dashboard
+  if (user?.role === UserRole.CENTER)
+    return (
+      <>
+        <Link
+          href="/center"
+          className="flex items-center gap-1 py-2 px-3 rounded-md"
+        >
+          <Settings className="ml-2 h-4 w-4" />
+          <span>لوحة المركز</span>
+        </Link>
+        <Separator className="w-1/2 mx-auto bg-zgrey-50" />
+      </>
+    );
+
   // if owner or consultant or centers
   if (user?.role === UserRole.GROUP)
     return (

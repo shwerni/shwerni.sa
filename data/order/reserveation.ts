@@ -29,6 +29,7 @@ import { paidSplit } from "@/utils/order-split";
 import { aboveAndLowerTime, dateTimeToString } from "@/utils/time";
 
 import {
+  CenterState,
   OrderOrigin,
   PaymentState,
   UserRole,
@@ -80,11 +81,19 @@ export const reserveConsultant = async (
         name: true,
         commission: true,
         centerId: true,
-        center: { select: { platformRate: true } },
+        center: { select: { platformRate: true, status: true } },
       },
     });
 
     if (!owner || !owner.name)
+      return {
+        state: false,
+        code: "owner_missing",
+        message: "هذا المستشار غير متاح حالياً",
+      };
+
+    // a center consultant is bookable only while the center is published (no preview exception)
+    if (owner.center && owner.center.status !== CenterState.PUBLISHED)
       return {
         state: false,
         code: "owner_missing",

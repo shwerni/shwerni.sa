@@ -12,8 +12,10 @@ import {
   getCenterConsultants,
 } from "@/data/center/consultants";
 
+import { getCenterMembership } from "@/data/center/require-center";
+
 // lib
-import { roleServer } from "@/lib/auth/server";
+import { userServer } from "@/lib/auth/server";
 
 // prisma types
 import { UserRole } from "@/lib/generated/prisma/enums";
@@ -44,17 +46,23 @@ export async function fetchCenterConsultant(ceid: number, cid: number) {
   return getCenterConsultant(ceid, cid);
 }
 
-// the center a page shows: the published one, or any status for an admin preview.
-// the session is read only when the published lookup misses, so published pages stay cached
+// the center a page shows: the published one, or a preview of a hidden one for an admin (any
+// center) or a member of that center (its own center only). the session is read only when the
+// published lookup misses, so published pages stay cached
 export async function resolveCenter(
   slug: string,
 ): Promise<{ center: PublicCenter; preview: boolean } | null> {
   const published = await fetchPublishedCenter(slug);
   if (published) return { center: published, preview: false };
 
-  const role = await roleServer();
-  if (role !== UserRole.ADMIN) return null;
+  const user = await userServer();
+  if (user?.role !== UserRole.ADMIN && user?.role !== UserRole.CENTER) return null;
 
   const center = await getCenterBySlugAnyStatus(slug);
-  return center ? { center, preview: true } : null;
+  if (!center) return null;
+  if (user.role === UserRole.ADMIN) return { center, preview: true };
+
+  // a center account previews its own center only
+  const member = user.id ? await getCenterMembership(user.id) : null;
+  return member?.centerId === center.ceid ? { center, preview: true } : null;
 }

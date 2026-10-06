@@ -9,12 +9,14 @@ import { PaymentState, UserRole } from "@/lib/generated/prisma/enums";
 export const getUserLogin = async (phone: string, administrator: boolean) => {
   try {
     // get public user
+    // web login: clients, consultants and center accounts; management login: staff only
+    // (a center account never signs in through the management login)
     const user = administrator
       ? await prisma.user.findFirst({
           where: {
             phone,
             role: {
-              notIn: [UserRole.USER, UserRole.OWNER],
+              notIn: [UserRole.USER, UserRole.OWNER, UserRole.CENTER],
             },
           },
         })
@@ -22,7 +24,7 @@ export const getUserLogin = async (phone: string, administrator: boolean) => {
           where: {
             phone,
             role: {
-              in: [UserRole.USER, UserRole.OWNER],
+              in: [UserRole.USER, UserRole.OWNER, UserRole.CENTER],
             },
           },
         });

@@ -28,6 +28,7 @@ const RoleError: React.FC<Props> = ({ role }) => {
   const messages: Partial<Record<UserRole, string>> = {
     [UserRole.OWNER]: "بالمستشارين",
     [UserRole.GROUP]: "بالمراكز",
+    [UserRole.CENTER]: "بالمراكز",
     [UserRole.USER]: "بالعملاء",
     [UserRole.SERVICE]: "بخدمة العملاء",
     [UserRole.MARKETER]: "بالتسويق",

@@ -66,7 +66,9 @@ export const login = async (
           ? "/zadmin"
           : userExist?.role === UserRole.OWNER
             ? "/dashboard"
-            : "/",
+            : userExist?.role === UserRole.CENTER
+              ? "/center"
+              : "/",
       // redirectTo: LogInRedirect,
     });
   } catch (error) {
