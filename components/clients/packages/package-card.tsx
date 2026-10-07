@@ -27,33 +27,35 @@ export function PackageCard({ item }: { item: PublicPackageItem }) {
       href={`/consultants/${item.cid}`}
       className="group flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4 transition-colors hover:border-theme-700/40 hover:bg-theme-25 dark:bg-transparent"
     >
-      {/* consultant */}
-      <div className="flex items-center gap-3">
-        <div className="relative shrink-0">
-          <ConsultantImage
-            name={item.name}
-            image={item.image}
-            gender={item.gender}
-            size="sm"
-          />
-          {item.rate && item.rate > 0 ? (
-            <StarBadge
-              rate={item.rate}
-              className="absolute -bottom-1.5 left-1/2 -translate-x-1/2"
-              size="xs"
-              variant="white"
+      <div className="w-full flex justify-between items-center">
+        {/* consultant */}
+        <div className="flex items-center gap-3">
+          <div className="relative shrink-0">
+            <ConsultantImage
+              name={item.name}
+              image={item.image}
+              gender={item.gender}
+              size="sm"
             />
-          ) : null}
+            {item.rate && item.rate > 0 ? (
+              <StarBadge
+                rate={item.rate}
+                className="absolute -bottom-1.5 left-1/2 -translate-x-1/2"
+                size="xs"
+                variant="white"
+              />
+            ) : null}
+          </div>
+          <div className="min-w-0 space-y-1">
+            <h3 className="truncate text-base font-medium text-theme-700">
+              {item.name}
+            </h3>
+            <p className="truncate text-xs text-gray-500">{item.title}</p>
+          </div>
         </div>
-        <div className="min-w-0 space-y-1">
-          <h3 className="truncate text-base font-medium text-theme-700">
-            {item.name}
-          </h3>
-          <p className="truncate text-xs text-gray-500">{item.title}</p>
-        </div>
-      </div>
 
-      <CategoryBadge category={item.category} size="xs" className="w-fit" />
+        <CategoryBadge category={item.category} size="xs" className="w-fit" />
+      </div>
 
       {/* package */}
       <div className="flex items-end justify-between gap-3">
@@ -73,11 +75,15 @@ export function PackageCard({ item }: { item: PublicPackageItem }) {
       </div>
 
       {savings.percent > 0 && (
-        <div className="flex flex-col">
+        <div className="w-full flex justify-between items-center">
           <p className="text-xs font-bold text-gray-500">
-            توفر {savings.percent}% مقارنة بالحجز الفردي
+            توفر{" "}
+            <span className="font-bold text-theme-700 text-base">
+              {savings.percent}%{" "}
+            </span>{" "}
+            مقارنة بالحجز الفردي
           </p>
-          <p className="text-xs font-semibold text-gray-400">
+          <p className="text-base font-semibold text-slate-500">
             توفير {savings.amount} ريال
           </p>
         </div>
