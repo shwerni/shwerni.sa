@@ -43,6 +43,7 @@ import {
   CheckCheck,
   LibraryBig,
   LayoutGrid,
+  Boxes,
 } from "lucide-react";
 
 // react icons
@@ -90,14 +91,14 @@ export const navLinks: Link[] = [
     icon: Users,
   },
   // centers: shown from launch (CENTERS_ENABLED)
-  ...(CENTERS_ENABLED
-    ? [{ label: "المراكز", link: "/centers", icon: Building2 }]
-    : []),
-  {
-    label: "المدونة",
-    link: "/articles",
-    icon: Newspaper,
-  },
+  // ...(CENTERS_ENABLED
+  //   ? [{ label: "المراكز", link: "/centers", icon: Building2 }]
+  //   : []),
+  // {
+  //   label: "المدونة",
+  //   link: "/articles",
+  //   icon: Newspaper,
+  // },
   {
     label: "كيف يمكننا مساعدتك ؟",
     link: "/contact-us",
@@ -147,6 +148,12 @@ export const subPages: Link[] = [
     label: "الكوبونات",
     link: "/coupons",
     icon: BadgePercent,
+    status: true,
+  },
+  {
+    label: "الباقات التوفيرية",
+    link: "/packages",
+    icon: Boxes,
     status: true,
   },
   {
