@@ -9,6 +9,7 @@ export const publicRoutes = [
   "/centers",
   "/event",
   "/coupons",
+  "/packages",
   "/terms",
   "/information",
   "/freesessions",

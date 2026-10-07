@@ -15,8 +15,11 @@ import { getConsultantsPackages } from "@/data/packages";
 import { userServer } from "@/lib/auth/server";
 import { Clock } from "lucide-react";
 
+// constants
+import { PACKAGE_SESSION_COUNTS } from "@/constants/packages";
+
 // Packages you want to enforce/allow
-const STANDARD_PACKAGES = [3, 4, 5, 6, 8, 10];
+const STANDARD_PACKAGES = PACKAGE_SESSION_COUNTS;
 
 export default async function ConsultantPricingDashboard() {
   const user = await userServer();
