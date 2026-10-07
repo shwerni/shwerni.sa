@@ -2613,3 +2613,50 @@ Spec: `CENTERS_SPEC.md` §11, §13, §16, §19. Decisions: order detail shows th
 - The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"` (plus the new `actions/center/settings.ts`, as expected).
 - `next start`, logged out: `/center…` returns 307 to `/login`; `/centers` and `/centers/test-center` return 200.
 - The logged-in dashboard needs the seeded CENTER account; not checked yet.
+
+## 2026-10-07 · Public /packages page (consultant packages with search, filters and a view toggle)
+
+**Route:** `app/(pages)/(site)/(sub-pages)/packages/page.tsx`, a sub-page in the coupons layout. It's added to `publicRoutes` and to `sitemaps/static.xml`, but not to the header nav. The canonical is fixed to `/packages` for every param combination.
+
+**URL state** (`lib/nuqs/packages.ts`, one params object shared by the server cache and the client):
+
+- Params: `view` (`packages` | `consultants`), `search`, `category[]`, `gender[]`, `sessions[]`, `sort`, `page`.
+- Empty lists mean "all".
+- Enum parsers drop unknown values before the SQL.
+- Every change resets `page`.
+
+**Data** (`data/packages.ts`, `server-only`, no `"use server"`):
+
+- `getPublicPackages` (one row per package) and `getPublicPackageConsultants` (one row per consultant, `json_agg` of the matching packages). Both use raw SQL.
+- They share one `FROM`/`WHERE`: `p."isActive"`, consultant `status`, `PUBLISHED`, `APPROVED`, and `"centerId" IS NULL`. That last one is by hand, because the safe client doesn't cover raw SQL.
+- Page size 12, with the page number clamped.
+
+**Pricing:**
+
+- Cards show the flat `package.cost` (`CurrencyLabel tax={15}`).
+- Savings come from `utils/packages.ts`, the same math as the booking `Packages` component: against `cost30 × count`, the undiscounted 30-minute price.
+- No discount or coupon code is involved, and nothing calls `resolveConsultantPricing`.
+- Booking stays on `/consultants/{cid}`.
+
+**Arabic search** (`utils/arabic.ts`):
+
+- `normalizeArabic`: strips harakat and tatweel; maps أ/إ/آ/ٱ → ا, ة → ه, ى → ي; lowercases; collapses spaces.
+- `escapeLike`
+- The SQL applies the same folds to `consultants.name` (`regexp_replace` + `translate`, no extension).
+
+**Other:** `constants/packages.ts` holds the session counts `[3, 4, 5, 6, 8, 10]`; the consultant dashboard page now imports them instead of its local copy (same values). Components are in `components/clients/packages/`: filters, package-card, consultant-packages-card, empty, navigation.
+
+**Verified**
+
+- `npx tsc --noEmit` passes. `npm run build` on a clean `.next` passes; `/packages` is ◐.
+- The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`.
+- `next start`:
+  - **Totals:** 239 packages / 110 consultants. Sessions, category, gender and their combinations narrow correctly; both sorts reorder.
+  - **Edge params:** `page=999` clamps to 20/20, and invalid `category`/`sort`/`view` fall back to the defaults.
+  - **Search:** نورة = نوره (3), امينة = أمينه, ال سعد = آل سعد, مُصْعَب = مصعب, extra spaces match, `%`/`_` match literally, تجريبي (center consultants) → 0 and the empty state.
+  - **Sitemap and meta:** static.xml lists `/packages`, and the canonical and title are correct.
+
+**Open questions**
+
+- In the default "recommended" package view, one consultant's 2 or 3 packages sit next to each other (sorted by `sort_key`, then count). The consultant view avoids this. Should the default view interleave them instead?
+- The savings line compares 45-minute package sessions with the 30-minute price. It's kept on purpose so both pages match.
