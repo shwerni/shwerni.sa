@@ -18,10 +18,11 @@ interface Props {
   userPromise?: Promise<User | undefined>;
 }
 
+// the pathname only drives the active-link highlight. it's read inside suspense: on a dynamic
+// route it's request data, and reading it at the top would block the whole page from
+// prerendering. static routes still resolve it while prerendering, so their shell keeps the
+// highlight; the fallbacks are the same markup without it
 export default function Header({ user, userPromise }: Props) {
-  // active nav button
-  const path = usePathname();
-
   // return
   return (
     <header className="sticky top-0 w-full bg-white z-50">
@@ -30,29 +31,44 @@ export default function Header({ user, userPromise }: Props) {
         <Logo width={150} />
 
         {/* pages & menu */}
-        <HeaderLinks path={path} />
+        <Suspense fallback={<HeaderLinks />}>
+          <HeaderLinksWithPath />
+        </Suspense>
 
         {/* actions: the account menu appears once the session has streamed in */}
         {userPromise ? (
-          <Suspense fallback={<HeaderSheet path={path} />}>
-            <HeaderSheetWithUser userPromise={userPromise} path={path} />
+          <Suspense fallback={<HeaderSheet />}>
+            <HeaderSheetWithUser userPromise={userPromise} />
           </Suspense>
         ) : (
-          <HeaderSheet user={user} path={path} />
+          <Suspense fallback={<HeaderSheet user={user} />}>
+            <HeaderSheetWithPath user={user} />
+          </Suspense>
         )}
       </div>
     </header>
   );
 }
 
+// nav links with the active one highlighted
+function HeaderLinksWithPath() {
+  const path = usePathname();
+  return <HeaderLinks path={path} />;
+}
+
+// the menu for a known user
+function HeaderSheetWithPath({ user }: { user?: User }) {
+  const path = usePathname();
+  return <HeaderSheet user={user} path={path} />;
+}
+
 // reads the streamed session; suspends until it arrives
 function HeaderSheetWithUser({
   userPromise,
-  path,
 }: {
   userPromise: Promise<User | undefined>;
-  path: string;
 }) {
+  const path = usePathname();
   const user = use(userPromise);
   return <HeaderSheet user={user} path={path} />;
 }

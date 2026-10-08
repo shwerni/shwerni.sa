@@ -1,6 +1,9 @@
+// icons
 import { Loader2 } from "lucide-react";
 
-const Loading = () => {
+// the full-screen spinner the old root app/loading.tsx showed. route-level loading.tsx files
+// re-export it, so only routes that read request data before rendering show it
+export default function PageLoading() {
   return (
     <div className="fixed inset-0 flex items-center justify-center backdrop-blur-sm z-50">
       <div className="flex flex-col items-center gap-4 animate-fade-in">
@@ -11,6 +14,4 @@ const Loading = () => {
       </div>
     </div>
   );
-};
-
-export default Loading;
+}

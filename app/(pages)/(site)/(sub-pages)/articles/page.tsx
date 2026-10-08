@@ -57,13 +57,6 @@ const fetchSpecialties = async () => {
 
 export default async function Page({ searchParams }: Props) {
   // params
-  const {
-    search = "",
-    page = "1",
-    orderby = "newest",
-    specialties = "",
-  } = await searchParams;
-
   // specialties list
   const specialtiesList = await fetchSpecialties();
 
@@ -93,31 +86,51 @@ export default async function Page({ searchParams }: Props) {
       <div className="md:grid grid-cols-5 space-y-5 pb-5">
         {/* side filters */}
         <Filter>
-          <FilterContent specialties={specialtiesList} />
+          {/* the filters read the url (request data): they stream in, the frame stays in the shell */}
+          <Suspense fallback={null}>
+            <FilterContent specialties={specialtiesList} />
+          </Suspense>
         </Filter>
 
-        {/* article content */}
-        <Suspense
-          key={`${search}-${page}`}
-          fallback={
-            <CardSkeleton
-              count={9}
-              CardClassName="w-72 sm:w-60 h-84"
-              className="col-span-4 px-3 lg:px-6 py-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 justify-items-center gap-x-3 gap-y-5"
-            />
-          }
-        >
-          <ArticlesList
-            search={search}
-            page={page}
-            specialties={specialties}
-            orderby={orderby}
-          />
+        {/* article content: the search params are request data, so they're read inside suspense
+            and the header and filters stay in the prerendered shell */}
+        <Suspense fallback={listSkeleton}>
+          <ArticlesResults searchParams={searchParams} />
         </Suspense>
       </div>
     </div>
   );
 }
+
+// list skeleton, shown on the first load and on every search or page change
+const listSkeleton = (
+  <CardSkeleton
+    count={9}
+    CardClassName="w-72 sm:w-60 h-84"
+    className="col-span-4 px-3 lg:px-6 py-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 justify-items-center gap-x-3 gap-y-5"
+  />
+);
+
+const ArticlesResults = async ({ searchParams }: Props) => {
+  // params
+  const {
+    search = "",
+    page = "1",
+    orderby = "newest",
+    specialties = "",
+  } = await searchParams;
+
+  return (
+    <Suspense key={`${search}-${page}`} fallback={listSkeleton}>
+      <ArticlesList
+        search={search}
+        page={page}
+        specialties={specialties}
+        orderby={orderby}
+      />
+    </Suspense>
+  );
+};
 
 const ArticlesList = async ({
   search,
