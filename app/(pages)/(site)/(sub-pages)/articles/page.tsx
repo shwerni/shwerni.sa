@@ -25,14 +25,32 @@ const title = "مدونة المستشارين";
 const fullTitle = `${title} | شاورني`;
 const description = "مدونة شاورني — مقالات المستشارين";
 const url = `${mainRoute}articles`;
+const ogImage = {
+  url: `${mainRoute}meta/articles.png`,
+  alt: fullTitle,
+  type: "image/png",
+  width: 1200,
+  height: 630,
+};
 
 export const metadata: Metadata = {
   title,
   description,
   // the same canonical for every search, order and page combination
   alternates: { canonical: url },
-  openGraph: { ...defaultMetaApi.openGraph, title: fullTitle, description, url },
-  twitter: { ...defaultMetaApi.twitter, title: fullTitle, description },
+  openGraph: {
+    ...defaultMetaApi.openGraph,
+    title: fullTitle,
+    description,
+    url,
+    images: [ogImage],
+  },
+  twitter: {
+    ...defaultMetaApi.twitter,
+    title: fullTitle,
+    description,
+    images: [ogImage],
+  },
 };
 
 // type
@@ -161,7 +179,10 @@ const ArticlesList = async ({
         description={description}
         items={
           isDefaultList
-            ? data.items.map((a) => ({ name: a.title, path: `articles/${a.aid}` }))
+            ? data.items.map((a) => ({
+                name: a.title,
+                path: `articles/${a.aid}`,
+              }))
             : undefined
         }
       />

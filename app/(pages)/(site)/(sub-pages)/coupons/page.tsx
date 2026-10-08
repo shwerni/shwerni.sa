@@ -61,7 +61,7 @@ export const metadata: Metadata = {
       "تصفح كوبونات الخصم المتاحة على منصة شاورني واحصل على خصومات حصرية على جلسات الاستشارة النفسية والأسرية",
     images: [
       {
-        url: `${mainRoute}layout/shwerni.jpg`,
+        url: `${mainRoute}meta/packages.png`,
         alt: "شاورني - كوبونات الخصم",
         type: "image/jpeg",
         width: 1200,
@@ -79,7 +79,7 @@ export const metadata: Metadata = {
       "تصفح كوبونات الخصم المتاحة على منصة شاورني واحصل على خصومات حصرية على جلسات الاستشارة النفسية والأسرية",
     images: [
       {
-        url: `${mainRoute}layout/shwerni.jpg`,
+        url: `${mainRoute}meta/packages.png`,
         alt: "شاورني - كوبونات الخصم",
         width: 1200,
         height: 630,

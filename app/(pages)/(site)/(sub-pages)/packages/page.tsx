@@ -34,7 +34,7 @@ const description =
   "باقات جلسات توفيرية مع مستشارين موثوقين في شاورني: قارن الباقات حسب عدد الجلسات والسعر والتخصص واحجز باقتك بسعر أقل من الحجز الفردي.";
 const url = `${mainRoute}packages`;
 const ogImage = {
-  url: `${mainRoute}layout/shwerni.jpg`,
+  url: `${mainRoute}meta/packages.png`,
   alt: fullTitle,
   type: "image/jpeg",
   width: 1200,

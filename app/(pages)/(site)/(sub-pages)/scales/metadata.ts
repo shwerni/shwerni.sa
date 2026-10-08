@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 const siteName = "شاورني";
 const siteHandle = "@shwernisa";
 const siteUrl = mainRoute;
-const ogImage = `${siteUrl}layout/shwerni.jpg`;
+const ogImage = `${siteUrl}meta/shwerni.jpeg`;
 
 // ── Listing page metadata ────────────────────────────────────────────────────
 

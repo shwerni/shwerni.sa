@@ -36,7 +36,7 @@ const organization: Organization = {
     width: "750",
     height: "225",
   },
-  image: `${mainRoute}layout/shwerni.jpg`,
+  image: `${mainRoute}meta/shwerni.jpeg`,
   sameAs,
   address: {
     "@type": "PostalAddress",

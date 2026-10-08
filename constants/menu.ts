@@ -127,6 +127,11 @@ export const mainLinks: Link[] = [
 // home sub pagaes
 export const subPages: Link[] = [
   {
+    label: "المدونة",
+    link: "/articles",
+    icon: Newspaper,
+  },
+  {
     label: "حجز فوري",
     link: "/instant",
     icon: Zap,

@@ -1984,7 +1984,7 @@ This was not caused by round 1: the server rendered `en-US` digits before too. R
   - `collection-json-ld.tsx`: CollectionPage, plus an ItemList when items are given.
   - `page-json-ld.tsx`: WebPage or ContactPage.
 - Organization:
-  - `www` URL; logo `layout/logo.png` (750×225); image `layout/shwerni.jpg`.
+  - `www` URL; logo `layout/logo.png` (750×225); image `meta/shwerni.jpeg`.
   - `sameAs` is built from the footer's `socialMedia` list, without WhatsApp and with tracking parameters stripped: X `@shwernisa`, Instagram `shwernisa`, TikTok `@shwerni`, Snapchat. The YouTube channel is only linked from the home video section, so it's not included.
   - Address: Riyadh, SA. Contact: `+966554117879` and `support@shwerni.com` (all shown in the footer and on `/contact-us`).
   - `knowsAbout`: the four categories offered (psychological, family and marital, legal, personal) plus two English terms.
