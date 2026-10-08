@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import Article from "@/components/clients/articles/article/article";
 
 // prisma data
-import { getArticleByAid, getPublishedArticleAids } from "@/data/article";
+import { getArticleByAid } from "@/data/article";
 
 // utils
 import { htmlToText } from "@/utils";
@@ -28,13 +28,12 @@ interface Props {
   params: Promise<{ aid: string }>;
 }
 
-// every published article is prerendered: the cached article (title, cover, body) is in the
-// static html. articles published after the build render on their first request.
-// per-user and per-view parts stream in their own suspense boundaries (article/viewer.tsx)
-export async function generateStaticParams() {
-  const articles = await getPublishedArticleAids();
-  return articles.map((a) => ({ aid: String(a.aid) }));
-}
+// no generateStaticParams: prerendering every article at build time put two outlined
+// segments (the loading.tsx boundaries) in the static html with the same ids ("S:7", "S:8")
+// that the request-time holes reuse. react's batched reveal can then move the whole page into
+// the comment form's slot, and hydration fails and retries forever (cpu pinned, memory grows).
+// the article stays cached ("use cache" below); per-user and per-view parts still stream in
+// their own suspense boundaries (article/viewer.tsx)
 
 const getProcessedArticle = async (aid: number) => {
   "use cache";
