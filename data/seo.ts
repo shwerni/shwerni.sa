@@ -43,7 +43,8 @@ export async function siteMapArticles() {
         status: ArticleState.PUBLISHED,
         NOT: { consultant: { is: { centerId: { not: null } } } },
       },
-      select: { aid: true, created_at: true },
+      // updated_at: the last content change (null until an editor writes it)
+      select: { aid: true, created_at: true, updated_at: true },
       orderBy: { aid: "asc" },
     });
   } catch {

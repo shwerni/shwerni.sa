@@ -14,6 +14,10 @@ model Article {
   category   Categories
   likes      ArticleLike[]
   created_at DateTime      @default(now())
+  // the last content change (title, body, image, faqs): written explicitly by whoever edits the
+  // article. not @updatedAt: the dashboard edits with raw sql (prisma never sees it) and the
+  // view counter (read) would otherwise move it on every page view
+  updated_at DateTime?
   read       Int           @default(0)
 
   // @relations
@@ -21,8 +25,28 @@ model Article {
   consultant      Consultant?        @relation(fields: [consultantId], references: [cid])
   specialties     ArticleSpecialty[]
   articleComments ArticleComment[]
+  faqs            ArticleFaq[]
 
   @@map("articles")
+}
+
+// the article page's faq section: questions people search for, answered from the article.
+// shown under the article body and in the page's FAQPage json-ld; no pages or urls of their own
+model ArticleFaq {
+  id         String   @id @default(cuid())
+  question   String
+  answer     String   @db.Text
+  // display order, ascending
+  order      Int      @default(0)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // @relations
+  articleAid Int
+  article    Article @relation(fields: [articleAid], references: [aid], onDelete: Cascade)
+
+  @@index([articleAid, order])
+  @@map("article_faqs")
 }
 
 model ArticleLike {

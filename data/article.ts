@@ -227,6 +227,11 @@ export const getArticleByAid = async (aid: number) => {
       include: {
         consultant: { select: { name: true, rate: true, gender: true } },
         specialties: { select: { specialty: true } },
+        // the faq section under the body (and the page's FAQPage json-ld); [] when none
+        faqs: {
+          select: { question: true, answer: true },
+          orderBy: [{ order: "asc" }, { created_at: "asc" }],
+        },
       },
     });
 

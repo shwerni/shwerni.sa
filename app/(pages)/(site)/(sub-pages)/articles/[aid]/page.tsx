@@ -12,12 +12,12 @@ import { getArticleByAid } from "@/data/article";
 import { htmlToText } from "@/utils";
 
 // prisma data
-import { cacheLife } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 
 // seo
 import { JsonLd } from "@/components/seo/json-ld";
 import { breadcrumbList } from "@/components/seo/breadcrumbs";
-import { organizationId } from "@/components/seo/site-json-ld";
+import { organizationId, websiteId } from "@/components/seo/site-json-ld";
 
 // constants
 import { mainRoute } from "@/constants/links";
@@ -38,6 +38,9 @@ interface Props {
 const getProcessedArticle = async (aid: number) => {
   "use cache";
   cacheLife("days");
+  // the dashboard refreshes one article (article:<aid>) or every article and the sitemap
+  // (articles) through /api/revalidate after an edit; the days lifetime is the fallback
+  cacheTag("articles", `article:${aid}`);
 
   const article = await getArticleByAid(aid);
 
@@ -53,8 +56,21 @@ const getProcessedArticle = async (aid: number) => {
     body,
     side,
     plainText,
+    // meta description and json-ld description: the start of the article, cut at a word
+    description: describe(plainText),
+    // the last content change, or the publish date while updated_at is still null
+    modifiedAt: article.updated_at ?? article.created_at,
   };
 };
+
+// the first 160 characters, cut at a word boundary
+function describe(text: string, max = 160) {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  const cut = clean.slice(0, max);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > max * 0.6 ? cut.slice(0, space) : cut).trimEnd()}…`;
+}
 
 // meta data seo: extends defaultMetaApi (root layout); the title template adds "| شاورني".
 // a missing article (404) gets no metadata
@@ -69,11 +85,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // validate
   if (!result) return {};
 
-  const { article, plainText } = result;
+  const { article, description, modifiedAt } = result;
   const writer = article.consultant?.name ?? "مستشارين شاورني";
-
-  // SEO: rich description from actual content (160 chars max)
-  const description = plainText.slice(0, 160).trimEnd();
 
   // SEO: specialty keywords
   const keywords = article.specialties.map((s) => s.specialty.name).join(", ");
@@ -100,6 +113,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       images: [{ url: article.image, alt: article.title }],
       // SEO: article-specific OG fields
       publishedTime: article.created_at.toISOString(),
+      modifiedTime: modifiedAt.toISOString(),
       authors: [writer],
       tags: article.specialties.map((s) => s.specialty.name),
     },
@@ -124,9 +138,12 @@ export default async function Page({ params }: Props) {
   // a missing or unpublished article answers 404 (the site not-found page)
   if (!result) notFound();
 
-  // structured data: the article and the breadcrumb trail
+  // structured data, one graph for the page: the article, its faq (when it has one) and the
+  // breadcrumb trail. the FAQPage is the page itself (its @id is the article url) and lists
+  // exactly the questions and answers the faq section shows
   const url = `${mainRoute}articles/${articleId}`;
   const { article } = result;
+  const hasFaq = article.faqs.length > 0;
 
   return (
     <>
@@ -138,18 +155,44 @@ export default async function Page({ params }: Props) {
               "@type": "Article",
               "@id": `${url}#article`,
               headline: article.title,
-              description: result.plainText.slice(0, 160).trimEnd(),
+              description: result.description,
               image: article.image,
               datePublished: article.created_at.toISOString(),
-              // the consultant who wrote it, or shwerni when there is none
-              author: article.consultant?.name
-                ? { "@type": "Person", name: article.consultant.name }
-                : { "@id": organizationId },
+              dateModified: result.modifiedAt.toISOString(),
+              // the consultant who wrote it (with the profile the page links to), or shwerni
+              author:
+                article.consultant?.name && article.consultantId
+                  ? {
+                      "@type": "Person",
+                      name: article.consultant.name,
+                      url: `${mainRoute}consultants/${article.consultantId}`,
+                    }
+                  : { "@id": organizationId },
               publisher: { "@id": organizationId },
               inLanguage: "ar-SA",
               url,
-              mainEntityOfPage: url,
+              mainEntityOfPage: hasFaq ? { "@id": url } : url,
             },
+            ...(hasFaq
+              ? [
+                  {
+                    "@type": "FAQPage" as const,
+                    "@id": url,
+                    url,
+                    name: article.title,
+                    inLanguage: "ar-SA",
+                    isPartOf: { "@id": websiteId },
+                    mainEntity: article.faqs.map((faq) => ({
+                      "@type": "Question" as const,
+                      name: faq.question,
+                      acceptedAnswer: {
+                        "@type": "Answer" as const,
+                        text: faq.answer,
+                      },
+                    })),
+                  },
+                ]
+              : []),
             breadcrumbList([
               { name: "مدونة المستشارين", path: "articles" },
               { name: article.title, path: `articles/${articleId}` },

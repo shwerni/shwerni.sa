@@ -2840,3 +2840,47 @@ Code committed by Ziad as `2605dd6` (pushed). This entry records the verificatio
 
 - Delete the unused shadcn files (`slider`, `hover-card`, `tooltip`)?
 - The dashboard should call `/api/revalidate` with the `scales` / `questions` tags when it edits them (cached for hours until then).
+
+## 2026-10-08 · Article FAQ section (schema, display, FAQPage json-ld, dates)
+
+**Schema** (`prisma/models/article.prisma`, applied by Ziad with `db push`)
+
+- New model `ArticleFaq` (`article_faqs`): `id`, `question`, `answer`, `order`, timestamps, and `articleAid` → `Article.aid` (cascade delete).
+- New column `Article.updated_at DateTime?`. It's written explicitly by whoever edits the content, not `@updatedAt`: the dashboard edits with raw sql (prisma never sees it), and the view counter would move it on every page view.
+
+**Code**
+
+- `data/article.ts`: `getArticleByAid` also returns the faqs (question, answer, ordered by `order` then `created_at`). `[]` when none.
+- **Article page:**
+  - `getProcessedArticle` is tagged `articles` and `article:<aid>` (days lifetime as the fallback). Until now nothing could invalidate a cached article.
+  - **Description:** the first 160 characters, cut at a word boundary.
+  - **Dates:** `dateModified` and og `article:modified_time` are `updated_at ?? created_at`.
+- **`components/clients/articles/article/faq.tsx`:**
+  - a server component directly after the body: `h2` "الأسئلة الشائعة", one native `<details>` per question (`h3` in the `summary`), all closed, no client js
+  - part of the cached article content (no streamed boundary of its own); renders nothing without faqs
+- **Json-ld, one `@graph`:**
+  - Article (adds `dateModified`; the author `url` is the consultant page the article links to; `mainEntityOfPage` is `{@id: url}` with a faq)
+  - FAQPage (`@id` and `url` = the article url; `mainEntity` = the same questions and answers the section shows), only when the article has faqs
+  - BreadcrumbList
+- **Sitemap:** the articles `lastmod` is `updated_at ?? created_at`, and `articles.xml` is tagged `articles`.
+
+**Verified** (clean build passes; manifest only `"data/event.ts"` and `"lib/api/google.ts"`)
+
+- **`/articles/80`, 2 faqs:**
+  - the section shows both questions, closed, with the heading
+  - the graph is Article + FAQPage + BreadcrumbList, and the FAQPage matches the visible faq exactly
+- **`/articles/96` and `/articles/85`, no faqs, `updated_at` null:**
+  - no section; the graph is Article + BreadcrumbList
+  - `dateModified` and og modified time equal the publish date
+  - the description is cut at a word boundary
+- **Author:** `/articles/125` has a Person `url` of `/consultants/153`, the same link the page shows.
+- **Sitemap:** 278 urls (same as production); `/articles/80` lastmod is its created_at (updated_at null).
+- **Duplicate ids:** none on 4 articles.
+- **Hydration:** 0 react #519 and flat idle cpu over 6 loads each of `/articles/80` and `/articles/96`.
+
+**Dashboard (not done, out of scope for now)**
+
+- copy the schema change into its prisma schema and run `prisma generate` (never `db push` from there)
+- add `"updated_at" = now()` to its raw `UPDATE "articles"`
+- in the faq editor, save the faqs and bump `articles.updated_at` in one transaction
+- after an edit, call `purgeClient("article:<aid>")` and `purgeClient("articles")`

@@ -18,6 +18,7 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 import ShareButtons from "@/components/shared/share-buttons";
 import CardSkeleton from "@/components/clients/shared/card-skeleton";
 import ArticleSideInfo from "@/components/clients/articles/article/side-info";
+import { ArticleFaq, type ArticleFaqItem } from "@/components/clients/articles/article/faq";
 import Recommendation from "@/components/clients/articles/article/recommendation";
 
 // css
@@ -58,6 +59,8 @@ type ArtilceType = ArticlePrisma & {
     rate: number;
     gender: Gender;
   } | null;
+} & {
+  faqs: ArticleFaqItem[];
 };
 
 // props
@@ -145,6 +148,8 @@ const Article = async ({ article, body, side }: Props) => {
             dangerouslySetInnerHTML={{ __html: body }}
             className="article-content prose prose-sm max-w-none"
           />
+          {/* faq: part of the cached article content (no streamed boundary of its own) */}
+          <ArticleFaq aid={article.aid} faqs={article.faqs} />
           {/* consultant */}
           <ConsultantAuthor
             consultant={article.consultant}
