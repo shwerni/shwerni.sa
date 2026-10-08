@@ -2731,3 +2731,66 @@ Spec: `CENTERS_SPEC.md` §11, §13, §16, §19. Decisions: order detail shows th
 - **Lighthouse first paint on production `/` is about 2.5s** (FCP = LCP) against about 0.34s locally with the same code. It's lab-only: real chrome cold loads paint production at 0.5-0.7s, the same with the lighthouse user agent.
   - Blocking third parties gives 63-66 and TBT 216-599ms, but one of two runs still held first paint until 2.6s.
 - **PageSpeed drop** (90/70 → 70/39) not reproduced. Production mobile was 33-37 in my lighthouse before and after phase 1; PageSpeed varies about ±10 with third-party timing.
+
+## 2026-10-08 · Performance phase 2 (third parties, css fade, inlineCss)
+
+Code committed by Ziad as `2605dd6` (pushed). This entry records the verification.
+
+**Changes**
+
+- `next.config.ts`:
+  - the unused bare-domain host rules are removed
+  - `experimental.inlineCss` on, the critters option off
+- **Pixels:** Meta, Snap and Twitter in the root layout use `lazyOnload`.
+- **GTM:** `<GoogleTagManager>` (which also preloaded `gtm.js`) is replaced by:
+  - an inline `<head>` script (`components/legacy/layout/scripts/ads/gtm.ts`, `GTM_QUEUE`)
+  - a `lazyOnload` loader
+- **What the queue script does:** every conversion in the container fires on gtm's own click listeners (whatsapp link, link on `/success`, `SPay-btn`), which a lazy gtm doesn't have yet. So the script:
+  - starts the dataLayer
+  - records clicks made before gtm is ready as `gtm.click` / `gtm.linkClick` (`gtm.triggers: ""`), and loads gtm at once on the first one
+  - holds a link that leaves the page until gtm has fired the click's tags (`eventCallback`) and the ads destination is loaded; navigates at once if `gtm.js` fails (an ad blocker), never past 4s
+  - counts gtm as ready only after its own `eventCallback` for the first event: `google_tag_manager` exists a moment before gtm's click listeners are on
+- **Categories (desktop grid):** a css `animate-fade-in-up` (0.6s, `prefers-reduced-motion` off) replaces `DivMotion`. The grid is `hidden md:block`, so mobile is unaffected.
+
+**Verified** (clean build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`)
+
+- **Conversions** (tracking requests failed in the test, so nothing reached the ad accounts):
+
+  | case | early, gtm normal | early, gtm.js +800ms | late |
+  |---|---|---|---|
+  | whatsapp link | ads `HWNb…`, tiktok, GA4 `Whatsapp` | same | same as production |
+  | link on `/success` | ads `-bNU…`, tiktok `Lead` (+ Snap `SIGN_UP`) | same | same as production |
+  | `SPay-btn` | ads `9K0p…` | same | same as production |
+
+  - With `gtm.js` blocked, an early click navigates after about 0.2s.
+  - **Production before this change:** an early whatsapp click and an early success-page link lost their conversions (the page left before the tags were sent).
+  - **Meta `Lead`:** fires nowhere, production included (pre-existing; check the tag in GTM preview).
+- **Hydration:** `/` and `/articles/96`, 12 loads each: 0 react #519, idle script 0.02-0.13s per 8s, no console errors.
+- **Duplicate ids:** none on `/`, `/articles/96`, `/articles/85`, `/consultants/131`, `/scales/gad-7`.
+- **HTML size with inlineCss** (the 188 KB stylesheet is inlined, and next also embeds it in the rsc payload):
+
+  | page | raw | brotli |
+  |---|---|---|
+  | `/` | 334 → 895 KB | 24.5 → 54.2 KB |
+  | `/articles/96` | 334 → 903 KB | 25.3 → 54.9 KB |
+
+- **Mobile lighthouse, median of 3, local** (the A/B is the same build with only `inlineCss` off):
+
+  | page | build | score | LCP | TBT |
+  |---|---|---|---|---|
+  | `/` | phase 2 | 53 | 5.6s | 1389ms |
+  | `/` | phase 2, inlineCss off | 53 | 5.0s | 1495ms |
+  | `/articles/96` | phase 2 | 53 | 5.4s | 1490ms |
+  | `/articles/96` | phase 2, inlineCss off | 55 | 5.0s | 1488ms |
+
+  Production `/` 43 (LCP 6.6s), `/articles/96` 50 (LCP 4.9s).
+- **Lighthouse first-paint hold on production:** still there with third parties deferred.
+  - It's a Lighthouse-only stall: the trace has no frames between about 0.33s and 2.58s.
+  - Not caused by BotID (blocked: still 2.6s) or by third-party scripts.
+  - A fresh real chrome with lighthouse's viewport and user agent paints production at about 0.66s (0.69s with js off).
+
+**Open questions**
+
+- inlineCss: revert? (+30 KB brotli per page, no lighthouse gain, slightly worse LCP)
+- Meta `Lead` never fires.
+- Lighthouse/PageSpeed hold on production: unexplained; real-user data (vercel speed insights / CrUX) is the better measure.
