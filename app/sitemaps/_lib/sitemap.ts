@@ -17,6 +17,7 @@ export const sitemapTypes = [
   "consultants",
   "articles",
   "programs",
+  "scales",
   ...(CENTERS_ENABLED ? (["centers"] as const) : []),
 ] as const;
 

@@ -7,67 +7,9 @@ import {
   apiAuthPrefix,
   DynamicpublicRoutes,
 } from "@/routes";
-import { publicDetailExists, type PublicDetail } from "@/data/seo";
 
 // query values that mean "no value" (old redirects built ?collaboration=undefined)
 const EMPTY_PARAM = new Set(["", "undefined", "null"]);
-
-// public detail pages: a missing or hidden one answers a real 404 from here. the page's own
-// notFound() still runs, but once the prerendered shell has streamed it can only add noindex
-// to a 200 (a soft 404)
-const DETAIL_ROUTES: { pattern: RegExp; kind: PublicDetail; numeric: boolean }[] = [
-  { pattern: /^\/articles\/([^/]+)\/?$/, kind: "article", numeric: true },
-  { pattern: /^\/consultants\/([^/]+)\/?$/, kind: "consultant", numeric: true },
-  { pattern: /^\/programs\/([^/]+)\/?$/, kind: "program", numeric: true },
-  { pattern: /^\/scales\/([^/]+)\/?$/, kind: "scale", numeric: false },
-];
-
-// per-instance cache of the existence checks: found for 5 minutes, missing for 1 minute (a
-// newly published page answers within a minute)
-const FOUND_TTL = 5 * 60_000;
-const MISSING_TTL = 60_000;
-const existsCache = new Map<string, { exists: boolean; at: number }>();
-
-async function detailExists(kind: PublicDetail, key: string) {
-  const cacheKey = `${kind}:${key}`;
-  const hit = existsCache.get(cacheKey);
-  if (hit && Date.now() - hit.at < (hit.exists ? FOUND_TTL : MISSING_TTL))
-    return hit.exists;
-
-  let exists: boolean;
-  try {
-    exists = await publicDetailExists(kind, key);
-  } catch (error) {
-    // a database error never turns a real page into a 404: the page decides
-    console.error(`[proxy] existence check failed (${cacheKey})`, error);
-    return true;
-  }
-
-  if (existsCache.size > 5000) existsCache.clear();
-  existsCache.set(cacheKey, { exists, at: Date.now() });
-  return exists;
-}
-
-// the missing detail page, or null when the path isn't one (or the page exists)
-async function missingDetail(pathname: string) {
-  for (const { pattern, kind, numeric } of DETAIL_ROUTES) {
-    const match = pattern.exec(pathname);
-    if (!match) continue;
-
-    // a malformed escape (e.g. "%E0") can't match a row either
-    let key: string;
-    try {
-      key = decodeURIComponent(match[1]);
-    } catch {
-      return true;
-    }
-    // the pages parse ids with Number(): anything but a positive int4 can never match a row
-    if (numeric && !(/^\d{1,10}$/.test(key) && Number(key) <= 2147483647)) return true;
-
-    return !(await detailExists(kind, key));
-  }
-  return false;
-}
 
 export async function proxy(req: NextRequest) {
   const { nextUrl } = req;
@@ -97,11 +39,6 @@ export async function proxy(req: NextRequest) {
     url.searchParams.delete("collaboration");
     return NextResponse.redirect(url, 301);
   }
-
-  // 🚫 a missing or hidden article, consultant, program or scale: a real 404 (an unmatched
-  // path renders app/not-found.tsx with status 404)
-  if (await missingDetail(pathname))
-    return NextResponse.rewrite(new URL("/404-not-found", nextUrl));
 
   // ✅ 2. public routes — skip entirely, no token check
   // (deprecated URL redirects live in next.config.ts → redirects())

@@ -2693,3 +2693,41 @@ Spec: `CENTERS_SPEC.md` §11, §13, §16, §19. Decisions: order detail shows th
 
 - Scales (`/scales` and 12 scale pages) are indexable but not in any sitemap.
 - `robots.txt` doesn't block the private routes (`/dashboard`, `/center`, `/account`, `/orders`, `/favorite`, `/meetings`, `/chats`, `/reschedule`, `/payment`, auth pages). Four of its rules (`/zadmin`, `/employees`, `/brief`, `/collaborator`) match no route here.
+
+## 2026-10-08 · SEO review follow-up, and the phase 1 verification
+
+**SEO changes (on top of 6cfa41a)**
+
+- **Proxy existence check removed** (`publicDetailExists` and the proxy 404 rewrite). `proxy.ts` keeps only the `collaboration` 301.
+- **Real 404s from the pages: not possible under partial prerendering.** Tried and reverted.
+  - For `notFound()` to set the status, nothing may stream first. That means no `<Suspense>`/`loading.tsx` above the page's check, and `generateStaticParams` so Next 16 accepts reading params outside a boundary.
+  - Known ids then prerender fine. But Next 16.2.9 renders an unknown id at request time as a one-off static page, and any request-time api in the tree (the site layout's session read, the like button, the comment form) throws `DYNAMIC_SERVER_USAGE`, then `Invalid revalidate configuration provided: 0 < 1`.
+  - Every unknown id answered **500**, content published after a deploy included. Missing pages keep 200 + `noindex`, now inside the site layout.
+- **Scales sitemap:** `/sitemaps/scales.xml` lists `/scales` and the 12 active scales (`siteMapScales`, the page's `isActive` rule).
+- **Apex redirects** (`next.config.ts`):
+  - **Rules:** `shwerni.sa/consultant/<cid>` → `https://www.shwerni.sa/consultants/<cid>` in one hop, and other apex paths → www.
+  - **Inactive for now:** vercel redirects the apex domain at the edge (308 to www, never reaching the app), so the rules apply only once the apex is served by this project in the vercel domain settings.
+
+**Phase 1 verification** (main = phase 1 + hotfix + seo; clean `npm run build` passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`)
+
+- `/`: the hero is in the initial shell (byte 15,369, before the first hidden segment at 67,968), with no full-screen spinner.
+- **Duplicate ids:** none on 25 pages (`/`, `/articles/96`, `/articles/85`, `/consultants/131`, `/scales/gad-7`, and one page per new `loading.tsx`). Not checked: `/center`, `/dashboard`, `/account` and `/reconciliation/<id>`, which redirect to `/login` without a session.
+- **Hydration, CPU, memory:** `/` and `/articles/96`, 12 loads each: 0 react #519, idle script 0.02-0.11s per 8s. 60s holds: heap flat (about 18-20 MB).
+  - One load each logged a failed resource (a 500 and a 400). It didn't repeat in 16 more loads; the server log shows one outbound fetch timeout.
+- **Sitemaps:** 625 urls (static 8, consultants 319, articles 278, programs 7, scales 13), all final, indexable, canonical = url.
+- **Mobile lighthouse, median of 3:**
+
+  | page | build | score | LCP | TBT |
+  |---|---|---|---|---|
+  | `/` | production | 36 | 18.8s | 1168ms |
+  | `/` | local | 57 | 5.0s | 1181ms |
+  | `/articles/96` | production | 43 | 6.1s | 2194ms |
+  | `/articles/96` | local | 58 | 4.7s | 1171ms |
+
+  Production already runs phase 1 (the merge is on origin/main).
+
+**Open questions**
+
+- **Lighthouse first paint on production `/` is about 2.5s** (FCP = LCP) against about 0.34s locally with the same code. It's lab-only: real chrome cold loads paint production at 0.5-0.7s, the same with the lighthouse user agent.
+  - Blocking third parties gives 63-66 and TBT 216-599ms, but one of two runs still held first paint until 2.6s.
+- **PageSpeed drop** (90/70 → 70/39) not reproduced. Production mobile was 33-37 in my lighthouse before and after phase 1; PageSpeed varies about ±10 with third-party timing.
