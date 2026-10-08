@@ -13,11 +13,11 @@ import ConsultantsCarousel from "@/components/clients/home/consultant/carousel";
 import { getPuslishedConsultantsForHome } from "@/data/consultant";
 
 // types
-import { ConsultantCard } from "@/types/layout";
+import { HomeConsultantCard } from "@/types/layout";
 
 const Consultants = async () => {
   // consultants
-  const consultants: ConsultantCard[] = await getConsultants();
+  const consultants: HomeConsultantCard[] = await getConsultants();
 
   // validate
   if (!consultants)
@@ -60,6 +60,21 @@ const getConsultants = async () => {
   cacheLife("hours");
   cacheTag("consultants");
 
-  // get consultants
-  return await getPuslishedConsultantsForHome();
+  // only the fields the card shows travel to the client carousel (cost30 is the card's
+  // "starting from" price)
+  const consultants = await getPuslishedConsultantsForHome();
+  return consultants.map(
+    (c): HomeConsultantCard => ({
+      cid: c.cid,
+      name: c.name,
+      image: c.image,
+      category: c.category,
+      rate: c.rate,
+      gender: c.gender,
+      cost30: c.cost30,
+      specialties: c.specialties,
+      reviews: c.reviews,
+      years: c.years,
+    }),
+  );
 };

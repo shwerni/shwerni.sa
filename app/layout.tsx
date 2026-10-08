@@ -11,6 +11,9 @@ import NextTopLoader from "nextjs-toploader";
 // nuqs
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 
+// real-user performance (vercel speed insights)
+import { SpeedInsights } from "@vercel/speed-insights/next";
+
 // components
 import { Toaster } from "@/components/ui/sonner";
 
@@ -78,6 +81,8 @@ export default async function RootLayout({
         </main>
         {/* toast */}
         <Toaster richColors expand={true} />
+        {/* real-user web vitals */}
+        <SpeedInsights />
         {/* google ads mangaer: gtm.js loads after the page load (or on the first early click) */}
         <Script id="gtm-load" strategy="lazyOnload">
           {GTM_LOAD}

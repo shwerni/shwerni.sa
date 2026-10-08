@@ -38,7 +38,16 @@ import {
 import { mainRoute } from "@/constants/links";
 
 // icons
-import { BookOpen, Calendar1, ExternalLink, Eye, Newspaper, PenTool } from "lucide-react";
+import { ExternalLink, Newspaper, PenTool } from "lucide-react";
+// header icons: plain server svgs (above the fold, nothing to hydrate)
+import { serverIcon } from "@/components/shared/server-icon";
+import { __iconNode as bookOpenNode } from "lucide-react/dist/esm/icons/book-open.mjs";
+import { __iconNode as calendar1Node } from "lucide-react/dist/esm/icons/calendar-1.mjs";
+import { __iconNode as eyeNode } from "lucide-react/dist/esm/icons/eye.mjs";
+
+const BookOpen = serverIcon("book-open", bookOpenNode);
+const Calendar1 = serverIcon("calendar-1", calendar1Node);
+const Eye = serverIcon("eye", eyeNode);
 
 type ArtilceType = ArticlePrisma & {
   // types

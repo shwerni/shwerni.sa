@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { cacheLife } from "next/cache";
 
 // components
+import RequestTime from "@/components/shared/request-time";
 import Articles from "@/components/clients/articles/list";
 import Navigation from "@/components/clients/articles/navigation";
 import CardSkeleton from "@/components/clients/shared/card-skeleton";
@@ -86,9 +87,12 @@ export default async function Page({ searchParams }: Props) {
       <div className="md:grid grid-cols-5 space-y-5 pb-5">
         {/* side filters */}
         <Filter>
-          {/* the filters read the url (request data): they stream in, the frame stays in the shell */}
+          {/* the filters read the url (request data): rendered at request time, the frame stays
+              in the shell */}
           <Suspense fallback={null}>
-            <FilterContent specialties={specialtiesList} />
+            <RequestTime searchParams={searchParams}>
+              <FilterContent specialties={specialtiesList} />
+            </RequestTime>
           </Suspense>
         </Filter>
 

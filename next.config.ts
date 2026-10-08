@@ -64,9 +64,9 @@ const nextConfig: NextConfig = {
     ];
   },
   experimental: {
-    // the css is inlined in the html: no render-blocking stylesheet requests on the first load.
-    // (the old critters option only works in the pages router, so it's gone)
-    inlineCss: true,
+    // no inlineCss: next 16 embeds the stylesheet twice (a <style> and the rsc payload), +30 KB
+    // brotli per page for no lighthouse gain. no optimizeCss either: critters only works in the
+    // pages router
     // viewTransition: true,
     useLightningcss: true,
   },

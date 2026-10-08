@@ -2794,3 +2794,49 @@ Code committed by Ziad as `2605dd6` (pushed). This entry records the verificatio
 - inlineCss: revert? (+30 KB brotli per page, no lighthouse gain, slightly worse LCP)
 - Meta `Lead` never fires.
 - Lighthouse/PageSpeed hold on production: unexplained; real-user data (vercel speed insights / CrUX) is the better measure.
+
+## 2026-10-08 · Performance phase 3 (css, props, list pages, icons, speed insights)
+
+**Changes**
+
+- **`inlineCss` reverted;** `critters` and `@next/third-parties` uninstalled; `@vercel/speed-insights` installed and `<SpeedInsights />` added to the root layout.
+- **Css audit (read-only, no change):**
+  - the main stylesheet is 180 KB raw / 22.7 KB brotli, almost all tailwind utilities
+  - library css: `@smastrom/react-rating` 5 KB, keyframes under 1 KB
+  - scanning `docs/` adds 36 bytes
+  - only the dashboards and legacy components use about 7.7 KB
+  - unused shadcn files (never imported): `slider` (1.2 KB of css), `hover-card`, `tooltip`
+- **Home props:** the consultants carousel gets only the card's fields (`HomeConsultantCard`; the query keeps every field for the mobile api; `cost30` stays as the "starting from" price), and reviews get name, comment, rate and date (`ReviewCardData`).
+- **List pages** (consultants, packages, programs, event, questions, scales, instant):
+  - **Removed:** the route `loading.tsx`.
+  - **Static header** in the prerendered shell.
+  - **Results:** the search params are read in a results component inside `<Suspense>`, the `/articles` pattern.
+  - **Url-reading client parts** (nuqs filters, search, the questions list) render at request time through `components/shared/request-time.tsx`, so the server renders them, not only the browser after hydration.
+  - **Cached queries:** scales list (`"scales"` tag) and questions (`"questions"` tag).
+  - **Instant:** the title is static and the form streams in.
+- **Detail pages** (`consultants/[cid]`, `programs/[prid]`, `programs/reserve`, `scales/[slug]`, `scales/orders`, `scales/results`, `questions/[qid]`): `loading.tsx` uses `components/shared/page-skeleton.tsx` (a light skeleton below the header) instead of the full-screen spinner.
+- **Icons above the fold** (hero arrow, categories, article header) are plain server svgs (`components/shared/server-icon.tsx`, lucide's own icon data and class helpers). The markup is byte-identical to lucide-react's.
+
+**Verified** (clean build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`)
+
+- All list and detail routes are partial prerenders.
+- **Server-rendered** in the html: filter labels, 9 consultant cards, 10 question links, 12 package cards, 12 scale links.
+- **Duplicate ids:** none on 14 changed pages.
+- **Hydration:** 0 react #519 and flat idle cpu on `/` and `/articles/96` (12 loads each) and the 7 list pages (3 each).
+  - The only console error is the speed insights script 404 on local `next start`: it exists only on vercel, and production serves it.
+- **Conversions:** whatsapp, `/success` link and `SPay-btn`, early, late and with a slow gtm, all fire (ads, tiktok, GA4).
+- **Payload on `/`:** consultants 8.0 → 6.4 KB, reviews 4.0 → 1.2 KB, html 305 KB (898 KB with inlineCss).
+- **Mobile lighthouse, median of 3** (local tbt is noisy: the server shares the cpu):
+
+  | page | production (phase 2) | local (phase 3) |
+  |---|---|---|
+  | `/` | 41, LCP 6.5s | 51, LCP 5.3s |
+  | `/articles/96` | 56, LCP 4.8s | 54, LCP 4.9s |
+  | `/consultants` | 57, LCP 5.8s | 56, LCP 4.9s |
+
+- **Lighthouse first-paint hold** on production (about 2.5s observed) is unchanged.
+
+**Open questions**
+
+- Delete the unused shadcn files (`slider`, `hover-card`, `tooltip`)?
+- The dashboard should call `/api/revalidate` with the `scales` / `questions` tags when it edits them (cached for hours until then).

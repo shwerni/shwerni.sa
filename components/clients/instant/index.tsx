@@ -1,5 +1,5 @@
 // React & Next
-import React from "react";
+import React, { Suspense } from "react";
 
 // lib
 import { userServer } from "@/lib/auth/server";
@@ -9,14 +9,11 @@ import { getFinanceConfig } from "@/data/admin/settings/finance";
 
 // components
 import InstantReservationForm from "./reservation/form";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const Instant: React.FC = async () => {
-  // user
-  const user = await userServer();
-
-  // get finance
-  const finance = await getFinanceConfig();
-
+// the title is static (prerendered); the form needs the session and the finance settings, so it
+// streams in its own suspense boundary
+const Instant: React.FC = () => {
   return (
     <div className="max-w-3xl space-y-5 mx-auto my-10" dir="rtl">
       {/* instant title */}
@@ -34,9 +31,22 @@ const Instant: React.FC = async () => {
         </p>
       </div>
       {/* instant content */}
-      <InstantReservationForm user={user} finance={finance} />
+      <Suspense fallback={<Skeleton className="h-96 w-11/12 max-w-3xl mx-auto" />}>
+        <InstantForm />
+      </Suspense>
     </div>
   );
 };
 
 export default Instant;
+
+// the reservation form with the visitor's session and the finance settings
+async function InstantForm() {
+  // user
+  const user = await userServer();
+
+  // get finance
+  const finance = await getFinanceConfig();
+
+  return <InstantReservationForm user={user} finance={finance} />;
+}

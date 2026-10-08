@@ -21,11 +21,11 @@ import { useAutoplayWhileVisible } from "@/hooks/use-autoplay-while-visible";
 import { cn } from "@/utils/utils";
 
 // prisma types
-import { Review } from "@/lib/generated/prisma/client";
+import type { ReviewCardData } from "@/components/clients/shared/review-card";
 
 // props
 interface Props {
-  reviews: Review[];
+  reviews: ReviewCardData[];
 }
 
 const ReviewsCarousel = ({ reviews }: Props) => {

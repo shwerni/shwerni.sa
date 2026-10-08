@@ -6,6 +6,8 @@ import type { Metadata } from "next";
 import { packagesCache } from "@/lib/nuqs/packages";
 
 // components
+import RequestTime from "@/components/shared/request-time";
+import { Skeleton } from "@/components/ui/skeleton";
 import CardSkeleton from "@/components/clients/shared/card-skeleton";
 import { PackagesEmpty } from "@/components/clients/packages/empty";
 import { PackageCard } from "@/components/clients/packages/package-card";
@@ -75,7 +77,6 @@ interface Props {
 }
 
 export default async function Page({ searchParams }: Props) {
-  const { view, ...filters } = await packagesCache.parse(searchParams);
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-5 py-10 space-y-8">
@@ -87,23 +88,39 @@ export default async function Page({ searchParams }: Props) {
         </p>
       </div>
 
-      {/* filters */}
-      <PackagesFilters />
+      {/* filters: they read the url (request data), so they stream in; the placeholder keeps
+          their height */}
+      <Suspense fallback={<Skeleton className="h-36 w-full" />}>
+        <RequestTime searchParams={searchParams}>
+          <PackagesFilters />
+        </RequestTime>
+      </Suspense>
 
-      {/* results: re-suspends on every filter change */}
-      <Suspense
-        key={JSON.stringify({ view, ...filters })}
-        fallback={
-          <CardSkeleton
-            count={6}
-            CardClassName="w-full"
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-          />
-        }
-      >
-        <PackagesList view={view} filters={filters} />
+      {/* results: the search params are read inside suspense, so the header stays in the
+          prerendered shell; re-suspends on every filter change */}
+      <Suspense fallback={listSkeleton}>
+        <PackagesResults searchParams={searchParams} />
       </Suspense>
     </div>
+  );
+}
+
+// list skeleton, shown on the first load and on every filter change
+const listSkeleton = (
+  <CardSkeleton
+    count={6}
+    CardClassName="w-full"
+    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+  />
+);
+
+async function PackagesResults({ searchParams }: Props) {
+  const { view, ...filters } = await packagesCache.parse(searchParams);
+
+  return (
+    <Suspense key={JSON.stringify({ view, ...filters })} fallback={listSkeleton}>
+      <PackagesList view={view} filters={filters} />
+    </Suspense>
   );
 }
 

@@ -52,6 +52,10 @@ export type ConsultantCard = Pick<
   years: number;
 };
 
+// the consultant card on the home page: only what the card shows (the full ConsultantCard also
+// feeds the mobile api, so the query keeps every field)
+export type HomeConsultantCard = Omit<ConsultantCard, "title" | "created_at">;
+
 // consultant's coupon card
 export type CouponConsultant = Coupon & {
   consultant: Pick<

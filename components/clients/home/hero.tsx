@@ -5,8 +5,11 @@ import Image, { getImageProps } from "next/image";
 import { IconLabel } from "@/components/shared/icon-label";
 import { LinkButton } from "@/components/shared/link-button";
 
-// icons
-import { ArrowLeft } from "lucide-react";
+// icons: plain server svgs (above the fold, nothing to hydrate)
+import { serverIcon } from "@/components/shared/server-icon";
+import { __iconNode as arrowLeftNode } from "lucide-react/dist/esm/icons/arrow-left.mjs";
+
+const ArrowLeft = serverIcon("arrow-left", arrowLeftNode);
 
 // one art-directed <picture>: each screen size downloads only its own background
 // (two <Image>s hidden by css both downloaded, the hidden one included)

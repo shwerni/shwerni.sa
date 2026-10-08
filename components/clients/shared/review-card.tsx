@@ -21,9 +21,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+// what the card shows (callers can pass a full review)
+export type ReviewCardData = Pick<Review, "name" | "comment" | "rate" | "created_at">;
+
 // props
 interface Props {
-  review: Review;
+  review: ReviewCardData;
   className?: string;
 }
 

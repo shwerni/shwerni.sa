@@ -47,6 +47,12 @@ const getReviews = async () => {
   "use cache";
   cacheLife("hours");
 
-  // reviews
-  return await getReviewsForHome();
+  // only the fields the review card shows travel to the client carousel
+  const reviews = await getReviewsForHome();
+  return reviews?.map((r) => ({
+    name: r.name,
+    comment: r.comment,
+    rate: r.rate,
+    created_at: r.created_at,
+  }));
 };

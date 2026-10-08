@@ -16,7 +16,7 @@ import ConsultantImage from "@/components/clients/shared/consultant-image";
 import ConsultantSpecialties from "@/components/clients/shared/consultant-specialties";
 
 // types
-import { ConsultantCard as ConsultantCardType } from "@/types/layout";
+import { HomeConsultantCard as ConsultantCardType } from "@/types/layout";
 import CurrencyLabel from "./currency-label";
 import { cn } from "@/utils/utils";
 

@@ -9,8 +9,19 @@ import Card from "@/components/clients/shared/card";
 import Title from "@/components/clients/shared/titles";
 import Section from "@/components/clients/shared/section";
 
-// icons
-import { Award, Brain, Goal, Scale, Users } from "lucide-react";
+// icons: plain server svgs (above the fold, nothing to hydrate)
+import { serverIcon } from "@/components/shared/server-icon";
+import { __iconNode as awardNode } from "lucide-react/dist/esm/icons/award.mjs";
+import { __iconNode as brainNode } from "lucide-react/dist/esm/icons/brain.mjs";
+import { __iconNode as goalNode } from "lucide-react/dist/esm/icons/goal.mjs";
+import { __iconNode as scaleNode } from "lucide-react/dist/esm/icons/scale.mjs";
+import { __iconNode as usersNode } from "lucide-react/dist/esm/icons/users.mjs";
+
+const Award = serverIcon("award", awardNode);
+const Brain = serverIcon("brain", brainNode);
+const Goal = serverIcon("goal", goalNode);
+const Scale = serverIcon("scale", scaleNode);
+const Users = serverIcon("users", usersNode);
 
 // prisma data
 import { getActiveCampaignFor } from "@/data/event";

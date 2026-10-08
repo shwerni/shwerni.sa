@@ -1,13 +1,23 @@
 import { getAllScales } from "@/data/scales";
 import type { Metadata } from "next";
+import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
 import { scalesListMetadata } from "./metadata";
 import { getScaleVisuals } from "./scale-visuals";
 
 export const metadata: Metadata = scalesListMetadata;
 
+// cached, so the whole page is prerendered (no loading boundary needed). the dashboard can
+// refresh it through /api/revalidate with the "scales" tag
+async function getCachedScales() {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("scales");
+  return getAllScales();
+}
+
 export default async function MaqayesPage() {
-  const scales = await getAllScales();
+  const scales = await getCachedScales();
   const visuals = getScaleVisuals(scales);
 
   return (

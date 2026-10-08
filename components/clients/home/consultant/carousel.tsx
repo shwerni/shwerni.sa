@@ -19,7 +19,7 @@ import ConsultantCard from "@/components/clients/shared/consultant-card";
 import { useAutoplayWhileVisible } from "@/hooks/use-autoplay-while-visible";
 
 // types
-import { ConsultantCard as ConsultantCardType } from "@/types/layout";
+import { HomeConsultantCard as ConsultantCardType } from "@/types/layout";
 
 // props
 interface Props {

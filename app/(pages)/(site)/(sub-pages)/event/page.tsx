@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import React, { Suspense } from "react";
 
 // components
+import RequestTime from "@/components/shared/request-time";
 import Filter, {
   FilterContent,
 } from "@/components/clients//sub-pages/event/discounts/filter";
@@ -102,8 +103,6 @@ interface Props {
 }
 
 export default async function Page({ searchParams }: Props) {
-  const { search = "", page = "1", categories, gender } = await searchParams;
-
   const campaign = await getCampaignFor("EVENT_PAGE");
 
   // nothing active → styled empty state from the campaign, or defaults
@@ -116,33 +115,56 @@ export default async function Page({ searchParams }: Props) {
 
       <div className="md:grid grid-cols-5 space-y-5 pb-5">
         <Filter>
-          <FilterContent />
+          {/* the filters read the url (request data): rendered at request time, the frame stays
+              in the shell */}
+          <Suspense fallback={null}>
+            <RequestTime searchParams={searchParams}>
+              <FilterContent />
+            </RequestTime>
+          </Suspense>
         </Filter>
 
         <div className="col-span-4">
-          <Suspense
-            key={`${search}-${page}-${gender}-${categories}`}
-            fallback={
-              <CardSkeleton
-                count={9}
-                CardClassName="h-64 w-44"
-                className="..."
-              />
-            }
-          >
-            <ConsultantsList
-              did={campaign.discountId}
-              search={search}
-              page={page}
-              categories={categories}
-              gender={gender}
-            />
+          {/* the search params are request data: read inside suspense, so the header and
+              filters stay in the prerendered shell */}
+          <Suspense fallback={listSkeleton}>
+            <ConsultantsResults did={campaign.discountId} searchParams={searchParams} />
           </Suspense>
         </div>
       </div>
     </div>
   );
 }
+
+// list skeleton, shown on the first load and on every search, filter or page change
+const listSkeleton = (
+  <CardSkeleton count={9} CardClassName="h-64 w-44" className="..." />
+);
+
+const ConsultantsResults = async ({
+  did,
+  searchParams,
+}: {
+  did: number;
+  searchParams: Props["searchParams"];
+}) => {
+  const { search = "", page = "1", categories, gender } = await searchParams;
+
+  return (
+    <Suspense
+      key={`${search}-${page}-${gender}-${categories}`}
+      fallback={listSkeleton}
+    >
+      <ConsultantsList
+        did={did}
+        search={search}
+        page={page}
+        categories={categories}
+        gender={gender}
+      />
+    </Suspense>
+  );
+};
 
 const ConsultantsList = async ({
   did,
