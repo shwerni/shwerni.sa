@@ -26,12 +26,12 @@ export const scalesListMetadata: Metadata = {
     "شاورني",
   ],
   alternates: {
-    canonical: `${siteUrl}مقاييس`,
-    languages: { "ar-SA": `${siteUrl}مقاييس` },
+    canonical: `${siteUrl}scales`,
+    languages: { "ar-SA": `${siteUrl}scales` },
   },
   openGraph: {
     type: "website",
-    url: `${siteUrl}مقاييس`,
+    url: `${siteUrl}scales`,
     siteName,
     locale: "ar_SA",
     title: `المقاييس النفسية والأسرية | ${siteName}`,
@@ -71,7 +71,8 @@ export function buildScaleMetadata({
     description?.slice(0, 155) ??
     `${title} — اجب على الأسئلة واكتشف نتيجتك مجاناً على منصة شاورني.`;
 
-  const pageUrl = `${siteUrl}مقاييس/${slug}`;
+  // the real route (the old /مقاييس paths don't exist and answered 404)
+  const pageUrl = `${siteUrl}scales/${slug}`;
 
   return {
     metadataBase: new URL(siteUrl),

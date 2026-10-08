@@ -138,7 +138,7 @@ const botActions: Record<
     if (!consultant) return "ما لقيت بياناتك حالياً ⚙️";
 
     const genderLabel = consultant.gender === "MALE" ? "المستشار" : "المستشارة";
-    const link = `https://shwerni.sa/consultant/${consultant.cid}`;
+    const link = `https://www.shwerni.sa/consultants/${consultant.cid}`;
 
     // FIX: Cleaned up the template literal formatting for better readability
     return `${genderLabel} ${consultant.name}\nرقم المستشار: #${consultant.cid}\n🔗 رابط الملف:\n ${link}\n\n📁 حالة اعتماد الملف:\n ${findApprovalState(consultant.approved)?.label}\n\n⚙️ حالة الحساب:\n ${findConsultantState(consultant.statusA)?.label}`;

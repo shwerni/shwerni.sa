@@ -89,7 +89,7 @@ export default function QuestionContent({ question }: Props) {
           {/* Consultant Info */}
           <div className="flex flex-wrap items-center justify-between gap-4 mb-5 pb-5 border-b border-gray-200">
             <Link
-              href={`/consultant/${question.consultantId}`}
+              href={`/consultants/${question.consultantId}`}
               className="group flex items-center gap-3 transition-opacity hover:opacity-80"
             >
               <div className="flex items-center justify-center w-12 h-12 bg-white border border-gray-200 text-zblue-200 rounded-full font-bold shadow-sm group-hover:border-zblue-200 transition-colors">

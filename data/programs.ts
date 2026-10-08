@@ -354,7 +354,7 @@ export async function createNewProgram(data: z.infer<typeof ProgramSchema>) {
         features: data.features,
         status: ProgramState.HOLD,
         image:
-          "https://shwerni.sa/_next/image?url=%2Flayout%2Fshwerni.jpg&w=256&q=75",
+          "https://www.shwerni.sa/_next/image?url=%2Flayout%2Fshwerni.jpg&w=256&q=75",
         rate: null,
       },
     });

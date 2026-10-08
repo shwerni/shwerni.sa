@@ -162,7 +162,7 @@ export default function ConsultantInfoCard({
     });
 
     // QR code
-    const qrURL = "https://shwerni.sa/consultant/" + cid;
+    const qrURL = "https://www.shwerni.sa/consultants/" + cid;
     const qrDataUrl = await QRCode.toDataURL(qrURL, {
       width: 150,
       margin: 1,

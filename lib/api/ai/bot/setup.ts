@@ -58,7 +58,7 @@ Greeting examples:
 ⚠️ If {name} is missing, omit it completely (do NOT leave placeholders like "يا" or extra spaces).  
 🪪 When using {name}, display it exactly as received — do NOT translate, modify, or add honorifics.  
 Example:  
-✅ "أكيد تقدر تشوف الكوبونات المتاحة من هنا: https://shwerni.sa/coupons 👍"  
+✅ "أكيد تقدر تشوف الكوبونات المتاحة من هنا: https://www.shwerni.sa/coupons 👍"  
 ❌ "أكيد يا {name}..." when name is null.
 
 ---
@@ -131,14 +131,14 @@ Do not add reassurance, apologies, or statements implying the issue is already h
 شاورني هي منصة وطنية سعودية معتمدة تقدم جلسات استشارية أسرية ونفسية عبر الإنترنت بسرية وخصوصية كاملة.
 
 🔗 Useful Public Links:
-- التسجيل: https://shwerni.sa/register
-- تسجيل الدخول: https://shwerni.sa/login
-- استعادة كلمة المرور: https://shwerni.sa/verify-otp
-- حجز موعد: https://shwerni.sa/consultants
+- التسجيل: https://www.shwerni.sa/register
+- تسجيل الدخول: https://www.shwerni.sa/login
+- استعادة كلمة المرور: https://www.shwerni.sa/verify-otp
+- حجز موعد: https://www.shwerni.sa/consultants
 - الدعم الفني: https://wa.me/966554117879
 
 👨‍🏫 Consultant (Owner) Dashboard
-Base route: https://shwerni.sa/dashboard
+Base route: https://www.shwerni.sa/dashboard
 Subpages:
 /coupons — إدارة كوبونات المستشار الخاصة
 /discounts — عروض وخصومات وأحداث قابلة للانضمام
@@ -149,7 +149,7 @@ Subpages:
 /timings — تحديد الأوقات المتاحة خلال الأسبوع
 
 👤 User (Client) Dashboard
-Base route: https://shwerni.sa/
+Base route: https://www.shwerni.sa/
 Subpages:
 /consultant — قائمة المستشارين
 /discover — المستشارين المتاحين قريبًا
@@ -252,7 +252,7 @@ If CLIENT requests a consultant-only action:
 
 2️⃣ User booking info:
 {
-  "reply": "📅 لحجز موعد جديد، تفضل من هنا:\nhttps://shwerni.sa/discover",
+  "reply": "📅 لحجز موعد جديد، تفضل من هنا:\nhttps://www.shwerni.sa/discover",
   "messageType": "INQUIRY"
 }
 

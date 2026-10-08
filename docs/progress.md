@@ -2660,3 +2660,36 @@ Spec: `CENTERS_SPEC.md` §11, §13, §16, §19. Decisions: order detail shows th
 
 - In the default "recommended" package view, one consultant's 2 or 3 packages sit next to each other (sorted by `sort_key`, then count). The consultant view avoids this. Should the default view interleave them instead?
 - The savings line compares 45-minute package sessions with the 30-minute price. It's kept on purpose so both pages match.
+
+## 2026-10-08 · SEO cleanup (collaboration urls, real 404s, scales canonical, links)
+
+**Changes**
+
+- `proxy.ts`:
+  - **`collaboration` cleanup:** an empty, `undefined` or `null` `collaboration` param gets a 301 to the same url without it; other params are kept.
+  - **Real 404s:** a missing or hidden `/articles/<id>`, `/consultants/<id>`, `/programs/<id>` or `/scales/<slug>` is rewritten to an unmatched path, so it answers a real 404 (`app/not-found.tsx`). Before, the page's `notFound()` ran after the prerendered shell had streamed, which only adds `noindex` to a 200.
+    - The checks are in `data/seo.ts` (`publicDetailExists`) and mirror each page's `notFound()` rule.
+    - They're cached per instance: found for 5 minutes, missing for 1 minute.
+    - A database error lets the request through to the page.
+- `data/seo.ts`: the articles sitemap uses the page's rule (it excludes articles by center consultants).
+- Scales metadata: the canonical and `og:url` pointed to `/مقاييس` and `/مقاييس/<slug>`, which don't exist (404). They now point to `/scales` and `/scales/<slug>`.
+- Links to `https://www.shwerni.sa/consultants/…`: the question page (`/consultant/` → `/consultants/`), the AI bot's profile link, the consultant QR card, the bot prompt (8 non-www links → www), and the default program image url.
+
+**Not changed (no code builds them now)**
+
+- `?collaboration=undefined` came from the old `/consultant/[cid]` page's `permanentRedirect(\`/consultants/${cid}?collaboration=${collaboration}\`)`, removed in `c4b4953`. The dashboard builds the param only when a collaboration exists.
+
+**Verified**
+
+- `npx tsc --noEmit` passes. `npm run build` on a clean `.next` passes (with phase 1 merged).
+- The manifest check prints only `"data/event.ts"` and `"lib/api/google.ts"`.
+- `next start`:
+  - **`collaboration`:** `=undefined`, `=` and `=null&x=1` give a 301 (keeping `x`); `=abc` gives 200.
+  - **Real 404s:** missing article, consultant, program and scale, plus `/articles/abc` and `/articles/%E0`, all give 404. The existing ones give 200.
+  - **Canonicals:** `/scales` and `/scales/gad-7` are clean.
+- Sitemaps: 612 urls (static 8, consultants 319, articles 278, programs 7). All are www, with no query and no `/consultant/`, and all answer 200, indexable, with canonical equal to the url. The only flag is the home page (`/` versus a canonical without the slash, which is the same url).
+
+**Open questions**
+
+- Scales (`/scales` and 12 scale pages) are indexable but not in any sitemap.
+- `robots.txt` doesn't block the private routes (`/dashboard`, `/center`, `/account`, `/orders`, `/favorite`, `/meetings`, `/chats`, `/reschedule`, `/payment`, auth pages). Four of its rules (`/zadmin`, `/employees`, `/brief`, `/collaborator`) match no route here.
