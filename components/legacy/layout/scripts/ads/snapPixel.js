@@ -4,7 +4,7 @@ import Script from "next/script";
 // snap pixel
 export default function SnapPixel() {
   return (
-    <Script id="snap-pixel" strategy="afterInteractive">
+    <Script id="snap-pixel" strategy="lazyOnload">
       {`(function(e,t,n){if(e.snaptr)return;var a=e.snaptr=function()
       {a.handleRequest?a.handleRequest.apply(a,arguments):a.queue.push(arguments)};
       a.queue=[];var s='script';r=t.createElement(s);r.async=!0;

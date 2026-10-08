@@ -6,7 +6,6 @@ import { Suspense } from "react";
 import ScalesCta from "./scales";
 import { Button } from "@/components/ui/button";
 import Card from "@/components/clients/shared/card";
-import DivMotion from "@/components/shared/div-motion";
 import Title from "@/components/clients/shared/titles";
 import Section from "@/components/clients/shared/section";
 
@@ -93,8 +92,8 @@ const Categories = () => {
       {/* cards */}
       {/* handle better instead of just hide */}
       <div className="hidden md:block space-y-5">
-        {/* 1st group */}
-        <DivMotion className="grid grid-cols-1 sm:grid-cols-5 gap-5 mx-5 :mx-3">
+        {/* 1st group: above the fold, so a css fade that starts at first paint */}
+        <div className="grid grid-cols-1 sm:grid-cols-5 gap-5 mx-5 :mx-3 animate-fade-in-up">
           <div className="sm:col-span-3">
             <Card
               href={url(CategoriesType.PSYCHIC)}
@@ -110,9 +109,9 @@ const Categories = () => {
           <div className="hidden sm:block sm:col-span-2">
             <Card src="/layout/categories-1.png" priority={false} />
           </div>
-        </DivMotion>
+        </div>
         {/* 2st group */}
-        <DivMotion className="grid grid-cols-1 sm:grid-cols-3 gap-5 mx-5 :mx-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mx-5 :mx-3 animate-fade-in-up [animation-delay:100ms]">
           <Card
             href={url(CategoriesType.FAMILY)}
             title="استشارات أسرية"
@@ -154,7 +153,7 @@ const Categories = () => {
               </Button>
             }
           />
-        </DivMotion>
+        </div>
         {/* scales */}
         <ScalesCta />
       </div>

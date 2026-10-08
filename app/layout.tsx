@@ -2,8 +2,8 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Arabic } from "next/font/google";
 
-// google analytic
-import { GoogleTagManager } from "@next/third-parties/google";
+// google tag manager: lazy, with early clicks queued for it (scripts/ads/gtm.ts)
+import Script from "next/script";
 
 // top loader
 import NextTopLoader from "nextjs-toploader";
@@ -18,6 +18,7 @@ import { Toaster } from "@/components/ui/sonner";
 import MetaPixel from "@/components/legacy/layout/scripts/ads/metaPixel";
 import SnapPixel from "@/components/legacy/layout/scripts/ads/snapPixel";
 import TwitterPixel from "@/components/legacy/layout/scripts/ads/twitterPixel";
+import { GTM_LOAD, GTM_QUEUE } from "@/components/legacy/layout/scripts/ads/gtm";
 
 // css
 import "@/app/globals.css";
@@ -59,6 +60,11 @@ export default async function RootLayout({
       data-color-scheme="light"
       className="light"
     >
+      {/* the gtm click queue: a plain inline script, so it runs while the html is parsed, before
+          any click is possible (next's beforeInteractive only runs once next's own js has loaded) */}
+      <head>
+        <script id="gtm-queue" dangerouslySetInnerHTML={{ __html: GTM_QUEUE }} />
+      </head>
       {/* main app */}
       <body className={font.className}>
         <main className="max-w-437.5 mx-auto">
@@ -72,8 +78,10 @@ export default async function RootLayout({
         </main>
         {/* toast */}
         <Toaster richColors expand={true} />
-        {/* google ads mangaer */}
-        <GoogleTagManager gtmId="GTM-5TGBGMNN" />
+        {/* google ads mangaer: gtm.js loads after the page load (or on the first early click) */}
+        <Script id="gtm-load" strategy="lazyOnload">
+          {GTM_LOAD}
+        </Script>
       </body>
       {/* meta pixel ads */}
       <MetaPixel />

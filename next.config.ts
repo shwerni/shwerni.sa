@@ -37,28 +37,6 @@ function checkBotIdPrefix() {
 const nextConfig: NextConfig = {
   async redirects() {
     return [
-      // the bare domain, in one hop to the final url (old /consultant/<cid> straight to
-      // www + /consultants/<cid>). these only run once the vercel domain settings serve
-      // shwerni.sa from this project; while vercel redirects it to www itself, they never match
-      {
-        source: "/consultant/:path*",
-        has: [{ type: "host", value: "shwerni.sa" }],
-        destination: "https://www.shwerni.sa/consultants/:path*",
-        permanent: true,
-      },
-      {
-        source: "/consultant",
-        has: [{ type: "host", value: "shwerni.sa" }],
-        destination: "https://www.shwerni.sa/consultants",
-        permanent: true,
-      },
-      {
-        source: "/:path*",
-        has: [{ type: "host", value: "shwerni.sa" }],
-        destination: "https://www.shwerni.sa/:path*",
-        permanent: true,
-      },
-
       { source: "/available", destination: "/discover", permanent: true },
       { source: "/privacy", destination: "/terms", permanent: true },
 
@@ -86,7 +64,9 @@ const nextConfig: NextConfig = {
     ];
   },
   experimental: {
-    optimizeCss: true,
+    // the css is inlined in the html: no render-blocking stylesheet requests on the first load.
+    // (the old critters option only works in the pages router, so it's gone)
+    inlineCss: true,
     // viewTransition: true,
     useLightningcss: true,
   },
