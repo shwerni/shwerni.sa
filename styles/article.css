@@ -167,3 +167,26 @@
   margin-bottom: 0.5rem;
   font-weight: 400;
 }
+/* article faq: the open card's height animates (css only, a progressive enhancement: browsers
+   without ::details-content or interpolate-size simply open instantly) */
+.article-faq {
+  interpolate-size: allow-keywords;
+}
+
+.article-faq::details-content {
+  block-size: 0;
+  overflow: hidden;
+  transition:
+    block-size 0.25s ease,
+    content-visibility 0.25s allow-discrete;
+}
+
+.article-faq[open]::details-content {
+  block-size: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .article-faq::details-content {
+    transition: none;
+  }
+}
