@@ -6,7 +6,7 @@ import { PaymentMethod } from "@/lib/generated/prisma/enums";
 import { getExtractSettings, getSettingsByCategory } from "./settings";
 
 // constants
-import { defaultFinance } from "@/constants/admin";
+import { defaultFinance, defaultPleadingCommission } from "@/constants/admin";
 
 // types
 type Finance = { tax: number | null; commission: number | null };
@@ -75,5 +75,24 @@ export const getFinanceConfig = async (): Promise<FinanceConfig> => {
     };
   } catch {
     return defaultFinance;
+  }
+};
+
+// pleading orders: the consultant's share (finance/pleadingCommission, same meaning as
+// finance/commission). it wins over the consultant's own rate; a missing or invalid value
+// falls back to the default (80, the platform takes 20%)
+export const getPleadingCommission = async (): Promise<number> => {
+  try {
+    const finance = await getExtractSettings<{ pleadingCommission?: number }>(
+      "finance",
+      ["pleadingCommission"],
+    );
+
+    const value = Number(finance?.pleadingCommission);
+    return Number.isInteger(value) && value > 0 && value <= 100
+      ? value
+      : defaultPleadingCommission;
+  } catch {
+    return defaultPleadingCommission;
   }
 };

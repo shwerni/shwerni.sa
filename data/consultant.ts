@@ -695,3 +695,69 @@ export const getBankAccountByAuthor = async (author: string) => {
     return null;
   }
 };
+
+// pleading page: public LAW consultants who opted in to pleading requests, same card data as
+// the home list, in the directory's default order
+export const getPleadingConsultants = async () => {
+  try {
+    return await prisma.$queryRaw<ConsultantCard[]>`
+      SELECT
+        c.cid,
+        c.name,
+        c.title,
+        c.image,
+        c.category,
+        c.rate,
+        c.gender,
+        c.created_at,
+        c."cost30",
+
+        (
+          SELECT COUNT(*)::int
+          FROM "reviews" r
+          WHERE
+            r."consultantId" = c.cid
+            AND r.status = ${ReviewState.PUBLISHED}::"ReviewState"
+        ) AS reviews,
+        GREATEST(
+          DATE_PART('year', AGE(NOW(), c.seniority))::int,
+          1
+        ) AS years,
+        COALESCE(
+          (
+            SELECT ARRAY_AGG(s.name)
+            FROM "consultant_specialties" cs
+            JOIN "specialties" s ON s.id = cs."specialtyId"
+            WHERE cs."consultantId" = c.cid
+          ),
+          ARRAY[]::text[]
+        ) AS specialties
+
+      FROM "consultants" c
+      WHERE
+        c.status = true
+        AND c."statusA" = ${ConsultantState.PUBLISHED}::"ConsultantState"
+        AND c.approved = ${ApprovalState.APPROVED}::"ApprovalState"
+        AND c."centerId" IS NULL
+        AND c.category = ${Categories.LAW}::"Categories"
+        AND c."pleadingEnabled" = true
+      ORDER BY c."sort_key" ASC;
+    `;
+  } catch {
+    return [];
+  }
+};
+
+// the consultant's pleading opt-in; only a LAW consultant can turn it on or off.
+// false when the consultant isn't LAW (or doesn't exist)
+export const setPleadingEnabled = async (cid: number, enabled: boolean) => {
+  try {
+    const { count } = await prisma.consultant.updateMany({
+      where: { cid, category: Categories.LAW },
+      data: { pleadingEnabled: enabled },
+    });
+    return count > 0;
+  } catch {
+    return false;
+  }
+};

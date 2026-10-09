@@ -2922,3 +2922,76 @@ The plan is `C:\Users\ABO ELMAGD\.claude\plans\tender-sprouting-hare.md` (rev 2 
 - **Insecure link encryption:** `utils/admin/encryption.ts` has a hardcoded AES key in client-safe utils. Logged only; not touched.
 - **No AI guard on reservation notes:** `reserveConsultant` and `reserveInstant` save the booking notes as the first chat message without `checkMessageWithAI`. Logged only; not changed (business logic).
 - **WhatsApp templates:** the 4 UTILITY templates (`pleading_new_request`, `pleading_request_received`, `pleading_quoted`, `pleading_chat_notify`) were handed to Ziad for Meta approval before phase 6.
+
+## 2026-10-09 · مرافعة phase 2 (data, actions, API)
+
+**New files**
+
+- **`lib/pleading-token.ts`:** `newClientToken()` (32 random bytes, base64url).
+- **`utils/pleading.ts`** (client-safe):
+  - the constants (60 min, 7 days, 5 files, price 100–100000)
+  - `pleadingStateLabels`, `pleadingErrors` (the arabic text for the new error codes)
+  - `isQuoteOpen`, `isPleadingChatOpen`, `pleadingQuoteMessage`
+  - the zod schemas, including the checkout schema for phase 5 (it has no price, coupon or discount fields)
+- **`data/pleading.ts`** (server-only):
+  - **Access:** `getPleadingAccess` (token → USER, owner session → OWNER), `getClientPleading`, `getPleadingForConsultant`, `listConsultantPleadings`, `getPleadingThread`, `getPleadingConsultant`, `getPleadingCheckout`.
+  - **Expiry:** `expireDuePleadings`.
+  - **The request:** `createPleadingDraft`, `finalizePleadingDraft`.
+  - **Chat:** `sendPleadingMessage`.
+  - **Decisions:** `quotePleading`, `declinePleading`, `cancelPleading`.
+  - **Payment:** `linkPaidPleading`, not called yet.
+- **`actions/pleading.ts`:**
+  - **Public, with `checkHuman`:** `requestPleading`, `finalizePleadingRequest`, `sendPleadingClientMessage`, `cancelPleading`.
+  - **OWNER:** `sendPleadingOwnerMessage`, `quotePleading`, `declinePleading`, `togglePleading`.
+- **`app/api/pleadings/[plid]/chat/route.ts`:** GET for polling the case chat.
+
+**Changed files**
+
+- **`data/consultant.ts`:** `getPleadingConsultants()` (the public rule + LAW + `pleadingEnabled`, card data in sort_key order) and `setPleadingEnabled(cid, enabled)` (LAW only).
+- **Commission:** `getPleadingCommission()` in `data/admin/settings/finance.ts` reads `finance/pleadingCommission`, the consultant's share; `constants/admin.ts` adds `defaultPleadingCommission = 80`. Nothing reads it yet (phase 5).
+- **`lib/notifications/site.ts`:** the 4 template functions.
+  - They're behind `PLEADING_WHATSAPP_ENABLED` (anything but "true" means off).
+  - While off, they log only the template name and the plid.
+- **`app/api/uploadthing/core.ts`:** the `pleadingAttachment` endpoint.
+  - Limits: image 8MB, pdf 16MB, 1 file per upload.
+  - Access: the token or the owner session.
+  - States: open cases, or the client's own DRAFT.
+  - Rate limit: 20 per case per hour.
+- **`routes.ts`:** `/api/pleadings` in the dynamic public routes, next to `/api/meetings`. Without it, the proxy redirected every call, the guest's included, to /login (307).
+
+**Rules**
+
+- **Expiry:**
+  - `expireDuePleadings` persists QUOTED → EXPIRED once `expiresAt` passes, and REQUESTED → EXPIRED 7 days after `requestedAt`. It sends no notification.
+  - It runs before every access and before the consultant's list, so a case nobody opened still lists as EXPIRED.
+  - A closed case refuses messages and uploads.
+- **Sender role** comes from the access path only. The consultant's access is `consultant.userId = session user` inside the query, and a DRAFT is never visible to the consultant.
+- **AI guard (`checkMessageWithAI`):**
+  - It runs on the brief, every chat message and the quote's reply text.
+  - The quote's price line ("عرض السعر: X ريال (قبل الضريبة)") is written by the server and isn't guarded, so the price digits can't trip the phone-number check.
+- **The client token:**
+  - It's never selected into a returned object and never sent to the consultant.
+  - It isn't in a rate-limit key (keys are stored and logged).
+  - Errors are logged as a function name plus a prisma code or error name only.
+  - The route takes it in the `x-pleading-token` header, so it stays out of request urls and logs.
+  - "Not found", "not yours", a malformed token and a token for another case all return the same 404.
+- **A running checkout** (linked order NEW and under 20 minutes) blocks re-quote, decline and cancel. A paid one blocks them too.
+- **Unchanged:** `createMeetingMessage` and every function in `data/chats.ts`. Nothing in `handlers/` or the payment code is touched.
+
+**Verified**
+
+- `tsc --noEmit`: 0 errors. eslint: no new warnings (3 old ones in files I only appended to).
+- A clean `npm run build`. The manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`. The pleading actions aren't in it yet because no client component imports them; that starts in phase 3.
+- **Local production smoke test against the database** (read-only, no rows created):
+  - `/api/pleadings/1/chat` returns 404 with no auth, a bad plid, a malformed token, or an unknown valid-shape token.
+  - `/api/meetings` behaves as before.
+  - `pleadingAttachment` with an unknown token returns Unauthorized.
+  - No column errors appeared, and the token is absent from the server log.
+- Not exercised yet: the full request → quote → chat flow. It needs the phase 3–4 UI and test rows.
+
+**Open questions**
+
+- Should a decline post a message in the chat or notify the client? For now: neither, and the chat just turns read-only.
+- The client can cancel from REQUESTED or QUOTED (the plan only named QUOTED).
+- Only NEW orders under 20 minutes count as a running checkout, per the rule. A PROCESSING or HOLD payment (tabby) doesn't block yet.
+- The page url `/pleading/q/<token>` still carries the token in Vercel's request logs, like `?participant=` does today. That's inherent to link-based identity.

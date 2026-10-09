@@ -67,6 +67,8 @@ export const DynamicpublicRoutes = [
   "/sitemap",
   // apis
   "/api/meetings",
+  // the case chat: guests poll it with their link token (the route checks access itself)
+  "/api/pleadings",
   "/api/whatsapp",
   "/api/uploadthing",
   "/api/cron",

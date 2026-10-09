@@ -325,3 +325,6 @@ export const defaultFinance: FinanceConfig = {
   payments: [],
   couponEnabled: false,
 };
+
+// pleading orders: the consultant's share (like commission), so the platform takes 20%
+export const defaultPleadingCommission = 80;

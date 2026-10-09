@@ -10,7 +10,7 @@ import {
 } from "@/lib/generated/prisma/client";
 
 // lib
-import { sendWhatsappTemplate } from "@/lib/api/whatsapp";
+import { sendWhatsappTemplate, type TemplateParams } from "@/lib/api/whatsapp";
 
 // utils
 import { meetingSentence, timeLabel } from "@/utils/date";
@@ -414,3 +414,77 @@ export const notificationNewChatMessage = async (
     url: [url],
   });
 };
+
+// ---------- pleading (مرافعة) ----------
+
+// the pleading templates wait for meta approval: until PLEADING_WHATSAPP_ENABLED is "true",
+// only the template name and the case number are logged (never the phone or the link token).
+// turning it on needs no code change
+const sendPleadingTemplate = (
+  template: string,
+  plid: number,
+  phone: string,
+  params: TemplateParams,
+) =>
+  notify(async () => {
+    if (process.env.PLEADING_WHATSAPP_ENABLED !== "true") {
+      console.log(`[pleading] whatsapp off template=${template} plid=${plid}`);
+      return;
+    }
+
+    await sendWhatsappTemplate(phone, template, params);
+  });
+
+// the consultant: a new case request, linking to the case in the dashboard
+export const notificationPleadingNewRequest = (
+  phone: string,
+  consultantName: string,
+  plid: number,
+  clientName: string,
+) =>
+  sendPleadingTemplate("pleading_new_request", plid, phone, {
+    text: [consultantName, plid, clientName],
+    url: [`dashboard/pleadings/${plid}`],
+  });
+
+// the client: the request was received, with their case link (a guest's only way back)
+export const notificationPleadingRequestReceived = (
+  phone: string,
+  clientName: string,
+  plid: number,
+  consultantName: string,
+  token: string,
+) =>
+  sendPleadingTemplate("pleading_request_received", plid, phone, {
+    text: [clientName, plid, consultantName],
+    url: [`pleading/q/${token}`],
+  });
+
+// the client: the consultant's reply and price (vat included) and when the quote expires
+export const notificationPleadingQuoted = (
+  phone: string,
+  clientName: string,
+  consultantName: string,
+  plid: number,
+  totalWithTax: number,
+  expiresOn: string,
+  token: string,
+) =>
+  sendPleadingTemplate("pleading_quoted", plid, phone, {
+    text: [clientName, consultantName, plid, totalWithTax, expiresOn],
+    url: [`pleading/q/${token}`],
+  });
+
+// either side: the first case chat message of the day from the other side. path is
+// "pleading/q/<token>" for the client or "dashboard/pleadings/<plid>" for the consultant
+export const notificationPleadingChatMessage = (
+  phone: string,
+  receiverName: string,
+  senderName: string,
+  plid: number,
+  path: string,
+) =>
+  sendPleadingTemplate("pleading_chat_notify", plid, phone, {
+    text: [receiverName, senderName, plid],
+    url: [path],
+  });
