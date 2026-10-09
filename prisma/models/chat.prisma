@@ -46,8 +46,10 @@ model OrderMessage {
   sender    UserRole
   createdAt DateTime @default(now())
 
-  orderId   Int
-  meetingId String
+  // null while the message belongs to a pleading case that isn't paid yet; set on payment
+  orderId    Int?
+  meetingId  String?
+  pleadingId String?
 
   fileUrl  String?
   fileType String?
@@ -55,11 +57,13 @@ model OrderMessage {
   blocked  Boolean @default(false)
 
   // @relations
-  order   Order   @relation(fields: [orderId], references: [oid], onDelete: Cascade)
-  meeting Meeting @relation(fields: [meetingId], references: [mid], onDelete: Cascade)
+  order    Order?    @relation(fields: [orderId], references: [oid], onDelete: Cascade)
+  meeting  Meeting?  @relation(fields: [meetingId], references: [mid], onDelete: Cascade)
+  pleading Pleading? @relation(fields: [pleadingId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@index([meetingId])
+  @@index([pleadingId, createdAt])
   @@map("order_messages")
 }
 

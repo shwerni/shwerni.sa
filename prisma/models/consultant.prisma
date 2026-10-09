@@ -73,6 +73,7 @@ model Consultant {
   online_at     DateTime?
   online_status OnlineStatus     @default(OFFLINE)
   sort_key      Float            @default(0)
+  pleadingEnabled Boolean        @default(false) // opt-in to pleading requests, only effective for category LAW
 
   // @relations
   user                     User?                 @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -95,7 +96,8 @@ model Consultant {
   questions                Question[]
   bankAccount              BankAccount?
     bankTransferRequests BankTransferRequest[]
-    
+  pleadings                Pleading[]
+
   @@index([sort_key])
   @@index([status, statusA, approved, sort_key])
   @@index([centerId, status, statusA, approved, sort_key])

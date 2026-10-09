@@ -68,6 +68,7 @@ model Order {
   transactions WalletTransaction[] 
   bankTransferRequest BankTransferRequest?
   financeEntries      FinanceEntry[]
+  pleading            Pleading?
 
   @@index([centerId, created_at])
   @@map("orders")

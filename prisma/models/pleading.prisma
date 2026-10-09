@@ -1,0 +1,37 @@
+enum PleadingState {
+  DRAFT // created, files still uploading; not visible to the consultant
+  REQUESTED // submitted, consultant notified
+  QUOTED // consultant set the reply and price
+  PAID
+  DECLINED // consultant declined
+  EXPIRED // no quote within 7 days of requestedAt, or the quote passed expiresAt
+  CANCELED // client declined
+}
+
+model Pleading {
+  id          String        @id @default(cuid())
+  plid        Int           @unique @default(autoincrement())
+  state       PleadingState @default(DRAFT)
+  name        String
+  phone       String
+  author      String? // user id when signed in at request time; null for a guest
+  clientToken String        @unique // random 32-byte base64url, the client's link identity
+  price       Int? // pre-vat whole sar, 100..100000, set by the consultant
+  requestedAt DateTime? // set on DRAFT -> REQUESTED; unquoted cases expire 7 days after it
+  quotedAt    DateTime?
+  expiresAt   DateTime? // quotedAt + 7 days
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+
+  // @relations
+  consultantId Int
+  consultant   Consultant     @relation(fields: [consultantId], references: [cid])
+  orderId      Int?           @unique // the current checkout order, replaced on a new checkout
+  order        Order?         @relation(fields: [orderId], references: [oid])
+  messages     OrderMessage[]
+
+  @@index([consultantId, state])
+  @@index([state, requestedAt])
+  @@index([state, expiresAt])
+  @@map("pleadings")
+}
