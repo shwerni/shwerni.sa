@@ -17,7 +17,11 @@ import { rateLimit } from "@/lib/rate-limit";
 import { PleadingState, UserRole } from "@/lib/generated/prisma/enums";
 
 // utils
-import { clientTokenSchema, isPleadingChatOpen } from "@/utils/pleading";
+import {
+  clientTokenSchema,
+  DOCX_MIME,
+  isPleadingChatOpen,
+} from "@/utils/pleading";
 
 // config
 const f = createUploadthing();
@@ -72,6 +76,8 @@ export const ourFileRouter = {
   pleadingAttachment: f({
     image: { maxFileSize: "8MB", maxFileCount: 1 },
     pdf: { maxFileSize: "16MB", maxFileCount: 1 },
+    // word (.docx) for case documents; uploadthing checks the type against this list on the server
+    [DOCX_MIME]: { maxFileSize: "16MB", maxFileCount: 1 },
   })
     .input(
       z.object({

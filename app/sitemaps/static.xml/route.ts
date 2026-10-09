@@ -2,8 +2,8 @@
 import { pageUrl, urlsetResponse } from "@/app/sitemaps/_lib/sitemap";
 
 // indexable pages with their own canonical (no lastmod: their content isn't a dated row).
-// the center directory is in centers.xml
-const pages = ["", "consultants", "articles", "programs", "coupons", "packages", "contact-us", "terms"];
+// the center directory is in centers.xml. the pleading request and case pages are noindex
+const pages = ["", "consultants", "articles", "programs", "coupons", "packages", "pleading", "contact-us", "terms"];
 
 // /sitemaps/static.xml
 export function GET() {

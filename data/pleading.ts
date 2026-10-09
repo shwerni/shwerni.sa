@@ -558,11 +558,13 @@ export async function quotePleading(
       });
       if (!count) return false;
 
+      // stamped with quotedAt, so the client's quote card finds this exact message
       await tx.orderMessage.create({
         data: {
           pleadingId: pleading.id,
           sender: UserRole.OWNER,
           content: pleadingQuoteMessage(quote.price, quote.reply),
+          createdAt: quotedAt,
         },
       });
 

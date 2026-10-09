@@ -63,6 +63,8 @@ export const DynamicpublicRoutes = [
   "/programs",
   "/chats",
   "/event",
+  // the pleading page, the request form and the client's case page (guests too)
+  "/pleading",
   // site map
   "/sitemap",
   // apis

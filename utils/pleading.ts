@@ -78,6 +78,12 @@ export const isPleadingChatOpen = (state: PleadingState) =>
 export const pleadingQuoteMessage = (price: number, reply: string) =>
   `عرض السعر: ${price} ريال (قبل الضريبة)\n\n${reply}`;
 
+// the consultant's reply inside a quote message (the text after the server's price line)
+export const pleadingQuoteReply = (content: string) =>
+  content.startsWith("عرض السعر:")
+    ? content.slice(content.indexOf("\n\n") + 2)
+    : content;
+
 // the consultant's decline as it's posted in the case chat, with their optional reason
 export const pleadingDeclineMessage = (reason?: string | null) => {
   const text = "اعتذر المستشار عن قبول طلب المرافعة.";
@@ -88,25 +94,39 @@ export const pleadingDeclineMessage = (reason?: string | null) => {
 // files must come from our upload flow (the uploadthing hosts next/image allows, as in schemas/center.ts)
 const UPLOAD_HOSTS = ["utfs.io", "huqzhdqiy3.ufs.sh"];
 
-export const pleadingFileSchema = z.object({
-  url: z
-    .string()
-    .trim()
-    .url()
-    .refine((v) => {
-      try {
-        const u = new URL(v);
-        return u.protocol === "https:" && UPLOAD_HOSTS.includes(u.hostname);
-      } catch {
-        return false;
-      }
-    }),
-  name: z.string().trim().min(1).max(200),
-  type: z
-    .string()
-    .trim()
-    .regex(/^(image\/[a-z0-9.+-]+|application\/pdf)$/),
-});
+// case chat files: images, pdf and word (.docx). the picker, the upload endpoint and the
+// message schema all use this list
+export const DOCX_MIME =
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+export const PLEADING_FILE_ACCEPT = `image/*,application/pdf,.docx,${DOCX_MIME}`;
+
+export const pleadingFileSchema = z
+  .object({
+    url: z
+      .string()
+      .trim()
+      .url()
+      .refine((v) => {
+        try {
+          const u = new URL(v);
+          return u.protocol === "https:" && UPLOAD_HOSTS.includes(u.hostname);
+        } catch {
+          return false;
+        }
+      }),
+    name: z.string().trim().min(1).max(200),
+    type: z
+      .string()
+      .trim()
+      .refine(
+        (t) =>
+          /^image\/[a-z0-9.+-]+$/.test(t) ||
+          t === "application/pdf" ||
+          t === DOCX_MIME,
+      ),
+  })
+  // a word file must also be named .docx
+  .refine((f) => f.type !== DOCX_MIME || /\.docx$/i.test(f.name));
 
 export type PleadingFile = z.infer<typeof pleadingFileSchema>;
 
@@ -122,7 +142,11 @@ const content = z.string().trim().max(2000, "الرسالة طويلة جداً"
 export const pleadingRequestSchema = z.object({
   cid: z.number().int().positive(),
   name: schemas.name,
-  phone: schemas.phone,
+  // digits only, as the booking form sends it (phoneNumber in utils)
+  phone: z
+    .string()
+    .transform((v) => v.replace(/\D/g, ""))
+    .pipe(schemas.phone),
   brief: z
     .string()
     .trim()

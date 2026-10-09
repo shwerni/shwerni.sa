@@ -31,7 +31,9 @@ import { Gender, UserRole } from "@/lib/generated/prisma/enums";
 import { cn } from "@/utils/utils";
 import { baseActionErrors } from "@/utils/action-errors";
 import {
+  DOCX_MIME,
   isPleadingChatOpen,
+  PLEADING_FILE_ACCEPT,
   pleadingClosedNotes,
   pleadingErrors,
 } from "@/utils/pleading";
@@ -157,7 +159,10 @@ export function CaseChat({
         }
         file = {
           url: uploaded[0].ufsUrl,
-          type: attachment.type,
+          // some browsers give a .docx no type
+          type:
+            attachment.type ||
+            (/\.docx$/i.test(attachment.name) ? DOCX_MIME : ""),
           name: attachment.name,
         };
       }
@@ -339,7 +344,7 @@ export function CaseChat({
               disabled={isBusy || !data}
               onClick={() => {
                 if (fileInputRef.current) {
-                  fileInputRef.current.accept = "image/*,application/pdf";
+                  fileInputRef.current.accept = PLEADING_FILE_ACCEPT;
                   fileInputRef.current.click();
                 }
               }}
@@ -370,7 +375,7 @@ export function CaseChat({
               ref={fileInputRef}
               type="file"
               className="hidden"
-              accept="image/*,application/pdf"
+              accept={PLEADING_FILE_ACCEPT}
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) {

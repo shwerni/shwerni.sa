@@ -3049,3 +3049,59 @@ The plan is `C:\Users\ABO ELMAGD\.claude\plans\tender-sprouting-hare.md` (rev 2 
 
 - A test LAW consultant login, and approval to create one test case in the shared database (deleted afterwards), to run the hydration and end-to-end checks.
 - The site header dropdown doesn't show "المرافعات" (no category in the session). Adding the category to the session token would change the auth config, so I didn't.
+
+## 2026-10-09 · مرافعة phase 4 (public page, request form, client case page) + word files
+
+**Addition: Word files in the case chat**
+
+- `pleadingAttachment` accepts `.docx` (the full Word MIME type) up to 16MB, alongside images (8MB) and pdf (16MB). Uploadthing checks the declared type against the route on the server.
+- The action's `pleadingFileSchema` also checks the type on the server: an image, pdf or the Word type, and a Word file must be named `.docx`.
+- The chat's file picker and the request form use one list, `PLEADING_FILE_ACCEPT`. A `.docx` that the browser reports with no type is sent with the Word type.
+
+**Phase 4**
+
+- **`/pleading`** (`app/(pages)/(site)/(sub-pages)/pleading/page.tsx`):
+  - an explainer (what مرافعة is, the 4 steps, the 60 minute session, chat only inside شاورني)
+  - the cards from `getPleadingConsultants()`, cached with tag `pleading-consultants` (`cacheLife("hours")`, invalidated by `togglePleading`'s `updateTag`)
+  - an empty state, the metadata (canonical, og, twitter), and a CollectionPage json-ld
+  - the icons are plain server svgs (`serverIcon`)
+- **`components/clients/pleading/card.tsx`:** `PleadingConsultantCard`, the home card body (ConsultantImage, StarBadge, CategoryBadge, experience, reviews, specialties) with "احجز جلسة" → `/consultants/<cid>` and "اطلب مرافعة" → `/pleading/request/<cid>`. It shows no price, because the price is set per case.
+- **`/pleading/request/[cid]`:**
+  - **Eligibility:** `getPleadingConsultant` (public + LAW + opted in), cached under the same tag. Anything else hits `notFound()`.
+  - **The form** (`request-form.tsx`): name, phone (the shared `PhoneInput`, digits only; the schema also strips non-digits on the server), brief, and up to 5 files with client-side type and size checks.
+  - **Submit:** `requestPleading`, then one upload per file, then `finalizePleadingRequest`, then `router.replace("/pleading/q/<token>")`.
+    - If an upload fails, the draft is kept: a retry only uploads what's left, and the text fields lock.
+  - **Errors:** each action error code gets its Arabic message (the AI guard, the rate limit, and the rest).
+  - **Note:** the WhatsApp private link must not be shared.
+  - **Metadata:** `noindex, follow`.
+- **`/pleading/q/[token]`:**
+  - The token shape is checked and `getClientPleading` runs; a bad shape or no case hits `notFound()`.
+  - **`CaseChat`** (USER, with the token).
+  - **`ClientPanel`:**
+    - the consultant, and the state
+    - "waiting for the consultant" while REQUESTED
+    - the quote card: the reply, the price before VAT, the VAT total, 60 minutes, and the expiry
+    - a disabled "حجز الموعد والدفع" while the quote is open (wired in phase 5)
+    - the checkout note, the cancel dialog, the closed note, and the private-link note
+  - **Finding the reply:** `quotePleading` now stamps the quote message's `createdAt` with `quotedAt`, so the card finds that exact message and strips the server's price line (`pleadingQuoteReply`).
+  - **Metadata:** `noindex, nofollow` and `referrer: no-referrer`. It isn't in any sitemap.
+  - **The token** is given only to the chat and the panel, which poll and act with it.
+- **Both dynamic pages** have `loading.tsx` (PageSkeleton), like `/consultants/[cid]`.
+- **`routes.ts`:** `/pleading` in the dynamic public routes, so guests can reach all 3 pages. **`/sitemaps/static.xml`:** adds `pleading`.
+
+**Verified**
+
+- `tsc --noEmit` 0 errors. eslint shows 0 problems on the new and changed files.
+- A clean `npm run build`. The manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`.
+- **`next start` plus headless chrome** (mobile and desktop) on `/pleading`, `/pleading/request/1`, `/pleading/request/abc`, `/pleading/q/<random token>` and `/pleading/q/abc`:
+  - 0 hydration errors and no duplicate ids.
+  - The only failed resource is `/_vercel/speed-insights/script.js` (404, Vercel only).
+  - `/pleading` is `index, follow` with the empty state (nobody has opted in yet).
+  - The request and case urls with bad ids render the not-found page: request is `noindex, follow`; case is `noindex, nofollow` with `no-referrer`.
+  - The static sitemap lists `/pleading`, and the random token is absent from the server log.
+- **Not run here:** the full flow with real data. It's in your manual test, and I created no test rows.
+
+**Open questions / notes**
+
+- **The status code:** "404" for an ineligible consultant or an unknown token is `notFound()`, the site's not-found page with noindex on a 200. A real 404 status isn't possible under partial prerendering in this app (see the 2026-10-08 SEO follow-up).
+- **GTM loads on every page,** including `/pleading/q/<token>`. If its tags send the page url, the token reaches Google, which is the same exposure as `/chats/<mid>?participant=` today. Suggestion: an exception for `/pleading/q/` in the GTM container (no code change).
