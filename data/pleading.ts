@@ -18,6 +18,7 @@ import {
 import { checkMessageWithAI } from "@/lib/api/ai/chat-guard";
 import { newClientToken } from "@/lib/pleading-token";
 import { fail, ok, type ActionResult } from "@/lib/safe-action";
+import { telegramAdmin } from "@/lib/api/telegram/telegram";
 import {
   notificationPleadingChatMessage,
   notificationPleadingNewRequest,
@@ -31,6 +32,7 @@ import {
   isPleadingChatOpen,
   PLEADING_OPEN_STATES,
   PLEADING_TTL_DAYS,
+  pleadingDeclineMessage,
   pleadingQuoteMessage,
   type PleadingError,
   type PleadingFile,
@@ -282,8 +284,8 @@ export async function getPleadingConsultant(cid: number) {
   }
 }
 
-// the case's current checkout order: "paid", "running" (NEW and under 20 minutes old), or null
-// when there's none or it's abandoned
+// the case's current checkout order: "paid", "running" (NEW and under 20 minutes old, or a
+// payment PROCESSING or on HOLD, e.g. tabby), or null when there's none or it's abandoned
 export async function getPleadingCheckout(
   pleadingId: string,
 ): Promise<"paid" | "running" | null> {
@@ -302,8 +304,10 @@ export async function getPleadingCheckout(
   const payment = order.payment?.payment;
   if (payment === PaymentState.PAID) return "paid";
   if (
-    payment === PaymentState.NEW &&
-    Date.now() - order.created_at.getTime() < CHECKOUT_WINDOW_MS
+    payment === PaymentState.PROCESSING ||
+    payment === PaymentState.HOLD ||
+    (payment === PaymentState.NEW &&
+      Date.now() - order.created_at.getTime() < CHECKOUT_WINDOW_MS)
   )
     return "running";
 
@@ -604,11 +608,13 @@ async function notifyPleadingQuoted(
   );
 }
 
-// closes an open case as DECLINED (the consultant) or CANCELED (the client). refused while a
-// checkout runs, so a payment can't land on a closed case
+// closes an open case as DECLINED (the consultant) or CANCELED (the client), posting `message`
+// in the case chat in the same transaction when given. refused while a checkout runs, so a
+// payment can't land on a closed case
 async function closePleading(
   access: PleadingAccess,
   state: typeof PleadingState.DECLINED | typeof PleadingState.CANCELED,
+  message?: { sender: UserRole; content: string },
 ): Result<null> {
   const { pleading } = access;
 
@@ -619,11 +625,21 @@ async function closePleading(
     if (checkout === "paid") return fail("invalid_state");
     if (checkout === "running") return fail("checkout_in_progress");
 
-    const { count } = await prisma.pleading.updateMany({
-      where: { id: pleading.id, state: { in: PLEADING_OPEN_STATES } },
-      data: { state },
+    const closed = await prisma.$transaction(async (tx) => {
+      const { count } = await tx.pleading.updateMany({
+        where: { id: pleading.id, state: { in: PLEADING_OPEN_STATES } },
+        data: { state },
+      });
+      if (!count) return false;
+
+      if (message)
+        await tx.orderMessage.create({
+          data: { pleadingId: pleading.id, ...message },
+        });
+
+      return true;
     });
-    if (!count) return fail("invalid_state");
+    if (!closed) return fail("invalid_state");
 
     return ok(null);
   } catch (err) {
@@ -632,10 +648,32 @@ async function closePleading(
   }
 }
 
-export async function declinePleading(by: OwnerBy): Result<null> {
+// the consultant declines: an OWNER message with the optional reason (guarded like any
+// message), and the client is always told, outside the first-of-the-day rule
+export async function declinePleading(
+  by: OwnerBy,
+  reason?: string | null,
+): Result<null> {
   const access = await getPleadingAccess(by);
   if (!access || access.role !== UserRole.OWNER) return fail("not_found");
-  return closePleading(access, PleadingState.DECLINED);
+
+  const text = reason?.trim() ?? "";
+
+  try {
+    if (text && (await checkMessageWithAI(text))) return fail("contact_info");
+  } catch (err) {
+    logError("decline", err, access.pleading.plid);
+    return fail("server_error");
+  }
+
+  const result = await closePleading(access, PleadingState.DECLINED, {
+    sender: UserRole.OWNER,
+    content: pleadingDeclineMessage(text),
+  });
+
+  if (result.ok) await notifyPleadingChat(access.pleading.id, UserRole.OWNER);
+
+  return result;
 }
 
 export async function cancelPleading(by: ClientBy): Result<null> {
@@ -649,20 +687,35 @@ export async function cancelPleading(by: ClientBy): Result<null> {
 // NOT CALLED YET: wired into onPaymentSuccess in phase 6, with approval. in one transaction, marks
 // the case of this order PAID and moves its whole chat onto the session's meeting, so the
 // session chat continues the same thread. QUOTED or EXPIRED pass (a quote can expire while its
-// checkout is still running); PAID passes again, so a repeated call is harmless. null when the
-// order isn't the case's current checkout or the case was closed
+// checkout is still running); PAID passes again, so a repeated call is harmless. a payment that
+// lands on a DECLINED or CANCELED case isn't linked: it's logged and sent to the admin telegram
+// for a manual refund. null when the order isn't a case's current checkout or wasn't linked;
+// never throws, so onPaymentSuccess goes on as for any order
 export async function linkPaidPleading(
   oid: number,
   mid: string,
 ): Promise<{ plid: number } | null> {
   try {
-    return await prisma.$transaction(async (tx) => {
-      const pleading = await tx.pleading.findUnique({
-        where: { orderId: oid },
-        select: { id: true, plid: true },
-      });
-      if (!pleading) return null;
+    const pleading = await prisma.pleading.findUnique({
+      where: { orderId: oid },
+      select: { id: true, plid: true, state: true },
+    });
+    if (!pleading) return null;
 
+    if (
+      pleading.state === PleadingState.DECLINED ||
+      pleading.state === PleadingState.CANCELED
+    ) {
+      console.error(
+        `[pleading] paid order on a closed case oid=${oid} plid=${pleading.plid} state=${pleading.state}`,
+      );
+      await telegramAdmin(
+        `pleading: order #${oid} was paid but case #${pleading.plid} is ${pleading.state}, not linked. refund manually`,
+      );
+      return null;
+    }
+
+    return await prisma.$transaction(async (tx) => {
       const { count } = await tx.pleading.updateMany({
         where: {
           id: pleading.id,

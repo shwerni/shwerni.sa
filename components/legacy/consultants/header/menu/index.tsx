@@ -24,7 +24,10 @@ import { LogOut, Menu } from "lucide-react";
 import { cdashboard } from "@/constants/menu";
 
 //return
-export function Zmenu(props: { user: string | null | undefined }) {
+export function Zmenu(props: {
+  user: string | null | undefined;
+  isLaw?: boolean; // shows the LAW-only items (المرافعات)
+}) {
   // active nav button
   const path = usePathname();
   return (
@@ -49,7 +52,8 @@ export function Zmenu(props: { user: string | null | undefined }) {
           <div className="flex flex-col gap-4 py-3">
             {cdashboard.map(
               (i, index) =>
-                i.status && (
+                i.status &&
+                (!i.law || props.isLaw) && (
                   <SheetClose key={index} asChild>
                     <Link
                       href={`/dashboard${i.link}`}

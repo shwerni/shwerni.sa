@@ -5,7 +5,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 // prisma data
-import { getPleadingAccess, getPleadingThread } from "@/data/pleading";
+import {
+  getPleadingAccess,
+  getPleadingCheckout,
+  getPleadingThread,
+} from "@/data/pleading";
 
 // lib
 import { userServer } from "@/lib/auth/server";
@@ -54,7 +58,11 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   const { pleading, role } = access;
 
-  const messages = await getPleadingThread(pleading.id);
+  const [messages, checkout] = await Promise.all([
+    getPleadingThread(pleading.id),
+    // "running" while a payment of the quote is in progress: both sides' actions wait for it
+    getPleadingCheckout(pleading.id).catch(() => null),
+  ]);
   if (!messages)
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
 
@@ -64,6 +72,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     price: pleading.price,
     quotedAt: pleading.quotedAt,
     expiresAt: pleading.expiresAt,
+    checkout,
     role,
     messages,
   });

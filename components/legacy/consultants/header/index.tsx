@@ -10,6 +10,9 @@ import { userServer } from "@/lib/auth/server";
 // prisma data
 import { getOwnerbyAuthor } from "@/data/consultant";
 
+// prisma types
+import { Categories } from "@/lib/generated/prisma/enums";
+
 // return
 export default async function Header() {
   // session
@@ -48,7 +51,10 @@ export default async function Header() {
           </div>
         )}
         {/* dashboard sidebar */}
-        <Zmenu user={user?.name} />
+        <Zmenu
+          user={user?.name}
+          isLaw={owner?.category === Categories.LAW}
+        />
       </div>
     </div>
   );

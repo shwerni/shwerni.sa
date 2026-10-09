@@ -2995,3 +2995,57 @@ The plan is `C:\Users\ABO ELMAGD\.claude\plans\tender-sprouting-hare.md` (rev 2 
 - The client can cancel from REQUESTED or QUOTED (the plan only named QUOTED).
 - Only NEW orders under 20 minutes count as a running checkout, per the rule. A PROCESSING or HOLD payment (tabby) doesn't block yet.
 - The page url `/pleading/q/<token>` still carries the token in Vercel's request logs, like `?participant=` does today. That's inherent to link-based identity.
+
+## 2026-10-09 · مرافعة phase 3 (consultant dashboard) + two fixes
+
+**Fix 1: payment in progress**
+
+- `getPleadingCheckout` returns "running" for a linked order whose payment is PROCESSING or HOLD (tabby), as well as for a NEW order under 20 minutes. Re-quote, decline and cancel are refused while it lasts.
+- **`linkPaidPleading` (still not called):** when a payment lands on a DECLINED or CANCELED case, it isn't linked.
+  - It's logged with `oid` and `plid` only.
+  - `telegramAdmin` gets an alert for a manual refund.
+  - It returns null without throwing.
+
+**Fix 2: decline notifies the client**
+
+- `declinePleading(by, reason?)`: the reason is up to 500 characters and goes through `checkMessageWithAI`.
+- In one transaction with the state change, it posts the OWNER message "اعتذر المستشار عن قبول طلب المرافعة.", followed by the reason when there is one.
+- It always sends `notificationPleadingChatMessage` to the client, outside the first-of-the-day rule and behind `PLEADING_WHATSAPP_ENABLED`.
+
+**Phase 3**
+
+- **Menu:**
+  - The `Link` type has `law?: boolean`, and `cdashboard` has "المرافعات" → `/pleadings` with the `Scale` icon.
+  - The dashboard menu (`Zmenu`) shows it only when its server `Header` finds the consultant is LAW.
+  - The site header dropdown (`UserNav`) hides law-only items, because the session has no category. LAW consultants reach the page from the dashboard menu.
+- **`/dashboard/pleadings`** (LAW only, otherwise 404):
+  - It's a server-rendered list grouped as بانتظار ردك / بانتظار دفع العميل / مدفوعة / مغلقة.
+  - Each row has the case number, client name (never the phone), state, last message, and the count of client messages. That count works like the chat list's: there's no read tracking.
+  - Expired cases are persisted by `listConsultantPleadings` before reading.
+- **`/dashboard/pleadings/[plid]`** (LAW only; another consultant's case is a 404):
+  - **`CaseChat`** (`components/clients/pleading/case-chat.tsx`, OWNER): built from `MessageBubble`, `AttachmentPreview`, `ScrollArea` and `ConsultantImage`, with the classes of the dashboard `ChatClient`. When the case is closed, the composer is replaced by a read-only note.
+  - **`CasePanel`** (`components/consultant/pleadings/`):
+    - details: the price before VAT and the client's total from `withTax`, plus the quote expiry in Riyadh time
+    - `QuoteForm`: the reply and an integer price, the same zod schema shown inline, and a live VAT total; a re-quote while QUOTED starts from the current price
+    - `DeclineDialog`: an optional reason with a 500-character counter, behind a confirm dialog
+    - while a checkout runs, an amber note replaces the actions
+  - **Shared poll:** the chat and the panel use one SWR poll (`usePleadingCase`), and the route now returns `checkout`. A client cancel, an expiry or a payment in progress shows up within 7 seconds.
+- **`/dashboard/profile`:** a "طلبات المرافعة" switch below the existing settings, only for LAW, wired to `togglePleading` with an optimistic toggle that reverts on error. No other change to existing screens.
+- **Shared:** `PleadingStateBadge`, plus `pleadingClosedNotes` and `pleadingCheckoutNote` in `utils/pleading.ts`.
+
+**Verified**
+
+- `tsc --noEmit`: 0 errors. eslint: 0 new warnings (the old unused imports in `constants/menu.ts` remain).
+- A clean `npm run build`. The manifest shows only `"data/event.ts"` and `"lib/api/google.ts"` for data/handlers/lib, and `actions/pleading.ts` now appears as an `actions/` file.
+- With no session, `/dashboard/pleadings`, `/dashboard/pleadings/1` and `/dashboard/profile` redirect to `/login`, and `/api/pleadings/1/chat` returns 404.
+
+**Not verified: hydration on the new pages.** It needs a logged-in LAW consultant and a test case. There's no test account, and creating pleading rows writes to the shared database, so I asked first.
+- **How the components avoid mismatches:**
+  - The chat and the panel render only after the client fetch (a loader during SSR).
+  - The dates on the case page are formatted on the server in Riyadh time.
+  - The list is a server component.
+
+**Open questions**
+
+- A test LAW consultant login, and approval to create one test case in the shared database (deleted afterwards), to run the hydration and end-to-end checks.
+- The site header dropdown doesn't show "المرافعات" (no category in the session). Adding the category to the session token would change the auth config, so I didn't.

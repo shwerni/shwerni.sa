@@ -67,7 +67,8 @@ const UserNav = ({ user }: Props) => {
 
         <DropdownMenuGroup>
           {links
-            .filter((item) => item.status)
+            // the session has no category, so LAW-only items stay in the dashboard menu
+            .filter((item) => item.status && !item.law)
             .map((item, index) => {
               const Icon = item.icon;
 

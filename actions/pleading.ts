@@ -24,9 +24,9 @@ import { UserRole } from "@/lib/generated/prisma/enums";
 // utils
 import {
   pleadingClientMessageSchema,
+  pleadingDeclineSchema,
   pleadingFinalizeSchema,
   pleadingOwnerMessageSchema,
-  pleadingPlidSchema,
   pleadingQuoteSchema,
   pleadingRequestSchema,
   pleadingToggleSchema,
@@ -127,16 +127,16 @@ export const quotePleading = createAction(
     quotePleadingData({ plid, userId: user.id }, { reply, price }),
 );
 
-// consultant: declines an open case
+// consultant: declines an open case, with an optional reason (the client is always notified)
 export const declinePleading = createAction(
   {
     name: "pleading.decline",
-    schema: pleadingPlidSchema,
+    schema: pleadingDeclineSchema,
     auth: [UserRole.OWNER] as const,
     rateLimit: [{ by: "user", limit: 20, window: "1 m" }],
   },
-  async ({ plid }, { user }) =>
-    declinePleadingData({ plid, userId: user.id }),
+  async ({ plid, reason }, { user }) =>
+    declinePleadingData({ plid, userId: user.id }, reason),
 );
 
 // consultant: the pleading opt-in (LAW consultants only)

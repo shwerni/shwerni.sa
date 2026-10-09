@@ -11,6 +11,7 @@ export interface Link {
   link: string;
   icon?: React.ReactNode | IconType | string;
   status?: boolean;
+  law?: boolean; // consultant dashboard: shown to LAW consultants only
 }
 
 // cards

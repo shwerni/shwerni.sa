@@ -44,6 +44,7 @@ import {
   LibraryBig,
   LayoutGrid,
   Boxes,
+  Scale,
 } from "lucide-react";
 
 // react icons
@@ -212,6 +213,13 @@ export const cdashboard: Link[] = [
     link: "/chats",
     icon: MessageSquareMore,
     status: true,
+  },
+  {
+    label: "المرافعات",
+    link: "/pleadings",
+    icon: Scale,
+    status: true,
+    law: true,
   },
   {
     label: "الباقات",

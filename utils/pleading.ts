@@ -31,6 +31,19 @@ export const pleadingStateLabels = {
   CANCELED: "ملغي",
 } satisfies Record<PleadingState, string>;
 
+// why a case chat is read-only, by state (open states have none)
+export const pleadingClosedNotes: Partial<Record<PleadingState, string>> = {
+  DRAFT: "لم يكتمل إرسال الطلب بعد.",
+  PAID: "تم دفع قيمة الجلسة، وتُستكمل المحادثة في محادثة الجلسة.",
+  DECLINED: "اعتذر المستشار عن هذا الطلب، وتم إغلاق المحادثة.",
+  EXPIRED: "انتهت صلاحية هذا الطلب، وتم إغلاق المحادثة.",
+  CANCELED: "ألغى العميل هذا الطلب، وتم إغلاق المحادثة.",
+};
+
+// shown while a payment of the quote is in progress (every case action waits for it)
+export const pleadingCheckoutNote =
+  "العميل في مرحلة الدفع الآن، لا يمكن تعديل العرض أو الاعتذار أو الإلغاء حتى تنتهي عملية الدفع.";
+
 // arabic messages for the pleading actions' own error codes (pass to useAction's errors)
 export const pleadingErrors = {
   not_found: "الطلب غير موجود",
@@ -64,6 +77,13 @@ export const isPleadingChatOpen = (state: PleadingState) =>
 // the quote as it's posted in the case chat (the price line is written by the server)
 export const pleadingQuoteMessage = (price: number, reply: string) =>
   `عرض السعر: ${price} ريال (قبل الضريبة)\n\n${reply}`;
+
+// the consultant's decline as it's posted in the case chat, with their optional reason
+export const pleadingDeclineMessage = (reason?: string | null) => {
+  const text = "اعتذر المستشار عن قبول طلب المرافعة.";
+  const why = reason?.trim();
+  return why ? `${text}\n\n${why}` : text;
+};
 
 // files must come from our upload flow (the uploadthing hosts next/image allows, as in schemas/center.ts)
 const UPLOAD_HOSTS = ["utfs.io", "huqzhdqiy3.ufs.sh"];
@@ -140,7 +160,11 @@ export const pleadingQuoteSchema = z.object({
     .max(PLEADING_MAX_PRICE, `السعر ${PLEADING_MAX_PRICE} ريال كحد أقصى`),
 });
 
-export const pleadingPlidSchema = z.object({ plid });
+// the consultant's decline, with an optional reason for the client
+export const pleadingDeclineSchema = z.object({
+  plid,
+  reason: z.string().trim().max(500, "500 حرف كحد أقصى").nullish(),
+});
 
 export const pleadingTokenSchema = z.object({ token: clientTokenSchema });
 
