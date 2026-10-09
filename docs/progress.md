@@ -2884,3 +2884,41 @@ Code committed by Ziad as `2605dd6` (pushed). This entry records the verificatio
 - add `"updated_at" = now()` to its raw `UPDATE "articles"`
 - in the faq editor, save the faqs and bump `articles.updated_at` in one transaction
 - after an edit, call `purgeClient("article:<aid>")` and `purgeClient("articles")`
+
+## 2026-10-09 · مرافعة phase 1 (schema)
+
+The plan is `C:\Users\ABO ELMAGD\.claude\plans\tender-sprouting-hare.md` (rev 2 plus additions, approved). Applied by Ziad with `db push`.
+
+**Schema**
+
+- **`prisma/models/pleading.prisma` (new):** enum `PleadingState` (DRAFT, REQUESTED, QUOTED, PAID, DECLINED, EXPIRED, CANCELED) and model `Pleading` (`pleadings`).
+  - **Fields:** `plid`, `state`, `name`, `phone`, `author` (null for a guest), `clientToken` (unique, the client's link identity), `price` (pre-vat whole sar).
+  - **Timestamps:** `requestedAt` (unquoted cases expire 7 days after it), `quotedAt`, `expiresAt` (quote + 7 days), plus `created_at`/`updated_at`.
+  - **Relations:** `consultantId` → Consultant, `orderId` (unique, nullable) → the current checkout Order, and `messages`.
+  - **Indexes:** `[consultantId, state]`, `[state, requestedAt]`, `[state, expiresAt]`.
+- **`chat.prisma`:** `OrderMessage.orderId` and `meetingId` are now nullable, and there's a new `pleadingId` → Pleading (cascade) with index `[pleadingId, createdAt]`. A case message has `pleadingId` set, and `orderId` and `meetingId` stay null until payment links it to the session's meeting.
+- **`consultant.prisma`:** `Consultant.pleadingEnabled Boolean @default(false)` (opt-in, only for LAW) and the `pleadings` relation.
+- **`reservation.prisma`:** `Order.pleading Pleading?`.
+
+**Code**
+
+- None. `tsc --noEmit` gave 0 errors after the nullable change.
+- I checked every `orderMessage` reader by hand:
+  - `data/chats.ts` filters by `meetingId` or goes through the meeting relation.
+  - `data/order/reserveation.ts:528/673` read an order's first message through the order relation.
+  - No raw sql touches `order_messages`. Existing chats are unchanged, and unlinked case messages can't show up anywhere.
+- **Correction to the first plan:** the NestJS server has no database access (its `chat-message` is an in-memory socket relay), and the mobile app doesn't read `order_messages`.
+
+**Verified**
+
+- `prisma validate`, `prisma generate`, `tsc --noEmit`, and a clean `npm run build` after the db push.
+- The manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`.
+
+**Open questions / follow-ups**
+
+- **Dashboard repo:**
+  - copy the schema changes into its prisma schema and run `prisma generate` (never `db push` from there)
+  - add the setting `finance/pleadingCommission` (the consultant's share, default 80, so the platform takes 20%) next to commission in `admin/settings/index.tsx`
+- **Insecure link encryption:** `utils/admin/encryption.ts` has a hardcoded AES key in client-safe utils. Logged only; not touched.
+- **No AI guard on reservation notes:** `reserveConsultant` and `reserveInstant` save the booking notes as the first chat message without `checkMessageWithAI`. Logged only; not changed (business logic).
+- **WhatsApp templates:** the 4 UTILITY templates (`pleading_new_request`, `pleading_request_received`, `pleading_quoted`, `pleading_chat_notify`) were handed to Ziad for Meta approval before phase 6.
