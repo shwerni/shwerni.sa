@@ -54,7 +54,7 @@ function PleadingRow({ item }: { item: Item }) {
     <Link href={`/dashboard/pleadings/${item.plid}`} className="group block">
       <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-slate-50 active:bg-slate-100 transition-colors duration-150 border-b border-slate-100 last:border-0">
         {/* client initial (never the phone) */}
-        <div className="w-12 h-12 rounded-full shrink-0 ring-2 ring-white shadow bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center text-white font-bold text-lg">
+        <div className="w-12 h-12 rounded-full shrink-0 ring-2 ring-white shadow bg-linear-to-br from-slate-400 to-slate-600 flex items-center justify-center text-white font-bold text-lg">
           {item.name?.[0] ?? "?"}
         </div>
 
@@ -110,7 +110,8 @@ export function PleadingsList({ items }: { items: Item[] }) {
             لا توجد طلبات مرافعة بعد
           </p>
           <p className="text-sm mt-1 text-slate-400">
-            تظهر هنا طلبات العملاء عند تفعيل استقبال طلبات المرافعة من الإعدادات
+            تظهر هنا طلبات العملاء عند تفعيل استقبال طلبات المرافعة من صفحة
+            ملفك الشخصي
           </p>
         </div>
       </div>

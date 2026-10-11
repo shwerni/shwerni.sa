@@ -3105,3 +3105,40 @@ The plan is `C:\Users\ABO ELMAGD\.claude\plans\tender-sprouting-hare.md` (rev 2 
 
 - **The status code:** "404" for an ineligible consultant or an unknown token is `notFound()`, the site's not-found page with noindex on a 200. A real 404 status isn't possible under partial prerendering in this app (see the 2026-10-08 SEO follow-up).
 - **GTM loads on every page,** including `/pleading/q/<token>`. If its tags send the page url, the token reaches Google, which is the same exposure as `/chats/<mid>?participant=` today. Suggestion: an exception for `/pleading/q/` in the GTM container (no code change).
+
+## 2026-10-12 · مرافعة fixes after the manual test (opt-in place, card, tracking privacy)
+
+**1. The opt-in switch moved to `/dashboard`**
+
+- `/dashboard/profile` is back to its version from before phase 3, byte for byte (only the user's basic info).
+- **The new place:**
+  - "طلبات المرافعة" is in the consultant's main form (`CoProfileForm` → `ProfileStatus`), directly under the "حالة الإعلان" visibility card, with the same card look: a border, a title and description, and a label + `Switch`.
+  - Like the visibility switch, it saves at once. The form's sections save only with the submit button through `saveConsultant`, which I didn't change.
+- Still LAW only, still `togglePleading` (which revalidates `pleading-consultants`). It resyncs after a profile save.
+- The dashboard list's empty state now points to "صفحة ملفك الشخصي".
+
+**2. A slimmer pleading card** (`components/clients/pleading/card.tsx` only; the other consultant cards are untouched)
+
+- **Layout:** horizontal, with a 48px photo beside the name and rating, the title, and the category badge and years.
+  - The two actions are full-width `sm` buttons in one row.
+  - The specialties and reviews rows are gone.
+- **The result:** the card is 143px tall (it was about 260px), and the grid gap is 3.
+- **Checked** with headless chrome at 380px and 1280px, with the real single card and with 7 cloned cards with long arabic names and titles (dom only): names and titles truncate, there's no horizontal overflow, and the page width equals the viewport.
+
+**3. No tracking on `/pleading/q/*`**
+
+- **`constants/tracking.ts`:** `NO_TRACKING_PATH` (`/^\/pleading\/q\//`) and `TRACKING_OFF`, the same check as a js expression.
+- **Each script checks the path itself when it runs.** The root layout stays static and unchanged for every other page.
+  - **The gtm `<head>` queue** (`GTM_QUEUE`) returns at once: no `dataLayer`, no `__loadGtm`, so `GTM_LOAD` does nothing. Everything the container loads (ga4, google ads, clarity, tiktok) never starts.
+  - **The meta, snap and twitter pixels** each wrap their inline code in `if (!(TRACKING_OFF))`.
+  - **Speed Insights:** `components/shared/speed-insights.tsx` renders vercel's `SpeedInsights` only when the loaded url isn't a no-tracking page (`useSyncExternalStore`, nothing on the server, as before). Its `beforeSend` also drops events from those urls.
+- **The redirect:** the request form goes to the case page with a full load (`window.location.replace`), not a client navigation, so trackers already running on the form never see the case url.
+- **Verified** (`next start` + headless chrome, 9s after load, every request to a tracking host plus the globals):
+  - `/`, `/pleading` and `/pleading/request/1`: gtm, ga4, ads, clarity, tiktok, meta, snap, twitter and speed insights all load, with all globals present.
+  - `/pleading/q/<token>`: 0 tracking requests and no `dataLayer`, `fbq`, `twq`, `snaptr` or speed insights script.
+  - The hydration check on `/`, `/pleading` and `/pleading/q/<token>`: 0 errors and no duplicate ids.
+- `tsc` and eslint are clean, the build is clean, and the manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`.
+
+**Follow-up (not changed): `/chats/[mid]?participant=<token>` has the same exposure.**
+- The participant token in its url is a credential, and gtm, the pixels and clarity all load there today, with clarity recording the session chat.
+- The same guard would cover it by adding `/^\/chats\//` (and `/dashboard/chats`) to `NO_TRACKING_PATH`, once it's decided.

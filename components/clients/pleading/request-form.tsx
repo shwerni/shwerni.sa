@@ -1,7 +1,6 @@
 "use client";
 // React & Next
 import { useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 
 // packages
 import { toast } from "sonner";
@@ -71,7 +70,6 @@ const fileProblem = (file: File) => {
 // requestPleading saves the brief, the files upload with the returned link token, then
 // finalizePleadingRequest sends the case to the consultant and the client goes to their case page
 export function PleadingRequestForm({ cid }: { cid: number }) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -181,7 +179,9 @@ export function PleadingRequestForm({ cid }: { cid: number }) {
         }
 
         toast.success("تم إرسال طلبك إلى المستشار");
-        router.replace(`/pleading/q/${current.token}`);
+        // a full page load, not a client navigation: the trackers running on this page must not
+        // see the case url (it loads none of them, constants/tracking.ts)
+        window.location.replace(`/pleading/q/${current.token}`);
       } catch {
         toast.error(networkError);
       } finally {

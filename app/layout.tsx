@@ -12,7 +12,8 @@ import NextTopLoader from "nextjs-toploader";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 // real-user performance (vercel speed insights)
-import { SpeedInsights } from "@vercel/speed-insights/next";
+// (none on the no-tracking pages, constants/tracking.ts)
+import { SpeedInsights } from "@/components/shared/speed-insights";
 
 // components
 import { Toaster } from "@/components/ui/sonner";

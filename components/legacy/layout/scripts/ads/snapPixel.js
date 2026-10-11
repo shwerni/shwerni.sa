@@ -1,20 +1,25 @@
 // React & Next
 import Script from "next/script";
 
-// snap pixel
+// constants
+import { TRACKING_OFF } from "@/constants/tracking";
+
+// snap pixel (skipped on the no-tracking pages, constants/tracking.ts)
 export default function SnapPixel() {
   return (
     <Script id="snap-pixel" strategy="lazyOnload">
-      {`(function(e,t,n){if(e.snaptr)return;var a=e.snaptr=function()
+      {`if (!(${TRACKING_OFF})) {
+      (function(e,t,n){if(e.snaptr)return;var a=e.snaptr=function()
       {a.handleRequest?a.handleRequest.apply(a,arguments):a.queue.push(arguments)};
       a.queue=[];var s='script';r=t.createElement(s);r.async=!0;
       r.src=n;var u=t.getElementsByTagName(s)[0];
       u.parentNode.insertBefore(r,u);})(window,document,
       'https://sc-static.net/scevent.min.js');
-      
+
       snaptr('init', 'ee632780-7ddf-4ecf-816c-1060fa4b4229');
-      
-      snaptr('track', 'PAGE_VIEW');`}
+
+      snaptr('track', 'PAGE_VIEW');
+      }`}
     </Script>
   );
 }

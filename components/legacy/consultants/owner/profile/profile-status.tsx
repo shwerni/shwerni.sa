@@ -2,9 +2,14 @@
 // components
 import ConsultantInfoCard from "../marketingCard";
 import Togglevisibility from "@/components/legacy/consultants/owner/profile/toggle-visibility";
+import { PleadingOptIn } from "@/components/consultant/pleadings/opt-in";
 
 // prisma types
-import { ApprovalState, ConsultantState } from "@/lib/generated/prisma/enums";
+import {
+  ApprovalState,
+  Categories,
+  ConsultantState,
+} from "@/lib/generated/prisma/enums";
 import { Consultant } from "@/lib/generated/prisma/client";
 
 // icons
@@ -46,6 +51,10 @@ export function ProfileStatus({ author, consultant }: Props) {
         approved={consultant.approved}
         adminNote={consultant.adminNote}
       />
+      {/* pleading requests opt-in (LAW consultants only) */}
+      {consultant.category === Categories.LAW && (
+        <PleadingOptIn enabled={consultant.pleadingEnabled} />
+      )}
       {isLive && (
         <ConsultantInfoCard
           cid={consultant.cid}

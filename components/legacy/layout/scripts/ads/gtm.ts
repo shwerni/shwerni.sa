@@ -8,12 +8,18 @@
 // gtm.linkClick event gtm would push itself (gtm.triggers "" matches the container's trigger
 // filters), and loads gtm at once on the first one. gtm replays the queued events in order
 
+// constants
+import { TRACKING_OFF } from "@/constants/tracking";
+
 export const GTM_ID = "GTM-5TGBGMNN";
 
 // the google ads account the container's conversion tags send to
 const ADS_ID = "AW-11091121325";
 
 export const GTM_QUEUE = `(function (w, d) {
+  // no gtm at all on the no-tracking pages (constants/tracking.ts): no dataLayer, no
+  // __loadGtm, so GTM_LOAD does nothing either
+  if (${TRACKING_OFF}) return;
   var l = (w.dataLayer = w.dataLayer || []);
   l.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
   // gtm calls this once it has processed gtm.js, i.e. once its own click listeners are on.

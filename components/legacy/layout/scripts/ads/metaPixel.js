@@ -1,11 +1,15 @@
 // React & Next
 import Script from "next/script";
 
-// meta pixel
+// constants
+import { TRACKING_OFF } from "@/constants/tracking";
+
+// meta pixel (skipped on the no-tracking pages, constants/tracking.ts)
 export default function MetaPixel() {
   return (
     <Script id="meta-pixel" strategy="lazyOnload">
-      {`!function(f,b,e,v,n,t,s)
+      {`if (!(${TRACKING_OFF})) {
+        !function(f,b,e,v,n,t,s)
         {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
         n.callMethod.apply(n,arguments):n.queue.push(arguments)};
         if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
@@ -14,7 +18,8 @@ export default function MetaPixel() {
         s.parentNode.insertBefore(t,s)}(window, document,'script',
         'https://connect.facebook.net/en_US/fbevents.js');
         fbq('init', '670871341209888');
-        fbq('track', 'PageView');`}
+        fbq('track', 'PageView');
+      }`}
     </Script>
   );
 }
