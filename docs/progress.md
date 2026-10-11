@@ -3142,3 +3142,67 @@ The plan is `C:\Users\ABO ELMAGD\.claude\plans\tender-sprouting-hare.md` (rev 2 
 **Follow-up (not changed): `/chats/[mid]?participant=<token>` has the same exposure.**
 - The participant token in its url is a credential, and gtm, the pixels and clarity all load there today, with clarity recording the session chat.
 - The same guard would cover it by adding `/^\/chats\//` (and `/dashboard/chats`) to `NO_TRACKING_PATH`, once it's decided.
+
+## 2026-10-12 · مرافعة phase 5 (client checkout and payment)
+
+**Payment code** (approved by Ziad; shown as a diff first, applied after approval)
+
+- **`handlers/admin/order/payment.ts`, the new `PayPleading(data)` next to `Pay`.**
+  - **Why separate:** `Pay`'s input and the booking action (`actions/booking.ts`) are unchanged, so the public booking action can never take a pleading payload.
+  - **The steps:**
+    0. Check the input with the zod schema.
+    1. Load the case by its token, with expiry applied.
+    2. The quote must be open and the consultant still eligible (public, LAW, opted in).
+    3. `CheckIsBlocked` on the case's phone.
+    4. Check the case's checkout: refuse if paid or running.
+    5. Load the finance config and `getPleadingCommission()`.
+    6. `calculatePayment({ baseCost: pleading.price, discountPercent: 0 })` and `withTax`. `applyCoupon` and `resolveConsultantPricing` are never called.
+    7. Build the `ReservationFormType` on the server from the case (name, phone, cid, duration "60", author or "temp"), then `reserveConsultant(…, commissionOverride)`, which re-validates it and checks the slot.
+    8. Compare-and-set on `orderId` (`linkPleadingCheckout`): of two racing checkouts only one reaches the gateway, and the loser's NEW order is left to the cancel-orders cron.
+    9. The same Moyasar / Tabby handoff as `Pay`.
+- **`data/order/reserveation.ts`:** `reserveConsultant` gets an optional last `commissionOverride`, which wins over the center, consultant and default rates. Existing callers pass nothing.
+- **`onPaymentSuccess`:** after `createNewMeeting`, `await linkPaidPleading(order.oid, order.meeting[0].mid)`. It never throws, so the notifications and telegram after it run as before.
+- **No change needed:**
+  - `notificationNewOrder` already notifies both sides; a pleading order takes the ordinary branch (`order_new_owner` and `order_new_client`).
+  - The Moyasar and Tabby webhooks verify the gateway's own amount against `withTax(payment.total)` of the stored order, and a pleading order stores `Payment.total` like a booking.
+
+**Decisions applied with the patch**
+
+- **HOLD:** `getPleadingCheckout` treats HOLD as "running" only for the same 20 minutes as NEW (from the order's `created_at`, the NEW check's timestamp). HOLD is also where a declined card or a failed capture ends up.
+  - After 20 minutes, a HOLD order no longer blocks a new checkout, a re-quote, a decline or a cancel.
+  - PROCESSING still blocks.
+- **`linkPaidPleading` is idempotent:**
+  - A case already PAID returns at once, with no writes.
+  - The PAID update matches QUOTED or EXPIRED only, so a concurrent second call moves nothing.
+  - The closed-case telegram alert fires once per order: a marker is pushed into `Order.info` by the same statement that checks for it.
+- **The guest `user`:** `"temp"`, the value the booking action gives every guest booking (`user?.id ?? "temp"`). A case created by a signed-in client uses its `author`.
+
+**Client side**
+
+- **`actions/pleading.ts`, the new `checkoutPleading`:**
+  - public, with `checkHuman`, rate-limited per ip 10 per 10 minutes, and the input `{token, date, time, method, acceptTerms}` only
+  - it maps `PayPleading`'s failure steps to codes: not_found, quote_closed, unavailable, blocked, already_paid, checkout_in_progress, slot_taken (conflict), invalid_input, otherwise payment_failed
+  - the Arabic messages are in `pleadingErrors`
+- **`components/clients/pleading/checkout.tsx`:** a dialog with the booking flow's own `StepDateTime`, `MethodForm` and `TermsForm`, unchanged.
+  - The form uses the booking form's type with `cost = {price}` and duration "60", so no generic prop was needed.
+  - It shows a summary (the date, 60 minutes, the price before VAT and the total with VAT), and the pay button shows the total.
+- **`ClientPanel`:**
+  - "حجز الموعد والدفع" opens the checkout while the quote is open and no payment is running.
+  - **The paid view:** the order number, the date and time, and "محادثة الجلسة" → `/chats/<mid>?participant=<USER token>`, from `getPaidPleadingSession` on the server. It refreshes itself if the case is paid while the page is open.
+- **`/pleading/q/[token]`:** loads the consultant's unavailable weekdays, the finance config, and the paid session.
+- **Conversion:** both gateways return to `/payment/success` (no case token), where the existing conversion fires as for every booking (a gtm click trigger in the container).
+  - For a pleading order, that page also pushes `order_type: "pleading"` to the data layer (`isPleadingOrder`), so the container can tell the two apart.
+  - Other orders get nothing new.
+- **`data/pleading.ts`:** `getPleadingForCheckout`, `linkPleadingCheckout`, `getPaidPleadingSession`, `isPleadingOrder`.
+
+**Verified**
+
+- `tsc --noEmit` 0 errors. eslint shows only the old `refund` unused-argument warning in `payment.ts`.
+- A clean `npm run build`. The manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`.
+- Before approval, with the patch applied temporarily: the hydration check on `/pleading`, `/pleading/q/<random token>` and `/payment/success` showed 0 errors and no duplicate ids.
+- **Not run here:** a real Moyasar or Tabby test payment. It's in Ziad's manual test.
+
+**Open questions / follow-ups**
+
+- **A HOLD order resolved to PAID later by an admin,** after the client has started a newer checkout: `linkPaidPleading` finds no case for that order (the case points to the newer one), so the case isn't linked. That's rare and needs an admin anyway.
+- **The GTM container:** add `order_type` as a data layer variable to the purchase conversion if marketing wants to split them.

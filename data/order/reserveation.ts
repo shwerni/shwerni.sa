@@ -44,6 +44,7 @@ export const reserveConsultant = async (
   tax: number, // server-resolved — do not read from formdata.finance
   commissionRate: number, // server-resolved platform default commission
   origin: OrderOrigin = OrderOrigin.PLATFORM,
+  commissionOverride?: number, // pleading orders: the server-resolved pleading share wins
 ) => {
   try {
     // parse
@@ -105,11 +106,15 @@ export const reserveConsultant = async (
     // commission: a center order snapshots the center's % (100 - platformRate, centers spec §7.1);
     // otherwise the consultant's own rate, falling back to the SERVER default —
     // never the client's claimed rate
-    const oCommission = center
-      ? 100 - center.platformRate
-      : commission
-        ? commission
-        : commissionRate;
+    // a pleading order passes its own share (finance/pleadingCommission), which wins over all
+    const oCommission =
+      commissionOverride !== undefined
+        ? commissionOverride
+        : center
+          ? 100 - center.platformRate
+          : commission
+            ? commission
+            : commissionRate;
 
     // client name
     const clinetName =

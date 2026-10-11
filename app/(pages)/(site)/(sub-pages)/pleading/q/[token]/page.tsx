@@ -8,7 +8,9 @@ import { CaseChat } from "@/components/clients/pleading/case-chat";
 import { ClientPanel } from "@/components/clients/pleading/client-panel";
 
 // prisma data
-import { getClientPleading } from "@/data/pleading";
+import { getClientPleading, getPaidPleadingSession } from "@/data/pleading";
+import { getUnavailableWeekdays } from "@/data/consultant";
+import { getFinanceConfig } from "@/data/admin/settings/finance";
 
 // prisma types
 import { UserRole } from "@/lib/generated/prisma/enums";
@@ -40,6 +42,13 @@ export default async function PleadingClientPage({ params }: Props) {
 
   const { consultant } = pleading;
 
+  // the checkout's calendar and payment methods, and the paid session (its chat link)
+  const [unavailable, finance, paid] = await Promise.all([
+    getUnavailableWeekdays(consultant.cid),
+    getFinanceConfig(),
+    getPaidPleadingSession(token),
+  ]);
+
   return (
     <UploadThingWrapper>
       <div
@@ -69,6 +78,8 @@ export default async function PleadingClientPage({ params }: Props) {
               image: consultant.image,
               gender: consultant.gender,
             }}
+            booking={{ cid: consultant.cid, finance, unavailable }}
+            paid={paid}
           />
         </div>
       </div>

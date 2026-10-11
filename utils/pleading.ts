@@ -54,6 +54,12 @@ export const pleadingErrors = {
   invalid_state: "لا يمكن تنفيذ هذا الإجراء في حالة الطلب الحالية",
   checkout_in_progress: "عملية الدفع قيد التنفيذ بالفعل",
   not_law: "طلبات المرافعة متاحة للمستشارين القانونيين فقط",
+  quote_closed: "انتهت صلاحية العرض أو لم يعد متاحاً للحجز",
+  already_paid: "تم دفع هذا الطلب بالفعل",
+  slot_taken: "هذا الموعد تم حجزه بالفعل، برجاء اختيار وقت آخر",
+  blocked: "هذا الحساب محظور",
+  payment_failed:
+    "تعذّر إتمام الدفع، برجاء المحاولة مرة أخرى أو اختيار طريقة دفع أخرى",
 } as const;
 
 // bot_detected is a base code (types/action.d.ts, message in baseActionErrors) that
@@ -194,7 +200,9 @@ export const pleadingTokenSchema = z.object({ token: clientTokenSchema });
 
 export const pleadingToggleSchema = z.object({ enabled: z.boolean() });
 
-// checkout (used from phase 5): no price, coupon or discount fields exist on purpose
+// checkout: no price, coupon or discount fields exist on purpose
+export type PleadingCheckoutInput = z.infer<typeof pleadingCheckoutSchema>;
+
 export const pleadingCheckoutSchema = z.object({
   token: clientTokenSchema,
   date: z.coerce.date({ required_error: "التاريخ مطلوب" }),

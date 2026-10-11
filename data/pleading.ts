@@ -47,6 +47,9 @@ const DAY_MS = 86_400_000;
 // NEW orders after 20 minutes)
 const CHECKOUT_WINDOW_MS = 20 * 60_000;
 
+// the order info entry that marks "paid on a closed case, admin alerted" (alert once)
+const CLOSED_CASE_PAID = "pleading: paid on a closed case, refund manually";
+
 type Result<T> = Promise<ActionResult<T, PleadingError>>;
 
 // who is asking: the client by their link token, or the consultant by their session
@@ -284,8 +287,8 @@ export async function getPleadingConsultant(cid: number) {
   }
 }
 
-// the case's current checkout order: "paid", "running" (NEW and under 20 minutes old, or a
-// payment PROCESSING or on HOLD, e.g. tabby), or null when there's none or it's abandoned
+// the case's current checkout order: "paid", "running" (a payment PROCESSING, or NEW or HOLD
+// and under 20 minutes old), or null when there's none or it's abandoned or failed
 export async function getPleadingCheckout(
   pleadingId: string,
 ): Promise<"paid" | "running" | null> {
@@ -303,11 +306,13 @@ export async function getPleadingCheckout(
 
   const payment = order.payment?.payment;
   if (payment === PaymentState.PAID) return "paid";
+
+  // NEW and HOLD block only for 20 minutes from the order's creation: HOLD is also where a
+  // declined card or a failed capture ends up, and nothing moves it on by itself
+  const recent = Date.now() - order.created_at.getTime() < CHECKOUT_WINDOW_MS;
   if (
     payment === PaymentState.PROCESSING ||
-    payment === PaymentState.HOLD ||
-    (payment === PaymentState.NEW &&
-      Date.now() - order.created_at.getTime() < CHECKOUT_WINDOW_MS)
+    ((payment === PaymentState.NEW || payment === PaymentState.HOLD) && recent)
   )
     return "running";
 
@@ -686,13 +691,134 @@ export async function cancelPleading(by: ClientBy): Result<null> {
 
 // ---------- payment ----------
 
-// NOT CALLED YET: wired into onPaymentSuccess in phase 6, with approval. in one transaction, marks
-// the case of this order PAID and moves its whole chat onto the session's meeting, so the
+// the checkout's view of a case (Pay's pleading branch): everything the order is built from,
+// and whether the consultant can still take pleading requests. expiry is applied first
+export async function getPleadingForCheckout(token: string) {
+  try {
+    await expireDuePleadings({ clientToken: token });
+
+    const pleading = await prisma.pleading.findUnique({
+      where: { clientToken: token },
+      select: {
+        id: true,
+        plid: true,
+        state: true,
+        name: true,
+        phone: true,
+        author: true,
+        price: true,
+        expiresAt: true,
+        orderId: true,
+        consultantId: true,
+      },
+    });
+    if (!pleading) return null;
+
+    const consultant = await prisma.consultant.findFirst({
+      where: pleadingConsultantWhere(pleading.consultantId),
+      select: { name: true },
+    });
+
+    return { ...pleading, consultant };
+  } catch (err) {
+    logError("checkout", err);
+    return null;
+  }
+}
+
+// compare-and-set: links a new checkout order to a QUOTED case only if the case still points to
+// the order the checkout started from (null or an abandoned one). false when another checkout
+// won the race: its order stays NEW and the cancel-orders cron cancels it
+export async function linkPleadingCheckout(
+  pleadingId: string,
+  expectedOrderId: number | null,
+  oid: number,
+) {
+  try {
+    const { count } = await prisma.pleading.updateMany({
+      where: {
+        id: pleadingId,
+        orderId: expectedOrderId,
+        state: PleadingState.QUOTED,
+      },
+      data: { orderId: oid },
+    });
+    return count === 1;
+  } catch (err) {
+    logError("checkout-link", err);
+    return false;
+  }
+}
+
+// the client's paid view: the session (date, time) and the client's participant token for the
+// session chat, looked up on the server. null unless the case is PAID
+export async function getPaidPleadingSession(token: string) {
+  try {
+    const pleading = await prisma.pleading.findUnique({
+      where: { clientToken: token },
+      select: {
+        state: true,
+        price: true,
+        order: {
+          select: {
+            oid: true,
+            meeting: {
+              take: 1,
+              orderBy: { session: "asc" },
+              select: {
+                mid: true,
+                date: true,
+                time: true,
+                duration: true,
+                participants: {
+                  where: { role: UserRole.USER },
+                  select: { participant: true },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const meeting = pleading?.order?.meeting[0];
+    if (pleading?.state !== PleadingState.PAID || !meeting) return null;
+
+    return {
+      oid: pleading.order!.oid,
+      mid: meeting.mid,
+      date: meeting.date,
+      time: meeting.time,
+      duration: meeting.duration,
+      participant: meeting.participants[0]?.participant ?? null,
+    };
+  } catch (err) {
+    logError("paid", err);
+    return null;
+  }
+}
+
+// the post-payment page: is this order a pleading checkout (for the conversion marker)
+export async function isPleadingOrder(oid: number) {
+  try {
+    return !!(await prisma.pleading.findUnique({
+      where: { orderId: oid },
+      select: { id: true },
+    }));
+  } catch {
+    return false;
+  }
+}
+
+// called by onPaymentSuccess (after createNewMeeting) for every paid order. in one transaction,
+// marks the case of this order PAID and moves its whole chat onto the session's meeting, so the
 // session chat continues the same thread. QUOTED or EXPIRED pass (a quote can expire while its
-// checkout is still running); PAID passes again, so a repeated call is harmless. a payment that
-// lands on a DECLINED or CANCELED case isn't linked: it's logged and sent to the admin telegram
-// for a manual refund. null when the order isn't a case's current checkout or wasn't linked;
-// never throws, so onPaymentSuccess goes on as for any order
+// checkout is still running). idempotent: a case already PAID returns at once, and of two
+// concurrent calls only one moves the chat. a payment that lands on a DECLINED or CANCELED case
+// isn't linked: it's logged and sent to the admin telegram once per order for a manual refund.
+// null when the order isn't a case's current checkout or wasn't linked; never throws, so
+// onPaymentSuccess goes on as for any order
 export async function linkPaidPleading(
   oid: number,
   mid: string,
@@ -704,10 +830,21 @@ export async function linkPaidPleading(
     });
     if (!pleading) return null;
 
+    // already linked to this order (a repeated call): nothing to do
+    if (pleading.state === PleadingState.PAID) return { plid: pleading.plid };
+
     if (
       pleading.state === PleadingState.DECLINED ||
       pleading.state === PleadingState.CANCELED
     ) {
+      // alert once per order: the marker goes into the order's info log in the same statement
+      // that checks for it, so a repeated call finds it and stays silent
+      const { count: first } = await prisma.order.updateMany({
+        where: { oid, NOT: { info: { has: CLOSED_CASE_PAID } } },
+        data: { info: { push: CLOSED_CASE_PAID } },
+      });
+      if (!first) return null;
+
       console.error(
         `[pleading] paid order on a closed case oid=${oid} plid=${pleading.plid} state=${pleading.state}`,
       );
@@ -718,17 +855,12 @@ export async function linkPaidPleading(
     }
 
     return await prisma.$transaction(async (tx) => {
+      // QUOTED or EXPIRED only: of two concurrent calls, the second matches nothing and moves nothing
       const { count } = await tx.pleading.updateMany({
         where: {
           id: pleading.id,
           orderId: oid,
-          state: {
-            in: [
-              PleadingState.QUOTED,
-              PleadingState.EXPIRED,
-              PleadingState.PAID,
-            ],
-          },
+          state: { in: [PleadingState.QUOTED, PleadingState.EXPIRED] },
         },
         data: { state: PleadingState.PAID },
       });

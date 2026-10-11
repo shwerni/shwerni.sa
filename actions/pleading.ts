@@ -14,6 +14,9 @@ import {
 } from "@/data/pleading";
 import { getOwnerCidByAuthor, setPleadingEnabled } from "@/data/consultant";
 
+// handlers
+import { PayPleading } from "@/handlers/admin/order/payment";
+
 // lib
 import { checkHuman } from "@/lib/bot-protection";
 import { createAction, fail, ok } from "@/lib/safe-action";
@@ -23,6 +26,7 @@ import { UserRole } from "@/lib/generated/prisma/enums";
 
 // utils
 import {
+  pleadingCheckoutSchema,
   pleadingClientMessageSchema,
   pleadingDeclineSchema,
   pleadingFinalizeSchema,
@@ -157,5 +161,38 @@ export const togglePleading = createAction(
     updateTag("pleading-consultants");
 
     return ok({ enabled });
+  },
+);
+
+// PayPleading's failure steps → this action's error codes (anything else is a payment failure)
+const checkoutErrors = {
+  invalid: "invalid_input",
+  not_found: "not_found",
+  quote_closed: "quote_closed",
+  unavailable: "unavailable",
+  blocked: "blocked",
+  already_paid: "already_paid",
+  checkout_in_progress: "checkout_in_progress",
+  conflict: "slot_taken",
+} as const;
+
+const checkoutError = (step?: string) =>
+  checkoutErrors[step as keyof typeof checkoutErrors] ?? "payment_failed";
+
+// public: the client books and pays the open quote (their link token is their identity). only
+// the token, date, time, method and terms are accepted; on success PayPleading redirects to the
+// gateway, so this only ever returns a failure
+export const checkoutPleading = createAction(
+  {
+    name: "pleading.checkout",
+    schema: pleadingCheckoutSchema,
+    auth: "public",
+    rateLimit: [{ by: "ip", limit: 10, window: "10 m" }],
+  },
+  async (input) => {
+    if (!(await checkHuman("checkoutPleading"))) return fail("bot_detected");
+
+    const result = await PayPleading(input);
+    return fail(checkoutError(result?.step));
   },
 );

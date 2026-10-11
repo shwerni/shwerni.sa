@@ -12,6 +12,7 @@ import OrderTable from "@/components/clients/shared/order-table";
 
 // prisma data
 import { getReservationByPid } from "@/data/order/reserveation";
+import { isPleadingOrder } from "@/data/pleading";
 
 // prisma types
 import { OrderType, UserRole } from "@/lib/generated/prisma/enums";
@@ -82,6 +83,9 @@ export default async function Page({ searchParams }: Props) {
   // redirect to failed
   if (!success) redirect(`payment/failed?id=${payment.pid}`);
 
+  // a pleading (مرافعة) checkout: marked for marketing below
+  const pleading = await isPleadingOrder(order.oid);
+
   // if scale exist
   const scale =
     order.scaleId && !order.scaleResult
@@ -90,6 +94,17 @@ export default async function Page({ searchParams }: Props) {
 
   return (
     <Section className="my-5 py-5 px-3 max-w-xl mx-auto">
+      {/* marketing: the purchase conversion fires here as for every booking (gtm.linkClick on
+          this page); a pleading order also sets the data layer variable order_type = "pleading",
+          so the gtm container can tell it from a normal booking. nothing for other orders */}
+      {pleading && (
+        <script
+          id="pleading-purchase"
+          dangerouslySetInnerHTML={{
+            __html: `window.dataLayer && window.dataLayer.push({ order_type: "pleading" });`,
+          }}
+        />
+      )}
       <div className="space-y-6">
         {/* success Header */}
         <div className="flex flex-col items-center gap-3 pt-4 pb-2">

@@ -1,6 +1,12 @@
 "use client";
+// React & Next
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
 // components
 import { Button } from "@/components/ui/button";
+import { PleadingCheckout } from "@/components/clients/pleading/checkout";
 import { CancelDialog } from "@/components/clients/pleading/cancel-dialog";
 import ConsultantImage from "@/components/clients/shared/consultant-image";
 import { PleadingStateBadge } from "@/components/clients/pleading/state-badge";
@@ -9,7 +15,15 @@ import { PleadingStateBadge } from "@/components/clients/pleading/state-badge";
 import { usePleadingCase } from "@/components/clients/pleading/use-case";
 
 // prisma types
-import { Gender, PleadingState, UserRole } from "@/lib/generated/prisma/enums";
+import {
+  Gender,
+  PleadingState,
+  UserRole,
+  Weekday,
+} from "@/lib/generated/prisma/enums";
+
+// types
+import type { FinanceConfig } from "@/types/data";
 
 // utils
 import { TAX_PERCENT, withTax } from "@/utils/tax";
@@ -24,10 +38,12 @@ import {
 // icons
 import {
   CalendarCheck,
+  CircleCheck,
   Clock,
   CreditCard,
   Loader2,
   Lock,
+  MessageSquareMore,
   ShieldAlert,
 } from "lucide-react";
 
@@ -39,18 +55,46 @@ const riyadh = (iso: string) =>
     timeStyle: "short",
   });
 
+// the paid case's session, looked up on the server (getPaidPleadingSession)
+type PaidSession = {
+  oid: number;
+  mid: string;
+  date: string;
+  time: string;
+  participant: string | null;
+};
+
 // the client's side of the case page: the consultant, the quote (reply, price, expiry), the
-// booking button (wired in phase 5), cancel. state comes from the same poll as the chat
+// checkout (date and time, terms, method, then the gateway), cancel, and the paid view. state
+// comes from the same poll as the chat
 export function ClientPanel({
   plid,
   token,
   consultant,
+  booking,
+  paid,
 }: {
   plid: number;
   token: string;
-  consultant: { name: string; title: string; image: string | null; gender: Gender };
+  consultant: {
+    name: string;
+    title: string;
+    image: string | null;
+    gender: Gender;
+  };
+  // what the date-time step and the method form need
+  booking: { cid: number; finance: FinanceConfig; unavailable: Weekday[] };
+  paid: PaidSession | null;
 }) {
+  const router = useRouter();
   const { data, mutate } = usePleadingCase(plid, token);
+  const [checkingOut, setCheckingOut] = useState(false);
+
+  // paid while the page was open: reload the server part (the session and its chat link)
+  const isPaid = data?.state === PleadingState.PAID;
+  useEffect(() => {
+    if (isPaid && !paid) router.refresh();
+  }, [isPaid, paid, router]);
 
   // the quote message is stamped with quotedAt (see quotePleading)
   const quoteMessage =
@@ -104,8 +148,8 @@ export function ClientPanel({
             <div className="flex gap-2 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
               <Clock className="w-4 h-4 shrink-0 mt-0.5 text-theme" />
               <p>
-                طلبك عند المستشار الآن. سيصلك إشعار على واتساب عند رده وتحديد سعر
-                الجلسة، ويمكنك متابعة المحادثة معه هنا.
+                طلبك عند المستشار الآن. سيصلك إشعار على واتساب عند رده وتحديد
+                سعر الجلسة، ويمكنك متابعة المحادثة معه هنا.
               </p>
             </div>
           )}
@@ -136,7 +180,11 @@ export function ClientPanel({
                   </div>
                   {data.expiresAt && (
                     <div className="flex justify-between gap-2 text-slate-500">
-                      <dt>{quoteOpen ? "صلاحية العرض حتى" : "انتهت صلاحية العرض في"}</dt>
+                      <dt>
+                        {quoteOpen
+                          ? "صلاحية العرض حتى"
+                          : "انتهت صلاحية العرض في"}
+                      </dt>
                       <dd className="tabular-nums" dir="ltr">
                         {riyadh(data.expiresAt)}
                       </dd>
@@ -144,11 +192,11 @@ export function ClientPanel({
                   )}
                 </dl>
 
-                {/* booking and payment: wired in phase 5 */}
-                {quoteOpen && !running && (
+                {/* booking and payment */}
+                {quoteOpen && !running && !checkingOut && (
                   <Button
                     type="button"
-                    disabled
+                    onClick={() => setCheckingOut(true)}
                     className="w-full bg-theme hover:bg-theme/90 text-white"
                   >
                     <CalendarCheck className="w-4 h-4" />
@@ -157,6 +205,66 @@ export function ClientPanel({
                 )}
               </section>
             )}
+
+          {/* the checkout */}
+          {quoteOpen && !running && checkingOut && data.price != null && (
+            <PleadingCheckout
+              token={token}
+              cid={booking.cid}
+              consultant={consultant.name}
+              price={data.price}
+              finance={booking.finance}
+              unavailable={booking.unavailable}
+              onCancel={() => setCheckingOut(false)}
+            />
+          )}
+
+          {/* paid: the session and its chat (the case chat continues there) */}
+          {isPaid && (
+            <section className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 space-y-3">
+              <h2 className="flex items-center gap-2 font-semibold text-emerald-800">
+                <CircleCheck className="w-4 h-4" />
+                تم الدفع وتأكيد الجلسة
+              </h2>
+              {paid ? (
+                <>
+                  <dl className="text-sm space-y-1.5 text-slate-700">
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-slate-500">رقم الطلب</dt>
+                      <dd className="tabular-nums">#{paid.oid}</dd>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-slate-500">الموعد</dt>
+                      <dd className="tabular-nums" dir="ltr">
+                        {paid.date} {paid.time}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-slate-500">مدة الجلسة</dt>
+                      <dd>60 دقيقة</dd>
+                    </div>
+                  </dl>
+                  {paid.participant && (
+                    <Button
+                      asChild
+                      className="w-full bg-theme hover:bg-theme/90 text-white"
+                    >
+                      <Link
+                        href={`/chats/${paid.mid}?participant=${paid.participant}`}
+                      >
+                        <MessageSquareMore className="w-4 h-4" />
+                        محادثة الجلسة
+                      </Link>
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <div className="flex justify-center py-2 text-emerald-700">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                </div>
+              )}
+            </section>
+          )}
 
           {/* a payment in progress */}
           {running && (
@@ -168,8 +276,11 @@ export function ClientPanel({
 
           {/* cancel, or why the case is closed */}
           {isPleadingChatOpen(data.state) ? (
-            !running && <CancelDialog token={token} onDone={() => void mutate()} />
-          ) : (
+            !running &&
+            !checkingOut && (
+              <CancelDialog token={token} onDone={() => void mutate()} />
+            )
+          ) : isPaid ? null : (
             <div className="flex gap-2 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
               <Lock className="w-4 h-4 shrink-0 mt-0.5" />
               <p>{pleadingClosedNotes[data.state]}</p>
