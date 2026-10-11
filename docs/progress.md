@@ -3206,3 +3206,36 @@ The plan is `C:\Users\ABO ELMAGD\.claude\plans\tender-sprouting-hare.md` (rev 2 
 
 - **A HOLD order resolved to PAID later by an admin,** after the client has started a newer checkout: `linkPaidPleading` finds no case for that order (the case points to the newer one), so the case isn't linked. That's rare and needs an admin anyway.
 - **The GTM container:** add `order_type` as a data layer variable to the purchase conversion if marketing wants to split them.
+
+## 2026-10-12 · fixes: the false toast on payment, the "الترافع" home tile, the reconciliation report
+
+**1. "محاولات كثيرة" toast on a successful payment redirect**
+
+- **The cause:** Next 16.2.9 rejects a server action's promise when the action calls `redirect()`, then hard-navigates to an external url (`server-action-reducer.js`).
+  - `PayPleading` ends in `redirect(<moyasar url>)`, so `useAction`'s `catch` showed `networkError` ("محاولات كثيرة أو مشكلة في الاتصال…") while the browser went to Moyasar anyway.
+  - It wasn't the rate limiter.
+- **The fix (`hooks/use-action.ts`):** the `catch` ignores next's redirect error (`digest` starting with `NEXT_REDIRECT`, no `next/dist` import), and the loading toast stays until the page leaves. Every `useAction` caller benefits; today only `checkoutPleading` redirects.
+- **The normal booking** (`reservation/form.tsx`) awaits `Pay` directly. On a successful redirect it logs an uncaught `NEXT_REDIRECT` in the console, but shows no toast and navigates fine. Not changed.
+
+**2. Home services:** "الترافع" → `/pleading` with the lucide `Scale` icon, first in `components/clients/home/services.tsx`. There are now 4 visible tiles.
+
+**3. Reconciliation (report only, nothing changed): the booking can't complete**
+
+- **Submitting does nothing.**
+  - `ReconciliationSchema` (in the page) requires `cost` and `finance`, which the form never sets and doesn't render.
+  - `zodResolver` always fails on them with no visible message, so `onSubmit` never runs.
+- **There's no page to pay on.**
+  - `confirmReconciliation` redirects to `/pay/<zid>`, and no `/pay/[id]` page exists, so it's a 404.
+  - The NEW order is cancelled by the cron after 20 minutes. No gateway checkout is ever created.
+- **Related:**
+  - `reserveReconciliation` creates no meeting: a paid order would skip `onPaymentSuccess` (no room or notifications), and `/payment/success` would throw at `order.meeting[0].id`.
+  - Hardcoded `consultantId: 213` while the info log says `cid = 77`, plus a fixed total of 700, commission 60 and tax 15.
+  - The phone isn't normalized.
+  - `/reconciliation/[id]` isn't linked anywhere and decodes with `decryptToken` + `zdencryption`, while the handler encodes with `zencryption`.
+- The service is hidden on the home grid (`status: false`).
+
+**Verified**
+
+- `tsc --noEmit` 0 errors, eslint clean on both files, a clean `npm run build`, and the manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`.
+- **Headless chrome on `/`** at 380px and 1280px: the tiles are الترافع → /pleading, كوبونات الخصم, برامجنا and المقاييس, with 0 hydration errors.
+- **Manual (Ziad):** pay on a quoted test case should show the loading toast only, then Moyasar.

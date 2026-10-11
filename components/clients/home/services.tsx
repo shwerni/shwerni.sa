@@ -10,11 +10,19 @@ import {
   Layers,
   ClipboardCheck,
   TicketPercent,
+  Scale,
 } from "lucide-react";
 import { RiDiamondRingFill } from "react-icons/ri";
 
 export default function Services() {
   const services = [
+    {
+      label: "الترافع",
+      desc: "اعرض قضيتك على مستشار قانوني واحصل على رده وسعر الجلسة قبل الحجز.",
+      link: "/pleading",
+      icon: Scale,
+      status: true,
+    },
     {
       label: "كوبونات الخصم",
       desc: "كوبونات خصم",

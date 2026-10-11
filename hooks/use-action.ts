@@ -37,6 +37,14 @@ type OptionsArg<A extends AnyAction> = [ActionCustomError<A>] extends [never]
   ? [options?: UseActionOptions<A>]
   : [options: UseActionOptions<A>];
 
+// next's redirect error (redirect() in a server action); checked by its digest, so no next/dist import
+const isRedirectError = (err: unknown) =>
+  typeof err === "object" &&
+  err !== null &&
+  "digest" in err &&
+  typeof err.digest === "string" &&
+  err.digest.startsWith("NEXT_REDIRECT");
+
 export function useAction<A extends AnyAction>(
   action: A,
   ...args: OptionsArg<A>
@@ -81,7 +89,12 @@ export function useAction<A extends AnyAction>(
         });
 
         options.onError?.(result.error as ActionError<A>);
-      } catch {
+      } catch (err) {
+        // the action redirected (e.g. to the payment gateway): next 16 rejects the action's
+        // promise with its redirect error while the navigation goes on, so it's not a failure.
+        // the loading toast stays until the page leaves
+        if (isRedirectError(err)) return;
+
         toast.error(networkError, { id });
       }
     });
