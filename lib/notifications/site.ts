@@ -13,6 +13,7 @@ import {
 import { sendWhatsappTemplate, type TemplateParams } from "@/lib/api/whatsapp";
 
 // utils
+import { phoneNumber } from "@/utils";
 import { meetingSentence, timeLabel } from "@/utils/date";
 import { encryptionDigitsToUrl, zencryption } from "@/utils/admin/encryption";
 
@@ -417,23 +418,37 @@ export const notificationNewChatMessage = async (
 
 // ---------- pleading (مرافعة) ----------
 
-// the pleading templates wait for meta approval: until PLEADING_WHATSAPP_ENABLED is "true",
-// only the template name and the case number are logged (never the phone or the link token).
-// turning it on needs no code change
-const sendPleadingTemplate = (
+// a phone in a log line: its last 4 digits only
+const last4 = (phone: string) => `•••${phone.slice(-4)}`;
+
+// every pleading notification goes through here. the phone is normalized like every booking
+// phone (phoneNumber: digits only). a failed send, thrown or whatsapp's own { ok: false }, never
+// fails the caller: it's logged with the template name, the case number and the phone's last
+// 4 digits. never whatsapp's error message or the params: the client's link token is in the url
+const sendPleadingTemplate = async (
   template: string,
   plid: number,
   phone: string,
   params: TemplateParams,
-) =>
-  notify(async () => {
-    if (process.env.PLEADING_WHATSAPP_ENABLED !== "true") {
-      console.log(`[pleading] whatsapp off template=${template} plid=${plid}`);
-      return;
-    }
+): Promise<boolean> => {
+  const to = phoneNumber(phone);
 
-    await sendWhatsappTemplate(phone, template, params);
-  });
+  try {
+    const result = await sendWhatsappTemplate(to, template, params);
+    if (result.ok) return true;
+
+    const code = result.errorCode ?? result.httpStatus ?? "-";
+    console.error(
+      `[pleading] whatsapp failed template=${template} plid=${plid} to=${last4(to)} code=${code}`,
+    );
+  } catch {
+    console.error(
+      `[pleading] whatsapp failed template=${template} plid=${plid} to=${last4(to)} code=throw`,
+    );
+  }
+
+  return false;
+};
 
 // the consultant: a new case request, linking to the case in the dashboard
 export const notificationPleadingNewRequest = (

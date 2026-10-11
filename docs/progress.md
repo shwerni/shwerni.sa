@@ -2949,9 +2949,7 @@ The plan is `C:\Users\ABO ELMAGD\.claude\plans\tender-sprouting-hare.md` (rev 2 
 
 - **`data/consultant.ts`:** `getPleadingConsultants()` (the public rule + LAW + `pleadingEnabled`, card data in sort_key order) and `setPleadingEnabled(cid, enabled)` (LAW only).
 - **Commission:** `getPleadingCommission()` in `data/admin/settings/finance.ts` reads `finance/pleadingCommission`, the consultant's share; `constants/admin.ts` adds `defaultPleadingCommission = 80`. Nothing reads it yet (phase 5).
-- **`lib/notifications/site.ts`:** the 4 template functions.
-  - They're behind `PLEADING_WHATSAPP_ENABLED` (anything but "true" means off).
-  - While off, they log only the template name and the plid.
+- **`lib/notifications/site.ts`:** the 4 template functions (they always send; see phase 6).
 - **`app/api/uploadthing/core.ts`:** the `pleadingAttachment` endpoint.
   - Limits: image 8MB, pdf 16MB, 1 file per upload.
   - Access: the token or the owner session.
@@ -3010,7 +3008,7 @@ The plan is `C:\Users\ABO ELMAGD\.claude\plans\tender-sprouting-hare.md` (rev 2 
 
 - `declinePleading(by, reason?)`: the reason is up to 500 characters and goes through `checkMessageWithAI`.
 - In one transaction with the state change, it posts the OWNER message "اعتذر المستشار عن قبول طلب المرافعة.", followed by the reason when there is one.
-- It always sends `notificationPleadingChatMessage` to the client, outside the first-of-the-day rule and behind `PLEADING_WHATSAPP_ENABLED`.
+- It always sends `notificationPleadingChatMessage` to the client, outside the first-of-the-day rule.
 
 **Phase 3**
 
@@ -3266,3 +3264,50 @@ The plan is `C:\Users\ABO ELMAGD\.claude\plans\tender-sprouting-hare.md` (rev 2 
    - It also shows a paid order's details to anyone holding the id.
 
 **Verified:** `tsc --noEmit` 0 errors, eslint clean, a clean `npm run build`, and the manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`.
+
+## 2026-10-12 · مرافعة phase 6 (notifications)
+
+**The flag is gone:** the env check, its "whatsapp off" log branch, and its mentions in this log. Pleading notifications always send. A test-phones list was never added.
+
+**Reusing existing templates was checked, and none fit.**
+- `lib/notifications/site.ts` sends:
+  - new_confirm, security_otp (url = the otp)
+  - program_owner_new, program_session_confirm
+  - scale_reminder (url = scale id)
+  - order_new_instant_owner and _client
+  - order_new_owner, order_new_client
+  - order_new_gift and _confirm
+  - preconsultation_new
+  - freesession_new_owner and _client (url = session zid)
+  - program_session_select (url = `<czid>?session=n`)
+  - review_reminder (flow)
+  - scale_result (url = scale id)
+  - check_session, rescheduling_confirmed (quick replies)
+  - session_chat_notify (url = `<mid>?participant=…`)
+- The dashboard repo sends owner_new_approved (url = cid).
+- **No url button has a site-root base.** Each existing suffix is a path-specific id (`/chats/`, `/scales/orders/`, `/scales/results/` and so on), so none can carry `pleading/q/<token>` or `dashboard/pleadings/<plid>`, and their bodies are about other services.
+- So the 4 pleading templates stay new: pleading_new_request, pleading_request_received, pleading_quoted, pleading_chat_notify (UTILITY, ar, url base `https://www.shwerni.sa/{{1}}`).
+
+**Wiring** (already at each call site in `data/pleading.ts`; checked):
+
+| Trigger | Template | Recipient | URL suffix |
+|---|---|---|---|
+| `finalizePleadingRequest` | pleading_new_request | consultant | `dashboard/pleadings/<plid>` |
+| `finalizePleadingRequest` | pleading_request_received | client | `pleading/q/<token>` |
+| `quotePleading` (quote and every re-quote) | pleading_quoted | client | `pleading/q/<token>` |
+| A case chat message (first of the day per sender) | pleading_chat_notify | the other side | `pleading/q/<token>` or `dashboard/pleadings/<plid>` |
+| `declinePleading` (always) | pleading_chat_notify | client | `pleading/q/<token>` |
+
+The quoted amount is `withTax(price)`, and the expiry is the Riyadh date.
+
+**Payment confirmation:** the existing `notificationNewOrder` (from `onPaymentSuccess`) sends order_new_owner and order_new_client to both sides. Its quick replies use `meeting-url:<mid>`, never the case token. No new template.
+
+**Failures** (`sendPleadingTemplate` in `lib/notifications/site.ts`):
+- The phone goes through `phoneNumber()` (digits only), the same normalization booking phones get.
+- `sendWhatsappTemplate` returns `{ ok: false }` instead of throwing, so both cases are caught. The log is `[pleading] whatsapp failed template=… plid=… to=•••1234 code=…`: never whatsapp's error message or the params, since the token is in the url.
+- `notifyPleadingChat` and `notifyPleadingQuoted` (their db lookup and send) can't throw into the action either: the message or quote is already saved.
+- `onPaymentSuccess` is unchanged: `linkPaidPleading` never throws, and `notificationNewOrder` is already wrapped.
+
+**Verified:** `tsc --noEmit` 0 errors, eslint clean, a clean `npm run build`, and the manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`.
+
+**Before going live:** the 4 templates must be approved in Meta (names exactly as above). Until then, each send logs `whatsapp failed … code=<meta error code>` and the case goes on as normal.

@@ -112,7 +112,9 @@ const logError = (fn: string, err: unknown, plid?: number) => {
       : err instanceof Error
         ? err.name
         : "error";
-  console.error(`[pleading] ${fn} failed${plid ? ` plid=${plid}` : ""} ${code}`);
+  console.error(
+    `[pleading] ${fn} failed${plid ? ` plid=${plid}` : ""} ${code}`,
+  );
 };
 
 // ---------- expiry ----------
@@ -492,37 +494,42 @@ export async function sendPleadingMessage(
 }
 
 // the other side of the case chat: the consultant gets the dashboard link, the client their own link
+// never throws: the message is already saved, so a failed lookup or send can't fail the action
 async function notifyPleadingChat(pleadingId: string, sender: UserRole) {
-  const pleading = await prisma.pleading.findUnique({
-    where: { id: pleadingId },
-    select: {
-      plid: true,
-      name: true,
-      phone: true,
-      clientToken: true,
-      consultant: { select: { name: true, phone: true } },
-    },
-  });
-  if (!pleading) return;
+  try {
+    const pleading = await prisma.pleading.findUnique({
+      where: { id: pleadingId },
+      select: {
+        plid: true,
+        name: true,
+        phone: true,
+        clientToken: true,
+        consultant: { select: { name: true, phone: true } },
+      },
+    });
+    if (!pleading) return;
 
-  const { plid, name, phone, clientToken, consultant } = pleading;
+    const { plid, name, phone, clientToken, consultant } = pleading;
 
-  if (sender === UserRole.USER)
-    await notificationPleadingChatMessage(
-      consultant.phone,
-      consultant.name,
-      name,
-      plid,
-      `dashboard/pleadings/${plid}`,
-    );
-  else
-    await notificationPleadingChatMessage(
-      phone,
-      name,
-      consultant.name,
-      plid,
-      `pleading/q/${clientToken}`,
-    );
+    if (sender === UserRole.USER)
+      await notificationPleadingChatMessage(
+        consultant.phone,
+        consultant.name,
+        name,
+        plid,
+        `dashboard/pleadings/${plid}`,
+      );
+    else
+      await notificationPleadingChatMessage(
+        phone,
+        name,
+        consultant.name,
+        plid,
+        `pleading/q/${clientToken}`,
+      );
+  } catch (err) {
+    logError("notify-chat", err);
+  }
 }
 
 // ---------- consultant decisions ----------
@@ -587,32 +594,37 @@ export async function quotePleading(
 }
 
 // the client: the vat-inclusive price they'll be charged, and the expiry day in riyadh
+// never throws: the quote is already saved, so a failed lookup or send can't fail the action
 async function notifyPleadingQuoted(
   pleadingId: string,
   price: number,
   expiresAt: Date,
 ) {
-  const pleading = await prisma.pleading.findUnique({
-    where: { id: pleadingId },
-    select: {
-      plid: true,
-      name: true,
-      phone: true,
-      clientToken: true,
-      consultant: { select: { name: true } },
-    },
-  });
-  if (!pleading) return;
+  try {
+    const pleading = await prisma.pleading.findUnique({
+      where: { id: pleadingId },
+      select: {
+        plid: true,
+        name: true,
+        phone: true,
+        clientToken: true,
+        consultant: { select: { name: true } },
+      },
+    });
+    if (!pleading) return;
 
-  await notificationPleadingQuoted(
-    pleading.phone,
-    pleading.name,
-    pleading.consultant.name,
-    pleading.plid,
-    withTax(price),
-    expiresAt.toLocaleDateString("en-CA", { timeZone: "Asia/Riyadh" }),
-    pleading.clientToken,
-  );
+    await notificationPleadingQuoted(
+      pleading.phone,
+      pleading.name,
+      pleading.consultant.name,
+      pleading.plid,
+      withTax(price),
+      expiresAt.toLocaleDateString("en-CA", { timeZone: "Asia/Riyadh" }),
+      pleading.clientToken,
+    );
+  } catch (err) {
+    logError("notify-quoted", err);
+  }
 }
 
 // closes an open case as DECLINED (the consultant) or CANCELED (the client), posting `message`
