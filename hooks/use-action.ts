@@ -5,6 +5,9 @@ import { useTransition } from "react";
 
 // packages
 import { toast } from "sonner";
+// next's own redirect check (next/navigation only exports unstable_rethrow, which would rethrow
+// the redirect into an error boundary in the middle of the navigation)
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 // utils
 import { baseActionErrors, networkError } from "@/utils/action-errors";
@@ -36,14 +39,6 @@ type UseActionOptions<A extends AnyAction> = ErrorMessages<A> & {
 type OptionsArg<A extends AnyAction> = [ActionCustomError<A>] extends [never]
   ? [options?: UseActionOptions<A>]
   : [options: UseActionOptions<A>];
-
-// next's redirect error (redirect() in a server action); checked by its digest, so no next/dist import
-const isRedirectError = (err: unknown) =>
-  typeof err === "object" &&
-  err !== null &&
-  "digest" in err &&
-  typeof err.digest === "string" &&
-  err.digest.startsWith("NEXT_REDIRECT");
 
 export function useAction<A extends AnyAction>(
   action: A,

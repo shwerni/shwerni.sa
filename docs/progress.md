@@ -3239,3 +3239,30 @@ The plan is `C:\Users\ABO ELMAGD\.claude\plans\tender-sprouting-hare.md` (rev 2 
 - `tsc --noEmit` 0 errors, eslint clean on both files, a clean `npm run build`, and the manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`.
 - **Headless chrome on `/`** at 380px and 1280px: the tiles are الترافع → /pleading, كوبونات الخصم, برامجنا and المقاييس, with 0 hydration errors.
 - **Manual (Ziad):** pay on a quoted test case should show the loading toast only, then Moyasar.
+
+## 2026-10-12 · use-action redirect check, and the reconciliation follow-up
+
+**`hooks/use-action.ts`:** the redirect check is now Next's own `isRedirectError` (`next/dist/client/components/redirect-error`), replacing my hand-written digest test.
+- `next/navigation` only exports `unstable_rethrow`, which on the client would rethrow the redirect into an error boundary while the browser is navigating.
+- Only a redirect error returns quietly (the loading toast stays). Every other thrown error still shows `networkError`, and every `{ ok: false }` result still shows its own message, as before.
+
+**FOLLOW-UP: reconciliation (بيننا) can't be booked. Keep it hidden until it's fixed** (`status: false` in `components/clients/home/services.tsx`; don't link `/reconciliation` anywhere). Not fixed by decision (Ziad, 2026-10-12).
+
+1. **The form's schema fields.** `ReconciliationSchema` in `app/(pages)/(site)/(sub-pages)/reconciliation/page.tsx` requires `cost: {30, 60}` and `finance: {tax, commission, payments, couponEnabled}`.
+   - The form never sets them (not in `defaultValues`) and has no field or `<FormMessage>` for them.
+   - So `zodResolver` always fails, `onSubmit` never runs, and "احجز جلسة المصالحة" silently does nothing.
+2. **The missing `/pay` page.** `confirmReconciliation` (`handlers/clients/order.ts:82`) redirects to `/pay/<zid>`, and no `/pay/[id]` page exists, so the client gets a 404.
+   - No Moyasar or Tabby checkout is ever created, and the NEW order is cancelled by the cancel-orders cron after 20 minutes.
+   - `components/legacy/layout/orderCard/payButton` links to the same missing page.
+3. **No meeting.** `reserveReconciliation` (`data/reconciliation.ts`) creates the order without a meeting. If one were paid:
+   - `onPaymentSuccess` returns early at `!order.meeting?.[0]`: no room, no WhatsApp confirmations, no telegram.
+   - `/payment/success` throws at `order.meeting[0].id`.
+4. **Consultant 213 vs 77.** The order is created with `consultantId: 213`, but its `info` log entry is built with `cid = 77`.
+5. **Hardcoded 700 / 60 / 15.** `total: 700`, `commission: 60` and `tax: 15` are fixed in `reserveReconciliation` (only the info label reads `getTaxCommission()`), instead of a server-resolved price, the finance commission and `TAX_PERCENT`.
+6. **The phone format.** Both phones (the client and the other party) are saved as typed from `PhoneInput` (with "+"), while bookings strip non-digits with `phoneNumber()`. The schema only checks `min(8)`.
+7. **The unlinked and broken `/reconciliation/[id]`.**
+   - Nothing links to it.
+   - It decodes the id with `decryptToken` then `zdencryption`, while the handler encodes with `zencryption` only, so a real order would 404.
+   - It also shows a paid order's details to anyone holding the id.
+
+**Verified:** `tsc --noEmit` 0 errors, eslint clean, a clean `npm run build`, and the manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`.
