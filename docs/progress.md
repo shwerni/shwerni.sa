@@ -3311,3 +3311,43 @@ The quoted amount is `withTax(price)`, and the expiry is the Riyadh date.
 **Verified:** `tsc --noEmit` 0 errors, eslint clean, a clean `npm run build`, and the manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`.
 
 **Before going live:** the 4 templates must be approved in Meta (names exactly as above). Until then, each send logs `whatsapp failed … code=<meta error code>` and the case goes on as normal.
+
+## 2026-10-12 · reconciliation rebuild, phase R1 (settings, data, schema)
+
+**Decisions (Ziad):**
+
+| # | Decision |
+|---|---|
+| D1 | Consultant cid 77, from settings (`finance/reconciliationCid`); the old 213 goes away with the old path in R2 |
+| D2 | Date and time chosen at booking (the normal path); changes go through the existing reschedule flow |
+| D3 | 60 minutes |
+| D4 | 700 SAR before VAT (805 with VAT), consultant share 60 |
+| D5 | No coupons or discounts: no coupons form, and the server forces `discountPercent = 0` |
+| D6 | No message to the other party in v1 |
+| D7 | The session chat's first message has the description plus the other party's name, relation (Arabic) and gender, never their phone |
+| D8 | Moyasar and Tabby, as for bookings |
+| D9 | The description is optional, up to 500 characters |
+
+**Added (no caller yet, the build stays green):**
+
+- **`constants/admin.ts`:** `defaultReconciliation = { price: 700, commission: 60 }`. There's no default consultant.
+- **`data/admin/settings/finance.ts`:** `getReconciliationConfig()` reads `finance/reconciliationCid`, `reconciliationPrice` and `reconciliationCommission`.
+  - An invalid or missing price or commission falls back to the defaults.
+  - A missing or invalid cid gives `cid: null`, meaning unavailable (never a hardcoded consultant).
+- **`utils/reconciliation.ts`** (client-safe):
+  - `RECONCILIATION_DURATION = "60"` and `RECONCILIATION_DESCRIPTION_MAX = 500`.
+  - `reconciliationErrors`: unavailable, blocked, slot_taken, payment_failed.
+  - **`reconciliationCheckoutSchema`:**
+    - fields: date, time, name (`schemas.name`, the same rule `reserveConsultant` re-checks), phone and otherPhone (digits only, then `schemas.phone`), an optional description of 500 max, otherName, relation, gender, method, acceptTerms
+    - no price, coupon, discount, consultant or duration fields
+  - `reconciliationFirstMessage()` (D7): "طلب جلسة صلح", the other party's name, `relationLabel`, `genderLabel`, then "تفاصيل الخلاف" when given. No phone.
+- **`data/reconciliation.ts`:**
+  - **`attachReconciliation(order, input)`:** one transaction creates the `Reconciliation` row (with the other party's phone, for the admin team) and the session chat's first USER message (`reconciliationFirstMessage`). Booking notes can't carry it: `reservationSchema` caps them at 200 characters.
+  - **`isReconciliationOrder(oid)`:** the marker for admin, finance and the success page.
+- The old `reserveReconciliation` and `getReconciliation` are untouched; the old path is removed in R2.
+
+**Verified:** `tsc --noEmit` 0 errors, eslint clean (only the old `getSettingsByCategory` unused import in `finance.ts`), a clean `npm run build`, and the manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`.
+
+**Follow-up (not changed): Google Meet rooms are open.** `createGoogleMeeting()` (`lib/api/google.ts`) creates spaces with `accessType: "OPEN"`, so anyone with the meeting link can join. That affects every session, not only reconciliation; review it later (e.g. `TRUSTED` or `RESTRICTED`, and how guests would then be admitted).
+
+**Dashboard repo follow-up:** add `reconciliationCid`, `reconciliationPrice` and `reconciliationCommission` to the finance settings form, next to `commission`.

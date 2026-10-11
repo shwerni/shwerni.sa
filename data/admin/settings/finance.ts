@@ -6,7 +6,11 @@ import { PaymentMethod } from "@/lib/generated/prisma/enums";
 import { getExtractSettings, getSettingsByCategory } from "./settings";
 
 // constants
-import { defaultFinance, defaultPleadingCommission } from "@/constants/admin";
+import {
+  defaultFinance,
+  defaultPleadingCommission,
+  defaultReconciliation,
+} from "@/constants/admin";
 
 // types
 type Finance = { tax: number | null; commission: number | null };
@@ -96,3 +100,45 @@ export const getPleadingCommission = async (): Promise<number> => {
     return defaultPleadingCommission;
   }
 };
+
+export type ReconciliationConfig = {
+  cid: number | null; // null: no consultant configured, the service is unavailable
+  price: number; // pre-vat, whole sar
+  commission: number; // the consultant's share %, like finance/commission
+};
+
+// reconciliation (جلسة صلح) orders: finance/reconciliationCid, reconciliationPrice and
+// reconciliationCommission. a missing or invalid price or commission falls back to the
+// defaults; a missing or invalid consultant means unavailable (never a hardcoded cid)
+export const getReconciliationConfig =
+  async (): Promise<ReconciliationConfig> => {
+    try {
+      const finance = await getExtractSettings<{
+        reconciliationCid?: number;
+        reconciliationPrice?: number;
+        reconciliationCommission?: number;
+      }>("finance", [
+        "reconciliationCid",
+        "reconciliationPrice",
+        "reconciliationCommission",
+      ]);
+
+      const cid = Number(finance?.reconciliationCid);
+      const price = Number(finance?.reconciliationPrice);
+      const commission = Number(finance?.reconciliationCommission);
+
+      return {
+        cid: Number.isInteger(cid) && cid > 0 ? cid : null,
+        price:
+          Number.isInteger(price) && price > 0
+            ? price
+            : defaultReconciliation.price,
+        commission:
+          Number.isInteger(commission) && commission > 0 && commission <= 100
+            ? commission
+            : defaultReconciliation.commission,
+      };
+    } catch {
+      return { cid: null, ...defaultReconciliation };
+    }
+  };

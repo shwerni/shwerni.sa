@@ -328,3 +328,8 @@ export const defaultFinance: FinanceConfig = {
 
 // pleading orders: the consultant's share (like commission), so the platform takes 20%
 export const defaultPleadingCommission = 80;
+
+// reconciliation (جلسة صلح) orders when the finance settings are missing: the pre-vat price
+// in whole sar and the consultant's share. there is no default consultant: without
+// finance/reconciliationCid the service is unavailable
+export const defaultReconciliation = { price: 700, commission: 60 } as const;
