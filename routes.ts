@@ -47,6 +47,7 @@ export const DynamicpublicRoutes = [
   "/consultants",
   "/available",
   "/centers",
+  "/reconciliation",
   "/pay",
   "/payment",
   "/meeting",
@@ -105,8 +106,6 @@ export const protectedPrefixes = [
   "/favorite",
   "/orders",
   "/logout",
-  // reconciliation requests
-  "/reconciliation",
   // consultant dashboard
   "/dashboard",
   // center dashboard (matched as "/center" or "/center/…", never the public "/centers")

@@ -56,7 +56,7 @@ export default function Services() {
       desc: "وساطة مهنية لحل الخلافات وتقريب وجهات النظر.",
       link: "/reconciliation",
       icon: Handshake,
-      status: false,
+      status: true,
     },
     {
       label: "برامجنا",
