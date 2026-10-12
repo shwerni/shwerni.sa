@@ -3351,3 +3351,63 @@ The quoted amount is `withTax(price)`, and the expiry is the Riyadh date.
 **Follow-up (not changed): Google Meet rooms are open.** `createGoogleMeeting()` (`lib/api/google.ts`) creates spaces with `accessType: "OPEN"`, so anyone with the meeting link can join. That affects every session, not only reconciliation; review it later (e.g. `TRUSTED` or `RESTRICTED`, and how guests would then be admitted).
 
 **Dashboard repo follow-up:** add `reconciliationCid`, `reconciliationPrice` and `reconciliationCommission` to the finance settings form, next to `commission`.
+
+## 2026-10-12 · reconciliation rebuild, phase R2 (payment, booking form, old path removed)
+
+**Checked before applying the approved diff**
+
+1. **The price.** `reserveConsultant` writes `Payment.total` from its `total` argument (`cost` = `calculatePayment({ baseCost: 700, discountPercent: 0 }).total` = 700) and `Payment.tax` from its `tax` argument (`TAX_PERCENT`).
+   - It reads neither `formdata.cost` nor `consultant.cost60`.
+   - The charge is `withTax(700)` = 805.
+2. **`order: "reconciliation"`.** `data.order` is only read inside `Pay`'s own branches, which `PayReconciliation` never enters.
+   - `reserveConsultant` neither reads nor stores it (`reservationSchema.order` is any string).
+   - `onPaymentSuccess`, the webhooks, the success page and the notifications don't read it.
+3. **The slot.** Normal `Pay` doesn't validate it: `reserveConsultant` only runs `checkMeetingTimeConflict` (PAID orders and free sessions at ±30 minutes). See the follow-up below.
+
+**Payment code** (`handlers/admin/order/payment.ts`, approved):
+
+- **`PayReconciliation(data, author)`** as shown in the diff, plus two additions:
+  - **4b, the slot check.** The day must be in `getDatesAhead(7, add25Minutes().iso)`, the date step's own window, and the time must be in `getConsultantAvailableTimes(cid, day, weekday, today ? lead time : undefined)`, the same query the date step shows (no second copy of its rules).
+    - That covers: a future date, the weekday and time in consultant 77's `ConsultantTiming`, an unavailable day (no timings means no times), and slots taken by PAID, NEW or PROCESSING orders or free sessions.
+    - `day` uses `utils/date`'s `dateToString`, the same string `reserveConsultant` stores on the meeting.
+    - The weekday is computed from `${day}T12:00:00Z`, so it doesn't depend on the server's time zone.
+  - **The terms:** `acceptTerms: input.acceptTerms` instead of `true`.
+- **No change to** `Pay`, `PayPleading`, `reserveConsultant` (the phase 5 `commissionOverride` is reused with the configured 60), `onPaymentSuccess` or the webhooks.
+
+**The rest of R2**
+
+- **`actions/reconciliation.ts`, `checkoutReconciliation`:**
+  - public, with `checkHuman`, rate-limited per ip 10 per 10 minutes and per phone 5 per hour
+  - the author comes from the session
+  - it maps the failure steps to codes: invalid_input, unavailable, blocked, slot_taken (conflict and slot_unavailable), otherwise payment_failed
+- **`components/clients/reconciliation/booking-form.tsx`:** a 3-step `Stepper`.
+  1. The booking flow's `StepDateTime`, unchanged on a `ReservationFormType` form (duration 60, cost = the configured price).
+  2. Both parties: the page's existing fields and markup, moved; zod from `reconciliationCheckoutSchema.pick`.
+  3. A summary (the date, 60 minutes, 700 and 805), `MethodForm` unchanged (no coupons form), and the existing "بيننا" terms checkbox and dialog.
+  - **Submit:** `useAction(checkoutReconciliation)`, which sends only the client's choices.
+- **`reconciliation/page.tsx`** is now a server component.
+  - The hero and its copy are unchanged, and it now has metadata.
+  - The booking section sits in `<Suspense>` with `connection()`: it reads `getReconciliationConfig()`, the consultant (`getConsultantInfoForBooking`), `getUnavailableWeekdays` and `getFinanceConfig()` per request.
+  - With no consultant configured, it shows "خدمة جلسات الصلح غير متاحة حالياً".
+- **Removed:**
+  - `confirmReconciliation` (the `actions/booking.ts` wrapper and the `handlers/clients/order.ts` handler)
+  - `reserveReconciliation` and `getReconciliation` (`data/reconciliation.ts`)
+  - `app/(pages)/(site)/(sub-pages)/reconciliation/[id]/page.tsx`
+  - So no hardcoded 213, 77, 700, 60 or 15 is left in the reconciliation code.
+- **The home tile stays hidden.** The `status: true` change in `services.tsx` is Ziad's uncommitted edit, not part of this commit.
+
+**Verified**
+
+- `tsc --noEmit` 0 errors (after the build regenerated `.next/types` without the deleted page).
+- eslint shows only the old `refund` warning in `payment.ts`.
+- A clean `npm run build`. The manifest shows only `"data/event.ts"` and `"lib/api/google.ts"` for data/handlers/lib, and `actions/reconciliation.ts` is an action.
+- **Not checked in the browser:** `/reconciliation` is a login-protected prefix (`routes.ts`, since c3074d4), so without a session it redirects to `/login`. The form is in Ziad's manual test.
+
+**Follow-ups (not changed)**
+
+- **Normal `Pay` doesn't check that the slot is real:** a past date, or a time outside the consultant's `ConsultantTiming`, passes as long as no PAID order or free session is at ±30 minutes. The same 4b check could be added to `Pay` later.
+- **`/reconciliation` requires login** (a protected prefix). Keep it, or make the page public (the action already accepts guests as "temp")?
+- **`components/legacy/layout/orderCard/payButton`** still links to the missing `/pay/<zid>`.
+- **The dashboard repo:**
+  - its order table says "سيتم تحديد موعد الجلسة مع الطرف الاخر" for reconciliation orders, which now have a date and time
+  - plus the 3 settings fields (from R1)

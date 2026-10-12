@@ -48,6 +48,7 @@ import { mobileNotifyOrderConfirmed } from "@/lib/notifications/mobile/notify/re
 import {
   getFinanceConfig,
   getPleadingCommission,
+  getReconciliationConfig,
 } from "@/data/admin/settings/finance";
 import { resolveConsultantPricing } from "@/data/event";
 import {
@@ -64,6 +65,20 @@ import {
   pleadingCheckoutSchema,
   type PleadingCheckoutInput,
 } from "@/utils/pleading";
+import { attachReconciliation } from "@/data/reconciliation";
+import { getConsultantAvailableTimes } from "@/data/consultant";
+import {
+  add25Minutes,
+  dateToWeekDay,
+  getDatesAhead,
+  // the same day string reserveConsultant stores on the meeting
+  dateToString as meetingDay,
+} from "@/utils/date";
+import {
+  RECONCILIATION_DURATION,
+  reconciliationCheckoutSchema,
+  type ReconciliationCheckoutInput,
+} from "@/utils/reconciliation";
 // the vat rate is the TAX_PERCENT constant; the finance.tax setting is no longer read for charges
 import { TAX_PERCENT, withTax } from "@/utils/tax";
 
@@ -301,6 +316,202 @@ export async function PayPleading(data: PleadingCheckoutInput) {
   }
 
   if (method === PaymentMethod.tabby) {
+    const tabby = await createTabbyCheckout(order, total);
+    if (tabby.state === false) {
+      return { state: false, step: "tabby", message: tabby.message };
+    }
+    redirect(tabby);
+  }
+
+  // order exists but no supported method matched — never charged
+  return {
+    state: false,
+    step: "unsupported_method",
+    message: "طريقة الدفع غير مدعومة",
+  };
+}
+
+// the reconciliation booking (جلسة صلح): one 60 minute session with the consultant, price and
+// share configured in the finance settings; never a coupon or a discount. a separate entry next
+// to Pay, like PayPleading: Pay and the booking action stay as they are. the input is the
+// client's choices only (checked again here); author comes from the server session, never input
+export async function PayReconciliation(
+  data: ReconciliationCheckoutInput,
+  author: string | null,
+) {
+  // 0. the input shape (also checked by the action; Pay never trusts its caller)
+  const parsed = reconciliationCheckoutSchema.safeParse(data);
+  if (!parsed.success) {
+    return {
+      state: false,
+      step: "invalid",
+      message: "بيانات النموذج غير صالحة، برجاء مراجعتها والمحاولة مرة أخرى",
+    };
+  }
+  const input = parsed.data;
+
+  // 1. the configured consultant, price and share (finance settings; no consultant = unavailable)
+  const config = await getReconciliationConfig();
+  const consultant = config.cid
+    ? await prisma.consultant.findFirst({
+        where: { cid: config.cid },
+        select: { name: true },
+      })
+    : null;
+  if (!config.cid || !consultant) {
+    return {
+      state: false,
+      step: "unavailable",
+      message: "خدمة جلسات الصلح غير متاحة حالياً",
+    };
+  }
+
+  // 2. block check (the client's phone, as every booking)
+  if (await CheckIsBlocked(input.phone)) {
+    return { state: false, step: "blocked", message: "هذا الحساب محظور" };
+  }
+
+  // 3. finance config (payment methods for the order row)
+  const finance = await getFinanceConfig();
+  if (!finance) {
+    return {
+      state: false,
+      step: "finance",
+      message: "تعذّر إتمام العملية، برجاء المحاولة لاحقاً",
+    };
+  }
+
+  // 4. totals: the configured price only, no discount
+  const payment = calculatePayment({
+    baseCost: config.price,
+    tax: TAX_PERCENT,
+    discountPercent: 0,
+  });
+  const cost = payment.total; // pre-tax → Payment.total
+  const total = withTax(cost); // charged
+
+  if (!Number.isFinite(total) || total <= 0) {
+    return {
+      state: false,
+      step: "amount",
+      message: "تعذّر حساب قيمة الدفع، برجاء المحاولة لاحقاً",
+    };
+  }
+
+  // 4b. the slot must be a real free time of the consultant's weekly timings: the same window and
+  //     query the date step shows (7 days from riyadh now + 25 minutes, getDatesAhead +
+  //     getConsultantAvailableTimes), never a second copy of their rules. a weekday with no
+  //     timings (an unavailable day) has no times, so it fails too
+  const day = meetingDay(input.date);
+  const lead = add25Minutes();
+  const free = getDatesAhead(7, lead.iso).includes(day)
+    ? await getConsultantAvailableTimes(
+        config.cid,
+        day,
+        // the weekday of that calendar day, independent of the server's time zone
+        dateToWeekDay(new Date(`${day}T12:00:00Z`)),
+        day === lead.date ? lead.time : undefined,
+      )
+    : {};
+  if (!Object.values(free).some((times) => times?.includes(input.time))) {
+    return {
+      state: false,
+      step: "slot_unavailable",
+      message: "هذا الموعد غير متاح، برجاء اختيار وقت آخر",
+    };
+  }
+
+  // 5. the order and its meeting, built on the server (reserveConsultant re-validates it, checks
+  //    the slot and logs the same cid); the configured share wins over every other rate
+  const formdata: ReservationFormType = {
+    order: "reconciliation",
+    user: author ?? "temp",
+    cid: config.cid,
+    consultant: consultant.name,
+    collaboration: null,
+    unavailable: [],
+    cost: { 30: config.price, 45: config.price, 60: config.price },
+    scale: null,
+    times: {},
+    finance: {
+      tax: TAX_PERCENT,
+      commission: finance.commission,
+      payments: finance.payments,
+      couponEnabled: false,
+    },
+    type: OrderType.SCHEDULED,
+    sessionType: SessionType.ONCE,
+    sessions: 1,
+    package: null,
+    date: input.date,
+    time: input.time,
+    duration: RECONCILIATION_DURATION,
+    name: input.name,
+    phone: input.phone,
+    notes: "", // the brief is posted by attachReconciliation (it can exceed the 200 notes limit)
+    hasBeneficiary: false,
+    method: input.method,
+    hasCoupon: false,
+    acceptTerms: input.acceptTerms,
+  };
+
+  const result = await reserveConsultant(
+    formdata,
+    cost,
+    TAX_PERCENT,
+    finance.commission,
+    OrderOrigin.PLATFORM,
+    config.commission,
+  );
+
+  if (result.state === false) {
+    return { ...result, step: result.code ?? "reserve" };
+  }
+
+  const order = result.order;
+  const mid = order?.meeting?.[0]?.mid;
+  if (!order || !order.payment || !mid) {
+    return {
+      state: false,
+      step: "order_created_no_payment",
+      message: "حدث خطأ أثناء إنشاء الطلب، برجاء المحاولة مرة أخرى",
+    };
+  }
+
+  // 6. the other party (the Reconciliation row, the marker) and the consultant's brief as the
+  //    session chat's first message; on failure stop before the gateway (the cron cancels the order)
+  const attached = await attachReconciliation(
+    { id: order.id, oid: order.oid, mid },
+    {
+      otherName: input.otherName,
+      otherPhone: input.otherPhone,
+      relation: input.relation,
+      gender: input.gender,
+      description: input.description,
+    },
+  );
+  if (!attached) {
+    return {
+      state: false,
+      step: "attach",
+      message: "حدث خطأ أثناء إنشاء الطلب، برجاء المحاولة مرة أخرى",
+    };
+  }
+
+  // 7. hand off to the gateway with the server-computed total (as Pay does)
+  if (input.method === PaymentMethod.visaMoyasar) {
+    const moyasar = await createMoyasarCheckout(order.oid, total);
+    if (!moyasar) {
+      return {
+        state: false,
+        step: "moyasar",
+        message: "فشل الدفع بالبطاقة، برجاء اختيار طريقة أخرى",
+      };
+    }
+    redirect(moyasar);
+  }
+
+  if (input.method === PaymentMethod.tabby) {
     const tabby = await createTabbyCheckout(order, total);
     if (tabby.state === false) {
       return { state: false, step: "tabby", message: tabby.message };

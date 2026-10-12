@@ -7,7 +7,6 @@
 // prisma data
 import { Pay as PayHandler } from "@/handlers/admin/order/payment";
 import { confirmFreeSession as confirmFreeSessionHandler } from "@/handlers/admin/freesession";
-import { confirmReconciliation as confirmReconciliationHandler } from "@/handlers/clients/order";
 
 // lib
 import { checkHuman } from "@/lib/bot-protection";
@@ -31,14 +30,4 @@ export async function confirmFreeSession(
   if (!(await checkHuman("confirmFreeSession"))) return;
   const user = await sessionUser();
   return confirmFreeSessionHandler({ ...data, user: user?.id ?? "temp" });
-}
-
-// public: reconciliation request; the author argument is ignored
-export async function confirmReconciliation(
-  ...[, ...rest]: Parameters<typeof confirmReconciliationHandler>
-) {
-  // a bot gets the failure result this action already returns
-  if (!(await checkHuman("confirmReconciliation"))) return { state: false, message: "حدث حطأ ما برجاء المحاولة مرة اخري" };
-  const user = await sessionUser();
-  return confirmReconciliationHandler(user?.id ?? undefined, ...rest);
 }
