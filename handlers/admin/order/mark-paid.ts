@@ -117,8 +117,8 @@ export async function markOrderPaidByDashboard(
       return result("failed", "تعذر تأكيد الدفع");
     }
 
-    // paid, or hold (the wallet part failed after the claim): the side effects ran either way,
-    // so the audit is written for both
+    // paid, or hold (the wallet part failed after the claim, before any side effect): the method
+    // and the state changed either way, so the audit is written for both
     const line = [
       "تم التأكيد يدويًا من لوحة التحكم",
       `${input.actor.name} (${input.actor.role})`,

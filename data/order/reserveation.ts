@@ -15,6 +15,9 @@ import {
 // prisma data
 import { addWalletCredit, payPartiallyByWallet } from "@/data/wallet";
 
+// lib
+import { telegramAdmin } from "@/lib/api/telegram/telegram";
+
 // hooks
 import {
   onPaymentHold,
@@ -954,10 +957,9 @@ export const orderStatusPaid = async (
       return now?.payment === PaymentState.PAID ? "already_paid" : "not_allowed";
     }
 
-    // notify client & owner
-    await onPaymentSuccess(order, options);
-
-    // update wallet if it used
+    // update wallet if it used. it runs before onPaymentSuccess, so a failed withdraw (HOLD)
+    // sends no confirmation, telegram, invoice or pdf, and creates no room: only the alert below.
+    // a later mark-as-paid from HOLD then runs the whole path once
     if (payment.wallet && payment.wallet > 0) {
       // wallet partial payment
       const wallet = await payPartiallyByWallet(
@@ -984,10 +986,18 @@ export const orderStatusPaid = async (
             },
           },
         });
+        console.error(`[payment] oid=${order.oid} wallet withdraw failed, payment set to HOLD`);
+        await telegramAdmin(
+          `wallet: order #${order.oid} wallet withdraw failed, payment set to ${PaymentState.HOLD}`,
+        );
         // return
         return "hold";
       }
     }
+
+    // notify client & owner
+    await onPaymentSuccess(order, options);
+
     // update order (PAID is already written by the claim)
     await prisma.payment.update({
       where: { id: payment.id },
@@ -1225,6 +1235,44 @@ export const cancelOrders = async (deadline: Date) => {
     `;
 
     return result;
+  } catch {
+    return null;
+  }
+};
+
+// the order info entry that marks "paid without a session room, admin alerted" (alert once)
+const PAID_WITHOUT_ROOM = "alert: paid order without a session room";
+
+// the PAID-first claim's safety net (the cancel-orders cron): site-paid orders (a gateway pid)
+// that are PAID, created between `since` and `before`, with no room on any of their meetings,
+// so onPaymentSuccess never finished. the marker goes into the order's info log in the same
+// statement that checks for it, so each order is returned (and alerted) once. nothing is fixed.
+// dashboard-created orders (no pid) are left out: with notify off they never get a room
+export const markPaidOrdersWithoutRoom = async (since: Date, before: Date) => {
+  try {
+    const rows = await prisma.$queryRaw<{ oid: number }[]>`
+      UPDATE orders o
+      SET info = array_append(o.info, ${PAID_WITHOUT_ROOM})
+      WHERE o.oid IN (
+        SELECT c.oid FROM orders c
+        JOIN payments p ON p."orderId" = c.oid
+        WHERE p.payment = 'PAID'
+          AND p.pid IS NOT NULL AND p.pid <> ''
+          AND c.created_at >= ${since}
+          AND c.created_at <= ${before}
+          AND NOT (${PAID_WITHOUT_ROOM} = ANY(COALESCE(c.info, '{}')))
+          AND NOT EXISTS (SELECT 1 FROM rooms r WHERE r."orderId" = c.oid)
+          AND NOT EXISTS (
+            SELECT 1 FROM rooms r JOIN meetings m ON r."meetingId" = m.mid
+            WHERE m."orderId" = c.oid
+          )
+        ORDER BY c.oid
+        LIMIT 20
+      )
+        AND NOT (${PAID_WITHOUT_ROOM} = ANY(COALESCE(o.info, '{}')))
+      RETURNING o.oid
+    `;
+    return rows.map((row) => row.oid);
   } catch {
     return null;
   }

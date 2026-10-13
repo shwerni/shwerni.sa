@@ -3605,3 +3605,43 @@ With 1 and 2, one real refund always gives one row and one receipt.
 **Open questions:**
 - The dashboard repo needs a mark-as-paid button that calls the route.
 - The route's messages are Arabic; the Daftra routes' are English.
+
+## 2026-10-13 · Follow-up on 6ecdd6a: paid-without-room safety net, wallet failure, Arabic Daftra messages
+
+**1. Safety net in the cancel-orders cron** (`app/api/cron/cancel-orders/route.ts`, every 20 minutes).
+- **What it finds:** after the cancel step, `markPaidOrdersWithoutRoom` (`data/order/reserveation.ts`) looks for orders that are PAID, created between 3 days and 15 minutes ago, and have no room on any of their meetings.
+- **Why rooms:** the meeting rows exist from booking, so a missing room is what an unfinished `onPaymentSuccess` leaves behind.
+- **The alert:** one `telegramAdmin` per order, "طلب مدفوع بدون جلسة — #{oid}". Nothing is fixed.
+- **Alert once:** the marker "alert: paid order without a session room" is appended to `orders.info` by the same UPDATE … RETURNING that checks for it, the same pattern as the pleading closed-case alert. Concurrent cron runs can't both alert, and each run handles at most 20 orders.
+- **Scope:**
+  - Only orders with a gateway pid are checked. Dashboard-created orders (`createOrderAdmin`, pid empty) never get a room when notify is off, so they would alert falsely.
+  - A mark-as-paid without a reference (no pid) is therefore not covered.
+  - The 3-day lower bound keeps the first run from alerting on old history.
+- **The SQL wasn't run** against the database. Its table and column names were checked against the prisma models (`orders`, `payments`, `rooms`, `meetings`, `"orderId"`, `"meetingId"`, `created_at`, `info`).
+
+**2. Wallet failure: before this change the notifications did go out.**
+- `orderStatusPaid` ran `onPaymentSuccess` (room, client/consultant WhatsApp/email or app push, admin new-order Telegram, Daftra queue) before the wallet step. That was the order before 6ecdd6a too.
+- So a failed withdraw (PAID → HOLD) had already sent the confirmations and the new-order Telegram.
+- The Daftra invoice and its PDF did not go out: the deferred send re-reads the order and only sends for PAID, so HOLD returned `not_eligible`, with no row and no alert.
+- **Now:** the wallet step runs right after the claim and before `onPaymentSuccess`. On failure: HOLD with the same info line, a new admin alert "wallet: order #{oid} wallet withdraw failed, payment set to HOLD", and a return. No notification, room, pleading link, Daftra invoice or PDF.
+- **No alert existed before:** the only trace was the info line. The new one is the only message sent.
+- A later dashboard mark-as-paid from HOLD runs the whole path once (the wallet is retried; its own "already withdrawn" check stays).
+- **Success path:** the same steps, with the withdraw moved before the room and the notifications.
+
+**3. Arabic messages for the Daftra routes:**
+- The `message` of every `sendOrderInvoice` / `sendRefundReceipt` / `claimOutcome` result is now in Arabic, and so is the routes' "unexpected error" ("حدث خطأ غير متوقع").
+- Statuses are unchanged. Nothing matches on the old strings: the dashboard passes `message` straight to its toast.
+- The `error` keys (`unauthorized`, `invalid body`) stay as they are, like the mark-as-paid route.
+- Telegram alerts that fall back to `result.message` are now in Arabic too.
+
+**Files:**
+- `data/order/reserveation.ts`, `handlers/admin/order/mark-paid.ts` (a comment)
+- `app/api/cron/cancel-orders/route.ts`
+- `lib/daftra/invoice.ts`, `lib/daftra/refund.ts`
+- `app/api/dashboard/daftra/invoice/route.ts`, `app/api/dashboard/daftra/refund/route.ts`
+
+**Verified:**
+- tsc is clean.
+- eslint on the changed files is clean.
+- `npm run build` passes.
+- The manifest prints only `"data/event.ts"` and `"lib/api/google.ts"`.

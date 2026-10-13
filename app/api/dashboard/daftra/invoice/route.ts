@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       err instanceof Error ? err.name : "error",
     );
     return NextResponse.json(
-      { state: false, status: "failed", message: "unexpected error" },
+      { state: false, status: "failed", message: "حدث خطأ غير متوقع" },
       { status: 500 },
     );
   }

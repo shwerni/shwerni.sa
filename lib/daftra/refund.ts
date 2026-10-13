@@ -113,16 +113,16 @@ export async function sendRefundReceipt(
 ): Promise<DaftraSendResult> {
   const config = getDaftraConfig();
   if (!config.enabled)
-    return { state: false, status: "disabled", message: "daftra is disabled" };
+    return { state: false, status: "disabled", message: "الربط مع دفترة غير مفعّل" };
   if (!config.ok) {
     console.error(`[daftra] config incomplete: ${config.missing.join(", ")}`);
-    return { state: false, status: "failed", message: "daftra configuration is incomplete" };
+    return { state: false, status: "failed", message: "إعدادات دفترة غير مكتملة" };
   }
 
   const refund = await getDaftraRefund(refundId);
   const amount = refund ? round2(refund.amount) : 0;
   if (!refund || amount <= 0)
-    return { state: false, status: "not_eligible", message: "refund not found" };
+    return { state: false, status: "not_eligible", message: "الاسترداد غير موجود" };
 
   const oid = refund.orderId;
 
@@ -146,7 +146,7 @@ export async function sendRefundReceipt(
           sent.status === "disabled" || sent.status === "not_eligible"
             ? sent.status
             : "invoice_not_ready",
-        message: "the order's invoice isn't in daftra",
+        message: "فاتورة الطلب غير موجودة في دفترة",
       };
     invoice = await getOrderInvoiceDocument(oid);
   }
@@ -154,7 +154,7 @@ export async function sendRefundReceipt(
     return {
       state: false,
       status: "invoice_not_ready",
-      message: "the order's invoice isn't in daftra",
+      message: "فاتورة الطلب غير موجودة في دفترة",
     };
 
   // the refund goes back through the invoice's own payment lines, in proportion
@@ -188,7 +188,7 @@ export async function sendRefundReceipt(
       return {
         state: false,
         status: "failed",
-        message: "the refund receipt couldn't be built",
+        message: "تعذر إنشاء إشعار الاسترداد",
       } satisfies DaftraSendResult;
     };
 
@@ -234,7 +234,7 @@ export async function sendRefundReceipt(
         status: "sent",
         daftraId: result.id,
         daftraNo: result.number ?? undefined,
-        message: "sent",
+        message: "تم الإرسال إلى دفترة",
       };
     }
 
@@ -247,8 +247,8 @@ export async function sendRefundReceipt(
       response: result.body,
     });
     return result.kind === "failed"
-      ? { state: false, status: "failed", message: "daftra rejected the refund receipt" }
-      : { state: false, status: "review", message: "the result is unknown, needs review" };
+      ? { state: false, status: "failed", message: "رفضت دفترة إشعار الاسترداد" }
+      : { state: false, status: "review", message: "النتيجة غير معروفة، تحتاج إلى مراجعة" };
   } catch (err) {
     // an unexpected error after the claim: REVIEW, never FAILED (daftra may have the receipt)
     console.error(
@@ -259,6 +259,6 @@ export async function sendRefundReceipt(
       state: DaftraSyncState.REVIEW,
       error: "unexpected error after the claim",
     }).catch(() => {});
-    return { state: false, status: "review", message: "the result is unknown, needs review" };
+    return { state: false, status: "review", message: "النتيجة غير معروفة، تحتاج إلى مراجعة" };
   }
 }

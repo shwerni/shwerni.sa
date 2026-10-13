@@ -67,11 +67,11 @@ export const claimOutcome = (
       status: "already_sent",
       daftraId: claim.row?.daftraId ?? undefined,
       daftraNo: claim.row?.daftraNo ?? undefined,
-      message: "already sent",
+      message: "أُرسل إلى دفترة مسبقًا",
     };
   if (claim.status === "review")
-    return { state: false, status: "review", message: "waiting for review" };
-  return { state: false, status: "already_claimed", message: "already in progress" };
+    return { state: false, status: "review", message: "بانتظار المراجعة" };
+  return { state: false, status: "already_claimed", message: "الإرسال جارٍ بالفعل" };
 };
 
 // ---------- the invoice body ----------
@@ -267,10 +267,10 @@ export async function sendOrderInvoice(
 ): Promise<DaftraSendResult> {
   const config = getDaftraConfig();
   if (!config.enabled)
-    return { state: false, status: "disabled", message: "daftra is disabled" };
+    return { state: false, status: "disabled", message: "الربط مع دفترة غير مفعّل" };
   if (!config.ok) {
     console.error(`[daftra] config incomplete: ${config.missing.join(", ")}`);
-    return { state: false, status: "failed", message: "daftra configuration is incomplete" };
+    return { state: false, status: "failed", message: "إعدادات دفترة غير مكتملة" };
   }
 
   const order = await getDaftraInvoiceOrder(oid);
@@ -279,7 +279,7 @@ export async function sendOrderInvoice(
     state === PaymentState.PAID ||
     (options.allowRefunded && state === PaymentState.REFUND);
   if (!order || !order.payment || !eligible)
-    return { state: false, status: "not_eligible", message: "the order isn't paid" };
+    return { state: false, status: "not_eligible", message: "الطلب غير مدفوع" };
 
   if (!options.force && beforeDaftraStart(order.created_at, config))
     return { state: false, status: "not_eligible", message: BEFORE_START_MESSAGE };
@@ -301,7 +301,7 @@ export async function sendOrderInvoice(
   try {
     if (!built.ok) {
       await finishDaftraDocument(claim.id, { state: DaftraSyncState.FAILED, error: built.error });
-      return { state: false, status: "failed", message: "the invoice couldn't be built" };
+      return { state: false, status: "failed", message: "تعذر إنشاء الفاتورة" };
     }
 
     const customer = await getOrCreateDaftraClient(config, order);
@@ -311,8 +311,8 @@ export async function sendOrderInvoice(
         error: customer.error,
       });
       return customer.status === "client_not_ready"
-        ? { state: false, status: "client_not_ready", message: "the daftra client isn't ready" }
-        : { state: false, status: "failed", message: "the daftra client couldn't be created" };
+        ? { state: false, status: "client_not_ready", message: "العميل في دفترة غير جاهز بعد" }
+        : { state: false, status: "failed", message: "تعذر إنشاء العميل في دفترة" };
     }
 
     const body = buildInvoiceBody(built, customer.daftraClientId, oid);
@@ -336,7 +336,7 @@ export async function sendOrderInvoice(
         status: "sent",
         daftraId: result.id,
         daftraNo: result.number ?? undefined,
-        message: "sent",
+        message: "تم الإرسال إلى دفترة",
       };
     }
 
@@ -348,8 +348,8 @@ export async function sendOrderInvoice(
       response: result.body,
     });
     return result.kind === "failed"
-      ? { state: false, status: "failed", message: "daftra rejected the invoice" }
-      : { state: false, status: "review", message: "the result is unknown, needs review" };
+      ? { state: false, status: "failed", message: "رفضت دفترة الفاتورة" }
+      : { state: false, status: "review", message: "النتيجة غير معروفة، تحتاج إلى مراجعة" };
   } catch (err) {
     // an unexpected error after the claim: REVIEW, never FAILED (daftra may have the invoice)
     console.error(`[daftra] invoice oid=${oid} error`, err instanceof Error ? err.name : "error");
@@ -357,6 +357,6 @@ export async function sendOrderInvoice(
       state: DaftraSyncState.REVIEW,
       error: "unexpected error after the claim",
     }).catch(() => {});
-    return { state: false, status: "review", message: "the result is unknown, needs review" };
+    return { state: false, status: "review", message: "النتيجة غير معروفة، تحتاج إلى مراجعة" };
   }
 }
