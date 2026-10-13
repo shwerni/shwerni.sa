@@ -1,11 +1,12 @@
 // React & Next
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 
 // packages
 import { z } from "zod";
 
 // lib
 import { sendOrderInvoice } from "@/lib/daftra/invoice";
+import { deliverInvoicePdf } from "@/lib/daftra/invoice-pdf";
 import { verifyDashboardSecret } from "@/lib/auth/dashboard-secret";
 
 // node.js runtime: the default for route handlers (a "runtime" export isn't allowed with cacheComponents)
@@ -13,11 +14,14 @@ import { verifyDashboardSecret } from "@/lib/auth/dashboard-secret";
 const bodySchema = z.object({
   oid: z.number().int().positive(),
   force: z.boolean().optional(),
+  // send the invoice pdf on whatsapp again (only when the invoice is already SENT)
+  resendWhatsapp: z.boolean().optional(),
 });
 
 // the dashboard (re)sends an order's daftra invoice. the handler checks eligibility and the
 // duplicate guard itself; force only re-sends a REVIEW row. generic messages here, the details
-// stay in the logs and on the DaftraInvoice row
+// stay in the logs and on the DaftraInvoice row. a fresh send already delivers the pdf on
+// whatsapp; resendWhatsapp re-sends it for an invoice that was already SENT (after the response)
 export async function POST(request: Request) {
   if (!verifyDashboardSecret(request))
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -31,6 +35,9 @@ export async function POST(request: Request) {
       source: "dashboard",
       force: parsed.data.force,
     });
+    if (parsed.data.resendWhatsapp && result.status === "already_sent")
+      after(() => deliverInvoicePdf(parsed.data.oid, { resend: true }));
+
     return NextResponse.json(result);
   } catch (err) {
     console.error(

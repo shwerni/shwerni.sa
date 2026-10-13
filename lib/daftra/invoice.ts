@@ -12,6 +12,7 @@ import {
 // lib
 import { getDaftraConfig } from "@/lib/daftra/config";
 import { daftraRequest } from "@/lib/daftra/client";
+import { deliverInvoicePdf } from "@/lib/daftra/invoice-pdf";
 import { getOrCreateDaftraClient } from "@/lib/daftra/customer";
 import {
   daftraMethodCode,
@@ -311,6 +312,9 @@ export async function sendOrderInvoice(
         payload: body,
         response: result.body,
       });
+      // the pdf to the client on whatsapp (never throws; on the payment path this already runs
+      // after the response, after the order confirmation template)
+      await deliverInvoicePdf(oid);
       return {
         state: true,
         status: "sent",

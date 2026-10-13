@@ -106,7 +106,10 @@ export async function recordMoyasarSettlement(params: {
 
 // idempotent via a diff against amounts already recorded for this paymentId —
 // safe against Moyasar's up-to-6x webhook redelivery and against genuine
-// sequential partial refunds on the same payment
+// sequential partial refunds on the same payment. the gateways give no per-refund id here
+// (moyasar reports a cumulative `refunded`, the tabby caller passes the sum), so the match is
+// "the gateway's cumulative total minus every row already recorded for the payment"; a new row
+// (and its daftra receipt) only covers money no row accounts for yet
 export async function recordRefund(params: {
   orderOid: number;
   paymentId: string;
@@ -125,6 +128,13 @@ export async function recordRefund(params: {
   } = params;
 
   const created = await prisma.$transaction(async (tx) => {
+    // one writer per payment at a time: concurrent deliveries (and any writer that takes the same
+    // lock, see the dashboard follow-up) wait here, so the sum below can't be read twice before
+    // an insert and become two rows for one real refund
+    await tx.$queryRaw`SELECT id FROM payments WHERE id = ${paymentId} FOR UPDATE`;
+
+    // every Refund row of this payment counts, whoever wrote it (the dashboard included): a row
+    // the dashboard already recorded for this gateway refund is reused, not doubled
     const already = await tx.refund.aggregate({
       where: { paymentId },
       _sum: { amount: true },

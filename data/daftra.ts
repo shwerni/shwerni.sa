@@ -300,3 +300,43 @@ export async function sumOtherActiveRefunds(oid: number, exceptRefundId: string)
   });
   return _sum.amount ?? 0;
 }
+
+// ---------- invoice pdf on whatsapp ----------
+
+// the order's invoice row for the pdf delivery, with the order's phone
+export async function getInvoiceDelivery(oid: number) {
+  return prisma.daftraInvoice.findUnique({
+    where: { dedupeKey: `invoice:${oid}` },
+    select: {
+      id: true,
+      state: true,
+      daftraId: true,
+      daftraNo: true,
+      pdfUrl: true,
+      whatsappSentAt: true,
+      order: { select: { oid: true, phone: true } },
+    },
+  });
+}
+
+export async function saveInvoicePdfUrl(id: string, pdfUrl: string) {
+  await prisma.daftraInvoice.update({ where: { id }, data: { pdfUrl } });
+}
+
+// claims the whatsapp send before it happens: only when it was never sent (whatsappSentAt null),
+// or always on a dashboard resend. false → someone else sent or is sending it: skip
+export async function claimInvoiceWhatsapp(id: string, resend: boolean) {
+  const { count } = await prisma.daftraInvoice.updateMany({
+    where: resend ? { id } : { id, whatsappSentAt: null },
+    data: { whatsappSentAt: new Date() },
+  });
+  return count === 1;
+}
+
+// a failed send gives the claim back (resend: the earlier successful time is restored)
+export async function releaseInvoiceWhatsapp(id: string, previous: Date | null) {
+  await prisma.daftraInvoice.update({
+    where: { id },
+    data: { whatsappSentAt: previous },
+  });
+}

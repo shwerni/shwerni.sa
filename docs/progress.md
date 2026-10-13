@@ -3498,3 +3498,55 @@ The quoted amount is `withTax(price)`, and the expiry is the Riyadh date.
 - The dashboard refund cap.
 - Old meeting-less orders (e.g. legacy reconciliation) can't be invoiced ("the order has no meeting").
 - **Two different refunds of one order sent at the same moment** could both pass the guard (no row lock); rare.
+
+## 2026-10-13 · Daftra follow-up: duplicate refunds, dashboard header, invoice pdf on WhatsApp
+
+**1. Duplicate Refund rows: the finding**
+
+- **What `recordRefund` matches on today.** No refund id: the gateways don't give one here (Moyasar reports a cumulative `refunded` on the payment; the Tabby caller passes the sum of `refunds[]`). It sums every `Refund` row of the payment, the dashboard's included, and creates a row only for `gateway cumulative − already recorded`. Pending requests are linked by amount (±0.01).
+- **So a dashboard row is already reused** (the webhook adds nothing) when its amount equals the gateway's refund.
+- **A duplicate is possible in two cases:**
+  - **(a) The amounts differ.** The dashboard caps a refund at `refundBase = paid ?? total`, the pre-VAT total when `paid` is empty. A 700 dashboard row for an 805 gateway refund makes the webhook add a 105 top-up row: two rows, two receipts.
+  - **(b) A race.** Two writers read the sum before either inserts: two overlapping webhook deliveries, or a dashboard save at the same moment as a webhook.
+
+**The fix here:** `recordRefund` now locks the payment row (`SELECT … FROM payments WHERE id = $1 FOR UPDATE`) before reading the sum.
+- **Fixed:** webhook versus webhook can never double, and any writer that takes the same lock is serialized.
+- **Unchanged:** the matching rule, which already reuses existing rows.
+
+**Not safe from this side alone. The dashboard (`finance-refunds.ts processRefund`) must:**
+1. **Store the refund amount VAT-inclusive,** exactly what the gateway returned. Fix `refundBase` to the charged amount (`withTax(total)`, or `paid` once it holds the charge).
+2. **Take the same lock in its transaction** before reading the refunded sum: `SELECT id FROM payments WHERE id = <paymentId> FOR UPDATE`.
+3. **Store the gateway reference as `Refund.reference`:** the Moyasar payment id (`pay_…`, what the webhook stores) or the Tabby payment id. That isn't a key the match uses (there's no per-refund id), but it makes rows traceable.
+
+With 1 and 2, one real refund always gives one row and one receipt.
+
+**2. Dashboard auth:** both Daftra routes use `x-dashboard-secret`, like the existing dashboard routes.
+- The shared guard is `verifyDashboardSecret` in `lib/auth/dashboard-secret.ts` (`timingSafeEqual`, length first, an unset secret never matches).
+- `app/api/uploadthing/delete` now uses the same guard (its old private copy, same logic).
+- `/api/revalidate` keeps its own compare, unchanged.
+
+**3. The invoice pdf on WhatsApp**
+
+- **Schema:** `DaftraInvoice.pdfUrl String?` and `whatsappSentAt DateTime?`. **`db push` by Ziad**, together with the earlier daftra tables.
+- **`lib/daftra/invoice-pdf.ts`, `deliverInvoicePdf(oid, { resend })`:** runs after an INVOICE becomes SENT (`sendOrderInvoice`, any source: payment, dashboard, or the refund path's invoice).
+  1. `GET /invoices/{daftraId}.json` (`daftraGet`) → `invoice_pdf_url` (`data.Invoice` or `Invoice`), saved to `pdfUrl` once.
+  2. **The claim:** `whatsappSentAt = now` where it's null (resend: always). Zero rows means skip.
+  3. **The send:** `sendWhatsappTemplate(phoneNumber(order.phone), "order_invoice", { header: { type: "document", value: pdfUrl, filename: "فاتورة-{daftraNo}.pdf" }, text: [oid] })`.
+  4. **A failed send** clears `whatsappSentAt` (a resend restores the earlier time) and alerts the admin telegram.
+  - It never throws.
+- **On the payment path** it runs inside the same `after()` task, after `onPaymentSuccess`'s order confirmation template, which is unchanged and sent first.
+- **The WhatsApp helper:** the document header takes an optional `filename`. Nothing else uses it, so existing templates send exactly as before.
+- **The invoice route:** optional `resendWhatsapp`. When the invoice is already SENT, it resends after the response, whatever `whatsappSentAt` says, and still updates it. A fresh send already delivers inside the handler.
+- **Not for refund receipts.**
+- **Meta:** the template `order_invoice` (a document header and body {{1}} = the order number) must exist and be approved.
+
+**4. Every path that calls `onPaymentSuccess` writes PAID before its response:**
+- **The Moyasar invoice callback** (`POST /api/gatewaies/moyasar`, the raw invoice payload) → `moyasarPayment` → `CheckPaymentState` → `await updateOrderStatus(pid, PAID)`.
+- **The Tabby webhook** (`POST /api/gatewaies/tabby`, status authorized) → `tabbyPayment` → capture → `await updateOrderStatus(pid, PAID)`.
+- **Both go through `orderStatusPaid`:** `await onPaymentSuccess(order)` (which only queues the `after()` task), then the wallet part, then `await prisma.payment.update({ payment: PAID })`. All of it is awaited before the route returns, so the task always sees PAID.
+- **Exceptions, by design:**
+  - a failed wallet withdraw writes HOLD instead, so the invoice is "not_eligible"
+  - if the PAID update itself throws, the task sees no PAID and skips it (no invoice for an unpaid order)
+- **`payAllByWallet`** (`data/wallet.ts`) writes PAID before `onPaymentSuccess`, but has no callers. The mobile reservations route's call is commented out.
+
+**Verified:** `prisma validate` and `generate`, `tsc --noEmit` 0 errors, eslint clean (only the old unused `error` in `uploadthing/delete`), a clean `npm run build`, and the manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`. `next start`: the Daftra routes and `uploadthing/delete` answer 401 with no header, a wrong `x-dashboard-secret`, or the old Bearer form.

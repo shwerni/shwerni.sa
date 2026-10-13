@@ -70,3 +70,22 @@ export async function daftraRequest(
     body: json,
   };
 }
+
+// GET a daftra document (e.g. /invoices/{id}.json): the parsed json, or null on any failure
+export async function daftraGet(
+  config: { subdomain: string; apiKey: string },
+  path: string,
+): Promise<unknown | null> {
+  try {
+    const res = await fetch(`https://${config.subdomain}.daftra.com/api2${path}`, {
+      method: "GET",
+      headers: { apikey: config.apiKey, Accept: "application/json" },
+      cache: "no-store",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!res.ok) return null;
+    return await res.json().catch(() => null);
+  } catch {
+    return null;
+  }
+}

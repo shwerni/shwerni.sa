@@ -26,7 +26,7 @@ const whatsapp = (body: object, marketing: boolean = false) =>
 export type HeaderParam =
   | { type: "image"; value: string }
   | { type: "video"; value: string }
-  | { type: "document"; value: string }
+  | { type: "document"; value: string; filename?: string }
   | { type: "text"; value: string };
 
 export type TemplateParams = {
@@ -79,7 +79,12 @@ export const sendWhatsappTemplate = async (
         parameters: [
           {
             type: params.header.type,
-            [params.header.type]: { link: params.header.value },
+            [params.header.type]: {
+              link: params.header.value,
+              // a document can carry the file name the client sees
+              ...(params.header.type === "document" &&
+                params.header.filename && { filename: params.header.filename }),
+            },
           },
         ],
       });
