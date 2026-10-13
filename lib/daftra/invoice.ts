@@ -245,12 +245,25 @@ export function buildInvoiceBody(
 
 // ---------- sending ----------
 
+// the go-live guard: an order created (riyadh day) before DAFTRA_START_DATE is never sent unless
+// the dashboard forces it. nothing is claimed, so no DaftraInvoice row and no alert
+export const BEFORE_START_MESSAGE = "الطلب قبل تاريخ بدء الربط مع دفترة";
+
+export const beforeDaftraStart = (createdAt: Date, config: Config) =>
+  riyadhDay(createdAt) < config.startDate;
+
 // the daftra invoice of a paid order: exactly one per order (the DaftraInvoice row "invoice:{oid}"
 // is the only duplicate guard). eligibility is checked here, never trusted from the caller.
-// allowRefunded is for the refund receipt only: an order refunded before it was invoiced
+// allowRefunded is for the refund receipt only: an order refunded before it was invoiced.
+// whatsapp: false skips the pdf on whatsapp (a mark-as-paid without notifications)
 export async function sendOrderInvoice(
   oid: number,
-  options: { source: "payment" | "dashboard"; force?: boolean; allowRefunded?: boolean },
+  options: {
+    source: "payment" | "dashboard";
+    force?: boolean;
+    allowRefunded?: boolean;
+    whatsapp?: boolean;
+  },
 ): Promise<DaftraSendResult> {
   const config = getDaftraConfig();
   if (!config.enabled)
@@ -267,6 +280,9 @@ export async function sendOrderInvoice(
     (options.allowRefunded && state === PaymentState.REFUND);
   if (!order || !order.payment || !eligible)
     return { state: false, status: "not_eligible", message: "the order isn't paid" };
+
+  if (!options.force && beforeDaftraStart(order.created_at, config))
+    return { state: false, status: "not_eligible", message: BEFORE_START_MESSAGE };
 
   const built = buildOrderInvoice(order, config);
 
@@ -314,7 +330,7 @@ export async function sendOrderInvoice(
       });
       // the pdf to the client on whatsapp (never throws; on the payment path this already runs
       // after the response, after the order confirmation template)
-      await deliverInvoicePdf(oid);
+      if (options.whatsapp !== false) await deliverInvoicePdf(oid);
       return {
         state: true,
         status: "sent",

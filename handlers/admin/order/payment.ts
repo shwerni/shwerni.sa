@@ -83,8 +83,23 @@ import {
 import { TAX_PERCENT, withTax } from "@/utils/tax";
 import { queueOrderInvoice } from "@/lib/daftra/auto";
 
+// how a payment became PAID. the webhooks pass nothing (every default is the old behaviour).
+// notifications: false sends nothing to the client, the consultant or the admin new-order
+// telegram, and no invoice pdf on whatsapp; daftra: false sends no daftra invoice. the data
+// steps (meeting, pleading link, wallet, PAID) always run, and error alerts still go to telegram
+export type PaidOptions = {
+  source?: "webhook" | "dashboard";
+  notifications?: boolean;
+  daftra?: boolean;
+};
+
 // on payment success
-export const onPaymentSuccess = async (order: Reservation) => {
+export const onPaymentSuccess = async (
+  order: Reservation,
+  options: PaidOptions = {},
+) => {
+  const notifications = options.notifications !== false;
+  const daftra = options.daftra !== false;
   try {
     // validate
     if (!order || !order?.meeting?.[0]) return;
@@ -101,25 +116,28 @@ export const onPaymentSuccess = async (order: Reservation) => {
     // a no-op (null) for every other order; never throws. a payment on a declined or
     // canceled case isn't linked and goes to the admin telegram for a refund
     await linkPaidPleading(order.oid, order.meeting[0].mid);
-    // send order notify
-    if (order.origin === OrderOrigin.APP) {
-      await mobileNotifyOrderConfirmed(order);
-      // could remove later keep only app
-      // await notificationNewOrder(order);
-    } else {
-      await notificationNewOrder(order);
-    }
+    if (notifications) {
+      // send order notify
+      if (order.origin === OrderOrigin.APP) {
+        await mobileNotifyOrderConfirmed(order);
+        // could remove later keep only app
+        // await notificationNewOrder(order);
+      } else {
+        await notificationNewOrder(order);
+      }
 
-    // send telegram notify
-    await newOrdertelegram(order);
+      // send telegram notify
+      await newOrdertelegram(order);
+    }
   } catch {
     // telegram admin
     await telegramAdmin(`error ocured order #${order.oid}`);
   }
 
   // the daftra invoice: queued after the response (by then the order is PAID: orderStatusPaid
-  // writes PAID right after this function). never throws and never delays the payment
-  if (order?.oid) queueOrderInvoice(order.oid);
+  // claims PAID before this function). never throws and never delays the payment
+  if (order?.oid && daftra)
+    queueOrderInvoice(order.oid, { whatsapp: notifications });
 };
 
 // on payment refund

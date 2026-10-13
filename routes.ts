@@ -72,8 +72,9 @@ export const DynamicpublicRoutes = [
   "/api/meetings",
   // the case chat: guests poll it with their link token (the route checks access itself)
   "/api/pleadings",
-  // dashboard → site daftra sends: no session, the route checks the dashboard secret itself
+  // dashboard → site daftra sends and mark-as-paid: no session, the routes check the dashboard secret
   "/api/dashboard/daftra",
+  "/api/dashboard/orders",
   "/api/whatsapp",
   "/api/uploadthing",
   "/api/cron",

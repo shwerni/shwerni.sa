@@ -12,7 +12,12 @@ import {
 // lib
 import { getDaftraConfig } from "@/lib/daftra/config";
 import { daftraRequest } from "@/lib/daftra/client";
-import { claimOutcome, sendOrderInvoice } from "@/lib/daftra/invoice";
+import {
+  BEFORE_START_MESSAGE,
+  beforeDaftraStart,
+  claimOutcome,
+  sendOrderInvoice,
+} from "@/lib/daftra/invoice";
 import {
   riyadhDay,
   round2,
@@ -121,12 +126,18 @@ export async function sendRefundReceipt(
 
   const oid = refund.orderId;
 
+  // the go-live guard, by the order's created_at (the dashboard's force skips it)
+  if (!options.force && beforeDaftraStart(refund.order.created_at, config))
+    return { state: false, status: "not_eligible", message: BEFORE_START_MESSAGE };
+
   // the source invoice must be in daftra first: send it now if it was never sent or failed
   let invoice = await getOrderInvoiceDocument(oid);
   if (!invoice || invoice.state === DaftraSyncState.FAILED) {
     const sent = await sendOrderInvoice(oid, {
       source: options.source,
       allowRefunded: true,
+      // a forced refund of a pre-start order needs its invoice past the same guard
+      force: options.force && beforeDaftraStart(refund.order.created_at, config) ? true : undefined,
     });
     if (sent.status !== "sent" && sent.status !== "already_sent")
       return {

@@ -20,6 +20,7 @@ import {
   onPaymentHold,
   onPaymentRefund,
   onPaymentSuccess,
+  type PaidOptions,
 } from "@/handlers/admin/order/payment";
 
 // utils
@@ -864,17 +865,42 @@ export const updateOrderStatus = async (pid: string, status: PaymentState) => {
   }
 };
 
-// order status to paid (separate function to add any adds on)
-export const orderStatusPaid = async (pid: string) => {
+// the payment states a dashboard mark-as-paid may start from (a webhook may start from any
+// state but PAID, as before)
+export const DASHBOARD_PAYABLE_STATES: PaymentState[] = [
+  PaymentState.NEW,
+  PaymentState.PROCESSING,
+  PaymentState.HOLD,
+];
+
+export type OrderPaidStatus =
+  | "paid"
+  | "already_paid"
+  | "not_allowed"
+  | "hold"
+  | "not_found"
+  | "failed";
+
+// order status to paid (separate function to add any adds on). the one PAID path for the
+// webhooks (by pid) and the dashboard (by oid). the PAID write is a compare-and-set: only the
+// caller whose conditional update moves the payment to PAID runs the side effects (meeting,
+// notifications, wallet, daftra), so a repeated or concurrent call returns "already_paid" and
+// does nothing
+export const orderStatusPaid = async (
+  key: string | { oid: number },
+  options: PaidOptions = {},
+): Promise<OrderPaidStatus> => {
+  const where = typeof key === "string" ? { pid: key } : { orderId: key.oid };
+  const dashboard = options.source === "dashboard";
   try {
     //  order
     const orderId = await prisma.payment.findUnique({
-      where: { pid },
+      where,
       select: { orderId: true },
     });
 
     // validate
-    if (!orderId || !orderId.orderId) return;
+    if (!orderId || !orderId.orderId) return "not_found";
 
     // get order
     const order = await prisma.order.findUnique({
@@ -899,70 +925,91 @@ export const orderStatusPaid = async (pid: string) => {
     });
 
     // validate
-    if (!order) return false;
+    if (!order || !order.payment) return "not_found";
 
     // order
     const payment = order.payment;
 
-    // payment utils (not already paid)
-    if (payment && payment.payment !== PaymentState.PAID) {
-      // notify client & owner
-      await onPaymentSuccess(order);
+    // already paid: nothing at all
+    if (payment.payment === PaymentState.PAID) return "already_paid";
+    if (dashboard && !DASHBOARD_PAYABLE_STATES.includes(payment.payment))
+      return "not_allowed";
 
-      // update wallet if it used
-      if (payment.wallet && payment.wallet > 0) {
-        // wallet partial payment
-        const wallet = await payPartiallyByWallet(
-          order.author,
-          order.oid,
-          payment.total,
-          payment.tax,
-          payment.wallet,
-        );
-        // if withdraw form wallet have an issue
-        if (!wallet) {
-          await prisma.payment.update({
-            where: { pid },
-            data: {
-              payment: PaymentState.HOLD,
-              order: {
-                update: {
-                  info: {
-                    push: `order's payment status changed to ${
-                      PaymentState.HOLD
-                    } due to wallet withdraw issue | modified_at: ${dateTimeToString()}`,
-                  },
+    // the claim: PAID only where it isn't PAID yet (the dashboard also only from its states)
+    const claim = await prisma.payment.updateMany({
+      where: {
+        id: payment.id,
+        payment: dashboard
+          ? { in: DASHBOARD_PAYABLE_STATES }
+          : { not: PaymentState.PAID },
+      },
+      data: { payment: PaymentState.PAID },
+    });
+    if (claim.count === 0) {
+      // another caller won, or (dashboard) the state moved since the read
+      const now = await prisma.payment.findUnique({
+        where: { id: payment.id },
+        select: { payment: true },
+      });
+      return now?.payment === PaymentState.PAID ? "already_paid" : "not_allowed";
+    }
+
+    // notify client & owner
+    await onPaymentSuccess(order, options);
+
+    // update wallet if it used
+    if (payment.wallet && payment.wallet > 0) {
+      // wallet partial payment
+      const wallet = await payPartiallyByWallet(
+        order.author,
+        order.oid,
+        payment.total,
+        payment.tax,
+        payment.wallet,
+      );
+      // if withdraw form wallet have an issue
+      if (!wallet) {
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: {
+            payment: PaymentState.HOLD,
+            order: {
+              update: {
+                info: {
+                  push: `order's payment status changed to ${
+                    PaymentState.HOLD
+                  } due to wallet withdraw issue | modified_at: ${dateTimeToString()}`,
                 },
               },
             },
-          });
-          // return
-          return null;
-        }
+          },
+        });
+        // return
+        return "hold";
       }
-      // update order
-      await prisma.payment.update({
-        where: { pid },
-        data: {
-          payment: PaymentState.PAID,
-          // center orders: platform/center split, written once (centers spec §7.1)
-          ...paidSplit(order.centerId, payment),
-          order: {
-            update: {
-              info: {
-                push: `order's payment status changed to ${
-                  PaymentState.PAID
-                } | modified_at: ${dateTimeToString(new Date())}`,
-              },
+    }
+    // update order (PAID is already written by the claim)
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        payment: PaymentState.PAID,
+        // center orders: platform/center split, written once (centers spec §7.1)
+        ...paidSplit(order.centerId, payment),
+        order: {
+          update: {
+            info: {
+              push: `order's payment status changed to ${
+                PaymentState.PAID
+              } | modified_at: ${dateTimeToString(new Date())}`,
             },
           },
         },
-      });
-    }
+      },
+    });
     // return order
-    return true;
+    return "paid";
   } catch {
-    return null;
+    return "failed";
   }
 };
 

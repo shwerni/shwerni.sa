@@ -93,6 +93,7 @@ export async function getDaftraRefund(refundId: string) {
       reference: true,
       refundedAt: true,
       orderId: true,
+      order: { select: { created_at: true } },
       request: { select: { reason: true } },
     },
   });

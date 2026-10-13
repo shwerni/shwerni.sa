@@ -3550,3 +3550,58 @@ With 1 and 2, one real refund always gives one row and one receipt.
 - **`payAllByWallet`** (`data/wallet.ts`) writes PAID before `onPaymentSuccess`, but has no callers. The mobile reservations route's call is commented out.
 
 **Verified:** `prisma validate` and `generate`, `tsc --noEmit` 0 errors, eslint clean (only the old unused `error` in `uploadthing/delete`), a clean `npm run build`, and the manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`. `next start`: the Daftra routes and `uploadthing/delete` answer 401 with no header, a wrong `x-dashboard-secret`, or the old Bearer form.
+
+## 2026-10-13 · Daftra go-live date, PAID options and idempotency, dashboard mark-as-paid
+
+**1. Daftra go-live date (`DAFTRA_START_DATE`, yyyy-MM-dd, Asia/Riyadh).**
+- `lib/daftra/config.ts`: required when `DAFTRA_ENABLED=true`. A missing or invalid date (2026-02-30 is refused) is a config error, so nothing is sent.
+- `sendOrderInvoice` and `sendRefundReceipt`: an order whose `created_at` (Riyadh day) is before the date returns `not_eligible`, "الطلب قبل تاريخ بدء الربط مع دفترة". The check runs before the claim, so nothing is sent, no `DaftraInvoice` row is written and no Telegram alert fires (`not_eligible` isn't an alert status).
+- `force: true` (dashboard routes only) skips it. A forced refund of a pre-start order also forces its source invoice past the guard. The automatic paths (`queueOrderInvoice`, `queueRefundReceipt`) never pass force.
+- `getDaftraRefund` now selects `order.created_at`.
+- **Ziad:** set `DAFTRA_START_DATE` in Vercel before (or with) `DAFTRA_ENABLED=true`, or Daftra stays off with a config error.
+
+**2. `PaidOptions` through `orderStatusPaid` → `onPaymentSuccess`:** `{ source: "webhook" | "dashboard", notifications = true, daftra = true }`.
+- **`notifications: false`:** no client or consultant WhatsApp/email (`notificationNewOrder`) or app push (`mobileNotifyOrderConfirmed`), no admin Telegram new-order message (`newOrdertelegram`) and no invoice PDF on WhatsApp (`queueOrderInvoice(oid, { whatsapp: false })` → `sendOrderInvoice({ whatsapp: false })`).
+- **`daftra: false`:** no Daftra invoice is queued.
+- **Always run:** `createNewMeeting`, `linkPaidPleading`, the wallet part and the PAID write. Error alerts (the `onPaymentSuccess` catch, Daftra failed/review, the PDF failure, refund problems) still go to Telegram.
+- **The webhooks** (Moyasar, Tabby, the mobile confirm route) call `updateOrderStatus(pid, PAID)` → `orderStatusPaid(pid)` with no options, so every default is the old behaviour.
+
+**Idempotency: the webhooks weren't safe under concurrency.**
+- **Before:** Moyasar's `CheckPaymentState`, the Tabby route, `updateOrderStatus` and `orderStatusPaid` all checked `payment !== PAID` by reading first. Two concurrent deliveries could both pass the read and both run the meeting, the notifications, the wallet withdraw and the Daftra queue.
+- **Now:** `orderStatusPaid` claims the transition first with `updateMany({ where: { id, payment: { not: PAID } }, data: { payment: PAID } })`. Only the caller with `count = 1` runs the side effects. A repeat or a concurrent call returns `"already_paid"` and does nothing. The dashboard source claims only from NEW/PROCESSING/HOLD.
+- **What else changed:**
+  - PAID is written before the side effects, not after. The split (`paidSplit`) and the "changed to PAID" info line are still written after the wallet step, exactly as before.
+  - A wallet failure still ends in HOLD with the same info line. It now moves PAID → HOLD, and the split isn't written, as before.
+  - A crash between the claim and the side effects now leaves a PAID order without them. Before, it left an unpaid order with them sent.
+- **Return values:** `orderStatusPaid` now returns `"paid" | "already_paid" | "not_allowed" | "hold" | "not_found" | "failed"`. No caller of `updateOrderStatus` reads its result.
+- **`payAllByWallet`** (`data/wallet.ts`) has no callers and is unchanged.
+
+**3. Dashboard mark-as-paid:** `POST /api/dashboard/orders/paid` (`x-dashboard-secret`, Node runtime, public in `routes.ts` because the route checks the secret).
+- **Body:** `{ oid, method: transaction | visaMoyasar | tabby, reference?, notifications = true, daftra = true, actor: { id, name, role } }`. The amount is never an input: `Payment.total` stays the price.
+- **Handler:** `markOrderPaidByDashboard` (`handlers/admin/order/mark-paid.ts`), with its data in `data/order/mark-paid.ts`.
+  - **States:** only NEW/PROCESSING/HOLD can be marked paid. PAID gives `already_paid`. CANCELED/REFUSED/REFUND/STALL give `not_allowed` with the state in the message.
+  - **Method and reference:** it sets `Payment.method`, and `Payment.pid` = the reference only when pid is empty (conditional, never overwritten). A reference that is already another payment's pid gives `failed` ("المرجع مستخدم في طلب آخر").
+  - **Paying:** it then runs `orderStatusPaid({ oid }, { source: "dashboard", notifications, daftra })`, the webhooks' own path.
+- **Audit (after paid, or hold after the claim):**
+  - the order info line "تم التأكيد يدويًا من لوحة التحكم — {name} ({role}) — {method} — {reference or -}"
+  - a FinanceLog row (entity ORDER, entityId = oid, action APPROVE, changes for payment/method/pid)
+- **Response:** `{ state, status: paid | already_paid | not_allowed | not_found | failed, message, oid }`, HTTP 200. A wallet failure (HOLD) is `failed`. 401 without the secret, 400 on a bad body.
+
+**Files:**
+- `lib/daftra/config.ts`, `lib/daftra/invoice.ts`, `lib/daftra/refund.ts`, `lib/daftra/auto.ts`
+- `data/daftra.ts`, `data/order/reserveation.ts`, `data/order/mark-paid.ts` (new)
+- `handlers/admin/order/payment.ts`, `handlers/admin/order/mark-paid.ts` (new)
+- `app/api/dashboard/orders/paid/route.ts` (new)
+- `routes.ts`
+
+**Verified:**
+- tsc is clean.
+- eslint on the changed files: 0 errors (1 old unused-var warning in `payment.ts`).
+- `npm run build` passes, and `/api/dashboard/orders/paid` is in the build.
+- The manifest prints only `"data/event.ts"` and `"lib/api/google.ts"`.
+- The date validator was checked with node (2026-02-30 and malformed values refused; a 00:30 Riyadh order counts as the Riyadh day).
+- The route wasn't called against the database.
+
+**Open questions:**
+- The dashboard repo needs a mark-as-paid button that calls the route.
+- The route's messages are Arabic; the Daftra routes' are English.

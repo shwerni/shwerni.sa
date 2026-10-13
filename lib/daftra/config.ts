@@ -14,6 +14,8 @@ export type DaftraConfig =
       products: Record<30 | 45 | 60, number>;
       // daftra payment_method code for wallet money
       walletMethod: string;
+      // the go-live day (yyyy-MM-dd, Asia/Riyadh): orders created before it are never sent
+      startDate: string;
     };
 
 const REQUIRED = [
@@ -23,11 +25,20 @@ const REQUIRED = [
   "DAFTRA_PRODUCT_ID_45",
   "DAFTRA_PRODUCT_ID_60",
   "DAFTRA_METHOD_WALLET",
+  "DAFTRA_START_DATE",
 ] as const;
 
 const productId = (value: string | undefined) => {
   const n = Number(value);
   return Number.isInteger(n) && n > 0 ? n : null;
+};
+
+// a real calendar day as yyyy-MM-dd (2026-02-30 is refused)
+const isoDay = (value: string | undefined) => {
+  const day = value?.trim() ?? "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+  const date = new Date(`${day}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === day ? day : null;
 };
 
 export function getDaftraConfig(): DaftraConfig {
@@ -42,7 +53,11 @@ export function getDaftraConfig(): DaftraConfig {
   if (process.env.DAFTRA_PRODUCT_ID_45 && !p45) missing.push("DAFTRA_PRODUCT_ID_45 (not a number)");
   if (process.env.DAFTRA_PRODUCT_ID_60 && !p60) missing.push("DAFTRA_PRODUCT_ID_60 (not a number)");
 
-  if (missing.length || !p30 || !p45 || !p60)
+  const startDate = isoDay(process.env.DAFTRA_START_DATE);
+  if (process.env.DAFTRA_START_DATE?.trim() && !startDate)
+    missing.push("DAFTRA_START_DATE (not yyyy-MM-dd)");
+
+  if (missing.length || !p30 || !p45 || !p60 || !startDate)
     return { enabled: true, ok: false, missing };
 
   return {
@@ -52,5 +67,6 @@ export function getDaftraConfig(): DaftraConfig {
     apiKey: process.env.DAFTRA_API_KEY!.trim(),
     products: { 30: p30, 45: p45, 60: p60 },
     walletMethod: process.env.DAFTRA_METHOD_WALLET!.trim(),
+    startDate,
   };
 }

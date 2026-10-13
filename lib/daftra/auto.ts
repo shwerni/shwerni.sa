@@ -44,11 +44,14 @@ async function alert(label: string, dedupeKey: string, result: DaftraSendResult)
   await telegramAdmin(`daftra: ${label} ${result.status} | ${reason}`);
 }
 
-// after onPaymentSuccess: the order's invoice
-export function queueOrderInvoice(oid: number) {
+// after onPaymentSuccess: the order's invoice. whatsapp: false skips the pdf on whatsapp
+export function queueOrderInvoice(oid: number, options: { whatsapp?: boolean } = {}) {
   schedule(async () => {
     try {
-      const result = await sendOrderInvoice(oid, { source: "payment" });
+      const result = await sendOrderInvoice(oid, {
+        source: "payment",
+        whatsapp: options.whatsapp,
+      });
       await alert(`invoice oid=${oid}`, `invoice:${oid}`, result);
     } catch (err) {
       console.error(`[daftra] invoice oid=${oid} threw`, err instanceof Error ? err.name : "error");
