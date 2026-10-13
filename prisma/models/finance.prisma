@@ -123,6 +123,7 @@ model Refund {
     payment   Payment        @relation(fields: [paymentId], references: [id])
     requestId String?        @unique
     request   RefundRequest? @relation(fields: [requestId], references: [id])
+    daftraInvoice DaftraInvoice?
 
     @@index([refundedAt])
     @@index([orderId])

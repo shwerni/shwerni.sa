@@ -1,0 +1,59 @@
+// daftra accounting: one daftra client per customer, one INVOICE per paid order, one REFUND
+// receipt per Refund row. daftra itself doesn't block duplicates, so these rows are the only guard
+
+// one Daftra client per customer, keyed by normalized phone
+model DaftraClient {
+  id             String   @id @default(cuid())
+  phone          String   @unique // digits only (phoneNumber), with the country code
+  daftraClientId Int?     @unique // null while the create call is in flight
+  name           String // name used when the client was created
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("daftra_clients")
+}
+
+enum DaftraDocType {
+  INVOICE
+  REFUND
+}
+
+enum DaftraSyncState {
+  PENDING // claimed, send in flight
+  SENT // created in Daftra
+  FAILED // definitive rejection (4xx with a body), may be re-sent from the dashboard
+  REVIEW // unknown outcome (timeout / network / 5xx). Daftra may have created it; never re-sent without force
+}
+
+model DaftraInvoice {
+  id             String          @id @default(cuid())
+  diid           Int             @unique @default(autoincrement())
+  dedupeKey      String          @unique // "invoice:{oid}" | "refund:{refund.id}"
+  type           DaftraDocType
+  state          DaftraSyncState @default(PENDING)
+  daftraId       Int?            @unique
+  daftraNo       String?
+  daftraParent   Int? // REFUND: Daftra id of the source invoice
+  daftraClientId Int?
+  amount         Float // total incl. VAT as sent
+  tax            Float // VAT inside it
+  method         String // daftra payment_method code(s), comma-joined
+  payload        Json? // exact body sent
+  response       Json? // last Daftra response
+  attempts       Int             @default(0)
+  lastError      String?         @db.Text
+  source         String // "payment" | "dashboard"
+  sentAt         DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  // @relations
+  orderId  Int
+  order    Order   @relation(fields: [orderId], references: [oid])
+  refundId String? @unique
+  refund   Refund? @relation(fields: [refundId], references: [id])
+
+  @@index([state, createdAt])
+  @@index([orderId, type])
+  @@map("daftra_invoices")
+}

@@ -1,6 +1,7 @@
 import "server-only";
 import prisma from "@/lib/database/db";
 import type { RefundChannel } from "@/lib/generated/prisma/enums";
+import { queueRefundReceipt } from "@/lib/daftra/auto";
 
 // order + payment + any still-open refund request, keyed by the Moyasar invoice id —
 // used by the payment_refunded webhook to attribute the refund correctly
@@ -123,7 +124,7 @@ export async function recordRefund(params: {
     actor,
   } = params;
 
-  return prisma.$transaction(async (tx) => {
+  const created = await prisma.$transaction(async (tx) => {
     const already = await tx.refund.aggregate({
       where: { paymentId },
       _sum: { amount: true },
@@ -154,7 +155,7 @@ export async function recordRefund(params: {
         paymentId,
         requestId: matchedRequest?.id ?? null,
       },
-      select: { id: true },
+      select: { id: true, rfid: true },
     });
 
     await tx.financeLog.create({
@@ -201,4 +202,10 @@ export async function recordRefund(params: {
 
     return refund;
   });
+
+  // the daftra refund receipt, after the row is committed: queued after the response, never
+  // throws into the webhook
+  if (created) queueRefundReceipt(created.id, created.rfid);
+
+  return created;
 }

@@ -69,6 +69,7 @@ model Order {
   bankTransferRequest BankTransferRequest?
   financeEntries      FinanceEntry[]
   pleading            Pleading?
+  daftraInvoices      DaftraInvoice[]
 
   @@index([centerId, created_at])
   @@map("orders")

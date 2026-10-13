@@ -81,6 +81,7 @@ import {
 } from "@/utils/reconciliation";
 // the vat rate is the TAX_PERCENT constant; the finance.tax setting is no longer read for charges
 import { TAX_PERCENT, withTax } from "@/utils/tax";
+import { queueOrderInvoice } from "@/lib/daftra/auto";
 
 // on payment success
 export const onPaymentSuccess = async (order: Reservation) => {
@@ -115,6 +116,10 @@ export const onPaymentSuccess = async (order: Reservation) => {
     // telegram admin
     await telegramAdmin(`error ocured order #${order.oid}`);
   }
+
+  // the daftra invoice: queued after the response (by then the order is PAID: orderStatusPaid
+  // writes PAID right after this function). never throws and never delays the payment
+  if (order?.oid) queueOrderInvoice(order.oid);
 };
 
 // on payment refund

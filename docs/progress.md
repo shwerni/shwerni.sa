@@ -3411,3 +3411,90 @@ The quoted amount is `withTax(price)`, and the expiry is the Riyadh date.
 - **The dashboard repo:**
   - its order table says "سيتم تحديد موعد الجلسة مع الطرف الاخر" for reconciliation orders, which now have a date and time
   - plus the 3 settings fields (from R1)
+
+## 2026-10-13 · Daftra invoices and refund receipts
+
+**Schema** (`prisma/models/daftra.prisma`; validate and generate done; **`db push` by Ziad before `DAFTRA_ENABLED=true`**)
+
+- **`DaftraClient`** (`daftra_clients`): one per customer, keyed by the order's phone (digits only), with `daftraClientId` null while the create call runs.
+- **`DaftraInvoice`** (`daftra_invoices`) with `DaftraDocType` (INVOICE, REFUND) and `DaftraSyncState` (PENDING, SENT, FAILED, REVIEW).
+  - `dedupeKey` is `invoice:{oid}` or `refund:{refund.id}`: exactly one invoice per order and one receipt per Refund row.
+- **Back-relations:** `Order.daftraInvoices` and `Refund.daftraInvoice`. No new column on an existing table, so the deploy is safe before the db push as long as `DAFTRA_ENABLED` isn't "true" (the handlers stop before any query).
+
+**Code**
+
+- **`lib/daftra/config.ts`:** the env check. Anything but `DAFTRA_ENABLED="true"` means "disabled". When enabled, every var is required (the product ids as numbers), otherwise it's a config error and nothing is sent.
+- **`lib/daftra/client.ts`:** `daftraRequest` (the `apikey` header, json, 20s timeout).
+  - **Success:** 2xx with `result: "successful"` and a numeric id (string ids are parsed).
+  - **Failed:** 4xx with a json body (message + `validation_errors`).
+  - **Unknown:** timeout, network error, 5xx, a 4xx without a body, or an unreadable 2xx.
+- **`lib/daftra/format.ts`:**
+  - `round2`, `vatInside`, `riyadhDay`
+  - `phoneKey` (`phoneNumber()` digits, a leading "00" dropped) and `internationalPhone` ("+" + digits)
+  - the method codes: visaMoyasar → manual_payment_19, tabby → tabby, transaction → bank, wallet → `DAFTRA_METHOD_WALLET`
+  - `splitRefund` (proportional, the last line takes the rounding remainder)
+- **`lib/daftra/customer.ts`, `getOrCreateDaftraClient`:**
+  - an existing client is reused, and its name is never updated
+  - the row is claimed before `POST /clients.json`; a lost claim gives "client_not_ready"
+  - a failed or unknown create deletes the claim (retriable)
+  - the email is sent only for a real user account
+- **`data/daftra.ts`:** every query (CLAUDE.md: queries live in `data/`).
+  - **Loading:** the invoice order (payment, coupon, meetings by session, consultant, center, program, package, pleading, reconciliation, the author's email) and the refund (with the request's reason).
+  - **Customer claims:** claim and release the `DaftraClient` row.
+  - **Document claims (`claimDaftraDocument`):**
+    - no row → create PENDING; a unique conflict → already_claimed
+    - SENT → already_sent; PENDING → already_claimed; REVIEW → stop unless force
+    - FAILED (or REVIEW with force) → a conditional update on the read state, attempts + 1
+  - **Outcomes:** `finishDaftraDocument` (SENT, FAILED or REVIEW).
+  - **The refund guard sum:** `sumOtherActiveRefunds`.
+- **`lib/daftra/invoice.ts`, `sendOrderInvoice(oid, { source, force })`:** eligible only when the payment is PAID (or REFUND, from the refund path only).
+  - **One line:** product by the first meeting's duration, `item` "جلسة N دقيقة", the description as specified, `unit_price = withTax(payment.total)` (the webhooks' own formula).
+  - **Tax:** `amount - amount / 1.15`.
+  - **The date:** `created_at` in Riyadh.
+  - **Payment lines:**
+    - method wallet → one wallet line
+    - otherwise the method's line for `total - Payment.wallet` (with `pid`), plus a wallet line when `Payment.wallet > 0`
+    - the lines must add up to `unit_price`, or FAILED with the reason
+  - **The notes:** the arabic facts, one per line; coupons only here, never as a Daftra discount.
+  - **An unexpected error after the claim:** REVIEW (never FAILED: Daftra may have the invoice).
+  - **`buildInvoiceBody`** is exported for tests.
+- **`lib/daftra/refund.ts`, `sendRefundReceipt(refundId, { source, force })`:**
+  - **The source invoice:** it must be SENT; with no row or a FAILED one it's sent first (`allowRefunded`); PENDING or REVIEW gives "invoice_not_ready".
+  - **The guard:** the other SENT, PENDING and REVIEW receipts plus this one must not exceed the invoice amount.
+  - **The lines:** the source invoice's own payload lines split in proportion (the original method, whatever `Refund.channel` says), with `Refund.reference` as the transaction id.
+  - **The body:** `subscription_id` = the invoice's `daftraId`, the date from `refundedAt` in Riyadh, one line with the source product and item.
+  - **`refundLines` and `buildRefundBody`** are exported for tests.
+- **`lib/daftra/auto.ts`:** `queueOrderInvoice` and `queueRefundReceipt` run after the response (next's `after()`, the pattern of the whatsapp webhook), so they never throw or delay. failed, review, client_not_ready and invoice_not_ready alert the admin telegram with the oid or rfid, the status and the row's `lastError`.
+- **Call sites:**
+  - `onPaymentSuccess` (`handlers/admin/order/payment.ts`): `queueOrderInvoice(order.oid)` after its existing try/catch. It runs after the response, by when `orderStatusPaid` has written PAID (it calls `onPaymentSuccess` before that update).
+  - `recordRefund` (`data/gatewaies/webhook.ts`, the Moyasar and Tabby refund webhooks): `queueRefundReceipt` after the transaction commits (the refund select also returns `rfid`).
+- **`lib/auth/dashboard-secret.ts`, `verifyDashboardSecret`:** `Authorization: Bearer <DASHBOARD_SECRET>` with `timingSafeEqual` (length first; an unset secret never matches).
+- **`app/api/dashboard/daftra/invoice` and `refund`:** POST, zod bodies (`{oid, force?}` and `{refundId, force?}`), the handler's typed result, generic messages.
+  - No `runtime` export: it isn't allowed with `cacheComponents`, and Node is the default.
+  - `routes.ts`: `/api/dashboard/daftra` is public, since the route checks the secret itself.
+
+**Findings**
+
+- **`Payment.paid`, `wallet` and `credit`:** in this repo no live path writes them; `payAllByWallet`, `requestUsingWallet` and `updateOrderPaidByOid` have no callers. Live web payments are Moyasar or Tabby only.
+  - `Payment.wallet` is the VAT-inclusive SAR debited from the wallet when the order turns PAID (`payPartiallyByWallet`).
+  - `paid` and `credit` are only edited by hand in the dashboard, and their meaning isn't defined in code, so the invoice doesn't use them.
+- **`Refund.amount`:** gateway refunds (`recordRefund`) are the gateway's refunded charge, so VAT is included.
+  - The dashboard caps a refund at `refundBase = paid ?? total`. With `paid` empty, that's the pre-VAT `total`, so a dashboard "full refund" can be at most 700 of an 805 charge.
+  - The receipt treats `Refund.amount` as VAT-inclusive. This cap should be fixed in the dashboard repo.
+- **Refund rows** are created here (the gateway webhooks via `recordRefund`) and in the dashboard repo (`finance-refunds.ts`), which must call `POST /api/dashboard/daftra/refund` after each one.
+- **There's no paid-at field** (the payment has none, `due_at` defaults to creation). The invoice date is `order.created_at`.
+
+**Verified**
+
+- `prisma validate` and `generate`, `tsc --noEmit` 0 errors, eslint clean (only the old `refund` unused warning in `payment.ts`), a clean `npm run build`, and the manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`.
+- **The sample bodies,** generated by the real builders with fake orders and no network: client, Moyasar, Tabby (with مرافعة), a 5 × 30 package, partial wallet (505 + 300), a full refund (805) and a partial refund of the partial-wallet order (200 → 125.47 + 74.53). All lines add up.
+- **`next start`:** both dashboard routes answer 401 without or with a wrong bearer, and 405 for GET. No call was made to Daftra.
+
+**Env (Vercel, server-only):** `DAFTRA_ENABLED`, `DAFTRA_SUBDOMAIN`, `DAFTRA_API_KEY`, `DAFTRA_PRODUCT_ID_30`, `DAFTRA_PRODUCT_ID_45`, `DAFTRA_PRODUCT_ID_60`, `DAFTRA_METHOD_WALLET` (`DASHBOARD_SECRET` already exists). `.env.example` wasn't created: CLAUDE.md forbids editing `.env*` files.
+
+**Open questions**
+
+- `db push` before enabling.
+- The dashboard refund cap.
+- Old meeting-less orders (e.g. legacy reconciliation) can't be invoiced ("the order has no meeting").
+- **Two different refunds of one order sent at the same moment** could both pass the guard (no row lock); rare.
