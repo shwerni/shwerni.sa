@@ -37,6 +37,14 @@ import { CheckIcon, ChevronsUpDown } from "lucide-react";
 // every country, in arabic: the library's arabic names, with the site's own names on top
 const labels = { ...ar, ...countries };
 
+// countries the menu never offers
+const EXCLUDED_COUNTRIES: RPNInput.Country[] = ["IL"];
+
+// the allowed countries: the library's full list minus the excluded ones
+const COUNTRIES: RPNInput.Country[] = RPNInput.getCountries().filter(
+  (country) => !EXCLUDED_COUNTRIES.includes(country),
+);
+
 // the menu's top countries, in this order; every other country follows, sorted by name
 const TOP_COUNTRIES: RPNInput.Country[] = [
   "SA",
@@ -77,6 +85,7 @@ const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
           withCountryCallingCode
           countryCallingCodeEditable={false}
           value={value || undefined}
+          countries={COUNTRIES}
           countryOptionsOrder={[...TOP_COUNTRIES, "..."]}
           excludeCountries={["IL"]}
           defaultCountry="SA"
