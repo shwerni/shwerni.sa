@@ -3645,3 +3645,12 @@ With 1 and 2, one real refund always gives one row and one receipt.
 - eslint on the changed files is clean.
 - `npm run build` passes.
 - The manifest prints only `"data/event.ts"` and `"lib/api/google.ts"`.
+
+## 2026-10-14 · Phone input: every country
+
+- `components/shared/phone-input.tsx` (the shared phone input):
+  - **Countries:** the `countries` whitelist (13 countries) is gone, so every country the library knows (245) is listed.
+  - **Order:** the same 13 stay at the top, in their old order, via `countryOptionsOrder={[...TOP_COUNTRIES, "..."]}`. The rest follow, sorted by their Arabic name.
+  - **Names:** the library's Arabic locale (`react-phone-number-input/locale/ar.json`), with the site's own names (`constants/phone/countries-phone.json`) kept for those 13.
+- **Server rules are unchanged** (`schemas.phone`: 9 to 15 characters, length only). Numbers from other countries already pass. A full 15-digit E.164 number plus the "+" would be 16 characters and is refused, as before.
+- **Verified:** tsc is clean, eslint shows 0 errors (1 old warning), `npm run build` passes, and the manifest prints only `"data/event.ts"` and `"lib/api/google.ts"`. Not checked in a browser.

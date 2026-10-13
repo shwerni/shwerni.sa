@@ -28,10 +28,31 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/utils/utils";
 
 // constant locale
+import ar from "react-phone-number-input/locale/ar.json";
 import countries from "@/constants/phone/countries-phone.json";
 
 // icons
 import { CheckIcon, ChevronsUpDown } from "lucide-react";
+
+// every country, in arabic: the library's arabic names, with the site's own names on top
+const labels = { ...ar, ...countries };
+
+// the menu's top countries, in this order; every other country follows, sorted by name
+const TOP_COUNTRIES: RPNInput.Country[] = [
+  "SA",
+  "EG",
+  "KW",
+  "PS",
+  "QA",
+  "OM",
+  "AE",
+  "JO",
+  "LB",
+  "IQ",
+  "BH",
+  "SY",
+  "YE",
+];
 
 type PhoneInputProps = Omit<
   React.ComponentProps<"input">,
@@ -56,23 +77,9 @@ const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
           withCountryCallingCode
           countryCallingCodeEditable={false}
           value={value || undefined}
-          countries={[
-            "SA",
-            "EG",
-            "KW",
-            "PS",
-            "QA",
-            "OM",
-            "AE",
-            "JO",
-            "LB",
-            "IQ",
-            "BH",
-            "SY",
-            "YE",
-          ]}
+          countryOptionsOrder={[...TOP_COUNTRIES, "..."]}
           defaultCountry="SA"
-          labels={countries}
+          labels={labels}
           smartCaret={false}
           // addInternationalOption={false}
           // initialValueFormat="national"
