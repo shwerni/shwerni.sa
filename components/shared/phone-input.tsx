@@ -78,6 +78,7 @@ const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
           countryCallingCodeEditable={false}
           value={value || undefined}
           countryOptionsOrder={[...TOP_COUNTRIES, "..."]}
+          excludeCountries={["IL"]}
           defaultCountry="SA"
           labels={labels}
           smartCaret={false}
