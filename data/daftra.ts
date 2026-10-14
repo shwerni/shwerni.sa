@@ -56,6 +56,16 @@ export type DaftraInvoiceOrder = Prisma.OrderGetPayload<{
   select: typeof invoiceOrderSelect;
 }> & { authorEmail: string | null; reconciliation: boolean };
 
+// the author's email, only for a real user account (guests are "temp")
+async function authorEmailOf(author: string | null) {
+  if (!author || author === "temp") return null;
+  const user = await prisma.user.findUnique({
+    where: { id: author },
+    select: { email: true },
+  });
+  return user?.email?.trim() || null;
+}
+
 export async function getDaftraInvoiceOrder(
   oid: number,
 ): Promise<DaftraInvoiceOrder | null> {
@@ -65,26 +75,17 @@ export async function getDaftraInvoiceOrder(
   });
   if (!order) return null;
 
-  // the author's email, only for a real user account (guests are "temp")
-  const author =
-    order.author && order.author !== "temp"
-      ? await prisma.user.findUnique({
-          where: { id: order.author },
-          select: { email: true },
-        })
-      : null;
-
   const { reconciliation, ...rest } = order;
   return {
     ...rest,
-    authorEmail: author?.email?.trim() || null,
+    authorEmail: await authorEmailOf(order.author),
     reconciliation: !!reconciliation,
   };
 }
 
 // everything a refund receipt is built from
 export async function getDaftraRefund(refundId: string) {
-  return prisma.refund.findUnique({
+  const refund = await prisma.refund.findUnique({
     where: { id: refundId },
     select: {
       id: true,
@@ -93,10 +94,12 @@ export async function getDaftraRefund(refundId: string) {
       reference: true,
       refundedAt: true,
       orderId: true,
-      order: { select: { created_at: true } },
+      order: { select: { created_at: true, author: true } },
       request: { select: { reason: true } },
     },
   });
+  if (!refund) return null;
+  return { ...refund, authorEmail: await authorEmailOf(refund.order.author) };
 }
 
 // ---------- customers ----------

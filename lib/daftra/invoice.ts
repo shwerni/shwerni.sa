@@ -213,15 +213,18 @@ function invoiceNotes(
 }
 
 // the POST /invoices.json body: one line at the VAT-inclusive total, never a daftra discount
-// (coupons are in the notes)
+// (coupons are in the notes). client_email is always sent (the author's real email, else
+// DAFTRA_CLIENT_EMAIL): daftra refuses the document for a client set to email invoicing without one
 export function buildInvoiceBody(
   built: Extract<BuiltInvoice, { ok: true }>,
   clientId: number,
   oid: number,
+  clientEmail: string,
 ) {
   return {
     Invoice: {
       client_id: clientId,
+      client_email: clientEmail,
       date: built.date,
       draft: 0,
       currency_code: "SAR",
@@ -315,7 +318,12 @@ export async function sendOrderInvoice(
         : { state: false, status: "failed", message: "تعذر إنشاء العميل في دفترة" };
     }
 
-    const body = buildInvoiceBody(built, customer.daftraClientId, oid);
+    const body = buildInvoiceBody(
+      built,
+      customer.daftraClientId,
+      oid,
+      order.authorEmail ?? config.clientEmail,
+    );
 
     const result = await daftraRequest(config, "/invoices.json", body);
 

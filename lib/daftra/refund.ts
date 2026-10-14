@@ -56,9 +56,11 @@ export function refundLines(
 }
 
 // the POST /refund_receipts.json body: one line (the source invoice's product and item) at the
-// VAT-inclusive refund amount; the client and currency come from the source invoice
+// VAT-inclusive refund amount; the client and currency come from the source invoice. client_email
+// follows the invoice rule (the author's real email, else DAFTRA_CLIENT_EMAIL)
 export function buildRefundBody(input: {
   oid: number;
+  clientEmail: string;
   rfid: number;
   amount: number;
   reason?: string | null;
@@ -87,6 +89,7 @@ export function buildRefundBody(input: {
   return {
     Invoice: {
       subscription_id: input.source.daftraId,
+      client_email: input.clientEmail,
       date: input.date,
       notes,
     },
@@ -204,6 +207,7 @@ export async function sendRefundReceipt(
 
     const body = buildRefundBody({
       oid,
+      clientEmail: refund.authorEmail ?? config.clientEmail,
       rfid: refund.rfid,
       amount,
       reason: refund.request?.reason,

@@ -3654,3 +3654,21 @@ With 1 and 2, one real refund always gives one row and one receipt.
   - **Names:** the library's Arabic locale (`react-phone-number-input/locale/ar.json`), with the site's own names (`constants/phone/countries-phone.json`) kept for those 13.
 - **Server rules are unchanged** (`schemas.phone`: 9 to 15 characters, length only). Numbers from other countries already pass. A full 15-digit E.164 number plus the "+" would be 16 characters and is refused, as before.
 - **Verified:** tsc is clean, eslint shows 0 errors (1 old warning), `npm run build` passes, and the manifest prints only `"data/event.ts"` and `"lib/api/google.ts"`. Not checked in a browser.
+
+## 2026-10-14 · Daftra: client_email on every invoice and refund receipt
+
+**The bug:** Daftra refused invoices for clients without an email ("client_email": "البريد الإلكتروني مطلوب إذا اخترت أن ترسل الفاتورة عبر البريد"). New Daftra clients default to the email invoicing method.
+
+**The fix:**
+- **New env `DAFTRA_CLIENT_EMAIL`** (the fallback email). `lib/daftra/config.ts` requires it when `DAFTRA_ENABLED=true`. A missing or malformed value is a config error, so nothing is sent.
+- **The invoice body** (`buildInvoiceBody`) always has `Invoice.client_email`: the order author's email when the author is a real user with one, else `DAFTRA_CLIENT_EMAIL`.
+- **The refund receipt body** (`buildRefundBody`) follows the same rule. `getDaftraRefund` now also returns `authorEmail`, from `order.author`.
+- **The author email lookup** is now one helper, `authorEmailOf` in `data/daftra.ts`, used by both loaders. Guests ("temp") get null.
+- **Client create is unchanged:** a real email only, omitted otherwise.
+- **Ziad:** set `DAFTRA_CLIENT_EMAIL` in Vercel. Without it, the Daftra config is incomplete and nothing is sent.
+
+**Files:** `lib/daftra/config.ts`, `lib/daftra/invoice.ts`, `lib/daftra/refund.ts`, `data/daftra.ts`.
+
+**Open question:** invoices that failed with this error are FAILED rows. The dashboard's "send the invoice" button re-sends them (a FAILED row is re-claimed without force).
+
+**Verified:** tsc is clean, eslint on the changed files is clean, `npm run build` passes, and the manifest prints only `"data/event.ts"` and `"lib/api/google.ts"`. Nothing was sent to Daftra.

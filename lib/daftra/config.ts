@@ -16,6 +16,9 @@ export type DaftraConfig =
       walletMethod: string;
       // the go-live day (yyyy-MM-dd, Asia/Riyadh): orders created before it are never sent
       startDate: string;
+      // the invoice and refund receipt client_email when the order has no real user email
+      // (daftra refuses a document without one for clients set to email invoicing)
+      clientEmail: string;
     };
 
 const REQUIRED = [
@@ -26,6 +29,7 @@ const REQUIRED = [
   "DAFTRA_PRODUCT_ID_60",
   "DAFTRA_METHOD_WALLET",
   "DAFTRA_START_DATE",
+  "DAFTRA_CLIENT_EMAIL",
 ] as const;
 
 const productId = (value: string | undefined) => {
@@ -57,7 +61,11 @@ export function getDaftraConfig(): DaftraConfig {
   if (process.env.DAFTRA_START_DATE?.trim() && !startDate)
     missing.push("DAFTRA_START_DATE (not yyyy-MM-dd)");
 
-  if (missing.length || !p30 || !p45 || !p60 || !startDate)
+  const clientEmail = process.env.DAFTRA_CLIENT_EMAIL?.trim() ?? "";
+  if (clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail))
+    missing.push("DAFTRA_CLIENT_EMAIL (not an email)");
+
+  if (missing.length || !p30 || !p45 || !p60 || !startDate || !clientEmail)
     return { enabled: true, ok: false, missing };
 
   return {
@@ -68,5 +76,6 @@ export function getDaftraConfig(): DaftraConfig {
     products: { 30: p30, 45: p45, 60: p60 },
     walletMethod: process.env.DAFTRA_METHOD_WALLET!.trim(),
     startDate,
+    clientEmail,
   };
 }
