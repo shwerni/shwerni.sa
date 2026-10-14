@@ -7,6 +7,12 @@ import { PaymentMethod } from "@/lib/generated/prisma/enums";
 import { phoneNumber } from "@/utils";
 import { TAX_PERCENT } from "@/utils/tax";
 
+// who started a send (kept on the DaftraInvoice row)
+export type DaftraSource = "payment" | "dashboard" | "cron";
+
+// the instant a riyadh day (yyyy-MM-dd) starts: riyadh is UTC+3 all year, no DST
+export const riyadhDayStart = (day: string) => new Date(`${day}T00:00:00+03:00`);
+
 // what every daftra handler returns
 export type DaftraSendStatus =
   | "sent"

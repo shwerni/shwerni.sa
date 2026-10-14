@@ -24,6 +24,7 @@ import {
   vatInside,
   type DaftraPaymentLine,
   type DaftraSendResult,
+  type DaftraSource,
 } from "@/lib/daftra/format";
 
 // prisma types
@@ -262,7 +263,7 @@ export const beforeDaftraStart = (createdAt: Date, config: Config) =>
 export async function sendOrderInvoice(
   oid: number,
   options: {
-    source: "payment" | "dashboard";
+    source: DaftraSource;
     force?: boolean;
     allowRefunded?: boolean;
     whatsapp?: boolean;

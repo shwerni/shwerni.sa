@@ -8,6 +8,10 @@
       "schedule": "*/20 * * * *"
     },
     {
+      "path": "/api/cron/daftra-retry",
+      "schedule": "0 3 * * *"
+    },
+    {
       "path": "/api/cron/shuffle/consultants",
       "schedule": "*/10 * * * *"
     },

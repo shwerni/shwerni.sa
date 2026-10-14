@@ -5,7 +5,7 @@ import prisma from "@/lib/database/db";
 
 // prisma types
 import { Prisma } from "@/lib/generated/prisma/client";
-import { DaftraDocType, DaftraSyncState } from "@/lib/generated/prisma/enums";
+import { DaftraDocType, DaftraSyncState, PaymentState } from "@/lib/generated/prisma/enums";
 
 // every database step of the daftra sync. the rows here are the only duplicate guard: daftra
 // creates a second invoice for the same body sent twice
@@ -100,6 +100,71 @@ export async function getDaftraRefund(refundId: string) {
   });
   if (!refund) return null;
   return { ...refund, authorEmail: await authorEmailOf(refund.order.author) };
+}
+
+// ---------- the daily retry (cron) ----------
+
+// a FAILED row is retried by the cron until it has this many attempts; then a person decides
+export const DAFTRA_MAX_ATTEMPTS = 5;
+
+// the documents the cron retries: never sent (no row), or FAILED under the attempt cap. never
+// SENT, PENDING or REVIEW rows
+const retryableRow = {
+  state: DaftraSyncState.FAILED,
+  attempts: { lt: DAFTRA_MAX_ATTEMPTS },
+} satisfies Prisma.DaftraInvoiceWhereInput;
+
+// PAID orders created between the go-live instant and the cutoff whose invoice is missing or
+// retryable, oldest first
+export async function getRetryInvoiceOrders(since: Date, before: Date) {
+  const rows = await prisma.order.findMany({
+    where: {
+      created_at: { gte: since, lte: before },
+      payment: { is: { payment: PaymentState.PAID } },
+      OR: [
+        { daftraInvoices: { none: { type: DaftraDocType.INVOICE } } },
+        { daftraInvoices: { some: { type: DaftraDocType.INVOICE, ...retryableRow } } },
+      ],
+    },
+    orderBy: { oid: "asc" },
+    select: { oid: true },
+  });
+  return rows.map((row) => row.oid);
+}
+
+// Refund rows created before the cutoff, on orders created since the go-live instant, whose
+// refund receipt is missing or retryable, oldest first
+export async function getRetryRefunds(since: Date, before: Date) {
+  return prisma.refund.findMany({
+    where: {
+      createdAt: { lte: before },
+      order: { created_at: { gte: since } },
+      OR: [{ daftraInvoice: null }, { daftraInvoice: { is: retryableRow } }],
+    },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, rfid: true, orderId: true },
+  });
+}
+
+// PENDING rows untouched since `before` were stopped mid-send: the outcome is unknown, so they
+// become REVIEW (never resent automatically). conditional per row, so a send that finishes
+// meanwhile keeps its own outcome. returns the rows that were moved
+export async function markStuckDaftraDocuments(before: Date) {
+  const rows = await prisma.daftraInvoice.findMany({
+    where: { state: DaftraSyncState.PENDING, updatedAt: { lt: before } },
+    select: { id: true, type: true, orderId: true, refund: { select: { rfid: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const moved: typeof rows = [];
+  for (const row of rows) {
+    const { count } = await prisma.daftraInvoice.updateMany({
+      where: { id: row.id, state: DaftraSyncState.PENDING, updatedAt: { lt: before } },
+      data: { state: DaftraSyncState.REVIEW, lastError: "stuck in PENDING" },
+    });
+    if (count) moved.push(row);
+  }
+  return moved;
 }
 
 // ---------- customers ----------

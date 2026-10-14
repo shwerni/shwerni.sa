@@ -26,6 +26,7 @@ import {
   vatInside,
   type DaftraPaymentLine,
   type DaftraSendResult,
+  type DaftraSource,
 } from "@/lib/daftra/format";
 
 // prisma types
@@ -112,7 +113,7 @@ export function buildRefundBody(input: {
 // same proportion, whatever Refund.channel says
 export async function sendRefundReceipt(
   refundId: string,
-  options: { source: "payment" | "dashboard"; force?: boolean },
+  options: { source: DaftraSource; force?: boolean },
 ): Promise<DaftraSendResult> {
   const config = getDaftraConfig();
   if (!config.enabled)
@@ -139,6 +140,8 @@ export async function sendRefundReceipt(
     const sent = await sendOrderInvoice(oid, {
       source: options.source,
       allowRefunded: true,
+      // the nightly retry never sends the invoice pdf on whatsapp
+      whatsapp: options.source === "cron" ? false : undefined,
       // a forced refund of a pre-start order needs its invoice past the same guard
       force: options.force && beforeDaftraStart(refund.order.created_at, config) ? true : undefined,
     });

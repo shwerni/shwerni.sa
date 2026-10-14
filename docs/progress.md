@@ -3672,3 +3672,36 @@ With 1 and 2, one real refund always gives one row and one receipt.
 **Open question:** invoices that failed with this error are FAILED rows. The dashboard's "send the invoice" button re-sends them (a FAILED row is re-claimed without force).
 
 **Verified:** tsc is clean, eslint on the changed files is clean, `npm run build` passes, and the manifest prints only `"data/event.ts"` and `"lib/api/google.ts"`. Nothing was sent to Daftra.
+
+## 2026-10-14 · Daftra: invoice PDF on/off, daily retry cron
+
+**1. Invoice PDF on WhatsApp on/off.**
+- `sendOrderInvoice` already took `whatsapp` (since 6ecdd6a). The dashboard invoice route body now takes `whatsapp?: boolean` too, default true.
+- `false` creates the invoice in Daftra without the `order_invoice` WhatsApp. `whatsappSentAt` stays null, so `resendWhatsapp` can send it later.
+- The automatic payment path keeps the default. The confirmation templates are untouched.
+
+**2. Daily retry: `app/api/cron/daftra-retry/route.ts`** (`vercel.json` "0 3 * * *").
+- **Auth:** `isCronRequest`, as in the other crons.
+- **Time limit:** `maxDuration = 300`. No new send starts in the last 90 seconds (a send can take up to three 20-second Daftra calls). Sends run one at a time with a 1-second gap. What's left goes to the next run and is counted in the summary.
+- **Code:** the runner is `lib/daftra/retry.ts`; the queries are in `data/daftra.ts` (`getRetryInvoiceOrders`, `getRetryRefunds`, `markStuckDaftraDocuments`).
+
+**The conditions:**
+- **Start instant:** `since` = `DAFTRA_START_DATE` 00:00 Riyadh (`riyadhDayStart`, UTC+3, no DST). `before` = now − 30 minutes.
+- **Invoices:** orders with `created_at >= since AND created_at <= before`, `payment.payment = PAID`, and either no `daftra_invoices` row of type INVOICE, or an INVOICE row with `state = FAILED AND attempts < 5`. Sent oldest oid first with `sendOrderInvoice(oid, { source: "cron", whatsapp: false })`.
+- **Refund receipts:** Refund rows with `createdAt <= before` and `order.created_at >= since`, and either no linked `daftra_invoices` row, or one with `state = FAILED AND attempts < 5`. Sent oldest first, after the invoices, with `sendRefundReceipt(id, { source: "cron" })`.
+  - When the receipt has to send its source invoice first, the cron path passes `whatsapp: false` to it (no PDF at night).
+- **Stuck sends:** `state = PENDING AND updatedAt < now − 1 hour` become REVIEW with lastError "stuck in PENDING". Each row gets a conditional update on the same condition, and none is resent.
+- **Never touched:** SENT and REVIEW rows, and PENDING rows younger than an hour. The send functions' own claim also refuses them.
+- **Dates:** documents keep their own dates (the builders are unchanged): invoices `order.created_at` (Riyadh), refund receipts `refundedAt`. A closed financial period rejection ends FAILED with Daftra's reason, like any rejection.
+- **`source`** now allows `"cron"` (`DaftraSource` in `lib/daftra/format.ts`). The DaftraInvoice schema comment still says "payment | dashboard"; it's a free text column, so I didn't edit the schema.
+
+**Telegram:** one summary per run, only when something was sent, failed, got stuck or is left for the next run. It lists sent, failed (with the status and a short reason from `lastError`), stuck → REVIEW, rows that reached 5 attempts and the count left. A config error sends one line. Nothing is sent when there was nothing to do.
+
+**Ziad:** `maxDuration = 300` needs Fluid compute (the Vercel default) or the Pro plan. The other crons use 60.
+
+**Verified:**
+- tsc and eslint on the changed files are clean.
+- `npm run build` passes, and `/api/cron/daftra-retry` is in the build.
+- The manifest prints only `"data/event.ts"` and `"lib/api/google.ts"`.
+- The summary builder was run on sample data with node: a full summary renders, and an empty run or a disabled config returns null (no message).
+- The cron wasn't run against the database or Daftra.

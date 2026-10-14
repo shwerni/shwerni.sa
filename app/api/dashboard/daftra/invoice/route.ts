@@ -16,6 +16,9 @@ const bodySchema = z.object({
   force: z.boolean().optional(),
   // send the invoice pdf on whatsapp again (only when the invoice is already SENT)
   resendWhatsapp: z.boolean().optional(),
+  // false: create the invoice without its pdf on whatsapp (whatsappSentAt stays null, so
+  // resendWhatsapp can send it later). default true
+  whatsapp: z.boolean().optional(),
 });
 
 // the dashboard (re)sends an order's daftra invoice. the handler checks eligibility and the
@@ -34,6 +37,7 @@ export async function POST(request: Request) {
     const result = await sendOrderInvoice(parsed.data.oid, {
       source: "dashboard",
       force: parsed.data.force,
+      whatsapp: parsed.data.whatsapp,
     });
     if (parsed.data.resendWhatsapp && result.status === "already_sent")
       after(() => deliverInvoicePdf(parsed.data.oid, { resend: true }));
