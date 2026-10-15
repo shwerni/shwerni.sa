@@ -381,15 +381,23 @@ export async function getInvoiceDelivery(oid: number) {
       state: true,
       daftraId: true,
       daftraNo: true,
-      pdfUrl: true,
+      htmlUrl: true,
       whatsappSentAt: true,
       order: { select: { oid: true, phone: true } },
     },
   });
 }
 
-export async function saveInvoicePdfUrl(id: string, pdfUrl: string) {
-  await prisma.daftraInvoice.update({ where: { id }, data: { pdfUrl } });
+// daftra's two invoice links, read once after the invoice is SENT. htmlUrl (the hash preview
+// link) is how the pdf is fetched on the server; it is never sent anywhere or logged
+export async function saveInvoiceLinks(
+  id: string,
+  links: { pdfUrl: string | null; htmlUrl: string },
+) {
+  await prisma.daftraInvoice.update({
+    where: { id },
+    data: { htmlUrl: links.htmlUrl, ...(links.pdfUrl && { pdfUrl: links.pdfUrl }) },
+  });
 }
 
 // claims the whatsapp send before it happens: only when it was never sent (whatsappSentAt null),

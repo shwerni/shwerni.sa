@@ -6,8 +6,9 @@ const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN!;
 // Build the endpoint safely regardless of whether WHATSAPP_URL has a
 // trailing slash - string concatenation without this guard silently
 // produces a broken URL like ".../586473104542070marketing_messages".
-function buildEndpoint(marketing: boolean) {
+function buildEndpoint(marketing: boolean | "media") {
   const base = WHATSAPP_URL.endsWith("/") ? WHATSAPP_URL : `${WHATSAPP_URL}/`;
+  if (marketing === "media") return base + "media";
   return base + (marketing ? "marketing_messages" : "messages");
 }
 
@@ -26,7 +27,9 @@ const whatsapp = (body: object, marketing: boolean = false) =>
 export type HeaderParam =
   | { type: "image"; value: string }
   | { type: "video"; value: string }
+  // a document by public link (value), or by an uploaded media id (id)
   | { type: "document"; value: string; filename?: string }
+  | { type: "document"; id: string; filename?: string }
   | { type: "text"; value: string };
 
 export type TemplateParams = {
@@ -74,16 +77,17 @@ export const sendWhatsappTemplate = async (
         parameters: [{ type: "text", text: params.header.value }],
       });
     } else {
+      const header = params.header;
       components.push({
         type: "header",
         parameters: [
           {
-            type: params.header.type,
-            [params.header.type]: {
-              link: params.header.value,
+            type: header.type,
+            [header.type]: {
+              ...("id" in header ? { id: header.id } : { link: header.value }),
               // a document can carry the file name the client sees
-              ...(params.header.type === "document" &&
-                params.header.filename && { filename: params.header.filename }),
+              ...(header.type === "document" &&
+                header.filename && { filename: header.filename }),
             },
           },
         ],
@@ -168,6 +172,52 @@ export const sendWhatsappTemplate = async (
     }
 
     return { ok: true, data };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (err: any) {
+    return {
+      ok: false,
+      errorMessage: err?.message || "Network/fetch error calling WhatsApp API",
+    };
+  }
+};
+
+// upload a file to the cloud api (POST /{phone-number-id}/media) for a template header by id.
+// the media id is all that comes back; the file is never public
+export const uploadWhatsappMedia = async (
+  file: Buffer,
+  mimeType: string,
+  filename: string,
+): Promise<{ ok: true; id: string } | Extract<WhatsappSendResult, { ok: false }>> => {
+  if (!WHATSAPP_URL || !WHATSAPP_TOKEN) {
+    return {
+      ok: false,
+      errorMessage: "WHATSAPP_URL or WHATSAPP_TOKEN env var is missing/empty",
+    };
+  }
+
+  try {
+    const form = new FormData();
+    form.append("messaging_product", "whatsapp");
+    form.append("type", mimeType);
+    form.append("file", new Blob([new Uint8Array(file)], { type: mimeType }), filename);
+
+    const res = await fetch(buildEndpoint("media"), {
+      method: "POST",
+      headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` },
+      body: form,
+      signal: AbortSignal.timeout(30_000),
+    });
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || typeof data?.id !== "string") {
+      return {
+        ok: false,
+        httpStatus: res.status,
+        errorCode: data?.error?.code,
+        errorMessage: data?.error?.message || res.statusText || "media upload failed",
+      };
+    }
+    return { ok: true, id: data.id };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     return {

@@ -45,6 +45,7 @@ model DaftraInvoice {
   source         String // "payment" | "dashboard"
   sentAt         DateTime?
   pdfUrl         String? // INVOICE: daftra's invoice_pdf_url, read after it's SENT
+  htmlUrl        String? // INVOICE: daftra's invoice_html_url (the hash preview link: it logs anyone into the client's portal, never sent or logged)
   whatsappSentAt DateTime? // INVOICE: when the pdf went to the client on whatsapp (claimed before the send)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt

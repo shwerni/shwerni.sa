@@ -3705,3 +3705,50 @@ With 1 and 2, one real refund always gives one row and one receipt.
 - The manifest prints only `"data/event.ts"` and `"lib/api/google.ts"`.
 - The summary builder was run on sample data with node: a full summary renders, and an empty run or a disabled config returns null (no message).
 - The cron wasn't run against the database or Daftra.
+
+## 2026-10-15 · Daftra: invoice PDF fetched on the server and sent as a WhatsApp file
+
+**The bug:** Daftra's `invoice_pdf_url` requires a login. Meta downloaded the login page, and clients got "فاتورة-000112.pdf.html".
+
+**The fix:** the PDF is fetched on our server through the invoice's public hash preview link, checked, uploaded to WhatsApp and sent by media id. No Daftra link is ever sent: the hash link logs anyone into the client's portal.
+
+**What changed:**
+1. **Schema:** `DaftraInvoice.htmlUrl String?` (`prisma/models/daftra.prisma`). The existing GET `/invoices/{daftraId}.json` now saves `invoice_html_url` with `invoice_pdf_url` (`saveInvoiceLinks`). When htmlUrl is null, it's fetched and saved at send time.
+   - **Ziad: `prisma db push` first.** Validate and generate pass. Every DaftraInvoice read selects all columns, so deploying before the push breaks every Daftra send.
+   - The column holds the hash link, so treat it as a secret.
+2. **`lib/daftra/pdf.ts`, `fetchInvoicePdf(htmlUrl, daftraId)`:**
+   - GET the preview link with `redirect: "manual"`, following up to 5 redirects by hand, with a name=value cookie jar from every Set-Cookie.
+   - Then GET `https://{DAFTRA_SUBDOMAIN lowercased}.daftra.com/client/invoices/view/{daftraId}.pdf` with the jar.
+   - Each request times out after 20s. Only https daftra.com hosts are followed or get the cookies. Cookies, links and the hash are never logged or stored.
+3. **The check before any send (keep it):**
+   - HTTP 200.
+   - A PDF content-type: `application/pdf`, or `application/octet-stream` with a Content-Disposition filename ending in `.pdf`. Daftra serves the real PDF as octet-stream (`attachment; filename=TAX_Invoice-000014.pdf`); Ziad chose this rule on 2026-10-15.
+   - The buffer starts with `%PDF`.
+   - More than 5 KB.
+   - A failure isn't sent: no claim, `whatsappSentAt` stays empty, and the admin gets "daftra: invoice oid=X pdf fetch failed (reason)".
+4. **Upload and send:**
+   - `uploadWhatsappMedia` (`lib/api/whatsapp/index.ts`, POST `/{phone-number-id}/media`, the same `WHATSAPP_URL` / `WHATSAPP_TOKEN`).
+   - The `order_invoice` template gets a document header by media id, filename "فاتورة-{daftraNo}.pdf".
+   - `HeaderParam`'s document now takes `value` (link) or `id`. Every existing template builds exactly the same body (only `order_invoice` used a document header).
+5. **The old "pdfUrl as a link" send is removed.** pdfUrl is still saved and never sent.
+6. **Kept as they were:**
+   - The `whatsappSentAt` claim, now taken after the PDF passes the check. A failed upload or send gives it back and alerts.
+   - `resendWhatsapp`, and `whatsapp: false` from the cron and the dashboard.
+   - The Telegram alerts.
+   - No WhatsApp for refund receipts.
+   - An already-sent PDF without resend now returns before fetching anything.
+
+**Local test** (Daftra invoice 15, run on this machine with the env loaded by `node --env-file`; nothing sent on WhatsApp):
+- `/invoices/15.json`: invoice no 000014, the preview link is present.
+- The preview: 302 → `/client/invoices/preview/{id}` 200, 3 cookies.
+- The PDF: 200, `application/octet-stream`, `attachment; filename=TAX_Invoice-000014.pdf`.
+- `fetchInvoicePdf`: ok. First bytes `25 50 44 46 2d 31 2e 34 0a 31 20 30 20 6f 62 6a` ("%PDF-1.4.1 0 obj"), ending "%%EOF", 86937 bytes (84.9 KB), saved to a local scratch file.
+- **Negative cases:** the preview link without its hash is rejected ("content-type text/html", Daftra's login page). A non-Daftra link is rejected ("preview link outside daftra").
+
+**Files:**
+- `prisma/models/daftra.prisma`
+- `lib/daftra/pdf.ts` (new), `lib/daftra/invoice-pdf.ts`
+- `lib/api/whatsapp/index.ts`
+- `data/daftra.ts`
+
+**Verified:** `npx prisma validate` and `generate` pass, tsc and eslint on the changed files are clean, `npm run build` passes, and the manifest prints only `"data/event.ts"` and `"lib/api/google.ts"`. Not deployed, and nothing sent on WhatsApp.
