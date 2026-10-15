@@ -42,5 +42,7 @@ next-env.d.ts
 
 /lib/generated/prisma
 /backups
-/scripts
+/scripts/*
+# one-off scripts that are kept in git
+!/scripts/daftra-fix-products.ts
 todo.md

@@ -3752,3 +3752,25 @@ With 1 and 2, one real refund always gives one row and one receipt.
 - `data/daftra.ts`
 
 **Verified:** `npx prisma validate` and `generate` pass, tsc and eslint on the changed files are clean, `npm run build` passes, and the manifest prints only `"data/event.ts"` and `"lib/api/google.ts"`. Not deployed, and nothing sent on WhatsApp.
+
+## 2026-10-15 · One-off: correct the Daftra product on SENT invoices
+
+**The bug:** on production, `DAFTRA_PRODUCT_ID_30` was set to 2 (the 45-minute product), so SENT invoices for 30-minute sessions were booked under product 2. The env is fixed.
+
+**`scripts/daftra-fix-products.ts`** (a script, not a route; `npx tsx`). `.gitignore` now ignores `/scripts/*` with an exception for this file, so the other scripts stay ignored.
+- **Reads:** every DaftraInvoice of type INVOICE in state SENT. The correct product comes from the builder's mapping (first meeting's duration → `DAFTRA_PRODUCT_ID_30/45/60`); the current one from GET `/invoices/{daftraId}.json`.
+- **Changes** only invoices with one line whose product differs. The PUT `/invoices/{daftraId}.json` body:
+  - the existing header (no, client_id, date, draft, currency, discount, po_number, notes, client_email)
+  - the same line with only `product_id` changed (item, description, unit_price, quantity, and its tax1/tax2/store_id kept)
+  - the payments back unchanged (method, amount, transaction_id, date, treasury_id, status)
+  - Edit Invoice replaces items and payments, which is why everything is sent back.
+- **Verification after each PUT:** a GET checks that these are unchanged: the invoice number, total, paid, unpaid, line and payment counts, item, description, unit price, quantity, tax, and each payment's method, amount, transaction, date and treasury. It also checks the product is now the correct one. The run stops on the first difference.
+- **After a verified PUT:** the row's stored `payload` gets the corrected product_id. Refund receipts take their line's product from it, so a later refund uses the right product.
+- **Defaults and options:** dry run by default; `--apply` writes; `--only <oid>` limits it to one order. 1 second between Daftra calls.
+- **Never:** touches refund receipts (it only counts the SENT ones on each fixed order), creates or deletes anything, or sends WhatsApp.
+
+**Dry run against production** (2026-10-15, read-only): products 30→1 45→2 60→3. 100 SENT invoices: 80 to fix (all 30-minute, 2 → 1, no refund receipts on them), 20 already correct, 0 skipped.
+
+**Not run with `--apply`:** the PUT is untested. Ziad: run `--apply --only 22232` first, check invoice 000014 in Daftra (product, total, payment, treasury), then `--apply`.
+
+**Verified:** tsc and eslint on the script are clean. No build change (scripts aren't part of the app).
