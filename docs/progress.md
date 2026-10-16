@@ -3801,3 +3801,20 @@ With 1 and 2, one real refund always gives one row and one receipt.
 - **Not tested:** a real database failure.
 
 **Read counter note:** the 2026-10-15 investigation crawl (278 sitemap articles with a browser user agent) and one local check added one read to each of those articles.
+
+## 2026-10-16 · Follow-up: htmlLimitedBots matched by the Vercel edge as ^value$
+
+**The problem:** after e331415 deployed, real Googlebot user agents still got the cached prerender on production (`x-vercel-cache: HIT`) and no metadata.
+- **The edge treats the bypass value as `^value$` without a group.** The first alternative only matched at the start of the user agent, and the last only at its end.
+- **The evidence:**
+  - `Googlebot/2.1 (+…)` → BYPASS, `x Googlebot/2.1 …` → HIT.
+  - `… googleweblight` → BYPASS, `… googleweblight x` → HIT.
+  - Middle alternatives (Bingbot, Yeti) matched anywhere.
+- **Effect:** real Googlebot user agents start with "Mozilla/5.0", so they never matched.
+- **GoogleOther from a non-Google IP** got 403 `x-vercel-mitigated: deny` (Vercel's firewall), unrelated.
+
+**The fix (`next.config.ts`):** the value is now `.*(?:Googlebot|GoogleOther|<next default>).*`, which matches anywhere both at the edge and in Next.js's own unanchored test.
+- **Node simulation of both readings:** Googlebot desktop, mobile and classic, Google-InspectionTool, Mediapartners-Google, Bingbot and googleweblight mid-string all match. Chrome and iPhone browser user agents don't.
+- **Build:** the wrapped value is the user-agent bypass on /articles/[aid], /consultants/[cid], /programs/[prid], /scales/[slug] and /.
+
+**Verified:** tsc and eslint clean, build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`. The production recheck happens after the deploy.

@@ -41,9 +41,12 @@ function checkBotIdPrefix() {
 // programs, scales). htmlLimitedBots replaces next's default list, so it is next's own default
 // (it already covers Google-InspectionTool, Storebot-Google, AdsBot-Google,
 // Mediapartners-Google, Bingbot, facebookexternalhit, …) plus Googlebot and GoogleOther. on
-// vercel these user agents skip the prerender cache and get a full render
+// vercel these user agents skip the prerender cache and get a full render. the edge matches the
+// value as ^value$ without a group, which tied the first alternative to the start of the user
+// agent and the last to its end (real googlebot user agents start with "Mozilla/5.0", so they
+// never matched); the .*(?:…).* wrapper matches anywhere both there and in next's own test
 const htmlLimitedBots = new RegExp(
-  `Googlebot|GoogleOther|${HTML_LIMITED_BOT_UA_RE.source}`,
+  `.*(?:Googlebot|GoogleOther|${HTML_LIMITED_BOT_UA_RE.source}).*`,
   "i",
 );
 
