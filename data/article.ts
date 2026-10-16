@@ -214,33 +214,32 @@ export const getPublishedArticleAids = async () => {
   }
 };
 
-// a published article by aid (the public article page); anything else reads as missing
+// a published article by aid (the public article page); anything else reads as missing.
+// null only when there is no such published article (an id that can't exist included). a
+// database error throws: the page runs inside "use cache", and a null would cache the article as
+// missing for days; a thrown error isn't cached, so the next request retries
 export const getArticleByAid = async (aid: number) => {
-  try {
-    const article = await prisma.article.findFirst({
-      where: {
-        aid,
-        status: ArticleState.PUBLISHED,
-        // not by a center consultant (articles without a consultant stay)
-        NOT: { consultant: { is: { centerId: { not: null } } } },
-      },
-      include: {
-        consultant: { select: { name: true, rate: true, gender: true } },
-        specialties: { select: { specialty: true } },
-        // the faq section under the body (and the page's FAQPage json-ld); [] when none
-        faqs: {
-          select: { question: true, answer: true },
-          orderBy: [{ order: "asc" }, { created_at: "asc" }],
-        },
-      },
-    });
+  if (!Number.isInteger(aid) || aid <= 0 || aid > 2_147_483_647) return null;
 
-    if (!article) return null;
+  const article = await prisma.article.findFirst({
+    where: {
+      aid,
+      status: ArticleState.PUBLISHED,
+      // not by a center consultant (articles without a consultant stay)
+      NOT: { consultant: { is: { centerId: { not: null } } } },
+    },
+    include: {
+      consultant: { select: { name: true, rate: true, gender: true } },
+      specialties: { select: { specialty: true } },
+      // the faq section under the body (and the page's FAQPage json-ld); [] when none
+      faqs: {
+        select: { question: true, answer: true },
+        orderBy: [{ order: "asc" }, { created_at: "asc" }],
+      },
+    },
+  });
 
-    return article;
-  } catch {
-    return null;
-  }
+  return article ?? null;
 };
 
 export const getArticleLikes = async (aid: number, userId: string | null) => {

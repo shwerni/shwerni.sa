@@ -214,26 +214,26 @@ export const getProgramByPrid = async (prid: number) => {
   }
 };
 
-// get program by prid
+// get program by prid.
+// null only when there is no such program (an id that can't exist included). a database error
+// throws: the program pages cache this ("use cache"), and a null would cache the program as
+// missing for weeks; a thrown error isn't cached, so the next request retries
 export const getProgramInfo = async (prid: number) => {
-  try {
-    // get program
-    const program = await prisma.program.findUnique({
-      where: { prid },
-      select: {
-        title: true,
-        description: true,
-        image: true,
-        status: true,
-      },
-    });
+  if (!Number.isInteger(prid) || prid <= 0 || prid > 2_147_483_647) return null;
 
-    // return
-    return program;
-  } catch {
-    // return
-    return null;
-  }
+  // get program
+  const program = await prisma.program.findUnique({
+    where: { prid },
+    select: {
+      title: true,
+      description: true,
+      image: true,
+      status: true,
+    },
+  });
+
+  // return
+  return program;
 };
 
 // session selection

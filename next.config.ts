@@ -5,6 +5,7 @@ import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { withBotId } from "botid/next/config";
+import { HTML_LIMITED_BOT_UA_RE } from "next/dist/shared/lib/router/utils/html-bots";
 
 // routes
 import { DynamicpublicRoutes } from "./routes";
@@ -34,7 +35,20 @@ function checkBotIdPrefix() {
     );
 }
 
+// the crawlers that get blocking metadata (<title>, description, canonical, robots in <head>).
+// next streams metadata to every other user agent, and bots only get the static response, so
+// googlebot (a "dom bot" to next) got no metadata at all on dynamic pages (articles, consultants,
+// programs, scales). htmlLimitedBots replaces next's default list, so it is next's own default
+// (it already covers Google-InspectionTool, Storebot-Google, AdsBot-Google,
+// Mediapartners-Google, Bingbot, facebookexternalhit, …) plus Googlebot and GoogleOther. on
+// vercel these user agents skip the prerender cache and get a full render
+const htmlLimitedBots = new RegExp(
+  `Googlebot|GoogleOther|${HTML_LIMITED_BOT_UA_RE.source}`,
+  "i",
+);
+
 const nextConfig: NextConfig = {
+  htmlLimitedBots,
   async redirects() {
     return [
       { source: "/available", destination: "/discover", permanent: true },

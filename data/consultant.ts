@@ -306,20 +306,20 @@ const consultantInfoSelect = {
 } satisfies Prisma.ConsultantSelect;
 
 // get consultant basic data | meta data consutant
-// discovery: platform consultants only (safe client)
+// discovery: platform consultants only (safe client).
+// null only when there is no such consultant (an id that can't exist included). a database error
+// throws: the profile page caches this ("use cache"), and a null would cache the consultant as
+// missing; a thrown error isn't cached, so the next request retries
 export const getConsultantInfo = async (cid: number) => {
-  try {
-    // get current times
-    const consultant = await prisma.consultant.findFirst({
-      where: { cid },
-      select: consultantInfoSelect,
-    });
-    // return
-    return consultant || null;
-  } catch {
-    // return
-    return null;
-  }
+  if (!Number.isInteger(cid) || cid <= 0 || cid > 2_147_483_647) return null;
+
+  // get current times
+  const consultant = await prisma.consultant.findFirst({
+    where: { cid },
+    select: consultantInfoSelect,
+  });
+  // return
+  return consultant || null;
 };
 
 // same data for the reserve form: unfiltered, so booking works for center consultants too.

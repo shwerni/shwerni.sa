@@ -1,5 +1,6 @@
 // React & Next
-import { after, connection } from "next/server";
+import { headers } from "next/headers";
+import { after, connection, userAgent } from "next/server";
 
 // components
 import { ArticleLikeButton } from "./like";
@@ -46,9 +47,14 @@ export async function ArticleCommentForm({ aid }: { aid: number }) {
 }
 
 // counts the view after the response is sent. connection() keeps it at request time only
-// (never during the build prerender); a failed write is logged and never breaks the page
+// (never during the build prerender); a failed write is logged and never breaks the page.
+// crawlers never count: google's crawlers get a full render (htmlLimitedBots in next.config),
+// so this part runs for them too
 export async function ArticleReadTracker({ aid }: { aid: number }) {
   await connection();
+
+  const ua = userAgent({ headers: await headers() });
+  if (ua.isBot || /GoogleOther/i.test(ua.ua)) return null;
 
   after(async () => {
     try {

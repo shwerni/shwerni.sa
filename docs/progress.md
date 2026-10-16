@@ -3774,3 +3774,30 @@ With 1 and 2, one real refund always gives one row and one receipt.
 **Not run with `--apply`:** the PUT is untested. Ziad: run `--apply --only 22232` first, check invoice 000014 in Daftra (product, total, payment, treasury), then `--apply`.
 
 **Verified:** tsc and eslint on the script are clean. No build change (scripts aren't part of the app).
+
+## 2026-10-16 · SEO: blocking metadata for Google's crawlers, no cached "not found" on database errors
+
+**1. Googlebot got no metadata on dynamic pages.**
+- **The cause:** Next.js streams metadata to every user agent outside `htmlLimitedBots`, and bots only get the static response. So on articles, consultants, programs and scales, Googlebot's HTML had no `<title>`, description, canonical or robots tag. They existed only in the React payload.
+- **`next.config.ts`:** `htmlLimitedBots` = `Googlebot|GoogleOther|` + Next.js's own default (`HTML_LIMITED_BOT_UA_RE`, imported so it follows upgrades).
+  - The option replaces the default; it isn't merged with it.
+  - The default already covers Google-InspectionTool, Storebot-Google, AdsBot-Google, Mediapartners-Google, Bingbot, facebookexternalhit and the rest.
+  - The build writes it as each route's bot-bypass rule, so on Vercel these user agents skip the prerender cache and get a full render.
+- **Read counter:** `ArticleReadTracker` skips crawlers (`userAgent().isBot`, plus GoogleOther), since Google's crawlers now render it. Bingbot and the other bots stop counting too (Ziad: keep).
+
+**2. A database error was cached as "not found".**
+- **The fetchers:** `getArticleByAid`, `getConsultantInfo` and `getProgramInfo` return null only for a missing row (or an id that can't exist). A database error throws, so `"use cache"` doesn't store it and the next request retries.
+  - **Before:** a caught error returned null, and the article was cached as missing for days, the program for weeks.
+  - `getScaleBySlug` already threw.
+- **Error boundary:** new `app/(pages)/(site)/error.tsx` shows the existing 404 content inside the site layout. There was no error boundary before.
+- **Mobile `reservation-info` route:** a database error is now a 500 JSON (its wrapper's catch) instead of 200 "الاستشاري غير متاح".
+
+**Verified on a local `next build` + `next start`:**
+- **Googlebot desktop and mobile:** /articles/92, /consultants/13, /programs/5, /scales/gad-7 and / have title, description, canonical and robots in `<head>`.
+- **Google-InspectionTool and Bingbot:** the same on /articles/92.
+- **Browser:** the same values, streamed into the body as before.
+- **Not found:** invalid and missing ids still give the not-found page (200 + noindex).
+- **Checks:** tsc clean, eslint 0 errors (3 old warnings), build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`.
+- **Not tested:** a real database failure.
+
+**Read counter note:** the 2026-10-15 investigation crawl (278 sitemap articles with a browser user agent) and one local check added one read to each of those articles.
