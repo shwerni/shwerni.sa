@@ -167,7 +167,7 @@ export const payAllByWallet = async (
       select: {
         centerId: true,
         payment: {
-          select: { total: true, commission: true, platformShare: true },
+          select: { total: true, commission: true, platformShare: true, paidAt: true },
         },
       },
     });
@@ -182,6 +182,10 @@ export const payAllByWallet = async (
             payment: PaymentState.PAID,
             ...(current?.payment
               ? paidSplit(current.centerId, current.payment)
+              : {}),
+            // the real (utc) moment it became PAID, only when it was never set
+            ...(current?.payment && !current.payment.paidAt
+              ? { paidAt: new Date() }
               : {}),
           },
         },

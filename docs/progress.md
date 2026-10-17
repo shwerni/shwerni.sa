@@ -3917,3 +3917,26 @@ One nullable column, nothing else. This also shows the shift tables from 79ad4ee
 **Not yet:** the writes to `paidAt`. They come after Ziad's `prisma db push`, in their own commit.
 
 **Verified:** `prisma validate` and `prisma generate`, tsc clean, build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`.
+
+## 2026-10-18 · Payment.paidAt written on the transition to PAID
+
+`prisma db push` was done by Ziad (no warnings).
+
+**Where it is written:**
+- **`orderStatusPaid`** (`data/order/reserveation.ts`), the one PAID path for the Moyasar and Tabby webhooks, the mobile `/confirm` route and `POST /api/dashboard/orders/paid`:
+  - `paidNow = new Date()` (real UTC) is taken just before the conditional claim.
+  - After the wallet step has succeeded (or there is none), and before `onPaymentSuccess`, it runs `updateMany({ where: { id, paidAt: null }, data: { paidAt: paidNow } })`.
+  - Only the claim winner gets there, so a repeated or concurrent call never writes it. The `paidAt: null` condition means it's never overwritten.
+  - A failed wallet withdraw goes to HOLD without it, so a later mark-as-paid from HOLD sets it at that moment.
+- **`payAllByWallet`** (`data/wallet.ts`, no callers): `paidAt: new Date()` with its PAID write, only when the row's `paidAt` was null.
+
+**Unchanged:** every return value, response, notification and step order. The mobile `GET /api/mobile/reservations/[oid]/result` direct write is left alone until Ziad's OK (payment code); it sets no `paidAt`.
+
+**Read-only check of that route** (production database; order numbers only):
+- **History:** the direct `payment: PAID` write has been there since the route was added on 2026-08-14 (776e94c).
+- **App orders:** 37 with `origin = APP`, all CANCELED or REFUSED (2026-08-09 → 2026-09-05). None paid. The mobile booking route is commented out, so the app creates no orders now.
+- **Any origin:** of 1,466 orders paid or refunded and created since 2026-08-14, 17 have no "order's payment status changed to PAID" line. All 17 are `transaction` with no gateway id (dashboard-created as PAID): 20635, 20636, 20639, 20640, 20641, 20642, 20645, 20651, 20652, 20653, 21643, 21799, 21800, 21801, 21802, 21803, 21804.
+- **The /result route** only writes Moyasar payments with a gateway id. A payment it wrote would never get that line later, because the webhook skips orders already PAID. So **no order has gone through it**.
+- **Room checks** aren't usable as a signal: 5,770 older web orders have no room tied to session 1.
+
+**Verified:** tsc and eslint clean, build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`.

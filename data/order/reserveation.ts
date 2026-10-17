@@ -942,6 +942,9 @@ export const orderStatusPaid = async (
     if (dashboard && !DASHBOARD_PAYABLE_STATES.includes(payment.payment))
       return "not_allowed";
 
+    // the moment of the transition (real utc), for paidAt below
+    const paidNow = new Date();
+
     // the claim: PAID only where it isn't PAID yet (the dashboard also only from its states)
     const claim = await prisma.payment.updateMany({
       where: {
@@ -998,6 +1001,13 @@ export const orderStatusPaid = async (
         return "hold";
       }
     }
+
+    // paidAt: the claim's moment, written once the payment is really PAID (a failed wallet
+    // withdraw above went to HOLD without it). only where it is still null: never overwritten
+    await prisma.payment.updateMany({
+      where: { id: payment.id, paidAt: null },
+      data: { paidAt: paidNow },
+    });
 
     // notify client & owner
     await onPaymentSuccess(order, options);
