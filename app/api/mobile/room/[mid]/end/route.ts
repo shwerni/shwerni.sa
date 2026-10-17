@@ -7,6 +7,9 @@ import { HttpError } from "@/lib/api/http-error";
 import prisma from "@/lib/database/db";
 import { createPostRoute } from "@/lib/api/routes/route-factory";
 
+// prisma data
+import { writeMeetingLog } from "@/data/meeting-log";
+
 // dynamic segment params
 interface Params {
   mid: string;
@@ -23,6 +26,10 @@ export const POST = createPostRoute<unknown, Params>(
     const meeting = await prisma.meeting.findUnique({
       where: { mid },
       select: {
+        // for the meeting log only
+        done: true,
+        orderId: true,
+        session: true,
         orders: {
           select: {
             author: true,
@@ -43,6 +50,20 @@ export const POST = createPostRoute<unknown, Params>(
       where: { mid },
       data: { done: true },
     });
+
+    // meeting log, only when done flipped; the actor is the mobile session user.
+    // last step, and it never throws
+    if (!meeting.done)
+      await writeMeetingLog({
+        meetingId: mid,
+        orderId: meeting.orderId,
+        session: meeting.session,
+        action: "DONE",
+        source: "SITE",
+        actor: { id: user.id, name: user.name, role: user.role },
+        before: { done: false },
+        after: { done: true },
+      });
 
     return { success: true };
   },

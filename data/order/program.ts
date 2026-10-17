@@ -2,6 +2,9 @@ import "server-only";
 // prisma db
 import prisma from "@/lib/database/db";
 
+// prisma data
+import { logBookedMeeting } from "@/data/meeting-log";
+
 // prisma types
 import {
   OrderType,
@@ -92,6 +95,9 @@ export const reserveProgram = async (
         },
       },
     });
+
+    // meeting log: the booking's first meeting (customer). it never throws
+    await logBookedMeeting(order);
 
     return { state: true, order } satisfies ReserveResult<typeof order>;
   } catch (err) {

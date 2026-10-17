@@ -3840,3 +3840,49 @@ Spec: the dashboard repo's `SHIFTS.md` §3 (customer service shift tracking). Co
   - the 5 tables, 3 enums, 18 indexes (all valid, `refund_requests_requestedById_createdAt_idx` included) and 5 foreign keys exist.
 
 **Open:** the dashboard copies the four model files and runs `prisma generate`.
+
+## 2026-10-17 · Shifts step 2 (main site half): meeting log writes
+
+Spec: the dashboard repo's `SHIFTS.md` §4, main-site table. Writes to `meeting_logs` (schema from step 1). The dashboard half (D1–D5) is separate work in that repo.
+
+**New `data/meeting-log.ts`** (server-only)
+- **`writeMeetingLog({ meetingId, orderId, session, action, source, actor, before, after })`:**
+  - never throws: try/catch, `console.error`, return;
+  - called after the change succeeded, outside any transaction, so a failed log can't fail or roll back a booking, payment, webhook or customer action;
+  - awaited everywhere (safe, since it can't throw).
+- **`changedFields`:** keeps before/after to the fields that changed.
+- **`logBookedMeeting(order)`:** CREATED for a booking's first meeting.
+- **Actor:** the session user only (web session for the consultant's chat block, the Better Auth session for the mobile "end"), else null. The role is stored only when it is a real `UserRole`.
+
+**Paths logged (S9, S11 and S13 skipped, as the spec says)**
+
+| Path | File | Action | Source / actor |
+|---|---|---|---|
+| S1 `meetingDone` | `data/reschedule.ts` | DONE if done flipped, CHECKED if checked flipped | SITE / none |
+| S2 `rescheduleMeeting` | `data/reschedule.ts` | RESCHEDULED (changed date/time/checked) | SITE / none |
+| S3 `checkReschedule` | `data/reschedule.ts` | CHECKED if checked flipped | SYSTEM |
+| S4 `participantAttendance` | `data/meetings.ts` | ATTENDANCE_CHANGED (the update only matches `attended: false`, so a row means it changed) | SITE / none |
+| S5 LiveKit `participant_left` | `app/api/livekit/webhook/route.ts` | ATTENDANCE_CHANGED only when `attended` flips | SYSTEM |
+| S6 `createNewMeeting` from `onPaymentSuccess` | `data/rooms.ts` | ROOM_CREATED (`{ url }`) | SYSTEM (new optional `source` argument, default SYSTEM; `handlers/` untouched) |
+| S7 `selectSession` | `data/sessions.ts` | CREATED, then ROOM_CREATED via `createNewMeeting(…, "SITE")` | SITE / none |
+| S8 checkout / program / instant | `data/order/reserveation.ts`, `data/order/program.ts`, `data/online.ts` | CREATED, right after `order.create` | SITE / none |
+| S10 mobile end | `app/api/mobile/room/[mid]/end/route.ts` | DONE if done flipped | SITE / mobile session user |
+| S12 `toggleUserBlock` | `data/chats.ts` + `actions/site.ts` | BLOCKED if blocked flipped | SITE / session consultant, none when only the participant token matched |
+
+**Unchanged behavior**
+- Every return value and response is the same. In the webhook, mobile end and `createNewMeeting`, the log is the last step before returning.
+- **Extra reads only:**
+  - S1 and S3 read `{ done, checked }` / `{ checked }` before their update;
+  - S5, S10 and S12 select a few more fields in reads they already did;
+  - S4 selects `role`.
+- **`toggleUserBlock` action:** its client signature is now spelled out (`mid, shouldBlock, participantId?`). The data function's new third argument (the actor) comes from the session and can't be sent by the client.
+
+**Verified**
+- `tsc --noEmit` passes.
+- `npm run build` passes; the manifest prints only `"data/event.ts"` and `"lib/api/google.ts"`.
+- `eslint .`: 164 problems (40 errors, 124 warnings) before and after; none are new.
+- **Not tested:** live events. Check after the deploy with the read-only query in the hand-off.
+
+**Open**
+- The dashboard half (D1–D5, actor threaded into the meeting actions).
+- S1 and S3 log only on a real flip, so a second "done" click adds no line.

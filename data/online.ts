@@ -14,6 +14,7 @@ import {
 } from "@/lib/generated/prisma/enums";
 import { InstantFormType, instantSchema } from "@/schemas";
 import { checkMeetingTimeConflict } from "./order/reserveation";
+import { logBookedMeeting } from "./meeting-log";
 // the instant booking date is "now + a few minutes", an instant, so it is read in riyadh time
 import { riyadhDateString } from "@/utils/date";
 import { orderInfoLabel } from "@/utils";
@@ -278,6 +279,9 @@ export const reserveInstant = async (
         },
       },
     });
+
+    // meeting log: the booking's first meeting (customer). it never throws
+    await logBookedMeeting(order);
 
     if (data.notes && data.notes.trim().length > 0)
       await prisma.orderMessage.create({

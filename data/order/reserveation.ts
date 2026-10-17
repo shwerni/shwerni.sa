@@ -14,6 +14,7 @@ import {
 
 // prisma data
 import { addWalletCredit, payPartiallyByWallet } from "@/data/wallet";
+import { logBookedMeeting } from "@/data/meeting-log";
 
 // lib
 import { telegramAdmin } from "@/lib/api/telegram/telegram";
@@ -205,6 +206,9 @@ export const reserveConsultant = async (
         },
       },
     });
+
+    // meeting log: the booking's first meeting (customer). it never throws
+    await logBookedMeeting(order);
 
     if (data.notes && data.notes.trim().length > 0)
       await prisma.orderMessage.create({

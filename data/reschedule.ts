@@ -11,6 +11,7 @@ import { reviewReminder } from "@/handlers/clients/order";
 
 // prisma data
 import { checkProgramNextSession } from "./programs";
+import { changedFields, writeMeetingLog } from "./meeting-log";
 
 // lib
 import {
@@ -27,6 +28,12 @@ import {
 
 // done confirm
 export const meetingDone = async (mid: string) => {
+  // state before, for the meeting log
+  const previous = await prisma.meeting.findUnique({
+    where: { mid },
+    select: { done: true, checked: true },
+  });
+
   // update meeting to done and checked
   const meeting = await prisma.meeting.update({
     where: { mid },
@@ -41,6 +48,29 @@ export const meetingDone = async (mid: string) => {
 
   // validate
   if (!meeting) return;
+
+  // meeting log: DONE when done flipped, CHECKED when checked flipped (public link or
+  // whatsapp button, so no actor). it never throws
+  if (previous && !previous.done)
+    await writeMeetingLog({
+      meetingId: mid,
+      orderId: meeting.orderId,
+      session: meeting.session,
+      action: "DONE",
+      source: "SITE",
+      before: { done: false },
+      after: { done: true },
+    });
+  if (previous && !previous.checked)
+    await writeMeetingLog({
+      meetingId: mid,
+      orderId: meeting.orderId,
+      session: meeting.session,
+      action: "CHECKED",
+      source: "SITE",
+      before: { checked: false },
+      after: { checked: true },
+    });
 
   // review reminder
   await reviewReminder(meeting.orderId, meeting.session);
@@ -100,12 +130,33 @@ export const rescheduleMeeting = async (
     },
   });
 
+  // meeting log: the customer's reschedule link (no actor). it never throws
+  const diff = changedFields(
+    { date: meeting.date, time: meeting.time, checked: meeting.checked },
+    { date, time, checked: false },
+  );
+  await writeMeetingLog({
+    meetingId: mid,
+    orderId: meeting.orderId,
+    session: meeting.session,
+    action: "RESCHEDULED",
+    source: "SITE",
+    before: diff.before,
+    after: diff.after,
+  });
+
   // notify rescheduling
   await notificationConfirmRescheduling(meeting.orders, meeting);
 };
 
 // checkReschedule
 export const checkReschedule = async (mid: string) => {
+  // state before, for the meeting log
+  const previous = await prisma.meeting.findUnique({
+    where: { mid },
+    select: { checked: true },
+  });
+
   // checked to true and get meeting
   const meeting = await prisma.meeting.update({
     where: { mid, orders: { payment: { payment: PaymentState.PAID } } },
@@ -121,6 +172,18 @@ export const checkReschedule = async (mid: string) => {
 
   // validate
   if (!meeting || !meeting.orders) return;
+
+  // meeting log: the reschedule cron flagged it (system). it never throws
+  if (previous && !previous.checked)
+    await writeMeetingLog({
+      meetingId: mid,
+      orderId: meeting.orderId,
+      session: meeting.session,
+      action: "CHECKED",
+      source: "SYSTEM",
+      before: { checked: false },
+      after: { checked: true },
+    });
 
   // send whatsapp notification asking if meeting was done
   await notificationCheckRescheduling(meeting.orders, meeting);

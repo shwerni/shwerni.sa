@@ -6,6 +6,9 @@ import prisma from "@/lib/database/db";
 // prisma types
 import { PaymentState, UserRole } from "@/lib/generated/prisma/enums";
 
+// prisma data
+import { type MeetingLogActor, writeMeetingLog } from "./meeting-log";
+
 // lib
 import { notificationNewChatMessage } from "@/lib/notifications/site";
 import { timeZone } from "@/utils/date";
@@ -243,11 +246,17 @@ export async function getMeetingData(mid: string) {
   }
 }
 
-export async function toggleUserBlock(mid: string, shouldBlock: boolean) {
+// actor: the signed-in consultant from the action's session (null when the consultant came
+// in with the participant token instead), only for the meeting log
+export async function toggleUserBlock(
+  mid: string,
+  shouldBlock: boolean,
+  actor: MeetingLogActor = null,
+) {
   try {
     const meeting = await prisma.meeting.findUnique({
       where: { mid },
-      select: { orderId: true },
+      select: { orderId: true, session: true, blocked: true },
     });
 
     if (!meeting) return { error: "Meeting not found" };
@@ -272,6 +281,19 @@ export async function toggleUserBlock(mid: string, shouldBlock: boolean) {
         });
       }
     });
+
+    // meeting log, only when blocked flipped. after the transaction, and it never throws
+    if (meeting.blocked !== shouldBlock)
+      await writeMeetingLog({
+        meetingId: mid,
+        orderId: meeting.orderId,
+        session: meeting.session,
+        action: "BLOCKED",
+        source: "SITE",
+        actor,
+        before: { blocked: meeting.blocked },
+        after: { blocked: shouldBlock },
+      });
 
     return { success: true };
   } catch (err) {

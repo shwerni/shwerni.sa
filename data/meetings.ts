@@ -4,6 +4,7 @@ import prisma from "@/lib/database/db";
 
 // prisma data
 import { getUserByPhone } from "./user";
+import { writeMeetingLog } from "./meeting-log";
 
 // prisma types
 import { PaymentState, Prisma, UserRole } from "@/lib/generated/prisma/client";
@@ -22,18 +23,30 @@ export const participantAttendance = async (
     // time
     const { time } = timeZone();
 
-    // participant
-    await prisma.participant.update({
+    // participant (only matches while attended is still false, so a row means it changed)
+    const updated = await prisma.participant.update({
       where: {
         meetingId_participant: { meetingId, participant },
         attended: false,
       },
       data: { attended: true, time },
       select: {
+        role: true,
         meeting: {
           select: { orderId: true, session: true },
         },
       },
+    });
+
+    // meeting log: opening the meeting page in its window (customer, no actor). it never throws
+    await writeMeetingLog({
+      meetingId,
+      orderId: updated.meeting.orderId,
+      session: updated.meeting.session,
+      action: "ATTENDANCE_CHANGED",
+      source: "SITE",
+      before: { attendance: { [updated.role]: { attended: false } } },
+      after: { attendance: { [updated.role]: { attended: true, time } } },
     });
 
     return true;

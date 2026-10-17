@@ -7,6 +7,7 @@ import { SessionType } from "@/lib/generated/prisma/client";
 
 // prisma data
 import { createNewMeeting } from "./rooms";
+import { writeMeetingLog } from "./meeting-log";
 
 // lib
 import { notificationSessionConfirm } from "@/lib/notifications/site";
@@ -54,8 +55,19 @@ export const selectSession = async (
     // validate
     if (!newMeeting) return null;
 
-    // create new meeting
-    await createNewMeeting(newMeeting);
+    // meeting log: the customer picked the next session (no actor). it never throws
+    await writeMeetingLog({
+      meetingId: newMeeting.mid,
+      orderId: oid,
+      session,
+      action: "CREATED",
+      source: "SITE",
+      before: null,
+      after: { date, time, duration, session },
+    });
+
+    // create new meeting (logs ROOM_CREATED with the same source)
+    await createNewMeeting(newMeeting, "SITE");
 
     // meeting
     const meeting = await prisma.meeting.findUnique({

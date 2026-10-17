@@ -4,6 +4,9 @@ import { WebhookReceiver } from "livekit-server-sdk";
 // utils
 import prisma from "@/lib/database/db";
 
+// prisma data
+import { writeMeetingLog } from "@/data/meeting-log";
+
 // ten minutes present marks a participant as attended
 const ATTENDANCE_THRESHOLD_SECONDS = 600;
 
@@ -51,6 +54,10 @@ export const POST = async (request: Request) => {
         select: {
           id: true,
           duration: true,
+          // for the meeting log only
+          role: true,
+          attended: true,
+          meeting: { select: { orderId: true, session: true } },
           logs: {
             where: { leftAt: null },
             orderBy: { joinedAt: "desc" },
@@ -67,6 +74,7 @@ export const POST = async (request: Request) => {
         (leftAt.getTime() - open.joinedAt.getTime()) / 1000,
       );
       const totalDuration = record.duration + elapsed;
+      const attended = totalDuration >= ATTENDANCE_THRESHOLD_SECONDS;
 
       await prisma.$transaction([
         prisma.participantSession.update({
@@ -77,10 +85,22 @@ export const POST = async (request: Request) => {
           where: { id: record.id },
           data: {
             duration: totalDuration,
-            attended: totalDuration >= ATTENDANCE_THRESHOLD_SECONDS,
+            attended,
           },
         }),
       ]);
+
+      // meeting log, only when attended flipped (system). last step, and it never throws
+      if (record.attended !== attended)
+        await writeMeetingLog({
+          meetingId,
+          orderId: record.meeting.orderId,
+          session: record.meeting.session,
+          action: "ATTENDANCE_CHANGED",
+          source: "SYSTEM",
+          before: { attendance: { [record.role]: { attended: record.attended } } },
+          after: { attendance: { [record.role]: { attended } } },
+        });
       break;
     }
 

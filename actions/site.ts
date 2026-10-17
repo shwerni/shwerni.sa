@@ -235,9 +235,12 @@ export async function createMeetingMessage(
 
 // the meeting's consultant only: either logged in as that consultant, or holding the
 // consultant's participant token. participantId is an optional extra argument
+// (the data function's third argument, the log actor, comes from the session here and is
+// not part of what the client can send)
 export async function toggleUserBlock(
   ...[mid, shouldBlock, participantId]: [
-    ...Parameters<typeof toggleUserBlockData>,
+    mid: string,
+    shouldBlock: boolean,
     participantId?: string,
   ]
 ) {
@@ -257,5 +260,10 @@ export async function toggleUserBlock(
   if (!isMeetingConsultant && !isOwnerParticipant)
     return { error: "Meeting not found" };
 
-  return toggleUserBlockData(mid, shouldBlock);
+  // the meeting log's actor is the session consultant (none when only the token matched)
+  const actor = isMeetingConsultant
+    ? { id: user.id, name: user.name, role: user.role }
+    : null;
+
+  return toggleUserBlockData(mid, shouldBlock, actor);
 }
