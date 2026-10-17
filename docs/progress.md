@@ -3818,3 +3818,25 @@ With 1 and 2, one real refund always gives one row and one receipt.
 - **Build:** the wrapped value is the user-agent bypass on /articles/[aid], /consultants/[cid], /programs/[prid], /scales/[slug] and /.
 
 **Verified:** tsc and eslint clean, build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`. The production recheck happens after the deploy.
+
+## 2026-10-17 · Shifts step 1: customer service shift tables and meeting log (schema only)
+
+Spec: the dashboard repo's `SHIFTS.md` §3 (customer service shift tracking). Commit 79ad4ee. No app code.
+
+**Schema**
+- **New `prisma/models/shift.prisma`:**
+  - enums `ShiftSlotSource`, `MeetingLogSource`, `MeetingLogAction`;
+  - tables `shift_agents`, `shift_templates`, `shift_slots`, `shift_attendances`, `meeting_logs`, with the indexes the daily timeline, per-shift counts and per-meeting drill-down need.
+- **Existing models, relations and one index only (no column changes):**
+  - `User.shiftAgent` and `Meeting.logs` back-relations;
+  - `RefundRequest @@index([requestedById, createdAt])`.
+
+**Applied:** by Ziad with `prisma db push`, no data-loss warnings. Before the push, the read-only `prisma migrate diff --from-config-datasource --to-schema prisma --script` showed only CREATE TYPE, CREATE TABLE, CREATE INDEX, the new foreign keys and the one `refund_requests` index.
+
+**Verified**
+- `prisma validate`, `prisma generate`, `tsc --noEmit` and `npm run build` pass; the manifest prints only `"data/event.ts"` and `"lib/api/google.ts"`.
+- **After the push (read-only):**
+  - `migrate diff` from the live database is empty;
+  - the 5 tables, 3 enums, 18 indexes (all valid, `refund_requests_requestedById_createdAt_idx` included) and 5 foreign keys exist.
+
+**Open:** the dashboard copies the four model files and runs `prisma generate`.
