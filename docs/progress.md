@@ -3900,3 +3900,20 @@ Spec: the dashboard repo's `SHIFTS.md` §4, main-site table. Writes to `meeting_
 **Live status:** the meeting-log commits (`79ad4ee` schema, `2264278` writes, 2026-10-17) are not pushed. origin/main is still c164b28, so no meeting log is written on production yet.
 
 **Verified:** tsc and eslint clean, build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`.
+
+## 2026-10-18 · Schema: Payment.paidAt (additive, waiting for db push)
+
+**Why:** the dashboard's SHIFTS.md §6.1 and §7 item 9 ("paid during the shift"). Today the paid moment exists only as text in `orders.info`, with inconsistent clocks.
+
+**The change:** `prisma/models/payment.prisma` Payment gets `paidAt DateTime?`: the real UTC moment the payment first became PAID, set once and never overwritten. Older rows stay null, so counts start from the deploy.
+
+**`npx prisma migrate diff --from-config-datasource --to-schema prisma --script`** (read-only, against the live database), the whole output:
+```sql
+-- AlterTable
+ALTER TABLE "payments" ADD COLUMN     "paidAt" TIMESTAMP(3);
+```
+One nullable column, nothing else. This also shows the shift tables from 79ad4ee are already in the live database.
+
+**Not yet:** the writes to `paidAt`. They come after Ziad's `prisma db push`, in their own commit.
+
+**Verified:** `prisma validate` and `prisma generate`, tsc clean, build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`.

@@ -70,6 +70,7 @@ model Payment {
   credit        Float?         @default(0)
   wallet        Float?
   cancelled_at  DateTime?
+  paidAt        DateTime? // the real (UTC) moment the payment first became PAID; set once, never overwritten. null for older rows
   platformShare Float? // written once when payment → PAID
   centerShare   Float? // null for platform orders; base = Payment.total (after discount, before VAT)
 
