@@ -3940,3 +3940,19 @@ One nullable column, nothing else. This also shows the shift tables from 79ad4ee
 - **Room checks** aren't usable as a signal: 5,770 older web orders have no room tied to session 1.
 
 **Verified:** tsc and eslint clean, build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`.
+
+## Known open issue: mobile /result writes PAID directly, skips orderStatusPaid
+
+**What:** `GET /api/mobile/reservations/[oid]/result` (`app/api/mobile/reservations/[oid]/result/route.ts`, since 2026-08-14, 776e94c). When Moyasar reports a settled payment that matches the amount, currency and oid, it runs `prisma.payment.update({ payment: PAID })` itself (REFUSED the same way).
+- **What it skips:** `orderStatusPaid`, so no wallet part, paidAt, split, "changed to PAID" line, room, notifications or Daftra invoice.
+- **The webhook can't repair it:** a later Moyasar webhook sees PAID and does nothing.
+
+**Impact so far (read-only check, 2026-10-18, production database):**
+- **App orders:** 37 with `origin = APP`, all CANCELED (35) or REFUSED (2), 2026-08-09 → 2026-09-05. None paid.
+- **Any origin:** of 1,466 orders paid or refunded and created since 2026-08-14, 17 lack the PAID info line, and all 17 are dashboard bank transfers (`transaction`, no gateway id). So **0 orders** have gone through the direct write.
+- **Mobile booking:** `app/api/mobile/reservations/route.ts` is commented out, so the app creates no orders now.
+
+**Proposed fix (deferred with the other mobile fixes, Ziad 2026-10-18):** replace both direct writes with `updateOrderStatus(order.payment.pid, state)`, as `/confirm` does.
+- **Response:** unchanged (it's built from the same local `state`).
+- **/result and the webhook together:** the `orderStatusPaid` claim makes the second call a no-op.
+- **Must be done before mobile booking is turned back on.**
