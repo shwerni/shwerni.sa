@@ -93,6 +93,7 @@ model RefundRequest {
 
     @@index([state, createdAt])
     @@index([orderId])
+    @@index([requestedById, createdAt]) // refund requests an agent created during a shift
     @@map("refund_requests")
 }
 

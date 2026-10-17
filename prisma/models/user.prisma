@@ -47,6 +47,8 @@ model User {
   mobileEmailVerified Boolean            @default(false) @map("mobile_email_verified")
   notifications       Notification[]
   pushTokens          PushToken[]
+  // customer service shifts
+  shiftAgent          ShiftAgent?
 
   @@map("users")
 }

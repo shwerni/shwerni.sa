@@ -1,0 +1,155 @@
+// customer service shifts: agents, schedule, per-day snapshot, attendance, and the meeting log.
+// day keys are Riyadh "yyyy-MM-dd" strings (same as meetings.date); minutes are from Riyadh midnight.
+// every DateTime here is a real UTC instant (now()), never timeZone().originDate (see AUDIT W8).
+
+enum ShiftSlotSource {
+  TEMPLATE // materialized from the recurring template
+  OVERRIDE // one-day change made by admin / manager
+}
+
+enum MeetingLogSource {
+  DASHBOARD
+  SITE
+  SYSTEM
+}
+
+enum MeetingLogAction {
+  CREATED                 // meeting row created (order create, payment link, next session pick)
+  ROOM_CREATED            // room + participants created when the order became PAID (S6)
+  DONE                    // done false → true
+  UNDONE                  // done true → false
+  RESCHEDULED             // date/time changed by the customer link (reschedule row added)
+  TIME_CHANGED            // date/time changed from the dashboard edit
+  URL_CHANGED             // rooms.url changed
+  ATTENDANCE_CHANGED      // any participant attended/time changed
+  RESCHEDULE_LINK_ISSUED  // dashboard "copy reschedule link" (resets done + attendance)
+  CHECKED                 // reschedule cron flagged it and asked the client
+  BLOCKED                 // consultant blocked / unblocked the chat (after carries the value)
+}
+
+// an agent on the schedule (a SERVICE user, or anyone admin adds)
+model ShiftAgent {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  color     String   // "#RRGGBB", the agent's lane color on the timeline
+  active    Boolean  @default(true) // off = hidden from the editor, history kept
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // @relations
+  user      User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  templates ShiftTemplate[]
+  slots     ShiftSlot[]
+
+  @@map("shift_agents")
+}
+
+// recurring schedule: "this agent works [startMinute, endMinute) every day from effectiveFrom".
+// editing never updates a row in place: close the old one (effectiveTo) and insert a new one,
+// so the template history is kept too
+model ShiftTemplate {
+  id            String    @id @default(cuid())
+  agentId       String
+  startMinute   Int       // 0..1439, minutes from Riyadh midnight
+  endMinute     Int       // 1..1440, > startMinute (a shift never crosses midnight)
+  weekdays      Weekday[] // empty = every day (current schedule); reuses enum Weekday
+  effectiveFrom String    // "yyyy-MM-dd" Riyadh, first day it applies
+  effectiveTo   String?   // "yyyy-MM-dd" Riyadh, last day it applies (null = open)
+
+  // who edited (session snapshot, like finance logs)
+  createdById   String
+  createdByName String
+  createdAt     DateTime  @default(now())
+
+  // @relations
+  agent ShiftAgent @relation(fields: [agentId], references: [id], onDelete: Restrict)
+
+  @@index([effectiveFrom, effectiveTo])
+  @@index([agentId, effectiveFrom])
+  @@map("shift_templates")
+}
+
+// the truth for one day: who was really on which shift. materialized from the templates
+// the first time a day is needed (timeline open, check-in, or a 00:00 cron) and never
+// re-derived afterwards, so later template edits don't rewrite the past.
+// a one-day override edits this row (source OVERRIDE) instead of the template
+model ShiftSlot {
+  id          String          @id @default(cuid())
+  day         String          // "yyyy-MM-dd" Riyadh
+  startMinute Int
+  endMinute   Int
+  agentId     String
+  source      ShiftSlotSource @default(TEMPLATE)
+  templateId  String?         // the template it came from (null for an override-only slot)
+  note        String?         @db.Text // why it was overridden
+
+  // last editor for overrides (session snapshot); null for TEMPLATE rows
+  updatedById   String?
+  updatedByName String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // @relations
+  agent      ShiftAgent       @relation(fields: [agentId], references: [id], onDelete: Restrict)
+  attendance ShiftAttendance?
+
+  @@unique([day, startMinute, agentId]) // allows 2 agents on one window later, never the same twice
+  @@index([day, startMinute])           // daily timeline
+  @@index([agentId, day])               // "my shifts"
+  @@map("shift_slots")
+}
+
+// check-in / check-out for one slot. the user always comes from the session
+model ShiftAttendance {
+  id           String    @id @default(cuid())
+  slotId       String    @unique
+  userId       String    // session user who checked in (must be the slot's agent)
+
+  checkInAt    DateTime  // real UTC, server time at the click
+  checkInNote  String?   @db.Text
+  late         Boolean   // checkInAt > slot start + LATE_AFTER_MINUTES
+  lateMinutes  Int       @default(0)
+
+  checkOutAt   DateTime? // null = "didn't check out" once the window closes
+  checkOutNote String?   @db.Text
+  refundCount  Int?      // the agent's typed number (system count is computed, not stored)
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // @relations
+  slot ShiftSlot @relation(fields: [slotId], references: [id], onDelete: Restrict)
+
+  @@index([userId, checkInAt])
+  @@map("shift_attendances")
+}
+
+// one line per meeting change, from either repo. append-only
+model MeetingLog {
+  id        String           @id @default(cuid())
+  meetingId String?          // meetings.mid (SetNull if a meeting is ever deleted)
+  orderId   Int              // plain oid, no relation (like finance_logs), never cascaded away
+  session   Int?             // meetings.session, for display
+  action    MeetingLogAction
+  source    MeetingLogSource
+
+  // null for customers and the system; session snapshot for staff / consultants
+  actorId   String?
+  actorName String?
+  actorRole UserRole?
+
+  // only the fields that changed: { date, time, done, url, attendance: { USER: {attended,time}, OWNER: {...} } }
+  before    Json?
+  after     Json?
+
+  createdAt DateTime         @default(now())
+
+  // @relations
+  meeting Meeting? @relation(fields: [meetingId], references: [mid], onDelete: SetNull)
+
+  @@index([meetingId, createdAt]) // drill-down: a meeting's history
+  @@index([actorId, createdAt])   // per-shift counts: what this agent did in [start, end)
+  @@index([createdAt])            // daily timeline: all changes of the day
+  @@index([orderId])
+  @@map("meeting_logs")
+}

@@ -96,6 +96,7 @@ model Meeting {
   reschedules   Reschedule[]
   orderMessages OrderMessage[]
   blocked       Boolean        @default(false)
+  logs          MeetingLog[]
 
   @@unique([orderId, session])
   @@index([date, time])
