@@ -26,7 +26,8 @@ export type MeetingLogInput = {
   action: MeetingLogAction;
   source: MeetingLogSource;
   actor?: MeetingLogActor;
-  // only the fields that changed
+  // only the fields that changed, except RESCHEDULED and TIME_CHANGED: they always hold date,
+  // time and duration on both sides (the dashboard's SHIFTS.md §6.1)
   before?: Record<string, unknown> | null;
   after?: Record<string, unknown> | null;
 };

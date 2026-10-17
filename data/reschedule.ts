@@ -130,19 +130,24 @@ export const rescheduleMeeting = async (
     },
   });
 
-  // meeting log: the customer's reschedule link (no actor). it never throws
-  const diff = changedFields(
-    { date: meeting.date, time: meeting.time, checked: meeting.checked },
-    { date, time, checked: false },
-  );
+  // meeting log: the customer's reschedule link (no actor). it never throws. before and after
+  // always hold date, time and duration, even when only one of them changed, so the shift the
+  // meeting was in can be read from the line itself (the dashboard's SHIFTS.md §6.1); checked
+  // only when it changed
+  const checked = changedFields({ checked: meeting.checked }, { checked: false });
   await writeMeetingLog({
     meetingId: mid,
     orderId: meeting.orderId,
     session: meeting.session,
     action: "RESCHEDULED",
     source: "SITE",
-    before: diff.before,
-    after: diff.after,
+    before: {
+      date: meeting.date,
+      time: meeting.time,
+      duration: meeting.duration,
+      ...checked.before,
+    },
+    after: { date, time, duration: meeting.duration, ...checked.after },
   });
 
   // notify rescheduling

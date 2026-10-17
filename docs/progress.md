@@ -3859,7 +3859,7 @@ Spec: the dashboard repo's `SHIFTS.md` §4, main-site table. Writes to `meeting_
 | Path | File | Action | Source / actor |
 |---|---|---|---|
 | S1 `meetingDone` | `data/reschedule.ts` | DONE if done flipped, CHECKED if checked flipped | SITE / none |
-| S2 `rescheduleMeeting` | `data/reschedule.ts` | RESCHEDULED (changed date/time/checked) | SITE / none |
+| S2 `rescheduleMeeting` | `data/reschedule.ts` | RESCHEDULED (date, time and duration always on both sides since 2026-10-18; checked when it changed) | SITE / none |
 | S3 `checkReschedule` | `data/reschedule.ts` | CHECKED if checked flipped | SYSTEM |
 | S4 `participantAttendance` | `data/meetings.ts` | ATTENDANCE_CHANGED (the update only matches `attended: false`, so a row means it changed) | SITE / none |
 | S5 LiveKit `participant_left` | `app/api/livekit/webhook/route.ts` | ATTENDANCE_CHANGED only when `attended` flips | SYSTEM |
@@ -3886,3 +3886,17 @@ Spec: the dashboard repo's `SHIFTS.md` §4, main-site table. Writes to `meeting_
 **Open**
 - The dashboard half (D1–D5, actor threaded into the meeting actions).
 - S1 and S3 log only on a real flip, so a second "done" click adds no line.
+
+## 2026-10-18 · Meeting log: RESCHEDULED always holds date, time and duration
+
+**Why:** the dashboard's SHIFTS.md §6.1 and §7 item 8. A reschedule counts in the shift the meeting was in before the change. A line with only the changed fields had no `before.date` (time-only change) or no `before.time` (date-only change).
+
+**The change:**
+- `rescheduleMeeting` (`data/reschedule.ts`, S2) writes `before: { date, time, duration }` and `after: { date, time, duration }` on every `RESCHEDULED` line, even when only one of them changed. Duration is the meeting's own, unchanged by a reschedule.
+- `checked` is added only when it changed, as before.
+- The `MeetingLogInput` comment says so.
+- `TIME_CHANGED` is written only by the dashboard, so this repo has nothing else to change.
+
+**Live status:** the meeting-log commits (`79ad4ee` schema, `2264278` writes, 2026-10-17) are not pushed. origin/main is still c164b28, so no meeting log is written on production yet.
+
+**Verified:** tsc and eslint clean, build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`.
