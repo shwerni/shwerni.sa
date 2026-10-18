@@ -258,6 +258,8 @@ export const beforeDaftraStart = (createdAt: Date, config: Config) =>
 
 // the daftra invoice of a paid order: exactly one per order (the DaftraInvoice row "invoice:{oid}"
 // is the only duplicate guard). eligibility is checked here, never trusted from the caller.
+// force skips the go-live date only: a REVIEW invoice is never re-sent from here (daftra may have
+// it); the dashboard settles it with /api/dashboard/daftra/resolve.
 // allowRefunded is for the refund receipt only: an order refunded before it was invoiced.
 // whatsapp: false skips the pdf on whatsapp (a mark-as-paid without notifications)
 export async function sendOrderInvoice(
@@ -298,7 +300,7 @@ export async function sendOrderInvoice(
     tax: built.tax,
     method: built.ok ? built.lines.map((l) => l.payment_method).join(",") : built.method,
     source: options.source,
-    force: options.force,
+    // never force the claim: REVIEW stays REVIEW until it's settled (lib/daftra/resolve.ts)
   });
   if (!claim.claimed) return claimOutcome(claim);
 
