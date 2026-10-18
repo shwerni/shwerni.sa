@@ -3956,3 +3956,84 @@ One nullable column, nothing else. This also shows the shift tables from 79ad4ee
 - **Response:** unchanged (it's built from the same local `state`).
 - **/result and the webhook together:** the `orderStatusPaid` claim makes the second call a no-op.
 - **Must be done before mobile booking is turned back on.**
+
+## 2026-10-18 · Daftra: dashboard endpoints (status, PDF resend, resolve), no forced REVIEW resend
+
+**Why:** the dashboard never calls Daftra itself (its `docs/DAFTRA.md`). It reads `daftra_invoices` directly and acts through these routes.
+
+**Decisions (Ziad, 2026-10-18):**
+- Dashboard-paid orders get an invoice only when an agent ticks "Send Daftra invoice" in the dashboard, which calls the existing `/invoice`. Nothing changes here for that.
+- REVIEW invoices are never force-resent from the dashboard, only settled through `/resolve`.
+- No refund receipt PDF to customers for now.
+- Credit notes: not now (waiting for the accountant).
+- The dashboard logs who pressed each button in `finance_logs`.
+
+**Commits:**
+- `597de2e` `POST /api/dashboard/daftra/status`
+- `3775f97` `POST /api/dashboard/daftra/invoice/resend`, and `deliverInvoicePdf` returns a typed outcome
+- `880c8d6` `POST /api/dashboard/daftra/resolve` (`lib/daftra/resolve.ts`, `data/daftra.ts` `settleReviewDocument`)
+- `58e1420` `/invoice` refuses a forced resend of a REVIEW invoice (`use_resolve`); `sendOrderInvoice` never forces the claim
+- `41eff3b` schema: FinanceLog values (**waiting for `db push` by Ziad**)
+
+**The routes:** all POST, `verifyDashboardSecret` (401 `{ error: "unauthorized" }`), zod bodies (400 `{ error: "invalid body" }`), Arabic messages, no `htmlUrl`, Daftra link or secret in any response.
+- **`/status`:** no body → `{ enabled, configOk, missing?, startDate, maxAttempts }`. `missing` holds env var names only.
+- **`/invoice/resend`:** `{ oid, actor }` → `{ state, status, invoiceState?, message }`.
+  - `status`: `sent` | `no_invoice` | `pdf_failed` | `whatsapp_failed` | `disabled` | `failed`.
+  - `no_invoice` comes with `invoiceState`: `"missing"`, `PENDING`, `FAILED` or `REVIEW`. It never creates or sends an invoice.
+  - 60 s max: the Daftra GET, the PDF fetch and the WhatsApp upload run inside the request.
+- **`/resolve`:** `{ dedupeKey, outcome: "in_daftra", daftraId, daftraNo?, actor }` or `{ dedupeKey, outcome: "not_in_daftra", actor }` → `{ state, status, documentState?, daftraId?, daftraNo?, message }`.
+  - `status`: `resolved` | `not_found` | `not_review` | `daftra_not_found` | `mismatch` | `duplicate` | `disabled` | `failed`.
+  - `in_daftra` reads Daftra's copy (GET only) and compares id, client and total where Daftra returns them, then marks the row SENT.
+  - `not_in_daftra` moves REVIEW → FAILED ("safe to resend").
+  - REVIEW rows only, with a conditional update.
+- **`/invoice`:** `force` on a REVIEW invoice → `{ state: false, status: "use_resolve", message }`. `force` still skips the go-live date.
+
+**The nightly retry (`lib/daftra/retry.ts`, unchanged):** it never uses `force`. Its queries pick missing or FAILED documents under 5 attempts, and its PENDING-for-1-h step turns rows into REVIEW. It never retries a REVIEW row.
+
+**Refund receipts to customers (report only):** this app never sends one: no WhatsApp, email or notification in the refund paths (`lib/daftra/refund.ts`, `data/gatewaies/webhook.ts`). `deliverInvoicePdf` is invoices only.
+- Like invoices, refund receipts are created in Daftra with `client_email` (the author's real email, else `DAFTRA_CLIENT_EMAIL`), and new Daftra clients default to email invoicing.
+- Whether Daftra itself emails the document depends on the Daftra account's settings; that can't be seen from this code.
+
+**Differences from the dashboard's `docs/DAFTRA.md` §5** (not edited from here, it was read only):
+- **`/invoice/resend`:** "no invoice" is `status: "no_invoice"` plus `invoiceState` (the plan had `not_sent`). An unexpected error is `failed`.
+- **`/resolve`:** the outcomes are `in_daftra` / `not_in_daftra` as planned.
+  - Added statuses: `daftra_not_found` (Daftra didn't return the document; nothing changes), `duplicate` (another row holds that `daftraId`), `disabled`.
+  - `documentState` says the row's state after the call.
+  - No `deliverPdf` flag: after an `in_daftra` invoice, the dashboard calls `/invoice/resend` if it wants the PDF sent.
+- **`/invoice`:** besides the new `use_resolve`, `force` can no longer re-send a REVIEW invoice from any path.
+- **Not built:** `/credit-note` (decision), `/invoice-pdf` and `/retry` (optional).
+
+**Schema (`41eff3b`, waiting for `db push` by Ziad):** additive enum values, nothing else.
+```sql
+ALTER TYPE "FinanceLogAction" ADD VALUE 'RETRY';
+ALTER TYPE "FinanceLogAction" ADD VALUE 'RESEND_PDF';
+ALTER TYPE "FinanceLogAction" ADD VALUE 'RESOLVE';
+ALTER TYPE "FinanceLogEntity" ADD VALUE 'DAFTRA_DOCUMENT';
+```
+- `DAFTRA_DOCUMENT`: a `daftra_invoices` row; `entityId` = its `dedupeKey`.
+- `CREATE` (exists) = send a missing invoice.
+- This app writes no `finance_logs`. The dashboard copies the model after the push.
+
+**Verified:**
+- **Every part:** `tsc --noEmit` clean, `next build` passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`. The schema part also passed `prisma validate` and `generate`.
+- **The test setup:** `next start` on a throwaway local database. Daftra was enabled with a fake subdomain and key, WhatsApp pointed at a closed port, and Telegram had an invalid token, so nothing real was sent.
+- **`/status`:** the shape above; 401 with no or a wrong secret.
+- **`/invoice/resend`:**
+  - SENT invoice → `pdf_failed` (the fake preview link);
+  - no row → `no_invoice` `"missing"`;
+  - FAILED / REVIEW → `no_invoice` with that state, no row written;
+  - 400 without an actor, 401 without the secret.
+- **`/resolve`:**
+  - `not_in_daftra` for an invoice and a refund receipt → FAILED; again → `not_review`;
+  - SENT → `not_review`, unknown key → `not_found`;
+  - `in_daftra` with Daftra unreachable → `daftra_not_found`, and the row stays REVIEW;
+  - 400 for a bad key or a missing `daftraId`.
+  - The match functions and `settleReviewDocument` (duplicate / settled / not_review) were also checked directly against the local database.
+- **`/invoice`:** forced REVIEW → `use_resolve`, unforced REVIEW → `review`, SENT forced or not → `already_sent`. `sendOrderInvoice(…, { force: true })` on a REVIEW invoice → `review`, with no Daftra call.
+
+**Not exercised (needs real Daftra / WhatsApp):** the resend's `sent` and `whatsapp_failed`, and a matching `in_daftra`. The Daftra GET path for refund receipts (`/refund_receipts/{id}.json`) and the document fields (`id`, `no`, `client_id`, `summary_total`) should be confirmed on the first real use. A field Daftra doesn't return isn't compared, and an unreadable answer is `daftra_not_found`, which changes nothing.
+
+**Open questions:**
+1. **The refund route:** `/refund` with `force` can still re-send a REVIEW refund receipt. Should it answer `use_resolve` too, like `/invoice`?
+2. **The old PDF resend:** `/invoice`'s `resendWhatsapp` still works, but answers before the send. Remove it once the dashboard uses `/invoice/resend`?
+3. **Double resends:** a resend always claims the WhatsApp send (that's how resend works), so two clicks send the PDF twice. The dashboard should disable the button while a resend runs.
