@@ -354,6 +354,52 @@ export async function finishDaftraDocument(
   });
 }
 
+// ---------- settling a REVIEW row (the dashboard) ----------
+
+export type SettleOutcome = "settled" | "not_review" | "duplicate";
+
+// a person settled a REVIEW row after checking daftra: it is there (SENT, with daftra's id and
+// number, the GET body as the last response, the parent invoice for a refund receipt) or it isn't
+// (FAILED, so a normal send or the nightly retry sends it). conditional on REVIEW, so of two
+// settles only one wins. a daftraId another row already holds is a duplicate, nothing changes
+export async function settleReviewDocument(
+  id: string,
+  outcome:
+    | {
+        state: typeof DaftraSyncState.SENT;
+        daftraId: number;
+        daftraNo: string | null;
+        daftraParent?: number | null;
+        response: unknown;
+      }
+    | { state: typeof DaftraSyncState.FAILED; note: string },
+): Promise<SettleOutcome> {
+  try {
+    const { count } = await prisma.daftraInvoice.updateMany({
+      where: { id, state: DaftraSyncState.REVIEW },
+      data:
+        outcome.state === DaftraSyncState.SENT
+          ? {
+              state: DaftraSyncState.SENT,
+              daftraId: outcome.daftraId,
+              daftraNo: outcome.daftraNo,
+              ...(outcome.daftraParent && { daftraParent: outcome.daftraParent }),
+              response:
+                outcome.response === undefined || outcome.response === null
+                  ? Prisma.DbNull
+                  : (outcome.response as Prisma.InputJsonValue),
+              lastError: null,
+              sentAt: new Date(),
+            }
+          : { state: DaftraSyncState.FAILED, lastError: outcome.note },
+    });
+    return count === 1 ? "settled" : "not_review";
+  } catch (err) {
+    if (isUniqueConflict(err)) return "duplicate";
+    throw err;
+  }
+}
+
 // the refund guard: what the order's other refund receipts already take (SENT, PENDING or REVIEW)
 export async function sumOtherActiveRefunds(oid: number, exceptRefundId: string) {
   const { _sum } = await prisma.daftraInvoice.aggregate({
