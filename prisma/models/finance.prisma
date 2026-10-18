@@ -48,6 +48,10 @@ enum FinanceLogAction {
     APPROVE
     REJECT
     PROCESS
+    // the dashboard's daftra buttons (CREATE = send a missing invoice)
+    RETRY // send a FAILED invoice or refund receipt again
+    RESEND_PDF // the invoice pdf to the client on whatsapp again
+    RESOLVE // settle a REVIEW document (in daftra / safe to resend)
 }
 
 enum InsightTrigger {
@@ -62,6 +66,7 @@ enum FinanceLogEntity {
   REFUND_REQUEST
   ENTRY
   BANK_TRANSFER_REQUEST
+  DAFTRA_DOCUMENT // a daftra_invoices row (invoice or refund receipt); entityId = its dedupeKey
 }
 
 // refund ticket — can be opened by admin, manager, accountant or customer service
