@@ -4037,3 +4037,26 @@ ALTER TYPE "FinanceLogEntity" ADD VALUE 'DAFTRA_DOCUMENT';
 1. **The refund route:** `/refund` with `force` can still re-send a REVIEW refund receipt. Should it answer `use_resolve` too, like `/invoice`?
 2. **The old PDF resend:** `/invoice`'s `resendWhatsapp` still works, but answers before the send. Remove it once the dashboard uses `/invoice/resend`?
 3. **Double resends:** a resend always claims the WhatsApp send (that's how resend works), so two clicks send the PDF twice. The dashboard should disable the button while a resend runs.
+
+## 2026-10-18 · Daftra follow-up: /refund answers use_resolve; the open questions settled
+
+**Decisions (Ziad, 2026-10-18)**, on the open questions of the entry above:
+1. **`/refund` with `force` on a REVIEW receipt:** answers `use_resolve`, like `/invoice` (`52552c8`).
+2. **`/invoice`'s `resendWhatsapp`:** kept for now. See the pending cleanup below.
+3. **The dashboard's `docs/DAFTRA.md`:** updated in the dashboard repo to match what was built here.
+
+**`52552c8`:**
+- **`/api/dashboard/daftra/refund`:** `force` on a refund whose receipt row is REVIEW → `{ state: false, status: "use_resolve", message }`, and nothing is sent. `force` still skips the go-live date.
+- **`sendRefundReceipt`** no longer forces the claim.
+- **`claimDaftraDocument`** loses its `force` option. A REVIEW row always answers `review`, whoever calls, so no path can re-send a REVIEW invoice or refund receipt. They are only settled through `/resolve`.
+
+**Schema:** the FinanceLog values of `41eff3b` (`RETRY`, `RESEND_PDF`, `RESOLVE`, `DAFTRA_DOCUMENT`) are on the live database (Ziad ran `db push`, 2026-10-18).
+
+**Pending cleanup:** remove `resendWhatsapp` from `/api/dashboard/daftra/invoice` (the `after()` call to `deliverInvoicePdf`). Do it only after the dashboard calls `/invoice/resend` instead and that is deployed. Until then both work. The old flag answers before the PDF goes out, so the dashboard can't tell whether it was sent.
+
+**Verified:**
+- `tsc --noEmit` clean, `next build` passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`.
+- `next start` on the local test database:
+  - forced `/refund` on a REVIEW receipt → `use_resolve`; unforced → `review`. The row is unchanged both times (state, attempts, `updatedAt`).
+  - an unknown refund with `force` → `not_eligible`;
+  - 401 without the secret.
