@@ -110,7 +110,8 @@ export function buildRefundBody(input: {
 // the daftra refund receipt of one Refund row (exactly one per row: "refund:{refund.id}").
 // Refund.amount is the money returned, VAT included (the gateways report the refunded charge).
 // the money goes back through the original payment lines of the source invoice, split in the
-// same proportion, whatever Refund.channel says
+// same proportion, whatever Refund.channel says. force skips the go-live date only: a REVIEW
+// receipt is never re-sent from here; the dashboard settles it with /api/dashboard/daftra/resolve
 export async function sendRefundReceipt(
   refundId: string,
   options: { source: DaftraSource; force?: boolean },
@@ -180,7 +181,7 @@ export async function sendRefundReceipt(
     tax,
     method: lines.map((l) => l.payment_method).join(","),
     source: options.source,
-    force: options.force,
+    // never force the claim: REVIEW stays REVIEW until it's settled (lib/daftra/resolve.ts)
   });
   if (!claim.claimed) return claimOutcome(claim);
 

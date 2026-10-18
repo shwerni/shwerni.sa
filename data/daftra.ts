@@ -227,7 +227,6 @@ type ClaimInput = {
   tax: number;
   method: string;
   source: string;
-  force?: boolean;
 };
 
 export type ClaimResult =
@@ -239,8 +238,8 @@ export type ClaimResult =
     };
 
 // the claim rules: no row → create it PENDING; SENT → already_sent; PENDING → already_claimed;
-// REVIEW → stop unless force; FAILED (or REVIEW with force) → back to PENDING with a conditional
-// update on the state that was read, so of two callers only one wins
+// REVIEW → review (never re-sent: settled with /api/dashboard/daftra/resolve); FAILED → back to
+// PENDING with a conditional update on the state that was read, so of two callers only one wins
 export async function claimDaftraDocument(input: ClaimInput): Promise<ClaimResult> {
   const fields = {
     amount: input.amount,
@@ -276,7 +275,7 @@ export async function claimDaftraDocument(input: ClaimInput): Promise<ClaimResul
     return { claimed: false, status: "already_sent", row: existing };
   if (existing.state === DaftraSyncState.PENDING)
     return { claimed: false, status: "already_claimed", row: existing };
-  if (existing.state === DaftraSyncState.REVIEW && !input.force)
+  if (existing.state === DaftraSyncState.REVIEW)
     return { claimed: false, status: "review", row: existing };
 
   const { count } = await prisma.daftraInvoice.updateMany({
