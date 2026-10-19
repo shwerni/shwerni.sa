@@ -4060,3 +4060,25 @@ ALTER TYPE "FinanceLogEntity" ADD VALUE 'DAFTRA_DOCUMENT';
   - forced `/refund` on a REVIEW receipt → `use_resolve`; unforced → `review`. The row is unchanged both times (state, attempts, `updatedAt`).
   - an unknown refund with `force` → `not_eligible`;
   - 401 without the secret.
+
+## 2026-10-19 · Schema: Order.daftraSkip (additive, waiting for db push)
+
+**Why:** the dashboard's decision that an order can be marked "never send to Daftra".
+
+**The change:** `prisma/models/reservation.prisma` Order gets:
+- `daftraSkip Boolean @default(false)`
+- `daftraSkipById String?`, `daftraSkipByName String?`, `daftraSkipAt DateTime?` (who set or cleared it, and when)
+
+Nothing reads or writes them yet. The skip rule and the endpoints come after Ziad's `prisma db push`, in their own commits.
+
+**`npx prisma migrate diff --from-config-datasource --to-schema prisma --script`** (read-only, against the live database), the whole output:
+```sql
+-- AlterTable
+ALTER TABLE "orders" ADD COLUMN     "daftraSkip" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "daftraSkipAt" TIMESTAMP(3),
+ADD COLUMN     "daftraSkipById" TEXT,
+ADD COLUMN     "daftraSkipByName" TEXT;
+```
+Only added columns on `orders`: one with a constant default (no table rewrite on Postgres 11+), three nullable.
+
+**Verified:** `prisma validate` and `prisma generate`, tsc clean, build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`.

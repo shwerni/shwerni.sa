@@ -47,6 +47,12 @@ model Order {
   packageId      String?
   origin         OrderOrigin @default(PLATFORM)
   centerId       Int? // set at creation from consultant.centerId, never from client input
+  // daftra: "never send to daftra", set or cleared from the dashboard. the automatic sends
+  // (payment, nightly retry) skip it; only an explicit dashboard override creates the invoice
+  daftraSkip       Boolean   @default(false)
+  daftraSkipById   String?
+  daftraSkipByName String?
+  daftraSkipAt     DateTime?
 
   // @relations
   center         Center?         @relation(fields: [centerId], references: [ceid], onDelete: Restrict)
