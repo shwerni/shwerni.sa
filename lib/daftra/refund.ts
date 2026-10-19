@@ -113,9 +113,11 @@ export function buildRefundBody(input: {
 // the money goes back through the original payment lines of the source invoice, split in the
 // same proportion, whatever Refund.channel says. force skips the go-live date only: a REVIEW
 // receipt is never re-sent from here; the dashboard settles it with /api/dashboard/daftra/resolve.
-// an order marked "never send to daftra" (Order.daftraSkip) gets no refund receipt either, and its
-// invoice is never sent first: skipped before anything is claimed or called. override (a
-// dashboard call only, never an automatic path) sends it anyway, its invoice included
+// an order marked "never send to daftra" (Order.daftraSkip) with no SENT invoice in daftra gets no
+// refund receipt, and its invoice is never sent first: skipped before anything is claimed or
+// called. once its invoice is in daftra (sent before the flag, or with "create anyway"), its
+// refund receipts go as usual, flag or not. override (a dashboard call only, never an automatic
+// path) sends it anyway, the invoice first if needed
 export async function sendRefundReceipt(
   refundId: string,
   options: { source: DaftraSource; force?: boolean; override?: boolean },
@@ -136,10 +138,13 @@ export async function sendRefundReceipt(
   const oid = refund.orderId;
 
   if (refund.order.daftraSkip && !options.override) {
-    console.info(
-      `[daftra] refund rfid=${refund.rfid} oid=${oid} skipped (never send to daftra) source=${options.source}`,
-    );
-    return { state: false, status: "skipped", message: SKIPPED_MESSAGE };
+    const sentInvoice = await getOrderInvoiceDocument(oid);
+    if (sentInvoice?.state !== DaftraSyncState.SENT || !sentInvoice.daftraId) {
+      console.info(
+        `[daftra] refund rfid=${refund.rfid} oid=${oid} skipped (never send to daftra, no invoice in daftra) source=${options.source}`,
+      );
+      return { state: false, status: "skipped", message: SKIPPED_MESSAGE };
+    }
   }
 
   // the go-live guard, by the order's created_at (the dashboard's force skips it)

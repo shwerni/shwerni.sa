@@ -4175,3 +4175,22 @@ All routes check `x-dashboard-secret` (`verifyDashboardSecret`): 401 `{ "error":
 12. **daftraSkip, "create anyway" twice:** 1 invoice, 1 PDF; the second answers `already_sent`.
 13. **daftraSkip after "create anyway":** the automatic paths still skip it.
 14. **Clearing the flag:** who and when stored, nothing sent.
+
+## 2026-10-19 · Daftra: refund receipts of daftraSkip orders once their invoice is in Daftra
+
+**The rule change (Ziad):** the daftraSkip check stops a refund receipt only when the order has no invoice in Daftra.
+- **No invoice in Daftra** means no row, or one that is FAILED, PENDING or REVIEW. Then the receipt is skipped, and the invoice is never sent first, as before.
+- **A SENT invoice** (sent before the flag, or from "create anyway"): the receipt goes automatically as before. No override is needed.
+- **The automatic invoice path** still skips the order whatever its invoice state.
+
+**The changes:**
+- **`sendRefundReceipt`** (`lib/daftra/refund.ts`): on a daftraSkip order without override, it reads the order's invoice row. It answers `skipped` only when that row isn't SENT with a `daftraId`; otherwise it continues as usual (no invoice send, since it's SENT).
+- **`getRetryRefunds`** (`data/daftra.ts`): lists refunds of orders with `daftraSkip: false` OR a SENT invoice row. A daftraSkip order's refund comes back into the nightly retry once its invoice is in Daftra.
+- **`/api/dashboard/daftra/refund`:** comment updated. The response shapes are unchanged: `skipped` now only for a daftraSkip order with no invoice in Daftra, and `override` still forces it, the invoice first if needed.
+
+**Harness** (local, not committed), 15 scenarios, all passing:
+- **Scenario 13 now:** after "create anyway" (invoice SENT), the automatic invoice path still skips the order, but its refund receipt is sent automatically, queued twice → 1 receipt POST, 0 invoice POSTs, no PDF. The nightly retry listed that refund until it was sent.
+- **New 13b:** a normal order invoiced first, then flagged: its refund receipt is sent automatically, no second invoice.
+- **Scenario 9 unchanged:** a daftraSkip order with no invoice gets no refund receipt and no invoice sent first.
+
+**Verified:** tsc and eslint clean, build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`. The first build attempt failed at "collect page data" for `/scales/[slug]` with `P1001 DatabaseNotReachable` (that page reads the database during the build). The rerun passed with no database errors.

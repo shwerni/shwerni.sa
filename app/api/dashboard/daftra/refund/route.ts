@@ -20,8 +20,9 @@ const bodySchema = z.object({
   refundId: z.string().min(1).max(64),
   // skips the go-live date. it never re-sends a REVIEW receipt: that answers use_resolve
   force: z.boolean().optional(),
-  // a refund on an order marked "never send to daftra" answers skipped (the dashboard calls this
-  // after every refund row); override sends it anyway, the order's invoice first if needed
+  // a refund on an order marked "never send to daftra" with no invoice in daftra answers skipped
+  // (the dashboard calls this after every refund row); once its invoice is in daftra the receipt
+  // goes as usual. override sends it anyway, the order's invoice first if needed
   override: z.boolean().optional(),
 });
 

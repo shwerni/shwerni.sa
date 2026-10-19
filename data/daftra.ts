@@ -185,8 +185,14 @@ export async function getRetryRefunds(since: Date, before: Date) {
   return prisma.refund.findMany({
     where: {
       createdAt: { lte: before },
-      // "never send to daftra" orders get no refund receipt either
-      order: { created_at: { gte: since }, daftraSkip: false },
+      // a "never send to daftra" order gets refund receipts only once its invoice is in daftra
+      order: {
+        created_at: { gte: since },
+        OR: [
+          { daftraSkip: false },
+          { daftraInvoices: { some: { type: DaftraDocType.INVOICE, state: DaftraSyncState.SENT } } },
+        ],
+      },
       OR: [{ daftraInvoice: null }, { daftraInvoice: { is: retryableRow } }],
     },
     orderBy: { createdAt: "asc" },
