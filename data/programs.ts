@@ -129,12 +129,28 @@ export const getPrograms = async (
   }
 };
 
-// get all program
+// a program's public card fields: what GET /api/mobile/programs returns. never commission
+export type PublicProgram = Pick<
+  Program,
+  | "id"
+  | "prid"
+  | "title"
+  | "summary"
+  | "image"
+  | "category"
+  | "price"
+  | "sessions"
+  | "duration"
+  | "rate"
+>;
+
+// get published programs for the app's home carousel, public fields only
 export const getProgramsForHome = async (limit: number = 8) => {
   try {
     // get program
-    return await prisma.$queryRaw<Program[]>`
-      SELECT * FROM "programs" 
+    return await prisma.$queryRaw<PublicProgram[]>`
+      SELECT id, prid, title, summary, image, category, price, sessions, duration, rate
+      FROM "programs"
       WHERE status = CAST(${ProgramState.PUBLISHED} AS "ProgramState")
       ORDER BY RANDOM() 
       LIMIT ${limit};

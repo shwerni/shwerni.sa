@@ -224,18 +224,27 @@ export const getMeetings = async ({
           : [{ date: "desc" }, { time: "desc" }],
       take: limit + 1,
       ...(cursor ? { skip: 1, cursor: { mid: cursor } } : {}),
-      include: {
-        participants: true,
-        rooms: { select: { url: true } },
+      // only what the app's sessions screen reads: no meeting links, participant ids,
+      // consultant phone or user id, payment details or program commission
+      select: {
+        id: true,
+        mid: true,
+        date: true,
+        time: true,
+        duration: true,
+        session: true,
+        done: true,
+        participants: { select: { attended: true } },
         orders: {
-          include: {
-            payment: true,
-            program: true,
-            // never the consultant's phone; cid for the app's "book again"
+          select: {
+            oid: true,
+            packageId: true,
+            sessionCount: true,
+            payment: { select: { payment: true } },
+            program: { select: { title: true } },
             consultant: {
               select: {
                 cid: true,
-                userId: true,
                 name: true,
                 image: true,
                 gender: true,

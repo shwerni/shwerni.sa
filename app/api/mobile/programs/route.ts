@@ -4,9 +4,7 @@
 import { createGetRoute } from "@/lib/api/routes/route-factory";
 
 // data
-import { getProgramsForHome } from "@/data/programs";
+import { getProgramsForHome, type PublicProgram } from "@/data/programs";
 
-// prisma types
-import { Program } from "@/lib/generated/prisma/client";
-
-export const GET = createGetRoute<Program[]>(() => getProgramsForHome(), { errorMessage: "failed to fetch" });
+// public card fields only (never commission)
+export const GET = createGetRoute<PublicProgram[]>(() => getProgramsForHome(), { errorMessage: "failed to fetch" });
