@@ -4,7 +4,11 @@ import { NextResponse } from "next/server";
 // packages
 import { z } from "zod";
 
+// prisma data
+import { getOrderDaftraSkip } from "@/data/daftra";
+
 // lib
+import { SKIPPED_MESSAGE } from "@/lib/daftra/invoice";
 import { deliverInvoicePdf } from "@/lib/daftra/invoice-pdf";
 import { verifyDashboardSecret } from "@/lib/auth/dashboard-secret";
 
@@ -28,7 +32,9 @@ const bodySchema = z.object({
 
 // the dashboard resends an order's invoice pdf to the client on whatsapp and learns whether it
 // really went out. it never creates or sends an invoice: an order with no SENT invoice gets
-// no_invoice (invoiceState: "missing" when there's no row at all, else the row's state)
+// no_invoice (invoiceState: "missing" when there's no row at all, else the row's state), or
+// skipped when the order is marked "never send to daftra". an invoice that exists (created with
+// override) is still resent
 export async function POST(request: Request) {
   if (!verifyDashboardSecret(request))
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -48,6 +54,13 @@ export async function POST(request: Request) {
 
   switch (result.reason) {
     case "no_invoice":
+      if ((await getOrderDaftraSkip(oid))?.daftraSkip)
+        return NextResponse.json({
+          state: false,
+          status: "skipped",
+          invoiceState: result.invoiceState ?? "missing",
+          message: SKIPPED_MESSAGE,
+        });
       return NextResponse.json({
         state: false,
         status: "no_invoice",

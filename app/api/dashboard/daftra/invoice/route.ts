@@ -26,6 +26,9 @@ const bodySchema = z.object({
   // false: create the invoice without its pdf on whatsapp (whatsappSentAt stays null, so
   // resendWhatsapp can send it later). default true
   whatsapp: z.boolean().optional(),
+  // an order marked "never send to daftra" answers skipped; override (the dashboard's explicit
+  // "create anyway" button only) creates its invoice anyway. it doesn't clear the flag
+  override: z.boolean().optional(),
 });
 
 // the dashboard (re)sends an order's daftra invoice. the handler checks eligibility and the
@@ -57,6 +60,7 @@ export async function POST(request: Request) {
       source: "dashboard",
       force: parsed.data.force,
       whatsapp: parsed.data.whatsapp,
+      override: parsed.data.override,
     });
     if (parsed.data.resendWhatsapp && result.status === "already_sent")
       after(() => deliverInvoicePdf(parsed.data.oid, { resend: true }));

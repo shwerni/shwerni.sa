@@ -104,6 +104,49 @@ export async function getDaftraRefund(refundId: string) {
   return { ...refund, authorEmail: await authorEmailOf(refund.order.author) };
 }
 
+// ---------- "never send to daftra" ----------
+
+// the order's flag and its invoice row's state ("missing" when it has none), or null for no order
+export async function getOrderDaftraSkip(oid: number) {
+  const order = await prisma.order.findUnique({
+    where: { oid },
+    select: {
+      oid: true,
+      daftraSkip: true,
+      daftraSkipById: true,
+      daftraSkipByName: true,
+      daftraSkipAt: true,
+      daftraInvoices: {
+        where: { type: DaftraDocType.INVOICE },
+        select: { state: true },
+        take: 1,
+      },
+    },
+  });
+  if (!order) return null;
+  const { daftraInvoices, ...rest } = order;
+  return { ...rest, invoiceState: daftraInvoices[0]?.state ?? ("missing" as const) };
+}
+
+// sets or clears the flag with who and when (the last change). it sends nothing either way:
+// clearing it only lets the next automatic path (or a dashboard call) send again
+export async function setOrderDaftraSkip(
+  oid: number,
+  skip: boolean,
+  actor: { id: string; name: string },
+) {
+  const { count } = await prisma.order.updateMany({
+    where: { oid },
+    data: {
+      daftraSkip: skip,
+      daftraSkipById: actor.id,
+      daftraSkipByName: actor.name,
+      daftraSkipAt: new Date(),
+    },
+  });
+  return count > 0 ? getOrderDaftraSkip(oid) : null;
+}
+
 // ---------- the daily retry (cron) ----------
 
 // a FAILED row is retried by the cron until it has this many attempts; then a person decides

@@ -4106,3 +4106,44 @@ Only added columns on `orders`: one with a constant default (no table rewrite on
 `markStuckDaftraDocuments` (PENDING → REVIEW) sends nothing, so it's unchanged.
 
 **Verified:** tsc and eslint clean, build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`.
+
+## 2026-10-19 · Daftra: dashboard endpoints for "never send to daftra"
+
+All routes check `x-dashboard-secret` (`verifyDashboardSecret`): 401 `{ "error": "unauthorized" }` without it, 400 `{ "error": "invalid body" }` on a bad body. They are public in `routes.ts` under `/api/dashboard/daftra`.
+
+**`POST /api/dashboard/daftra/skip`** (new): sets or clears the flag. It sends nothing either way; clearing it only lets the next automatic path or a dashboard call send again.
+```jsonc
+// request
+{ "oid": 4512, "skip": true, "actor": { "id": "u_1", "name": "Ziad" } }
+// 200 updated (who/when = the last change, on set and on clear)
+{ "state": true, "status": "updated", "oid": 4512, "daftraSkip": true,
+  "daftraSkipById": "u_1", "daftraSkipByName": "Ziad", "daftraSkipAt": "2026-10-19T09:12:03.120Z",
+  "invoiceState": "missing",          // the order's invoice row: "missing" | PENDING | SENT | FAILED | REVIEW
+  "message": "لن يُرسل هذا الطلب إلى دفترة" }   // clear: "أُلغي استثناء الطلب من دفترة"
+// 200 not_found
+{ "state": false, "status": "not_found", "oid": 999999, "message": "الطلب غير موجود" }
+// 500
+{ "state": false, "status": "failed", "oid": 4512, "message": "حدث خطأ غير متوقع" }
+```
+
+**`POST /api/dashboard/daftra/invoice`** gets `override?: boolean`:
+```jsonc
+// request ("create anyway" sends override: true; nothing else does)
+{ "oid": 4512, "override": true }
+// a daftraSkip order without override: nothing claimed, sent or delivered
+{ "state": false, "status": "skipped", "message": "الطلب مستثنى من الإرسال إلى دفترة" }
+```
+- **With override:** the normal send (and its PDF unless `whatsapp: false`). The flag stays set.
+- **`resendWhatsapp`:** still only acts on `already_sent`, so on a skipped order without override it does nothing. `/invoice/resend` covers an invoice that exists.
+
+**`POST /api/dashboard/daftra/invoice/resend`:** a daftraSkip order with no SENT invoice answers
+```jsonc
+{ "state": false, "status": "skipped", "invoiceState": "missing", "message": "الطلب مستثنى من الإرسال إلى دفترة" }
+```
+- A daftraSkip order whose invoice exists (created with override) is resent as usual. A non-skipped order with no invoice still answers `no_invoice`.
+
+**`POST /api/dashboard/daftra/refund`** gets `override?: boolean` (an addition beyond the request).
+- **Why:** the dashboard calls this route after every refund row it creates, so it follows the automatic rule. A daftraSkip order answers the same `skipped` result.
+- **What override does:** sends the receipt anyway, the order's invoice first if needed. Without it, an order invoiced with "create anyway" could never get a refund receipt.
+
+**Verified:** tsc and eslint clean, build passes (`/api/dashboard/daftra/skip` in the route list), manifest only `"data/event.ts"` and `"lib/api/google.ts"`.
