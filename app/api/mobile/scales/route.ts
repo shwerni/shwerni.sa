@@ -1,12 +1,10 @@
-// mobile/programs/route.ts
+// mobile/scales/route.ts
 
 // packages
 import { createGetRoute } from "@/lib/api/routes/route-factory";
 
 // data
-import { getScalesForHome } from "@/data/scales";
+import { getScalesForHome, type PublicScale } from "@/data/scales";
 
-// prisma types
-import { Scale } from "@/lib/generated/prisma/client";
-
-export const GET = createGetRoute<Scale[]>(() => getScalesForHome(), { errorMessage: "failed to fetch" });
+// public, active scale cards only
+export const GET = createGetRoute<PublicScale[]>(() => getScalesForHome(), { errorMessage: "failed to fetch" });

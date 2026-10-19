@@ -14,6 +14,23 @@ interface OnlineConsultantsResponse {
   consultants: ConsultantCard[];
 }
 
+// public card fields only: getConsultantsOnline also returns the consultant's user id,
+// which the website's /api/online keeps but the app must never receive
+const toCard = (c: ConsultantCard): ConsultantCard => ({
+  cid: c.cid,
+  name: c.name,
+  title: c.title,
+  image: c.image,
+  category: c.category,
+  rate: c.rate,
+  gender: c.gender,
+  cost30: c.cost30,
+  created_at: c.created_at,
+  reviews: c.reviews,
+  years: c.years,
+  specialties: c.specialties,
+});
+
 export const GET = createGetRoute<OnlineConsultantsResponse>(
   async (request: NextRequest) => {
     const { searchParams } = request.nextUrl;
@@ -32,6 +49,6 @@ export const GET = createGetRoute<OnlineConsultantsResponse>(
       categories,
       gender,
     });
-    return { consultants };
+    return { consultants: consultants.map(toCard) };
   }, { errorMessage: "failed to fetch" },
 );

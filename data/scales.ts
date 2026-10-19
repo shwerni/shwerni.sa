@@ -5,6 +5,7 @@ import {
   ScaleItem,
   ScaleResultRange,
   ScaleState,
+  ScaleType,
 } from "@/lib/generated/prisma/client";
 import prisma from "@/lib/database/db";
 import { notificationScaleReminder } from "@/lib/notifications/site";
@@ -295,13 +296,19 @@ export async function submitScaleResult({
   }
 }
 
-// get random scales for home
+// a scale's public card fields: what GET /api/mobile/scales returns
+export type PublicScale = Pick<Scale, "id" | "slug" | "title" | "image" | "subtitle">;
+
+// get random published, public and active scales for the app's home carousel
 export const getScalesForHome = async (limit: number = 8) => {
   try {
-    return await prisma.$queryRaw<Scale[]>`
-      SELECT * FROM "scales" 
+    return await prisma.$queryRaw<PublicScale[]>`
+      SELECT id, slug, title, image, subtitle
+      FROM "scales"
       WHERE status = CAST(${ScaleState.PUBLISHED} AS "ScaleState")
-      ORDER BY RANDOM() 
+        AND type = CAST(${ScaleType.PUBLIC} AS "ScaleType")
+        AND "isActive" = true
+      ORDER BY RANDOM()
       LIMIT ${limit};
     `;
   } catch (error) {
