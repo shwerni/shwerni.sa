@@ -2,7 +2,7 @@
 import React from "react";
 
 // lib
-import { Consultant } from "@/lib/generated/prisma/client";
+import type { PublicConsultant } from "@/data/consultant";
 
 // types
 import { User } from "next-auth";
@@ -18,12 +18,8 @@ import { TbBulb } from "react-icons/tb";
 // props
 interface Props {
   user?: User;
-  // prettier-ignore
-  consultant: 
-  Consultant 
-  & { years: number }
-  & { reviews: number } 
-  & { specialties: string[] };
+  // the public profile fields (getConsultant)
+  consultant: PublicConsultant;
 }
 
 const FreeSessionProfile: React.FC<Props> = ({ consultant }: Props) => {

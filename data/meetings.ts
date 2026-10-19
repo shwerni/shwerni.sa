@@ -231,11 +231,12 @@ export const getMeetings = async ({
           include: {
             payment: true,
             program: true,
+            // never the consultant's phone; cid for the app's "book again"
             consultant: {
               select: {
+                cid: true,
                 userId: true,
                 name: true,
-                phone: true,
                 image: true,
                 gender: true,
                 category: true,

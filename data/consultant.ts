@@ -231,18 +231,52 @@ export const getConsultants = async (
   }
 };
 
-type ConsultantWithExtras = Consultant & {
+// the consultant profile's public fields: what the site's profile pages and the app read. never
+// phone, commission, adminNote, cv, edu, cert, info, pendingImage, userId or the internal states
+export type PublicConsultant = Pick<
+  Consultant,
+  | "cid"
+  | "name"
+  | "title"
+  | "image"
+  | "gender"
+  | "category"
+  | "rate"
+  | "preference"
+  | "neducation"
+  | "nexperiences"
+  | "nabout"
+  | "status"
+  | "cost30"
+  | "cost45"
+  | "cost60"
+> & {
   years: number;
   reviews: number;
   specialties: string[];
+  isFavorite: boolean;
 };
 
-// get consultant for consultant page
+// get consultant for consultant page (the site's profile and GET /api/mobile/consultants/consultant)
 export const getConsultant = async (cid: number, userId?: string) => {
   try {
-    const consultant = await prisma.$queryRaw<ConsultantWithExtras[]>`
+    const consultant = await prisma.$queryRaw<PublicConsultant[]>`
 SELECT
-  c.*,
+  c.cid,
+  c.name,
+  c.title,
+  c.image,
+  c.gender,
+  c.category,
+  c.rate,
+  c.preference,
+  c.neducation,
+  c.nexperiences,
+  c.nabout,
+  c.status,
+  c.cost30,
+  c.cost45,
+  c.cost60,
 
   GREATEST(
     DATE_PART('year', AGE(NOW(), c.seniority))::int,

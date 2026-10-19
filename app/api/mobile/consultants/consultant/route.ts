@@ -1,22 +1,12 @@
 // packages
-import { getConsultant } from "@/data/consultant";
+import { getConsultant, type PublicConsultant } from "@/data/consultant";
 
 // data
 import { createGetRoute } from "@/lib/api/routes/route-factory";
 import { requireMobileUser } from "@/lib/auth/require-mobile-user";
 
-// primsa types
-import { Consultant } from "@/lib/generated/prisma/client";
-
-// types
-type ConsultantWithExtras = Consultant & {
-  years: number;
-  reviews: number;
-  specialties: string[];
-  isFavorite?: boolean;
-};
-
-export const GET = createGetRoute<ConsultantWithExtras>(async (request) => {
+// the public profile fields only (never phone, commission, admin note, cv or certificates)
+export const GET = createGetRoute<PublicConsultant>(async (request) => {
   const cid = Number(request.nextUrl.searchParams.get("cid"));
 
   if (!cid || Number.isNaN(cid)) {
