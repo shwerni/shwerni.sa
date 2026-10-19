@@ -20,18 +20,16 @@ import {
 } from "lucide-react";
 
 // utils
-import { findParticipant } from "@/utils";
 import { calendarDayToString } from "@/utils/date";
 
 // prisma data
 import { rescheduleMeeting, meetingDone } from "@/actions/site";
-import { Meeting, Participant } from "@/lib/generated/prisma/client";
 
 // prisma enums
 import { RescheduleReason } from "@/lib/generated/prisma/enums";
 
 // types
-import { Reservation } from "@/types/admin";
+import type { OrderTableOrder } from "../../shared/order-table";
 import {
   Select,
   SelectContent,
@@ -47,15 +45,23 @@ const REASON_OPTIONS: { value: RescheduleReason; label: string }[] = [
   { value: RescheduleReason.OTHER, label: "سبب آخر" },
 ];
 
-// props
+// props: only the fields this screen reads, picked by the page
 interface Props {
-  meeting: Meeting & { participants: Participant[] };
-  order: Reservation;
+  meeting: { mid: string; date: string; time: string; done: boolean };
+  // the client's participant value, used in the meeting page link
+  participant?: string;
+  order: OrderTableOrder & { consultantId: number };
   rescheduled: boolean;
   ireason?: boolean;
 }
 
-const ReschedulePick = ({ meeting, order, rescheduled, ireason }: Props) => {
+const ReschedulePick = ({
+  meeting,
+  participant,
+  order,
+  rescheduled,
+  ireason,
+}: Props) => {
   // router
   const router = useRouter();
 
@@ -79,9 +85,6 @@ const ReschedulePick = ({ meeting, order, rescheduled, ireason }: Props) => {
     meetingStart.setHours(hours, minutes, 0, 0);
     return new Date() < meetingStart;
   }, [meeting.date, meeting.time]);
-
-  // participant — used for redirect url
-  const participant = findParticipant(meeting.participants)?.participant;
 
   // mark meeting as done manually
   async function onMarkDone() {

@@ -23,18 +23,37 @@ import {
 } from "lucide-react";
 
 // types
-import type { MeetingWithOrder, Reservation } from "@/types/admin";
+import type { PaymentMethod } from "@/lib/generated/prisma/enums";
+
+// the fields this table renders; full rows (Reservation, MeetingWithOrder) and
+// page-level picks both satisfy these, so pages can pass only what is shown
+export type OrderTableMeeting = { date: string; time: string; duration: string };
+
+export type OrderTableOrder = {
+  oid: number;
+  name: string;
+  sessionCount: number;
+  consultant?: { name: string } | null;
+  payment?: { total: number; tax: number; method: PaymentMethod | null } | null;
+  program?: { title: string } | null;
+  meeting?: OrderTableMeeting[];
+};
+
+export type OrderTableMeetingCentric = OrderTableMeeting & {
+  mid: string;
+  orders: OrderTableOrder;
+};
 
 // props
 interface Props {
-  order: Reservation | MeetingWithOrder;
+  order: OrderTableOrder | OrderTableMeetingCentric;
   session?: number;
 }
 
 // narrow between the two shapes
 function isMeetingCentric(
-  data: Reservation | MeetingWithOrder,
-): data is MeetingWithOrder {
+  data: OrderTableOrder | OrderTableMeetingCentric,
+): data is OrderTableMeetingCentric {
   return "orders" in data && "mid" in data;
 }
 

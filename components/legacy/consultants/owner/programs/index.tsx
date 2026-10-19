@@ -26,10 +26,16 @@ import { totalAfterTax, findCategory } from "@/utils";
 // icons
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+// card fields picked by the page
+type ProgramCardData = Pick<
+    Program,
+    "id" | "prid" | "image" | "title" | "category" | "summary" | "price"
+>;
+
 // props
 interface Props {
     tax: number;
-    programs: Program[];
+    programs: ProgramCardData[];
 }
 
 const ConsultantPrograms: React.FC<Props> = ({ tax, programs }: Props) => {

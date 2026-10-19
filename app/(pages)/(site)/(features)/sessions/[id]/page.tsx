@@ -74,8 +74,30 @@ export default async function Page({ params, searchParams }: Props) {
   // validate
   if (!validate) return notFound();
 
+  // only what the client component renders: no consultant phone or user id,
+  // payment shares, used coupon, guest, participants or program commission
+  const program = order.program ? { title: order.program.title } : null;
+  const picked = {
+    oid: order.oid,
+    name: order.name,
+    sessionCount: order.sessionCount,
+    consultantId: order.consultantId,
+    consultant: { name: order.consultant.name },
+    payment: order.payment
+      ? {
+          total: order.payment.total,
+          tax: order.payment.tax,
+          method: order.payment.method,
+        }
+      : null,
+    program,
+    meeting: order.meeting.map((m) => ({
+      date: m.date,
+      time: m.time,
+      duration: m.duration,
+    })),
+  };
+
   // return
-  return (
-    <SessionPick order={order} program={order.program} session={nSession} />
-  );
+  return <SessionPick order={picked} program={program} session={nSession} />;
 }

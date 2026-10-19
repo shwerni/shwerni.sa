@@ -16,8 +16,17 @@ const Page: React.FC = async () => {
   // programs
   "use cache";
   cacheLife("weeks");
-  const programs = (await getAllPublishedPrograms()) ?? [];
-  
+  // only the card fields the client grid renders (never commission)
+  const programs = ((await getAllPublishedPrograms()) ?? []).map((p) => ({
+    id: p.id,
+    prid: p.prid,
+    image: p.image,
+    title: p.title,
+    category: p.category,
+    summary: p.summary,
+    price: p.price,
+  }));
+
   // tax
   const finance = await getTaxCommission();
 

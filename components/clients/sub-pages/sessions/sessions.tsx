@@ -14,20 +14,17 @@ import PickDateTime from "../../shared/pick-date-time";
 import { findParticipant } from "@/utils";
 import { calendarDayToString } from "@/utils/date";
 
-// prisma types
-import { Program } from "@/lib/generated/prisma/client";
-
 // prisma data
 import { selectSession } from "@/actions/site";
 
 // types
-import { Reservation } from "@/types/admin";
+import type { OrderTableOrder } from "../../shared/order-table";
 
-// props
+// props: only the fields this screen reads, picked by the page
 interface Props {
   session: number;
-  order: Reservation;
-  program: Program | null;
+  order: OrderTableOrder & { consultantId: number };
+  program: { title: string } | null;
 }
 
 const SessionPick = ({ order, program, session }: Props) => {
