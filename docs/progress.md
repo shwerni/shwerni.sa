@@ -4147,3 +4147,31 @@ All routes check `x-dashboard-secret` (`verifyDashboardSecret`): 401 `{ "error":
 - **What override does:** sends the receipt anyway, the order's invoice first if needed. Without it, an order invoiced with "create anyway" could never get a refund receipt.
 
 **Verified:** tsc and eslint clean, build passes (`/api/dashboard/daftra/skip` in the route list), manifest only `"data/event.ts"` and `"lib/api/google.ts"`.
+
+## 2026-10-19 · Daftra: "never twice" checked, including PAID → HOLD → PAID
+
+**Why an order can't get a second invoice or PDF:**
+- **The `DaftraInvoice` row `invoice:{oid}`** (unique `dedupeKey`) is the only way in. `claimDaftraDocument` answers `already_sent` for SENT, `already_claimed` for PENDING and `review` for REVIEW, so only a missing or FAILED row is ever sent.
+  - **FAILED** means Daftra rejected the invoice, so it isn't in Daftra.
+  - **REVIEW** (an unknown outcome) is never re-sent automatically; it's settled with `/resolve`.
+- **The PDF** is only delivered right after a fresh SENT (inside `sendOrderInvoice`), behind the `whatsappSentAt` claim. An automatic delivery for an already-delivered invoice answers `already_delivered`. Only the dashboard's resend sends it again.
+- **PAID → HOLD → PAID:** the second transition wins a new `orderStatusPaid` claim, so `onPaymentSuccess` runs again and queues the invoice. That send finds the SENT row and answers `already_sent`: no Daftra call, no PDF, no alert.
+  - The order confirmation messages do go out again on that second transition. That's unchanged existing behaviour, not Daftra.
+- **The nightly retry** only lists orders with no invoice row or a FAILED one under the attempt cap, never SENT.
+- **A refund receipt** sends the source invoice first only when it's missing or FAILED.
+
+**The test** (a local harness, not committed: the real `lib/daftra/*` and `data/daftra.ts` against an in-memory Prisma, a fake Daftra API behind `fetch`, stubbed WhatsApp and Telegram, the env pointed at dead endpoints, and a check that the stubs loaded). 14 scenarios, all passing:
+1. **First PAID:** 1 invoice POST, 1 PDF download, 1 WhatsApp PDF, row SENT.
+2. **PAID → HOLD → PAID:** the second `queueOrderInvoice` sends nothing (still 1 row, no PDF, no alert).
+3. **A third PAID-path call** with WhatsApp off: nothing.
+4. **Nightly retry:** the SENT invoice isn't listed; a cron send answers `already_sent`.
+5. **Dashboard `/invoice`,** with or without override, on an invoiced order: `already_sent`.
+6. **Automatic PDF delivery** after it was sent: `already_delivered`, no download, no WhatsApp.
+7. **Automatic refund receipt,** queued twice: 1 receipt POST, 0 invoice POSTs, no PDF.
+8. **daftraSkip, payment path:** skipped, no row, no Daftra call, no PDF, no alert.
+9. **daftraSkip, automatic refund receipt:** skipped, no invoice sent first, no row.
+10. **daftraSkip, nightly retry:** not listed (invoice and refund); a direct cron send answers `skipped`.
+11. **daftraSkip, dashboard `/invoice` without override:** `skipped`.
+12. **daftraSkip, "create anyway" twice:** 1 invoice, 1 PDF; the second answers `already_sent`.
+13. **daftraSkip after "create anyway":** the automatic paths still skip it.
+14. **Clearing the flag:** who and when stored, nothing sent.
