@@ -29,6 +29,8 @@ const invoiceOrderSelect = {
   scaleId: true,
   origin: true,
   created_at: true,
+  // "never send to daftra" (the dashboard sets it); sendOrderInvoice checks it before any claim
+  daftraSkip: true,
   consultant: { select: { name: true, category: true } },
   center: { select: { name: true } },
   program: { select: { title: true } },
@@ -94,7 +96,7 @@ export async function getDaftraRefund(refundId: string) {
       reference: true,
       refundedAt: true,
       orderId: true,
-      order: { select: { created_at: true, author: true } },
+      order: { select: { created_at: true, author: true, daftraSkip: true } },
       request: { select: { reason: true } },
     },
   });
@@ -121,6 +123,8 @@ export async function getRetryInvoiceOrders(since: Date, before: Date) {
     where: {
       created_at: { gte: since, lte: before },
       payment: { is: { payment: PaymentState.PAID } },
+      // "never send to daftra" orders are never retried
+      daftraSkip: false,
       OR: [
         { daftraInvoices: { none: { type: DaftraDocType.INVOICE } } },
         { daftraInvoices: { some: { type: DaftraDocType.INVOICE, ...retryableRow } } },
@@ -138,7 +142,8 @@ export async function getRetryRefunds(since: Date, before: Date) {
   return prisma.refund.findMany({
     where: {
       createdAt: { lte: before },
-      order: { created_at: { gte: since } },
+      // "never send to daftra" orders get no refund receipt either
+      order: { created_at: { gte: since }, daftraSkip: false },
       OR: [{ daftraInvoice: null }, { daftraInvoice: { is: retryableRow } }],
     },
     orderBy: { createdAt: "asc" },

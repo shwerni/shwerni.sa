@@ -253,6 +253,9 @@ export function buildInvoiceBody(
 // the dashboard forces it. nothing is claimed, so no DaftraInvoice row and no alert
 export const BEFORE_START_MESSAGE = "الطلب قبل تاريخ بدء الربط مع دفترة";
 
+// an order marked "never send to daftra" (Order.daftraSkip)
+export const SKIPPED_MESSAGE = "الطلب مستثنى من الإرسال إلى دفترة";
+
 export const beforeDaftraStart = (createdAt: Date, config: Config) =>
   riyadhDay(createdAt) < config.startDate;
 
@@ -261,7 +264,10 @@ export const beforeDaftraStart = (createdAt: Date, config: Config) =>
 // force skips the go-live date only: a REVIEW invoice is never re-sent from here (daftra may have
 // it); the dashboard settles it with /api/dashboard/daftra/resolve.
 // allowRefunded is for the refund receipt only: an order refunded before it was invoiced.
-// whatsapp: false skips the pdf on whatsapp (a mark-as-paid without notifications)
+// whatsapp: false skips the pdf on whatsapp (a mark-as-paid without notifications).
+// an order marked "never send to daftra" (Order.daftraSkip) answers skipped before anything is
+// claimed or called; override (the dashboard's explicit "create anyway", never an automatic
+// path) creates it anyway
 export async function sendOrderInvoice(
   oid: number,
   options: {
@@ -269,6 +275,7 @@ export async function sendOrderInvoice(
     force?: boolean;
     allowRefunded?: boolean;
     whatsapp?: boolean;
+    override?: boolean;
   },
 ): Promise<DaftraSendResult> {
   const config = getDaftraConfig();
@@ -280,6 +287,12 @@ export async function sendOrderInvoice(
   }
 
   const order = await getDaftraInvoiceOrder(oid);
+
+  if (order?.daftraSkip && !options.override) {
+    console.info(`[daftra] invoice oid=${oid} skipped (never send to daftra) source=${options.source}`);
+    return { state: false, status: "skipped", message: SKIPPED_MESSAGE };
+  }
+
   const state = order?.payment?.payment;
   const eligible =
     state === PaymentState.PAID ||

@@ -23,7 +23,9 @@ export type DaftraSendStatus =
   | "client_not_ready"
   | "disabled"
   | "failed"
-  | "review";
+  | "review"
+  // the order is marked "never send to daftra" (Order.daftraSkip): nothing claimed or sent
+  | "skipped";
 
 export type DaftraSendResult = {
   state: boolean;

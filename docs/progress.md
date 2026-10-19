@@ -4082,3 +4082,27 @@ ADD COLUMN     "daftraSkipByName" TEXT;
 Only added columns on `orders`: one with a constant default (no table rewrite on Postgres 11+), three nullable.
 
 **Verified:** `prisma validate` and `prisma generate`, tsc clean, build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`.
+
+## 2026-10-19 · Daftra: automatic paths skip "never send to daftra" orders
+
+`prisma db push` for `Order.daftraSkip` was done by Ziad (no warnings).
+
+**The rule:** an order with `daftraSkip = true` never gets an invoice or a refund receipt from an automatic path.
+- **Where it's checked:** in the two senders, before anything is claimed: no `DaftraInvoice` row, no Daftra call, no PDF.
+  - `sendOrderInvoice` (`lib/daftra/invoice.ts`)
+  - `sendRefundReceipt` (`lib/daftra/refund.ts`). The refund check runs before its "send the source invoice first" step, so a skipped order's invoice is never sent from a refund either.
+- **Result:** `{ state: false, status: "skipped", message: "الطلب مستثنى من الإرسال إلى دفترة" }`, logged with `console.info` (oid, rfid for refunds, source).
+- **No alert:** `skipped` is in neither the payment path's alert set nor the retry's, so it never reaches Telegram.
+- **`override?: boolean`** on both senders: only the dashboard routes pass it (next entry); no automatic path does. An overridden refund passes it to its source invoice too.
+
+**The automatic paths, all covered:**
+
+| Path | How it reaches Daftra |
+|---|---|
+| Invoice after payment: webhooks, mobile `/confirm` and dashboard mark-as-paid, all through `orderStatusPaid` | `onPaymentSuccess` → `queueOrderInvoice` → `sendOrderInvoice` (source payment). Its PDF only runs after a fresh SENT. |
+| Refund receipt after a Moyasar refund webhook | `recordRefund` (`data/gatewaies/webhook.ts`) → `queueRefundReceipt` → `sendRefundReceipt` (source payment), which may send the invoice first |
+| Nightly retry, `/api/cron/daftra-retry` | `getRetryInvoiceOrders` and `getRetryRefunds` (`data/daftra.ts`) now filter `daftraSkip: false` / `order.daftraSkip: false`, so skipped orders aren't listed. The senders check again. |
+
+`markStuckDaftraDocuments` (PENDING → REVIEW) sends nothing, so it's unchanged.
+
+**Verified:** tsc and eslint clean, build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`.

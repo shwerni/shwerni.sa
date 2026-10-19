@@ -14,6 +14,7 @@ import { getDaftraConfig } from "@/lib/daftra/config";
 import { daftraRequest } from "@/lib/daftra/client";
 import {
   BEFORE_START_MESSAGE,
+  SKIPPED_MESSAGE,
   beforeDaftraStart,
   claimOutcome,
   sendOrderInvoice,
@@ -111,10 +112,13 @@ export function buildRefundBody(input: {
 // Refund.amount is the money returned, VAT included (the gateways report the refunded charge).
 // the money goes back through the original payment lines of the source invoice, split in the
 // same proportion, whatever Refund.channel says. force skips the go-live date only: a REVIEW
-// receipt is never re-sent from here; the dashboard settles it with /api/dashboard/daftra/resolve
+// receipt is never re-sent from here; the dashboard settles it with /api/dashboard/daftra/resolve.
+// an order marked "never send to daftra" (Order.daftraSkip) gets no refund receipt either, and its
+// invoice is never sent first: skipped before anything is claimed or called. override (a
+// dashboard call only, never an automatic path) sends it anyway, its invoice included
 export async function sendRefundReceipt(
   refundId: string,
-  options: { source: DaftraSource; force?: boolean },
+  options: { source: DaftraSource; force?: boolean; override?: boolean },
 ): Promise<DaftraSendResult> {
   const config = getDaftraConfig();
   if (!config.enabled)
@@ -131,6 +135,13 @@ export async function sendRefundReceipt(
 
   const oid = refund.orderId;
 
+  if (refund.order.daftraSkip && !options.override) {
+    console.info(
+      `[daftra] refund rfid=${refund.rfid} oid=${oid} skipped (never send to daftra) source=${options.source}`,
+    );
+    return { state: false, status: "skipped", message: SKIPPED_MESSAGE };
+  }
+
   // the go-live guard, by the order's created_at (the dashboard's force skips it)
   if (!options.force && beforeDaftraStart(refund.order.created_at, config))
     return { state: false, status: "not_eligible", message: BEFORE_START_MESSAGE };
@@ -145,6 +156,8 @@ export async function sendRefundReceipt(
       whatsapp: options.source === "cron" ? false : undefined,
       // a forced refund of a pre-start order needs its invoice past the same guard
       force: options.force && beforeDaftraStart(refund.order.created_at, config) ? true : undefined,
+      // an overridden refund of a "never send" order needs its invoice past the same rule
+      override: options.override,
     });
     if (sent.status !== "sent" && sent.status !== "already_sent")
       return {
