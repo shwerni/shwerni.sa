@@ -29,9 +29,58 @@ model Pleading {
   orderId      Int?           @unique // the current checkout order, replaced on a new checkout
   order        Order?         @relation(fields: [orderId], references: [oid])
   messages     OrderMessage[]
+  documents    PleadingDocument[]
 
   @@index([consultantId, state])
   @@index([state, requestedAt])
   @@index([state, expiresAt])
   @@map("pleadings")
+}
+
+enum PleadingDocumentKind {
+  QUOTE // generated on each quote and re-quote
+  FINAL // generated after payment, with the client's acceptance
+}
+
+enum PleadingDocumentState {
+  PENDING // row saved, the pdf not generated yet
+  READY // pdf uploaded and posted in the chat
+  FAILED // generation or upload failed (the consultant can retry)
+}
+
+// one version of a case's engagement agreement (اتفاقية التكليف), kept for the record. the dynamic
+// blocks are stored exactly as rendered; the price is never part of it (it lives in the quote
+// message and the checkout). the checkout dialog renders from the latest QUOTE row, whatever its
+// state, and the pdf from the same row
+model PleadingDocument {
+  id              String                @id @default(cuid())
+  kind            PleadingDocumentKind
+  state           PleadingDocumentState @default(PENDING)
+  version         Int // the quote version (1, 2, …); a FINAL repeats the QUOTE version it accepts
+  termsVersion    String // TERMS_VERSION when it was generated
+  // the dynamic blocks, as rendered
+  clientName      String
+  consultantName  String
+  caseType        String?
+  summary         String?               @db.Text
+  consultantTerms Json                  @default("[]") // string[], at most 10 × 500 characters
+  notes           String?               @db.Text
+  // the file and the chat message that carries it
+  fileUrl         String?
+  fileKey         String? // the uploadthing key
+  messageId       String?               @unique
+  lastError       String?               @db.Text
+  // FINAL only: the client's acceptance, recorded at payment
+  acceptedAt      DateTime?
+  orderId         Int?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  // @relations
+  pleadingId String
+  pleading   Pleading @relation(fields: [pleadingId], references: [id], onDelete: Restrict)
+
+  @@unique([pleadingId, kind, version])
+  @@index([pleadingId, createdAt])
+  @@map("pleading_documents")
 }

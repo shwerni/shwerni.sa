@@ -4194,3 +4194,54 @@ All routes check `x-dashboard-secret` (`verifyDashboardSecret`): 401 `{ "error":
 - **Scenario 9 unchanged:** a daftraSkip order with no invoice gets no refund receipt and no invoice sent first.
 
 **Verified:** tsc and eslint clean, build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`. The first build attempt failed at "collect page data" for `/scales/[slug]` with `P1001 DatabaseNotReachable` (that page reads the database during the build). The rerun passed with no database errors.
+
+## 2026-10-21 · Pleading agreement PDF, phase 1: schema, terms constants, date helper
+
+The plan was approved with Ziad's decisions on 2026-10-21. The PDF and the checkout dialog will both render from one shared builder over these constants; no caller yet in this phase.
+
+**The terms source:** `docs/pleading-terms.md` (Ziad's file, not committed by me).
+- **Part 1, the service guide:** the مرافعة intro, the 4 steps and the contact-info warning.
+- **Part 2, the agreement** "اتفاقية حماية حقوق العميل عند طلب خدمات الترافع والخدمات القانونية": its header lines, the articles and the two acknowledgements.
+- **Numbering:** the file already has articles 1–12 in their final numbering. The sample's articles 10–13 are not in it, and its 14/15/16 are already المادة العاشرة "حدود الخدمة والنتائج", الحادية عشرة "الموافقة الإلكترونية" and الثانية عشرة "أحكام ختامية". So nothing was removed or renumbered here.
+
+**`constants/pleading-terms.ts`** (new), generated from the file by a script that copies every string verbatim and fails on any line it doesn't recognise:
+- **Version and title:** `TERMS_VERSION = "2026-10-v1"`, and `PLEADING_AGREEMENT_DOCUMENT_TITLE = "شروط وأحكام خدمة المرافعة واتفاقية التكليف"` (Ziad's title).
+- **Content:**
+  - `PLEADING_SERVICE_GUIDE`: title, intro, steps title, 4 steps, warning.
+  - `PLEADING_AGREEMENT`: the operator line, the agreement title, and the 3 header lines (الإصدار, الجهة المشغلة, النطاق الجغرافي).
+  - `PLEADING_ARTICLES`: 12 articles, 75 numbered items. Definitions keep their bold label separately; lead and closing paragraphs are kept too.
+  - `PLEADING_ACKNOWLEDGEMENTS`: إقرار العميل and إقرار المحامي, exactly as written.
+- **Numbering:**
+  - `ARTICLE_ORDINALS` (الأولى … الثانية والعشرون) and `articleHeading(n)`.
+  - The consultant's special terms continue from المادة الثالثة عشرة; 10 items at most reach المادة الثانية والعشرون.
+  - The generator checks every article's ordinal against this table.
+- **Limits for the quote form:**
+
+  | Field | Limit |
+  |---|---|
+  | Special terms | 10 × 500 characters |
+  | Notes | 1000 characters |
+  | Case type | 100 characters |
+  | Summary | 300 characters, 3 lines |
+
+- **Checked:** a second script rebuilds the markdown from the constants and compares it with the file line by line: **115 of 115 content lines, 0 differences.**
+
+**`utils/date.ts`:**
+- **New helpers:** `riyadhArabicDate(date)` → "20 أكتوبر 2026" and `riyadhSlashDate(date)` → "2026/10/20". Riyadh time, the Gregorian calendar (never Hijri), Latin digits, as in the sample.
+- **Checked:** the day rollover (21:00 UTC is the next Riyadh day) and all 12 month names.
+
+**Schema** (`prisma/models/pleading.prisma`, additive): `PleadingDocument`, its enums `PleadingDocumentKind` (QUOTE, FINAL) and `PleadingDocumentState` (PENDING, READY, FAILED), and `Pleading.documents`.
+- **Fields:** version, termsVersion, the rendered blocks (clientName, consultantName, caseType, summary, consultantTerms Json string[], notes), fileUrl, fileKey, messageId (unique), lastError, acceptedAt and orderId (FINAL), createdAt, updatedAt.
+- **Keys:** unique on (pleadingId, kind, version); `onDelete: Restrict` (Ziad). No price column.
+- **`npx prisma migrate diff --from-config-datasource --to-schema prisma --script`** (read-only): `CREATE TYPE "PleadingDocumentKind"` and `"PleadingDocumentState"`, `CREATE TABLE "pleading_documents"`, the unique index on `messageId`, the index on (`pleadingId`, `createdAt`), the unique index on (`pleadingId`, `kind`, `version`), and the foreign key to `pleadings` with `ON DELETE RESTRICT`. Nothing on any existing table.
+- **Waiting for Ziad's `prisma db push`.**
+
+**Size baseline for phase 2's isolation check** (Next.js 16 prints no sizes, so a script reads the build):
+- **Measured:** every route's `.nft.json` trace (file count, bytes, any Chromium file), and every page's first-load client chunks (the root chunks plus its `entryJSFiles`, raw and gzip).
+- **Result:** 176 server functions, the largest 22.3 MB, **no Chromium anywhere**; 79 pages, first load 147–490 KB gzip.
+
+**Follow-ups logged:**
+- **UploadThing URLs are public by link** (the case PDFs will be too, like today's chat attachments). Review private access later.
+- **The terms text needs final legal review before go-live.** It's labelled a draft ("الإصدار: مسودة أولية للاعتماد والمراجعة القانونية", and article 12.5). Article 8.2's disclosure of "أتعاب المحامي وعمولة المنصة" doesn't match the checkout yet, which shows only the total. The text is not changed.
+
+**Verified:** `prisma validate` and `prisma generate`, tsc and eslint clean, build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`.
