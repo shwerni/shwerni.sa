@@ -44,8 +44,10 @@ enum PleadingDocumentKind {
 
 enum PleadingDocumentState {
   PENDING // row saved, the pdf not generated yet
+  RENDERING // claimed by one render (the claim goes stale after 2 minutes, past the route's 60 s)
   READY // pdf uploaded and posted in the chat
   FAILED // generation or upload failed (the consultant can retry)
+  SUPERSEDED // a newer quote version exists: never rendered or posted
 }
 
 // one version of a case's engagement agreement (اتفاقية التكليف), kept for the record. the dynamic
