@@ -94,6 +94,17 @@ const nextConfig: NextConfig = {
     // },
   },
   cacheComponents: true,
+  // headless chromium (the pleading agreement pdf): never bundled, and traced into
+  // /api/internal/pleading-pdf only, with its binary, the pdf's fonts and its logo. callers reach
+  // that route over http (lib/pleading-pdf/request.ts), so no other function carries chromium
+  serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
+  outputFileTracingIncludes: {
+    "/api/internal/pleading-pdf": [
+      "./node_modules/@sparticuz/chromium/bin/**",
+      "./lib/pleading-pdf/fonts/**",
+      "./lib/pleading-pdf/assets/**",
+    ],
+  },
   compress: true,
   images: {
     qualities: [75, 100],

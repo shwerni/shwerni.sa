@@ -4245,3 +4245,81 @@ The plan was approved with Ziad's decisions on 2026-10-21. The PDF and the check
 - **The terms text needs final legal review before go-live.** It's labelled a draft ("الإصدار: مسودة أولية للاعتماد والمراجعة القانونية", and article 12.5). Article 8.2's disclosure of "أتعاب المحامي وعمولة المنصة" doesn't match the checkout yet, which shows only the total. The text is not changed.
 
 **Verified:** `prisma validate` and `prisma generate`, tsc and eslint clean, build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`.
+
+## 2026-10-21 · Pleading agreement PDF, phase 2: the renderer (no quote-form or payment changes)
+
+**Dependencies** (pinned, both published 14+ days before today; transitive ones resolved with `npm install --before=2026-10-07`):
+- **`@sparticuz/chromium` 153.0.0** (2026-09-11, Chromium 153) and **`puppeteer-core` 25.11.0** (2026-09-14, built for Chrome 153.0.8010.36).
+- **The lockfile:** 34 entries added, 0 changed, 0 removed.
+- **`next.config.ts`:**
+  - `serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"]`
+  - `outputFileTracingIncludes` for `/api/internal/pleading-pdf` only: Chromium's `bin/**`, `lib/pleading-pdf/fonts/**` and `lib/pleading-pdf/assets/**`
+- **`vercel.json`:** `functions["app/api/internal/pleading-pdf/route.ts"] = { memory: 2048, maxDuration: 60 }`, and the route exports `maxDuration = 60`.
+  - **Ziad:** with Fluid compute, check after the deploy that this function really runs with 2048 MB; Vercel may apply the project-level memory setting instead.
+
+**The route, `POST /api/internal/pleading-pdf`:**
+- **Secret:** `x-internal-secret` = `INTERNAL_SHARED_SECRET`, the existing internal secret (no new env), through the new constant-time `lib/auth/internal-secret.ts`.
+- **404s:** a missing or wrong secret answers 404 with an empty body, and so do GET, PUT, PATCH and DELETE. Checked on a local `next start`.
+- **Routing:** no new public entry. `/api/internal` was already a public prefix (the presence routes), and the proxy passes non-protected paths through anyway, so the route's own check is the guard.
+- **Body:** `{ documentId }` only. The data comes from the database (`data/pleading-documents.ts` `getPleadingDocumentForPdf`); a FINAL takes the consultant's date from its QUOTE version.
+- **What it does:**
+  - A READY document is answered as it is, never rendered twice.
+  - Otherwise: render → `UTApi.uploadFiles` (`pleading-{plid}-v{n}[-final].pdf`) → READY with `fileUrl` and `fileKey`.
+  - A failure: FAILED with `lastError`, an admin Telegram alert, and 500 `{ status: "failed" }`.
+- **Not tested:** the authorised render-and-upload path. It needs the secret and a real PleadingDocument, and would upload to the live UploadThing app, so it's left for phase 3's test.
+
+**Calling it** (`lib/pleading-pdf/request.ts` `requestPleadingPdf(id)`, no caller yet): always over HTTP, never an import.
+- **The base URL:**
+  - `INTERNAL_BASE_URL` when set (an explicit override).
+  - Production (`VERCEL_ENV=production`): `mainRoute`, `https://www.shwerni.sa`. Deployment protection never covers the production domain.
+  - Preview: `https://$VERCEL_URL`, plus `x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET` when that system variable exists. **Ziad: enable "Protection Bypass for Automation"** in the project settings if previews are protected; without it a preview call gets 401 and the document stays PENDING or FAILED.
+  - Local: `http://localhost:$PORT` (3000).
+- **Safety:** a 65 s timeout, and it never throws.
+
+**Local development:** `CHROME_EXECUTABLE_PATH` (an installed Chrome) is used when set; otherwise `@sparticuz/chromium`, which is Linux only.
+
+**The renderer** (`lib/pleading-pdf/render.ts`):
+- One browser per instance, relaunched on disconnect.
+- Each page runs with JavaScript disabled and request interception that allows only `data:` URLs.
+- A4, background colours, Chromium's header and footer templates.
+
+**The template** (`lib/pleading-pdf/template.ts`), RTL, after the sample:
+- **Fonts and logo:** IBM Plex Sans Arabic 400, 600 and 700 (OFL, committed in `lib/pleading-pdf/fonts` with `OFL.txt`) as base64 `@font-face`, also inside the header and footer.
+  - **The logo is the PNG** (`public/layout/logo.png`, copied to `lib/pleading-pdf/assets`). The repo has no vector version of the full logo (the SVGs are fragments, or wrap a raster image).
+- **Running header** (logo, "منصة شاورني") and **footer** "منصة شاورني · اتفاقية حماية حقوق العميل - خدمة المرافعة · صفحة X من Y".
+- **Content order:**
+  1. the title card (the document title, the agreement's 3 header lines, the version and terms version, a FINAL badge)
+  2. the service guide (intro, 4 steps, warning)
+  3. the case table (plid, request date, client, consultant, case type, "60 دقيقة عبر المنصة", summary; "—" when empty)
+  4. the agreement title with the 12 articles
+  5. the special terms (المادة الثالثة عشرة …) and notes: each block removed entirely when empty
+  6. the acknowledgements, verbatim: QUOTE says "تتم موافقة العميل إلكترونيًا عند الحجز والدفع"; FINAL gives the acceptance date and TERMS_VERSION. The consultant's date is the quote's.
+- **Everything from `buildPleadingAgreement`** (`utils/pleading-agreement.ts`, client-safe), the builder the checkout dialog will use in phase 4.
+- **`PleadingPdfInput` has no price field.**
+- **Escaping:** every dynamic value is HTML-escaped, and mixed values are bidi-isolated.
+- **Page breaks:** each article's heading, lead paragraph and first item form one unbreakable block (the agreement title joins article 1's), items never split, and articles may break between items.
+
+**Samples** (local Chrome, about 0.7–1.4 s each, 219–243 KB; rasterised and checked page by page):
+- **Covered:** (a) a QUOTE with every optional field empty, (b) a QUOTE with everything filled (10 special terms, mixed Arabic and digits, multi-line notes), (c) a FINAL with an acceptance date.
+- **Results:**
+  - Arabic shaping, ligatures and RTL are right; numbers inside Arabic ("(451092)", "2026/10/12"، "PDF", "(PDPL)") and the ordinals المادة الثالثة عشرة → الثانية والعشرون too.
+  - No orphan headings; footer numbering "صفحة X من 6".
+  - Fixed while checking: the agreement title was alone at the bottom of page 1; long pages had large gaps; the case table labels wrapped; and `<bdi>` put spaces inside the special-terms heading's brackets.
+- **Known, not a defect:** like the sample, the PDF's text layer copies Arabic oddly (Chromium writes presentation forms). It's visual only.
+
+**Isolation proof** (`next build`, every route's `.nft.json` trace and every page's first-load client chunks, against the phase 1 baseline):
+- **Result:**
+
+  | | Before | After |
+  |---|---|---|
+  | Server functions | 176 | 177; the 176 are byte-identical |
+  | `api/internal/pleading-pdf` | — | 77.8 MB, 566 files, the only one with Chromium |
+  | Pages | 79 | 79, First Load JS unchanged |
+
+- **Fixed on the way** (shared modules, not new code reaching other routes):
+  - **+131 bytes in 17 route functions:** the Prisma enums module kept `PleadingDocumentKind` and `PleadingDocumentState` once the PDF code imported them, in the enums module every route handler shares. The PDF code now imports them as types only, with string literals.
+  - **+142, then +396 bytes in 65 route functions:** the phase 1 date helpers in `utils/date.ts` became live. After moving them out, importing date-fns from a second module stopped Turbopack inlining date-fns into `utils/date.ts`.
+  - **The fix for the dates:** `riyadhArabicDate` and `riyadhSlashDate` moved to the new `utils/document-date.ts` with **no imports** (UTC+3 offset plus a month table). `utils/date.ts` is back to its pre-phase-1 code. Checked against date-fns-tz over 42,617 instants (every 37 minutes, 2025–2027): 0 mismatches.
+- **Lesson for phases 3–4:** a runtime import of a shared module (the enums, `utils/date`) from new code can grow every function that shares it.
+
+**Verified:** tsc and eslint clean on every changed file, build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`, the isolation table above, and the 404s.

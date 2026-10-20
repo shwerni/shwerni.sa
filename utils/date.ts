@@ -52,15 +52,6 @@ export const calendarDayToString = (date: Date): string => {
 export const riyadhDateString = (date: Date): string =>
   formatInTimeZone(date, "Asia/Riyadh", "yyyy-MM-dd");
 
-// the riyadh day of an instant with the arabic gregorian month name and latin digits, e.g.
-// "20 أكتوبر 2026" (documents: the pleading agreement). never the hijri calendar
-export const riyadhArabicDate = (date: Date): string =>
-  formatInTimeZone(date, "Asia/Riyadh", "d MMMM yyyy", { locale: ar });
-
-// the riyadh day of an instant as "yyyy/MM/dd", e.g. "2026/10/20" (the agreement's signatures)
-export const riyadhSlashDate = (date: Date): string =>
-  formatInTimeZone(date, "Asia/Riyadh", "yyyy/MM/dd");
-
 // deprecated: utc date via toISOString. kept for files with uncommitted edits; new code uses
 // calendarDayToString (picked days) or riyadhDateString (instants)
 export const dateToString = (date: Date): string => {

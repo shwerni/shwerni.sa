@@ -39,5 +39,11 @@
       "path": "/api/cron/mobile/room/call",
       "schedule": "*/5 * * * *"
     }
-  ]
+  ],
+  "functions": {
+    "app/api/internal/pleading-pdf/route.ts": {
+      "memory": 2048,
+      "maxDuration": 60
+    }
+  }
 }
