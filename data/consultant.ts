@@ -12,13 +12,15 @@ import {
   Categories,
   ConsultantState,
   Gender,
-  PaymentState,
   ReviewState,
   Weekday,
 } from "@/lib/generated/prisma/enums";
 
 // types
 import { ConsultantCard, OwnerPreview } from "@/types/layout";
+
+// booking
+import { freeSlotWhere } from "@/lib/booking/free-slot-where";
 
 // custom prisma data
 export type ConsultantItem = {
@@ -509,38 +511,7 @@ export const getConsultantAvailableTimes = async (
         FROM "consultant_timings" ct
         WHERE
           ct."consultantId" = ${cid}
-          AND ct."day" = ${weekday}::"Weekday"
-          AND (
-            ${now}::time IS NULL
-            OR ct."time"::time > ${now}::time
-          )
-
-          -- 🔴 Exclude Paid / Reserved Meetings
-          AND NOT EXISTS (
-            SELECT 1
-            FROM "orders" o
-            JOIN "payments" p ON p."orderId" = o.oid
-            JOIN "meetings" m ON m."orderId" = o.oid
-            WHERE
-              o."consultantId" = ct."consultantId"
-              AND m."time" = ct."time"
-              AND m."date" = ${date}
-              AND p."payment" IN (
-                ${PaymentState.PAID},
-                ${PaymentState.NEW},
-                ${PaymentState.PROCESSING}
-              )
-          )
-
-          -- 🟢 Exclude Free Sessions (NEW ADDITION)
-          AND NOT EXISTS (
-            SELECT 1
-            FROM "free_sessions" fs
-            WHERE
-              fs."consultantId" = ct."consultantId"
-              AND fs."time" = ct."time"
-              AND fs."date" = ${date}
-          )
+          AND ct."day" = ${weekday}::"Weekday"${freeSlotWhere({ date, after: now })}
 
         GROUP BY phase
       ) t
