@@ -145,6 +145,16 @@ Names only, collected with `process.env.X` over all source outside `node_modules
 
 **Server:** `APNS_AUTH_KEY`, `APNS_BUNDLE_ID`, `APNS_ENV`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APP_SECRET`, `AUTH_SECRET`, `BACKEND_URL`, `BETTER_AUTH_URL`, `CRON_SECRET`, `DASHBOARD_SECRET`, `DATABASE_URL`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`, `FIREBASE_PROJECT_ID`, `INTERNAL_SHARED_SECRET`, `JAWALY_KEY`, `JAWALY_SECRET`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_URL`, `MEET_CLIENT_EMAIL`, `MEET_PRIVATE_KEY`, `MEET_SERVICE_EMAIL`, `MOYASAR_ENDPOINT`, `MOYASAR_SECRET`, `NODE_ENV`, `OPENAI_API_KEY`, `PUSHER_APP_ID`, `PUSHER_SECRET`, `REALTIME_JWT_SECRET`, `RECAPTCHA_SECRET_KEY`, `TABBY_ENDPOINT`, `TABBY_SECRET`, `TELEGRAM_APIKEY`, `WHATSAPP_PASS`, `WHATSAPP_TOKEN`, `WHATSAPP_URL`, `YOUTUBE_API_KEY`, `YOUTUBE_CHANNEL_ID`
 
+**APNs (iOS VoIP calls, `lib/api/room/dispatch.ts`).** Names only; values live in Vercel and local env, never in the repo. VoIP pushes go straight to APNs over HTTP/2 with an auth key, not through Expo's push service. Normal notifications go through Expo, which uses the same `.p8` key uploaded with `eas credentials`.
+
+| name | what it is |
+| ---- | ---------- |
+| `APNS_AUTH_KEY` | contents of the APNs auth key (`.p8`), newlines escaped as `\n` |
+| `APNS_KEY_ID` | the key's Key ID (Apple Developer → Keys) |
+| `APNS_TEAM_ID` | the Apple Developer Team ID |
+| `APNS_BUNDLE_ID` | the app's bundle id (`com.shwerni.shwerni`); the push topic is `<APNS_BUNDLE_ID>.voip` |
+| `APNS_ENV` | `production` uses `api.push.apple.com`, any other value uses the sandbox. With `production`, a `BadDeviceToken` (a development-build token) is retried once on the sandbox; a `410` deletes that VoIP token row |
+
 **`NEXT_PUBLIC_` (shipped to the browser):**
 
 - `NEXT_PUBLIC_BACKEND_URL` (`hooks/realtime/useOnlineConsultant.ts`)

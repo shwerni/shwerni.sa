@@ -40,17 +40,29 @@ const getApnsAuthToken = () => {
   return token;
 };
 
+type ApnsEnv = "production" | "sandbox";
+
+const APNS_HOSTS: Record<ApnsEnv, string> = {
+  production: "https://api.push.apple.com",
+  sandbox: "https://api.sandbox.push.apple.com",
+};
+
+// apns answer: http status plus apple's reason string on failure (e.g. BadDeviceToken)
+interface ApnsResult {
+  status: number;
+  reason: string | null;
+}
+
 // apns' provider api requires http/2 specifically — node's global fetch
 // isn't guaranteed to negotiate http/2, so this uses node:http2 directly
 // rather than risk a silent protocol downgrade
-const sendApnsVoipPush = (deviceToken: string, event: IncomingCallEvent) =>
-  new Promise<void>((resolve, reject) => {
-    const host =
-      process.env.APNS_ENV === "production"
-        ? "https://api.push.apple.com"
-        : "https://api.sandbox.push.apple.com";
-
-    const client = http2.connect(host);
+const sendApnsVoipPush = (
+  env: ApnsEnv,
+  deviceToken: string,
+  event: IncomingCallEvent,
+) =>
+  new Promise<ApnsResult>((resolve, reject) => {
+    const client = http2.connect(APNS_HOSTS[env]);
     client.on("error", reject);
 
     const req = client.request({
@@ -60,6 +72,8 @@ const sendApnsVoipPush = (deviceToken: string, event: IncomingCallEvent) =>
       "apns-topic": `${process.env.APNS_BUNDLE_ID}.voip`,
       "apns-push-type": "voip",
       "apns-priority": "10",
+      // deliver now or never: a call push that arrives after the call is useless
+      "apns-expiration": "0",
     });
 
     let status = 0;
@@ -72,11 +86,13 @@ const sendApnsVoipPush = (deviceToken: string, event: IncomingCallEvent) =>
     req.on("data", (chunk) => (body += chunk));
     req.on("end", () => {
       client.close();
-      if (status >= 200 && status < 300) {
-        resolve();
-      } else {
-        reject(new Error(`apns voip push failed: ${status} ${body}`));
+      let reason: string | null = null;
+      try {
+        reason = body ? ((JSON.parse(body) as { reason?: string }).reason ?? null) : null;
+      } catch {
+        reason = body || null;
       }
+      resolve({ status, reason });
     });
     req.on("error", (err) => {
       client.close();
@@ -85,6 +101,44 @@ const sendApnsVoipPush = (deviceToken: string, event: IncomingCallEvent) =>
 
     req.end(JSON.stringify({ incomingCall: event }));
   });
+
+/**
+ * send a voip push through the configured apns environment; development builds register
+ * sandbox tokens, so a BadDeviceToken from production is retried once on sandbox
+ * @returns false when apple reports the token unregistered (410), after deleting it
+ */
+const sendApnsVoipWithFallback = async (
+  userId: string,
+  deviceToken: string,
+  event: IncomingCallEvent,
+): Promise<boolean> => {
+  const primary: ApnsEnv =
+    process.env.APNS_ENV === "production" ? "production" : "sandbox";
+
+  let result = await sendApnsVoipPush(primary, deviceToken, event);
+
+  if (
+    primary === "production" &&
+    result.status === 400 &&
+    result.reason === "BadDeviceToken"
+  ) {
+    result = await sendApnsVoipPush("sandbox", deviceToken, event);
+  }
+
+  // token no longer active for this app: drop it so we stop ringing a dead device
+  if (result.status === 410) {
+    await prisma.voipPushToken.deleteMany({
+      where: { userId, token: deviceToken },
+    });
+    return false;
+  }
+
+  if (result.status < 200 || result.status >= 300) {
+    throw new Error(`apns voip push failed: ${result.status} ${result.reason ?? ""}`);
+  }
+
+  return true;
+};
 
 // fcm data message — no "notification" key, so it's delivered as a plain
 // data payload the module parses natively before js runs. uses the
@@ -108,7 +162,8 @@ const sendFcmVoipPush = async (
 
 // looks up the callee's latest voip token and sends through whichever
 // transport they're registered on — returns false if they have no token
-// on file (never opened the app / never granted push) rather than throwing,
+// on file (never opened the app / never granted push) or apple reports it
+// unregistered (the row is deleted), rather than throwing,
 // since a caller not being reachable isn't itself an error
 export const dispatchIncomingCall = async (
   userId: string,
@@ -119,10 +174,10 @@ export const dispatchIncomingCall = async (
 
   try {
     if (push.type === "APNS_VOIP") {
-      await sendApnsVoipPush(push.token, event);
-    } else {
-      await sendFcmVoipPush(push.token, event);
+      return await sendApnsVoipWithFallback(userId, push.token, event);
     }
+
+    await sendFcmVoipPush(push.token, event);
     return true;
   } catch (error) {
     console.error("[voip-push-error]", error);
