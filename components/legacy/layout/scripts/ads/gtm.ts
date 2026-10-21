@@ -1,4 +1,7 @@
-// google tag manager, loaded lazily (after the page's load event, when the browser is idle).
+// google tag manager, loaded right after hydration (afterInteractive), as the old
+// @next/third-parties <GoogleTagManager> did. never later: the conversion linker and ga4 read the
+// click id (gclid, gbraid, wbraid) from the url when gtm runs, and the first in-site navigation
+// removes it. loading after the load event (2605dd6) lost it for visitors who tapped a link first.
 //
 // the conversions in the gtm container fire on gtm's own click listeners (gtm.linkClick on the
 // whatsapp number and on the payment success page, gtm.click on the apple pay button). those
@@ -128,5 +131,5 @@ export const GTM_QUEUE = `(function (w, d) {
   });
 })(window, document);`;
 
-// the lazyOnload part: loads gtm.js if no early click has already
+// the afterInteractive part: loads gtm.js if no early click has already
 export const GTM_LOAD = `window.__loadGtm && window.__loadGtm();`;

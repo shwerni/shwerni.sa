@@ -7,7 +7,7 @@ import { TRACKING_OFF } from "@/constants/tracking";
 // meta pixel (skipped on the no-tracking pages, constants/tracking.ts)
 export default function MetaPixel() {
   return (
-    <Script id="meta-pixel" strategy="lazyOnload">
+    <Script id="meta-pixel" strategy="afterInteractive">
       {`if (!(${TRACKING_OFF})) {
         !function(f,b,e,v,n,t,s)
         {if(f.fbq)return;n=f.fbq=function(){n.callMethod?

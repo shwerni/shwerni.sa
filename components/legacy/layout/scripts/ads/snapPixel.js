@@ -7,7 +7,7 @@ import { TRACKING_OFF } from "@/constants/tracking";
 // snap pixel (skipped on the no-tracking pages, constants/tracking.ts)
 export default function SnapPixel() {
   return (
-    <Script id="snap-pixel" strategy="lazyOnload">
+    <Script id="snap-pixel" strategy="afterInteractive">
       {`if (!(${TRACKING_OFF})) {
       (function(e,t,n){if(e.snaptr)return;var a=e.snaptr=function()
       {a.handleRequest?a.handleRequest.apply(a,arguments):a.queue.push(arguments)};

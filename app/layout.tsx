@@ -2,7 +2,7 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Arabic } from "next/font/google";
 
-// google tag manager: lazy, with early clicks queued for it (scripts/ads/gtm.ts)
+// google tag manager: right after hydration, with early clicks queued for it (scripts/ads/gtm.ts)
 import Script from "next/script";
 
 // top loader
@@ -84,8 +84,8 @@ export default async function RootLayout({
         <Toaster richColors expand={true} />
         {/* real-user web vitals */}
         <SpeedInsights />
-        {/* google ads mangaer: gtm.js loads after the page load (or on the first early click) */}
-        <Script id="gtm-load" strategy="lazyOnload">
+        {/* google ads mangaer: gtm.js loads right after hydration (or on an earlier click) */}
+        <Script id="gtm-load" strategy="afterInteractive">
           {GTM_LOAD}
         </Script>
       </body>
