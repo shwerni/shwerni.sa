@@ -17,6 +17,8 @@ export type PleadingCaseData = {
   quotedAt: string | null;
   expiresAt: string | null;
   checkout: "paid" | "running" | null;
+  // the latest quote version's engagement agreement pdf, when it's ready
+  agreementUrl: string | null;
   role: UserRole;
   messages: (MeetingMessage & { blocked?: boolean })[];
 };

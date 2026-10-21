@@ -11,7 +11,6 @@ import type {
 } from "@/lib/generated/prisma/enums";
 
 const QUOTE: PleadingDocumentKind = "QUOTE";
-const FINAL: PleadingDocumentKind = "FINAL";
 const READY: PleadingDocumentState = "READY";
 const FAILED: PleadingDocumentState = "FAILED";
 const RENDERING: PleadingDocumentState = "RENDERING";
@@ -26,11 +25,11 @@ import type { PleadingPdfInput } from "@/lib/pleading-pdf/template";
 const asTerms = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((t): t is string => typeof t === "string") : [];
 
-// a document's pdf input, its state and the case number, or null when it doesn't exist. a FINAL
-// takes the consultant's acknowledgement date from the QUOTE version it accepts
+// a QUOTE document's pdf input, its state and the case number, or null when there's none (the
+// schema's FINAL kind is unused: there is no post-payment version)
 export async function getPleadingDocumentForPdf(id: string) {
-  const doc = await prisma.pleadingDocument.findUnique({
-    where: { id },
+  const doc = await prisma.pleadingDocument.findFirst({
+    where: { id, kind: QUOTE },
     select: {
       id: true,
       kind: true,
@@ -45,30 +44,13 @@ export async function getPleadingDocumentForPdf(id: string) {
       notes: true,
       fileUrl: true,
       fileKey: true,
-      acceptedAt: true,
       createdAt: true,
-      pleadingId: true,
       pleading: { select: { plid: true, requestedAt: true } },
     },
   });
   if (!doc) return null;
 
-  const quote =
-    doc.kind === FINAL
-      ? await prisma.pleadingDocument.findUnique({
-          where: {
-            pleadingId_kind_version: {
-              pleadingId: doc.pleadingId,
-              kind: QUOTE,
-              version: doc.version,
-            },
-          },
-          select: { createdAt: true },
-        })
-      : null;
-
   const input: PleadingPdfInput = {
-    kind: doc.kind,
     version: doc.version,
     termsVersion: doc.termsVersion,
     plid: doc.pleading.plid,
@@ -79,8 +61,7 @@ export async function getPleadingDocumentForPdf(id: string) {
     summary: doc.summary,
     consultantTerms: asTerms(doc.consultantTerms),
     notes: doc.notes,
-    consultantAcknowledgedAt: quote?.createdAt ?? doc.createdAt,
-    clientAcceptedAt: doc.acceptedAt,
+    consultantAcknowledgedAt: doc.createdAt,
   };
 
   return {
@@ -156,8 +137,8 @@ export async function completePleadingDocument(
       },
     });
     if (!doc || doc.state !== RENDERING) return "lost";
-    // FINAL documents (the paid agreement) are posted by phase 5's code
-    if (doc.kind !== QUOTE) throw new Error("only QUOTE documents are posted here");
+    // only QUOTE documents exist (the schema's FINAL kind is unused)
+    if (doc.kind !== QUOTE) throw new Error("only QUOTE documents are posted");
 
     await tx.$queryRaw`SELECT id FROM pleadings WHERE id = ${doc.pleadingId} FOR UPDATE`;
 
@@ -230,4 +211,16 @@ export async function listPleadingDocuments(pleadingId: string) {
     ...row,
     stuck: row.state === RENDERING && now - row.updatedAt.getTime() > CLAIM_STALE_MS,
   }));
+}
+
+// the agreement the client accepts at checkout: the latest QUOTE version's pdf, only when that
+// version is READY (an older ready file never stands in for a newer quote). null otherwise, and
+// the checkout shows the label without a link: it never waits for the pdf
+export async function getLatestAgreementUrl(pleadingId: string): Promise<string | null> {
+  const latest = await prisma.pleadingDocument.findFirst({
+    where: { pleadingId, kind: QUOTE },
+    orderBy: { version: "desc" },
+    select: { state: true, fileUrl: true },
+  });
+  return latest?.state === READY ? latest.fileUrl : null;
 }

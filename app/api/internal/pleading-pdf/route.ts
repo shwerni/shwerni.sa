@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     const started = Date.now();
     const pdf = await renderPleadingPdf(doc.input);
 
-    const name = `pleading-${doc.plid}-v${doc.version}${doc.kind === "FINAL" ? "-final" : ""}.pdf`;
+    const name = `pleading-${doc.plid}-v${doc.version}.pdf`;
     const uploaded = await utapi.uploadFiles(
       new File([new Uint8Array(pdf)], name, { type: "application/pdf" }),
     );

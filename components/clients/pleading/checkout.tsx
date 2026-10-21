@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import TermsForm from "@/components/clients/consultants/reservation/forms/terms";
+import { PleadingTermsField } from "@/components/clients/pleading/terms-field";
 import MethodForm from "@/components/clients/consultants/reservation/forms/method";
 import StepDateTime from "@/components/clients/consultants/reservation/steps/date-time";
 import { Stepper } from "@/components/clients/consultants/reservation/stepper";
@@ -48,15 +48,17 @@ import {
 // icons
 import { ChevronRight, CreditCard, Loader2 } from "lucide-react";
 
-// the pleading checkout: the booking flow's own date-time step, terms and payment method forms
-// (no coupons), on a form of the booking form's type so they're reused unchanged. the price and
-// the 60 minute duration only feed the step's labels: the action sends the token, date, time,
-// method and terms, and the server prices the order from the stored quote
+// the pleading checkout: the booking flow's own date-time step and payment method form (no
+// coupons) and its terms checkbox with the engagement agreement link, on a form of the booking
+// form's type so they're reused unchanged. the price and the 60 minute duration only feed the
+// step's labels: the action sends the token, date, time, method and terms, and the server prices
+// the order from the stored quote
 export function PleadingCheckout({
   token,
   cid,
   consultant,
   price,
+  agreementUrl,
   finance,
   unavailable,
   onCancel,
@@ -65,6 +67,8 @@ export function PleadingCheckout({
   cid: number;
   consultant: string;
   price: number;
+  // the latest quote version's agreement pdf (null until it's ready: the label shows without a link)
+  agreementUrl: string | null;
   finance: FinanceConfig;
   unavailable: Weekday[];
   onCancel: () => void;
@@ -187,7 +191,7 @@ export function PleadingCheckout({
             </dl>
 
             <MethodForm form={form} />
-            <TermsForm form={form} />
+            <PleadingTermsField form={form} agreementUrl={agreementUrl} />
 
             <div className="flex items-center justify-between gap-2">
               <Button

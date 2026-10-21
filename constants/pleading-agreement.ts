@@ -2,8 +2,8 @@
 // form's limits. no legal text here (that is constants/pleading-terms.ts), so the quote form and
 // data/pleading.ts can import these without bundling the articles. client-safe
 
-// the version of the static text in constants/pleading-terms.ts; bump it on any change. the version
-// accepted at payment is stored on the case's FINAL PleadingDocument
+// the version of the static text in constants/pleading-terms.ts; bump it on any change. each QUOTE
+// PleadingDocument stores the version it was generated with
 export const TERMS_VERSION = "2026-10-v1";
 
 // "المادة …" ordinals 1–22: the 12 static articles, then the consultant's special terms

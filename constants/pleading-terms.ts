@@ -1,7 +1,6 @@
 // the pleading (مرافعة) service guide and the client-protection agreement, copied verbatim from
-// docs/pleading-terms.md (generated, never reworded). the PDF and the checkout dialog both render
-// from these constants only. a text change is a new TERMS_VERSION: the version accepted at payment
-// is stored on the case's FINAL PleadingDocument
+// docs/pleading-terms.md (generated, never reworded). the PDF renders from these constants only. a
+// text change is a new TERMS_VERSION, stored on each QUOTE PleadingDocument
 
 // the agreement document's title (the PDF header)
 export const PLEADING_AGREEMENT_DOCUMENT_TITLE = "شروط وأحكام خدمة المرافعة واتفاقية التكليف";

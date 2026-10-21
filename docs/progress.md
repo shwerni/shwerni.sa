@@ -4406,3 +4406,46 @@ The plan was approved with Ziad's decisions on 2026-10-21. The PDF and the check
 **Open:**
 - **The end-to-end test** (quote → PDF in chat → re-quote → v2, and a forced failure with retry) is Ziad's: it uploads to the live UploadThing app and needs a real case.
 - **The phase 2 follow-ups still stand:** UploadThing URLs are public by link, and the terms need final legal review.
+
+## 2026-10-21 · Pleading agreement: phases 4 and 5 cancelled; the checkout links the agreement
+
+**Decision (Ziad):** phases 4 and 5 of the engagement-agreement plan are **cancelled**. There's no terms dialog at checkout and no FINAL PDF after payment. This entry replaces those phases in the plan; the phase 2 and 3 entries above that mention "the dialog (phase 4)" or "FINAL (phase 5)" describe work that won't happen. The agreement the client accepts is the latest QUOTE version's PDF, linked from the checkout's terms checkbox.
+
+**The checkout** (`/pleading/q/[token]`):
+- **The new label:** "أوافق على اتفاقية التكليف الخاصة بهذا الطلب وشروط منصة شاورني".
+- **The link:** when the latest QUOTE version is READY, "اتفاقية التكليف" links to its PDF in a new tab (`rel="noopener noreferrer"`). If the latest version isn't READY (pending, rendering or failed), the whole label is plain text. An older READY file is never linked for a newer quote, and checkout never waits for the PDF.
+- **The field:** `components/clients/pleading/terms-field.tsx`, the booking flow's terms form markup (unchanged checkbox, description and error) with the new label.
+  - The shared `components/clients/consultants/reservation/forms/terms.tsx` is untouched; the booking flows keep their label.
+- **The data:** the case poll (`/api/pleadings/[plid]/chat`) now also returns `agreementUrl`, from the new `getLatestAgreementUrl` in `data/pleading-documents.ts`. So the link follows a re-quote live, like the price.
+- **No change to** `checkoutPleading`, `PayPleading`, `Pay`, the webhooks or any payment code.
+
+**Phase 4/5 code removed:**
+- **What existed:** no phase 4 or 5 code had been written: no dialog, and nothing creates FINAL rows. What did exist was phase 2's FINAL branch in the renderer, and it's now removed:
+  - the template's FINAL badge, its CSS and the client acceptance-date block (QUOTE always shows "تتم موافقة العميل إلكترونيًا عند الحجز والدفع.");
+  - `PleadingPdfInput.kind` and `clientAcceptedAt`;
+  - the FINAL lookup of the accepted QUOTE's date in `getPleadingDocumentForPdf`, which now reads QUOTE rows only;
+  - the route's `-final` file suffix;
+  - the comments that pointed at the dialog or the FINAL document.
+- **Unchanged PDF:** for fixed QUOTE inputs, the template HTML differs only by the removed unused `.chip.final` rule and one blank line. The terms round trip is still 115/115 lines, 0 differences.
+- **Schema:** unchanged, so no db push. `PleadingDocumentKind.FINAL`, `PleadingDocument.acceptedAt` and `orderId` stay, unused.
+
+**Isolation** (clean build vs the phase 3 commit `d988dcf`; two builds of identical code differ by up to 6 raw bytes, so that's the noise floor):
+- **Pleading:**
+  - `/pleading/q/[token]`: +145 B raw, one chunk fewer;
+  - its function: −173 B, one file fewer;
+  - `api/pleadings/[plid]/chat`: +3.6 KB (the agreement URL read);
+  - `api/internal/pleading-pdf`: −1.1 KB (FINAL removed).
+- **Non-pleading pages with booking terms:**
+  - `discover`: −176 B raw, one chunk fewer;
+  - `consultants/[cid]`: −62 B;
+  - their functions: −176 and −63 B.
+- **Why those changed:** an experiment build with only the pleading checkout switched back to the shared `TermsForm` (everything else kept) put both back to the phase 3 sizes within noise. So the change is entirely the pleading page no longer importing the booking terms form: the bundler splits the shared booking chunks differently. The modules and code on those pages are the same, and no non-pleading file changed. Keeping them byte-identical would mean leaving a dead import of the old form in the pleading checkout, so I didn't.
+- **Every other page and function:** unchanged within noise.
+- **Chromium and puppeteer-core:** only in `api/internal/pleading-pdf`.
+
+**Verified:** tsc and eslint clean, a clean build, the manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`, the field rendered to static markup with and without a URL, the QUOTE HTML diff, and the terms round trip.
+
+**Open (Ziad's test):**
+- On a quoted case, open checkout → step 2. The label should link to the latest PDF.
+- Re-quote and reopen: the label is plain text until v2 is ready, then links to v2.
+- Paying works as before.

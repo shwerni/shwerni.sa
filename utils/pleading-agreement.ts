@@ -1,6 +1,6 @@
 // the pleading agreement's content, built once: the static guide and articles (verbatim, from
-// constants/pleading-terms.ts) plus this case's special terms and notes. the pdf template and the
-// checkout's terms dialog both render this, so they can never differ. client-safe: no server imports
+// constants/pleading-terms.ts) plus this case's special terms and notes, as the pdf template renders
+// it. client-safe: no server imports
 
 // constants
 import {

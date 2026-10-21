@@ -8,13 +8,13 @@ import { riyadhArabicDate, riyadhSlashDate } from "@/utils/document-date";
 import { buildPleadingAgreement, type PleadingAgreement } from "@/utils/pleading-agreement";
 
 // the pleading engagement agreement (اتفاقية التكليف) as html for chromium's print-to-pdf, rtl,
-// matching docs/shwerni-pleading-sample.pdf. every legal text comes from buildPleadingAgreement
-// (the same builder as the checkout dialog). the input has no price field on purpose: the price
-// lives only in the quote message and the checkout
+// matching docs/shwerni-pleading-sample.pdf. every legal text comes from buildPleadingAgreement.
+// one kind of document: the quote version's agreement, accepted by the client at checkout (there
+// is no post-payment version). the input has no price field on purpose: the price lives only in
+// the quote message and the checkout
 
 export type PleadingPdfInput = {
-  kind: "QUOTE" | "FINAL";
-  // the quote version this document belongs to (a FINAL repeats the accepted QUOTE version)
+  // the quote version this document belongs to
   version: number;
   termsVersion: string;
   plid: number;
@@ -27,8 +27,6 @@ export type PleadingPdfInput = {
   notes: string | null;
   // the consultant's acknowledgement: when the quote was confirmed
   consultantAcknowledgedAt: Date;
-  // FINAL only: the client's acceptance (recorded at payment)
-  clientAcceptedAt: Date | null;
 };
 
 // the case table's session line (every pleading session is 60 minutes, on the platform)
@@ -60,7 +58,6 @@ b,strong{font-weight:700}
 .title-card h1{font-size:17pt;font-weight:700;color:#0f172a;line-height:1.5;margin-bottom:8px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{display:inline-block;border:1px solid #d9edfc;background:#fff;border-radius:6px;padding:2px 10px;font-size:9pt;color:#334155}
-.chip.final{background:${THEME};border-color:${THEME};color:#fff;font-weight:600}
 .doc-line{font-size:8.5pt;color:#64748b;margin-top:6px}
 .section-title{display:flex;align-items:center;gap:8px;color:${THEME};font-weight:700;font-size:12pt;
   padding-bottom:6px;margin-bottom:8px;border-bottom:1px dashed #cbd5e1}
@@ -124,14 +121,13 @@ const articleHtml = (a: PleadingAgreement["articles"][number], before = "") => `
 </section>`;
 
 // the body: guide, case table, the agreement, the special terms and notes (when given), and the
-// acknowledgements (the QUOTE or FINAL variant)
+// acknowledgements
 export function pleadingPdfHtml(input: PleadingPdfInput): string {
   const agreement = buildPleadingAgreement({
     consultantTerms: input.consultantTerms,
     notes: input.notes,
   });
   const { guide, header, acknowledgements } = agreement;
-  const final = input.kind === "FINAL";
 
   const caseRows = `
 <table class="case">
@@ -175,11 +171,6 @@ export function pleadingPdfHtml(input: PleadingPdfInput): string {
 </section>`
     : "";
 
-  const clientWhen = final && input.clientAcceptedAt
-    ? `<div class="when">تاريخ الموافقة: ${iso(riyadhSlashDate(input.clientAcceptedAt))}</div>
-       <div class="when">إصدار الشروط: ${iso(input.termsVersion)}</div>`
-    : `<div class="pending">تتم موافقة العميل إلكترونيًا عند الحجز والدفع.</div>`;
-
   return `<!doctype html>
 <html lang="ar" dir="rtl"><head><meta charset="utf-8"/>
 <style>${fontFaces([400, 600, 700])}${CSS}</style></head>
@@ -188,7 +179,6 @@ export function pleadingPdfHtml(input: PleadingPdfInput): string {
   <h1>${esc(agreement.documentTitle)}</h1>
   <div class="chips">
     ${header.meta.map((m) => `<span class="chip">${esc(m.label)}: ${esc(m.value)}</span>`).join("")}
-    ${final ? `<span class="chip final">النسخة النهائية بعد قبول العميل</span>` : ""}
   </div>
   <p class="doc-line">رقم نسخة الاتفاقية: ${iso(String(input.version))} · إصدار الشروط: ${iso(input.termsVersion)}</p>
 </section>
@@ -234,7 +224,7 @@ ${notes}
       <h4>${esc(acknowledgements.client.title)}</h4>
       <p>${esc(acknowledgements.client.text)}</p>
       <div class="who">الاسم: ${iso(input.clientName)}</div>
-      ${clientWhen}
+      <div class="pending">تتم موافقة العميل إلكترونيًا عند الحجز والدفع.</div>
     </div>
     <div class="ack">
       <h4>${esc(acknowledgements.lawyer.title)}</h4>

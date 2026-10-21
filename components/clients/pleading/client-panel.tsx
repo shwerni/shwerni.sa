@@ -213,6 +213,7 @@ export function ClientPanel({
               cid={booking.cid}
               consultant={consultant.name}
               price={data.price}
+              agreementUrl={data.agreementUrl}
               finance={booking.finance}
               unavailable={booking.unavailable}
               onCancel={() => setCheckingOut(false)}

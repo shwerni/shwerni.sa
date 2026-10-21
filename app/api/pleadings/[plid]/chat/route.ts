@@ -10,6 +10,7 @@ import {
   getPleadingCheckout,
   getPleadingThread,
 } from "@/data/pleading";
+import { getLatestAgreementUrl } from "@/data/pleading-documents";
 
 // lib
 import { userServer } from "@/lib/auth/server";
@@ -58,10 +59,12 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   const { pleading, role } = access;
 
-  const [messages, checkout] = await Promise.all([
+  const [messages, checkout, agreementUrl] = await Promise.all([
     getPleadingThread(pleading.id),
     // "running" while a payment of the quote is in progress: both sides' actions wait for it
     getPleadingCheckout(pleading.id).catch(() => null),
+    // the checkout's link to the engagement agreement (the latest version, when its pdf is ready)
+    getLatestAgreementUrl(pleading.id).catch(() => null),
   ]);
   if (!messages)
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
@@ -73,6 +76,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     quotedAt: pleading.quotedAt,
     expiresAt: pleading.expiresAt,
     checkout,
+    agreementUrl,
     role,
     messages,
   });
