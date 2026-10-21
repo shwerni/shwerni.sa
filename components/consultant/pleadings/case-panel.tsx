@@ -1,6 +1,13 @@
 "use client";
+// React & Next
+import { useRouter } from "next/navigation";
+
 // components
 import { QuoteForm } from "@/components/consultant/pleadings/quote-form";
+import {
+  AgreementVersions,
+  type AgreementVersion,
+} from "@/components/consultant/pleadings/agreement-versions";
 import { DeclineDialog } from "@/components/consultant/pleadings/decline-dialog";
 import { PleadingStateBadge } from "@/components/clients/pleading/state-badge";
 
@@ -12,6 +19,7 @@ import { PleadingState } from "@/lib/generated/prisma/enums";
 
 // utils
 import { withTax } from "@/utils/tax";
+import type { PleadingAgreementDraft } from "@/utils/pleading-quote";
 import {
   isPleadingChatOpen,
   pleadingCheckoutNote,
@@ -35,14 +43,25 @@ export function CasePanel({
   plid,
   clientName,
   requestedOn,
+  agreement,
+  versions,
 }: {
   plid: number;
   clientName: string;
   requestedOn: string | null;
+  // the latest engagement agreement version's blocks (prefills a re-quote), and every version
+  agreement: PleadingAgreementDraft | null;
+  versions: AgreementVersion[];
 }) {
+  const router = useRouter();
   const { data, mutate } = usePleadingCase(plid);
 
   const refresh = () => void mutate();
+  // a quote also creates an agreement version (a server-rendered list)
+  const refreshAfterQuote = () => {
+    void mutate();
+    router.refresh();
+  };
 
   return (
     <aside className="space-y-4" dir="rtl">
@@ -123,7 +142,8 @@ export function CasePanel({
             key={data.price ?? 0}
             plid={plid}
             currentPrice={data.price}
-            onDone={refresh}
+            agreement={agreement}
+            onDone={refreshAfterQuote}
           />
           <DeclineDialog plid={plid} onDone={refresh} />
         </section>
@@ -133,6 +153,9 @@ export function CasePanel({
           <p>{pleadingClosedNotes[data.state]}</p>
         </div>
       )}
+
+      {/* the engagement agreement versions */}
+      <AgreementVersions plid={plid} versions={versions} />
     </aside>
   );
 }

@@ -1,10 +1,7 @@
 import "server-only";
 
-import OpenAI from "openai";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// the shared openai client (lib/api/ai/client.ts)
+import { openai } from "@/lib/api/ai/client";
 
 export const checkMessageWithAI = async (message: string): Promise<boolean> => {
   try {

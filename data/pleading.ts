@@ -26,8 +26,12 @@ import {
   notificationPleadingRequestReceived,
 } from "@/lib/notifications/site";
 
+// constants
+import { TERMS_VERSION } from "@/constants/pleading-agreement";
+
 // utils
 import { withTax } from "@/utils/tax";
+import type { PleadingQuoteFieldError } from "@/utils/pleading-quote";
 import {
   isPleadingChatOpen,
   PLEADING_OPEN_STATES,
@@ -534,12 +538,23 @@ async function notifyPleadingChat(pleadingId: string, sender: UserRole) {
 
 // ---------- consultant decisions ----------
 
+// the agreement's optional blocks a quote saves with its version (a PleadingDocument)
+export type PleadingQuoteAgreement = {
+  caseType?: string;
+  summary?: string;
+  consultantTerms: string[];
+  notes?: string;
+};
+
 // the quote: the reply and a pre-vat price, posted in the case chat. a re-quote while QUOTED
-// replaces the price and restarts the 7 days. refused while a checkout of the old quote runs
+// replaces the price and restarts the 7 days. refused while a checkout of the old quote runs.
+// in the same transaction it saves this version's engagement agreement (a PENDING QUOTE
+// PleadingDocument, version = last + 1, stamped with quotedAt) and supersedes older versions that
+// were never generated; the caller then asks /api/internal/pleading-pdf for its pdf
 export async function quotePleading(
   by: OwnerBy,
-  quote: { reply: string; price: number },
-): Result<null> {
+  quote: { reply: string; price: number } & PleadingQuoteAgreement,
+): Promise<ActionResult<{ documentId: string }, PleadingError | PleadingQuoteFieldError>> {
   const access = await getPleadingAccess(by);
   if (!access || access.role !== UserRole.OWNER) return fail("not_found");
 
@@ -552,8 +567,29 @@ export async function quotePleading(
     if (checkout === "paid") return fail("invalid_state");
     if (checkout === "running") return fail("checkout_in_progress");
 
-    // the consultant's own text; the price line is written by the server
-    if (await checkMessageWithAI(quote.reply)) return fail("contact_info");
+    // the consultant's own text (the price line is written by the server), every field in
+    // parallel; a hit names the field so the form shows it there
+    type Check = [PleadingQuoteFieldError | "contact_info", string | undefined];
+    const checks: Check[] = [
+      ["contact_info", quote.reply],
+      ["contact_case_type", quote.caseType],
+      ["contact_summary", quote.summary],
+      ["contact_notes", quote.notes],
+      ...quote.consultantTerms.map(
+        (term, i): Check => [`contact_term_${i + 1}` as PleadingQuoteFieldError, term],
+      ),
+    ];
+    const given = checks.filter((check): check is [PleadingQuoteFieldError | "contact_info", string] => !!check[1]);
+    const hits = await Promise.all(given.map(([, text]) => checkMessageWithAI(text)));
+    const hit = given.find((_, i) => hits[i]);
+    if (hit) return fail(hit[0]);
+
+    // the agreement's names, as they are at this quote
+    const consultant = await prisma.consultant.findUnique({
+      where: { cid: pleading.consultantId },
+      select: { name: true },
+    });
+    if (!consultant) return fail("not_found");
 
     const quotedAt = new Date();
     const expiresAt = new Date(quotedAt.getTime() + PLEADING_TTL_DAYS * DAY_MS);
@@ -580,16 +616,85 @@ export async function quotePleading(
         },
       });
 
-      return true;
+      // this version's agreement. older versions never generated are superseded (one that is
+      // rendering right now supersedes itself when it finishes: the route checks under a lock)
+      const last = await tx.pleadingDocument.findFirst({
+        where: { pleadingId: pleading.id, kind: "QUOTE" },
+        orderBy: { version: "desc" },
+        select: { version: true },
+      });
+      await tx.pleadingDocument.updateMany({
+        where: { pleadingId: pleading.id, kind: "QUOTE", state: { in: ["PENDING", "FAILED"] } },
+        data: { state: "SUPERSEDED" },
+      });
+      const document = await tx.pleadingDocument.create({
+        data: {
+          pleadingId: pleading.id,
+          kind: "QUOTE",
+          version: (last?.version ?? 0) + 1,
+          termsVersion: TERMS_VERSION,
+          clientName: pleading.name,
+          consultantName: consultant.name,
+          caseType: quote.caseType ?? null,
+          summary: quote.summary ?? null,
+          consultantTerms: quote.consultantTerms,
+          notes: quote.notes ?? null,
+          // the quote message's own time: its pdf message is posted right after it
+          createdAt: quotedAt,
+        },
+        select: { id: true },
+      });
+
+      return document.id;
     });
     if (!quoted) return fail("invalid_state");
 
     await notifyPleadingQuoted(pleading.id, quote.price, expiresAt);
 
-    return ok(null);
+    return ok({ documentId: quoted });
   } catch (err) {
     logError("quote", err, pleading.plid);
     return fail("server_error");
+  }
+}
+
+// the consultant's case brief (the client's first message), for the agreement summary draft.
+// null when the case isn't theirs or has no brief
+export async function getPleadingBrief(by: OwnerBy): Promise<string | null> {
+  const access = await getPleadingAccess(by);
+  if (!access || access.role !== UserRole.OWNER) return null;
+
+  try {
+    const first = await prisma.orderMessage.findFirst({
+      where: { pleadingId: access.pleading.id, sender: UserRole.USER },
+      orderBy: { createdAt: "asc" },
+      select: { content: true },
+    });
+    return first?.content.trim() || null;
+  } catch (err) {
+    logError("brief", err, access.pleading.plid);
+    return null;
+  }
+}
+
+// a document of the consultant's own case that may be generated again: the case's latest QUOTE
+// version, FAILED, or RENDERING for over 2 minutes (a render that never finished)
+export async function canRetryPleadingDocument(by: OwnerBy, documentId: string) {
+  const access = await getPleadingAccess(by);
+  if (!access || access.role !== UserRole.OWNER) return false;
+
+  try {
+    const latest = await prisma.pleadingDocument.findFirst({
+      where: { pleadingId: access.pleading.id, kind: "QUOTE" },
+      orderBy: { version: "desc" },
+      select: { id: true, state: true, updatedAt: true },
+    });
+    if (!latest || latest.id !== documentId) return false;
+    if (latest.state === "FAILED") return true;
+    return latest.state === "RENDERING" && Date.now() - latest.updatedAt.getTime() > 2 * 60_000;
+  } catch (err) {
+    logError("retry-check", err, access.pleading.plid);
+    return false;
   }
 }
 

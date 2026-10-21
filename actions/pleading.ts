@@ -2,13 +2,19 @@
 
 // React & Next
 import { updateTag } from "next/cache";
+import { after } from "next/server";
+
+// packages
+import { z } from "zod";
 
 // prisma data
 import {
+  canRetryPleadingDocument,
   cancelPleading as cancelPleadingData,
   createPleadingDraft,
   declinePleading as declinePleadingData,
   finalizePleadingDraft,
+  getPleadingBrief,
   quotePleading as quotePleadingData,
   sendPleadingMessage,
 } from "@/data/pleading";
@@ -20,6 +26,8 @@ import { PayPleading } from "@/handlers/admin/order/payment";
 // lib
 import { checkHuman } from "@/lib/bot-protection";
 import { createAction, fail, ok } from "@/lib/safe-action";
+import { requestPleadingPdf } from "@/lib/pleading-pdf/request";
+import { draftPleadingSummary as draftSummary } from "@/lib/api/ai/pleading-summary";
 
 // prisma types
 import { UserRole } from "@/lib/generated/prisma/enums";
@@ -31,11 +39,11 @@ import {
   pleadingDeclineSchema,
   pleadingFinalizeSchema,
   pleadingOwnerMessageSchema,
-  pleadingQuoteSchema,
   pleadingRequestSchema,
   pleadingToggleSchema,
   pleadingTokenSchema,
 } from "@/utils/pleading";
+import { pleadingQuoteSchema } from "@/utils/pleading-quote";
 
 // the client side of a case is public (guests too): their link token is their identity, and
 // "not found" and "not yours" are the same answer. never a token in a rate limit key: keys
@@ -119,7 +127,9 @@ export const sendPleadingOwnerMessage = createAction(
     sendPleadingMessage({ plid, userId: user.id }, { content, file }),
 );
 
-// consultant: the reply and the pre-vat price (integer, 100 to 100000)
+// consultant: the reply and the pre-vat price (integer, 100 to 100000), and the engagement
+// agreement's optional blocks. the agreement pdf is generated after the response, over http
+// (/api/internal/pleading-pdf: chromium never comes into this function)
 export const quotePleading = createAction(
   {
     name: "pleading.quote",
@@ -127,8 +137,53 @@ export const quotePleading = createAction(
     auth: [UserRole.OWNER] as const,
     rateLimit: [{ by: "user", limit: 20, window: "1 m" }],
   },
-  async ({ plid, reply, price }, { user }) =>
-    quotePleadingData({ plid, userId: user.id }, { reply, price }),
+  async ({ plid, ...quote }, { user }) => {
+    const result = await quotePleadingData({ plid, userId: user.id }, quote);
+    if (!result.ok) return result;
+
+    const { documentId } = result.data;
+    after(() => requestPleadingPdf(documentId));
+    return ok(null);
+  },
+);
+
+// consultant: an ai draft of the agreement summary from the case brief (3 lines, 300 characters,
+// no names, contact details or price). "" when nothing usable came back
+export const draftPleadingSummary = createAction(
+  {
+    name: "pleading.summary",
+    schema: z.object({ plid: z.number().int().positive() }),
+    auth: [UserRole.OWNER] as const,
+    rateLimit: [
+      { by: "user", limit: 10, window: "1 m" },
+      { by: "user", limit: 100, window: "1 d" },
+    ],
+  },
+  async ({ plid }, { user }) => {
+    const brief = await getPleadingBrief({ plid, userId: user.id });
+    if (!brief) return fail("not_found");
+    return ok({ summary: (await draftSummary(brief)) ?? "" });
+  },
+);
+
+// consultant: generate the latest agreement version again (after a FAILED render, or one that
+// never finished). the route's claim makes a double click harmless
+export const retryPleadingDocument = createAction(
+  {
+    name: "pleading.document.retry",
+    schema: z.object({
+      plid: z.number().int().positive(),
+      documentId: z.string().trim().min(1).max(64),
+    }),
+    auth: [UserRole.OWNER] as const,
+    rateLimit: [{ by: "user", limit: 5, window: "1 m" }],
+  },
+  async ({ plid, documentId }, { user }) => {
+    if (!(await canRetryPleadingDocument({ plid, userId: user.id }, documentId)))
+      return fail("invalid_state");
+    after(() => requestPleadingPdf(documentId));
+    return ok(null);
+  },
 );
 
 // consultant: declines an open case, with an optional reason (the client is always notified)

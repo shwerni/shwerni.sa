@@ -8,6 +8,7 @@ import { CasePanel } from "@/components/consultant/pleadings/case-panel";
 // prisma data
 import { getOwnerbyAuthor } from "@/data/consultant";
 import { getPleadingForConsultant } from "@/data/pleading";
+import { listPleadingDocuments } from "@/data/pleading-documents";
 
 // lib
 import { userServer } from "@/lib/auth/server";
@@ -34,6 +35,27 @@ export default async function PleadingCasePage({ params }: Props) {
   const pleading = await getPleadingForConsultant(plid, user.id);
   if (!pleading) notFound();
 
+  // the engagement agreement versions (newest first); the newest prefills a re-quote
+  const documents = await listPleadingDocuments(pleading.id);
+  const latest = documents[0];
+  const agreement = latest
+    ? {
+        caseType: latest.caseType ?? "",
+        summary: latest.summary ?? "",
+        consultantTerms: Array.isArray(latest.consultantTerms)
+          ? latest.consultantTerms.filter((t): t is string => typeof t === "string")
+          : [],
+        notes: latest.notes ?? "",
+      }
+    : null;
+  const versions = documents.map((d) => ({
+    id: d.id,
+    version: d.version,
+    state: d.state,
+    fileUrl: d.fileUrl,
+    stuck: d.stuck,
+  }));
+
   // formatted here, in riyadh time, so the client markup matches the server's
   const requestedOn = pleading.requestedAt
     ? pleading.requestedAt.toLocaleDateString("en-CA", {
@@ -58,6 +80,8 @@ export default async function PleadingCasePage({ params }: Props) {
           plid={pleading.plid}
           clientName={pleading.name}
           requestedOn={requestedOn}
+          agreement={agreement}
+          versions={versions}
         />
       </div>
     </div>

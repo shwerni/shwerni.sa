@@ -4323,3 +4323,86 @@ The plan was approved with Ziad's decisions on 2026-10-21. The PDF and the check
 - **Lesson for phases 3–4:** a runtime import of a shared module (the enums, `utils/date`) from new code can grow every function that shares it.
 
 **Verified:** tsc and eslint clean on every changed file, build passes, manifest only `"data/event.ts"` and `"lib/api/google.ts"`, the isolation table above, and the 404s.
+
+## 2026-10-21 · Pleading agreement PDF, phase 3: quote form, AI summary, the PDF in the chat (no checkout or payment changes)
+
+**Schema** (Ziad's db push and commit `1859ec7`): `PleadingDocumentState` gained `RENDERING` (claimed by one render) and `SUPERSEDED` (a newer version exists, never rendered or posted).
+
+**AI:**
+- **The client:** the OpenAI client moved from `lib/api/ai/chat-guard.ts` to `lib/api/ai/client.ts` (`openai`). `checkMessageWithAI` is unchanged.
+- **The summary draft:** `lib/api/ai/pleading-summary.ts` `draftPleadingSummary(brief)`.
+  - It calls gpt-4o-mini with JSON output, asking for at most 3 lines and 300 characters, with no names, contact details, numbers or prices.
+  - The result is clamped to 3 lines and 300 characters. It's dropped (null) when it still has price text or `checkMessageWithAI` flags it.
+  - The brief is the client's first message in the case chat (`getPleadingBrief`, owner only).
+- **The action** `draftPleadingSummary`: OWNER, the owner's own case, 10 a minute and 100 a day per user.
+
+**The quote form** (`components/consultant/pleadings/quote-form.tsx`):
+- **Unchanged:** the reply and price come first and are still the only required fields, with the same markup, total box and button.
+- **The new collapsible section** "تفاصيل اتفاقية التكليف (اختياري)" (`agreement-fields.tsx`, a `<details>`) holds:
+  - case type (max 100);
+  - the summary: drafted by AI the first time the section opens if it's empty, editable, with "إعادة الصياغة";
+  - the special terms: a +/− list labelled المادة الثالثة عشرة … الثانية والعشرون (max 10 × 500);
+  - notes (max 1000).
+- **A re-quote** prefills these from the latest version.
+- **The checks:**
+  - **The schema** `pleadingQuoteSchema` (moved to the new client-safe `utils/pleading-quote.ts`) enforces every limit, on the client for inline errors and again on the server on whatever is submitted, not only on the AI draft.
+  - **Price text** (digits with ريال / ر.س / SAR, in either order, Arabic-Indic digits too) is refused in the case type, summary, terms and notes.
+  - **On the server,** `quotePleading` runs `checkMessageWithAI` in parallel on the reply and every non-empty agreement field. Each field has its own error code (`contact_case_type`, `contact_summary`, `contact_notes`, `contact_term_N`), and the message shows under that field (the section opens itself).
+- **The term list** keeps its values in the form and its row keys in local state (not `useFieldArray`; see isolation).
+
+**`quotePleading`** (`data/pleading.ts`), in the same transaction as the price and the quote message:
+- Older QUOTE rows still PENDING or FAILED become SUPERSEDED.
+- It creates the new QUOTE `PleadingDocument`: version = last + 1, PENDING, termsVersion, client and consultant names, the agreement fields, and `createdAt` = the quote message's time.
+- **Then the action's `after()`** calls the internal route over HTTP (`requestPleadingPdf`, the phase 2 base-URL rules), never by import.
+
+**The route, safe to call twice** (`app/api/internal/pleading-pdf/route.ts` + `data/pleading-documents.ts`):
+- **The claim:** READY is answered as is, and SUPERSEDED is skipped. Then one conditional `UPDATE … SET state = 'RENDERING'` runs:
+  - it succeeds only from PENDING, FAILED, or a RENDERING claim older than 2 minutes (past the route's 60 s limit);
+  - it succeeds only while no newer version of the same kind exists;
+  - of two concurrent calls, one wins and the other gets `busy`.
+- **On success:**
+  - The file is uploaded as `pleading-{plid}-v{n}.pdf`.
+  - Then one transaction locks the pleading row (`FOR UPDATE`, the same row the quote transaction updates) and checks for a newer version again.
+  - It posts **one** file message: sender OWNER, `pleadingId` set, "اتفاقية التكليف (النسخة n)", stamped quote time + 1 ms so it sits right after that version's quote message.
+  - It marks the row READY with `fileUrl`, `fileKey` and `messageId`, conditional on still being RENDERING.
+  - **If anything replaced the row in the meantime** (superseded, or a stale takeover finished first), nothing is posted and the upload is deleted.
+  - The message is created directly, not through `sendPleadingMessage`, so there's no WhatsApp.
+- **On failure:**
+  - FAILED with `lastError`, and the upload (if any) is deleted.
+  - A Telegram admin alert `pleading-pdf: #plid vN failed`, with no client data.
+- **Retry:** the action `retryPleadingDocument` (OWNER, 5 a minute) works only on the latest version of the owner's case, when it's FAILED or RENDERING for over 2 minutes. It re-calls the route for the same row.
+- **An older version is never posted after a newer one exists:** both the claim and the completion check for a newer version.
+
+**The case page** (`dashboard/pleadings/[plid]`):
+- A new "اتفاقية التكليف" card (`agreement-versions.tsx`) lists every version with its state: قيد الإنشاء / جاري التجهيز / جاهزة / تعذر الإنشاء / استُبدلت بنسخة أحدث.
+- READY versions link to their PDF ("عرض PDF").
+- "إعادة توليد الاتفاقية" appears when the latest version failed or is stuck.
+- While a version is being generated, the page refreshes every 5 s, for at most 3 minutes.
+- "Stuck" is worked out on the server, so the markup matches.
+
+**Constants:** `TERMS_VERSION`, the article ordinals and the field limits moved to the small `constants/pleading-agreement.ts`, which `constants/pleading-terms.ts` re-exports. That keeps the legal text out of the quote form's bundle and out of the functions that bundle `data/pleading.ts`. The terms text is unchanged (round trip against `docs/pleading-terms.md`: 115/115 lines, 0 differences). `buildPleadingAgreement` checks that there are 12 static articles. The 3 phase 2 samples were re-rendered with the same page counts.
+
+**Not touched:** the checkout, payment and webhook code (the dialog is phase 4, FINAL is phase 5).
+
+**Isolation** (clean `next build`s of HEAD `1859ec7` and of this phase, plus a second build of this phase for determinism; every page's first-load client chunks, every function's `.nft.json` trace):
+- **Determinism:** two builds of the same phase 3 code differ by 2 raw bytes on 5 pages (`centers/[slug]/consultants/[cid]`, `discover`, `instant`, `consultants/[cid]`, `programs/reserve/[prid]`) and by a few gzip bytes on 60 pages. Every function is byte-identical between the two. Page differences of that kind are build noise: server-action ids, module ids, chunk file names, minifier names, and module order inside a chunk. Every function difference against HEAD is real.
+- **Pages:** every non-pleading page has the same First Load JS as HEAD, apart from that noise, with one exception, the dashboard home (−257 B, smaller).
+- **The dashboard home, −257 B:** it renders the pleading opt-in switch (`components/consultant/pleadings/opt-in.tsx`), which imports `utils/pleading.ts`. That module no longer builds the old quote schema (zod schemas are side effects, so it used to ship). It now exports the min and max price. `/pleading/q` and `/pleading/request` show the same −257 B.
+- **The pleading case page:** +10.6 KB raw / +3.0 KB gzip (the agreement fields and the versions card).
+- **Functions:**
+  - **39 non-pleading SSR functions** (consultant dashboard pages, site pages with booking, payment result pages, and others) that share one SSR chunk with `data/pleading.ts` (reached through the server actions → payment handler → `linkPaidPleading`): +1,825 B each. It comes from the new code in `data/pleading.ts` (the document row in the quote transaction, `getPleadingBrief`, `canRetryPleadingDocument`), plus `constants/pleading-agreement.ts`, `utils/pleading.ts` exporting the price bounds, and the old schema leaving.
+  - **The dashboard home, `/pleading/q` and `/pleading/request` functions:** +7.4 KB, the new actions in `actions/pleading.ts` (every action of a "use server" file is registered where any one is imported).
+  - **The case page function:** +19 KB (and 2 files: the agreement components).
+  - **`api/internal/pleading-pdf`:** +2.4 KB.
+  - **18 route functions that bundle `utils/pleading.ts`** (the Moyasar and Tabby webhooks, crons, `orders/paid`, the mobile wallet, confirm and presence routes, pusher, whatsapp, uploadthing, the pleading chat route): −272 B (the old schema left).
+  - **The 2 meetings chat routes:** +7 B, one module id (`lib/api/ai/client.ts` joins chat-guard's merged module; no code).
+- **Chromium and puppeteer-core:** only in `api/internal/pleading-pdf`.
+- **Fixed on the way:**
+  - **`useFieldArray`** (no other user on the site) made react-hook-form's shared chunk grow by 1.2 KB gzip on 20 form pages. It was replaced.
+  - **Lucide's `minus`, `sparkles`, `plus` and `file-check-2`** each had a single importer elsewhere (the OTP input, the center forms, the consultant profile form), where Turbopack inlines them. A second importer turned them into shared modules on those pages (+18 to +62 B). They're now drawn in the pleading-only `agreement-icons.tsx`.
+
+**Verified:** tsc and eslint clean, build passes, the manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`, the isolation above, the terms round trip, and the PDF samples.
+
+**Open:**
+- **The end-to-end test** (quote → PDF in chat → re-quote → v2, and a forced failure with retry) is Ziad's: it uploads to the live UploadThing app and needs a real case.
+- **The phase 2 follow-ups still stand:** UploadThing URLs are public by link, and the terms need final legal review.

@@ -3,9 +3,6 @@
 // from these constants only. a text change is a new TERMS_VERSION: the version accepted at payment
 // is stored on the case's FINAL PleadingDocument
 
-// the version of the static text below; bump it on any change
-export const TERMS_VERSION = "2026-10-v1";
-
 // the agreement document's title (the PDF header)
 export const PLEADING_AGREEMENT_DOCUMENT_TITLE = "شروط وأحكام خدمة المرافعة واتفاقية التكليف";
 
@@ -210,47 +207,19 @@ export const PLEADING_ACKNOWLEDGEMENTS = {
   lawyer: { title: "إقرار المحامي", text: "أقر بصحة بياناتي المهنية، والتزامي بنطاق التكليف، وبذل العناية المهنية اللازمة، والمحافظة على السرية، والإفصاح عن تعارض المصالح، والالتزام بالأنظمة واللوائح وقواعد السلوك المهني ذات العلاقة." },
 } as const;
 
-// ---------- numbering ----------
+// ---------- numbering and limits ----------
 
-// "المادة …" ordinals 1–22: the 12 static articles, then the consultant's special terms
-export const ARTICLE_ORDINALS = [
-  "الأولى",
-  "الثانية",
-  "الثالثة",
-  "الرابعة",
-  "الخامسة",
-  "السادسة",
-  "السابعة",
-  "الثامنة",
-  "التاسعة",
-  "العاشرة",
-  "الحادية عشرة",
-  "الثانية عشرة",
-  "الثالثة عشرة",
-  "الرابعة عشرة",
-  "الخامسة عشرة",
-  "السادسة عشرة",
-  "السابعة عشرة",
-  "الثامنة عشرة",
-  "التاسعة عشرة",
-  "العشرون",
-  "الحادية والعشرون",
-  "الثانية والعشرون",
-] as const;
-
-// the consultant's special terms continue after the static articles
-export const PLEADING_STATIC_ARTICLE_COUNT = PLEADING_ARTICLES.length;
-
-// the quote form's limits for the agreement's dynamic blocks
-export const PLEADING_CONSULTANT_TERMS_MAX = 10;
-export const PLEADING_CONSULTANT_TERM_MAX_CHARS = 500;
-export const PLEADING_NOTES_MAX_CHARS = 1000;
-export const PLEADING_CASE_TYPE_MAX_CHARS = 100;
-export const PLEADING_SUMMARY_MAX_CHARS = 300;
-export const PLEADING_SUMMARY_MAX_LINES = 3;
-
-// "المادة الأولى" … "المادة الثانية والعشرون"; null past the table
-export const articleHeading = (n: number) => {
-  const ordinal = ARTICLE_ORDINALS[n - 1];
-  return ordinal ? `المادة ${ordinal}` : null;
-};
+// TERMS_VERSION, the ordinals and the quote form's limits live in constants/pleading-agreement.ts
+// (small, no legal text) so the quote form and data/pleading.ts don't bundle the articles above
+export {
+  ARTICLE_ORDINALS,
+  PLEADING_CASE_TYPE_MAX_CHARS,
+  PLEADING_CONSULTANT_TERMS_MAX,
+  PLEADING_CONSULTANT_TERM_MAX_CHARS,
+  PLEADING_NOTES_MAX_CHARS,
+  PLEADING_STATIC_ARTICLE_COUNT,
+  PLEADING_SUMMARY_MAX_CHARS,
+  PLEADING_SUMMARY_MAX_LINES,
+  TERMS_VERSION,
+  articleHeading,
+} from "@/constants/pleading-agreement";

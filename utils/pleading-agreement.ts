@@ -41,6 +41,11 @@ export type PleadingAgreement = {
   acknowledgements: typeof PLEADING_ACKNOWLEDGEMENTS;
 };
 
+// the special terms' numbering starts after PLEADING_STATIC_ARTICLE_COUNT (a literal, so the small
+// constants file needs no legal text); it must match the articles
+if (PLEADING_ARTICLES.length !== PLEADING_STATIC_ARTICLE_COUNT)
+  throw new Error("PLEADING_STATIC_ARTICLE_COUNT doesn't match PLEADING_ARTICLES");
+
 const STATIC_ARTICLES: readonly AgreementArticle[] = PLEADING_ARTICLES.map((article) => ({
   heading: articleHeading(article.number)!,
   title: article.title,

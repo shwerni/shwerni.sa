@@ -179,16 +179,7 @@ export const pleadingOwnerMessageSchema = z.object({
   file: pleadingFileSchema.nullish(),
 });
 
-// the consultant's quote: the reply and a pre-vat whole price
-export const pleadingQuoteSchema = z.object({
-  plid,
-  reply: z.string().trim().min(1, "اكتب ردك على العميل").max(2000),
-  price: z
-    .number()
-    .int("السعر رقم صحيح بدون كسور")
-    .min(PLEADING_MIN_PRICE, `السعر ${PLEADING_MIN_PRICE} ريال على الأقل`)
-    .max(PLEADING_MAX_PRICE, `السعر ${PLEADING_MAX_PRICE} ريال كحد أقصى`),
-});
+// the consultant's quote schema lives in utils/pleading-quote.ts (with the agreement's fields)
 
 // the consultant's decline, with an optional reason for the client
 export const pleadingDeclineSchema = z.object({
