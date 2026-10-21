@@ -1,4 +1,9 @@
 import "server-only";
+
+// the params and the components they build (header, body, buttons): components.ts
+import { buildTemplateComponents, type TemplateParams } from "@/lib/api/whatsapp/components";
+export type { HeaderParam, TemplateParams } from "@/lib/api/whatsapp/components";
+
 // whatsapp config
 const WHATSAPP_URL = process.env.WHATSAPP_URL!; // e.g. https://graph.facebook.com/v21.0/586473104542070/
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN!;
@@ -22,23 +27,6 @@ const whatsapp = (body: object, marketing: boolean = false) =>
     },
     body: JSON.stringify(body),
   });
-
-// types
-export type HeaderParam =
-  | { type: "image"; value: string }
-  | { type: "video"; value: string }
-  // a document by public link (value), or by an uploaded media id (id)
-  | { type: "document"; value: string; filename?: string }
-  | { type: "document"; id: string; filename?: string }
-  | { type: "text"; value: string };
-
-export type TemplateParams = {
-  header?: HeaderParam;
-  text?: (string | number)[];
-  url?: string[];
-  quick_reply?: string[];
-  flow?: { index?: number; flow_token: string };
-};
 
 // Structured result so callers (especially the cron job) can tell WHY a
 // send failed instead of getting back null with zero information.
@@ -68,71 +56,10 @@ export const sendWhatsappTemplate = async (
   language = "ar",
   marketing: boolean = false,
 ): Promise<WhatsappSendResult> => {
-  const components = [];
-
-  if (params.header) {
-    if (params.header.type === "text") {
-      components.push({
-        type: "header",
-        parameters: [{ type: "text", text: params.header.value }],
-      });
-    } else {
-      const header = params.header;
-      components.push({
-        type: "header",
-        parameters: [
-          {
-            type: header.type,
-            [header.type]: {
-              ...("id" in header ? { id: header.id } : { link: header.value }),
-              // a document can carry the file name the client sees
-              ...(header.type === "document" &&
-                header.filename && { filename: header.filename }),
-            },
-          },
-        ],
-      });
-    }
-  }
-
-  if (params.text?.length) {
-    components.push({
-      type: "body",
-      parameters: params.text.map((t) => ({ type: "text", text: String(t) })),
-    });
-  }
-
-  params.url?.forEach((text, index) => {
-    components.push({
-      type: "button",
-      sub_type: "url",
-      index,
-      parameters: [{ type: "text", text }],
-    });
-  });
-
-  params.quick_reply?.forEach((payload, index) => {
-    components.push({
-      type: "button",
-      sub_type: "quick_reply",
-      index,
-      parameters: [{ type: "payload", payload }],
-    });
-  });
-
-  if (params.flow) {
-    components.push({
-      type: "button",
-      sub_type: "flow",
-      index: params.flow.index ?? 0,
-      parameters: [
-        {
-          type: "action",
-          action: { flow_token: String(params.flow.flow_token) },
-        },
-      ],
-    });
-  }
+  // an invalid param (a coupon meta would refuse) fails this send without calling meta
+  const built = buildTemplateComponents(params);
+  if (!built.ok) return { ok: false, errorMessage: built.errorMessage };
+  const { components } = built;
 
   if (!WHATSAPP_URL || !WHATSAPP_TOKEN) {
     return {

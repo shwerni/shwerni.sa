@@ -4550,3 +4550,23 @@ The plan was approved with Ziad's decisions on 2026-10-21. The PDF and the check
 **Open:**
 - Measure production after the push: lighthouse (median of 3) and Speed Insights p75 over 7 days. The lab LCP isn't expected to move; real-phone LCP and INP may.
 - A2, A1 and C are on hold (Ziad is checking the Google Ads conversion and the GA4 property first).
+
+## 2026-10-21 · WhatsApp: a coupon (copy-code) button param for templates
+
+**Why:** the campaign with template `mark_coupon` failed twice. The code sent as body `text` gave (#132000) parameter count mismatch; as a `url` param it gave (#131008) required parameter missing. The template has a copy-code button, which needs its own component.
+
+**Files changed**
+
+- `lib/api/whatsapp/components.ts` (new): the component building moved out of `sendWhatsappTemplate` unchanged, as a pure `buildTemplateComponents(params)`, plus `couponError(coupon)` and `COUPON_CODE_MAX` (15). `TemplateParams` and `HeaderParam` live here; `lib/api/whatsapp/index.ts` re-exports them.
+- `TemplateParams.coupon?: { code: string; index?: number }` builds `{ type: "button", sub_type: "copy_code", index, parameters: [{ type: "coupon_code", coupon_code }] }` (index defaults to 0, the code is trimmed).
+- `sendWhatsappTemplate` builds first. An invalid coupon (an empty code, more than 15 characters, a list instead of one coupon, an index outside 0–9) answers `{ ok: false, errorMessage: "coupon: …" }` without calling Meta, so the campaign cron logs a clear error per send.
+- The campaign cron (`app/api/cron/whatsapp-campaigns`) is unchanged: it passes the stored `templateParams`, so a campaign whose params carry `coupon: { code, index }` (the dashboard's form writes it) sends the button. Older campaigns have no `coupon` and build as before.
+
+**Verified**
+
+- A throwaway vitest run (not committed) against the committed builder: 12 param sets without a coupon (text, url, quick_reply, headers, flow) build byte-identical components; the coupon cases and the validation pass; `mark_coupon` with `DIS25` sends exactly `{ type: "button", sub_type: "copy_code", index: 0, parameters: [{ type: "coupon_code", coupon_code: "DIS25" }] }` (fetch stubbed); a 16+ character code makes no request.
+- tsc and eslint clean; `npm run build` passes; the manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`.
+
+**Open:**
+- Meta's template definitions aren't read anywhere (no business account id in the env), so the button index is set by hand in the dashboard form.
+
