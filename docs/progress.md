@@ -4449,3 +4449,55 @@ The plan was approved with Ziad's decisions on 2026-10-21. The PDF and the check
 - On a quoted case, open checkout → step 2. The label should link to the latest PDF.
 - Re-quote and reopen: the label is plain text until v2 is ready, then links to v2.
 - Paying works as before.
+
+## 2026-10-21 · Tracking: GTM and the pixels load early again; ad landings request gtm.js at parse time
+
+**Why:** GA4 Paid Search sessions fell about 85% around Oct 10–11.
+- **The cause found in this repo:** 2605dd6 ("scripts enhance", pushed Oct 8 20:49 +0300) changed two things:
+  - GTM: from `@next/third-parties` `<GoogleTagManager>` (right after hydration) to `GTM_QUEUE` plus a `lazyOnload` loader (after the load event and idle time);
+  - the Meta, Snap and Twitter pixels: from `afterInteractive` to `lazyOnload`.
+- **Why that breaks attribution:**
+  - The conversion linker and GA4 read the click id (`gclid`, `gbraid`, `wbraid`) from the url when GTM runs, not when the page loaded.
+  - A visitor's first in-site navigation removes it from the url. A visitor who tapped a link before GTM ran got no `_gcl_*` cookie, and a GA4 page_view without the click id (filed by referrer, so not as Paid Search).
+- **Not explained here:** nothing was pushed between Oct 9 19:22 and Oct 12 01:02, so this repo deployed nothing on Oct 10–11.
+- **Checked:**
+  - Click ids survive the landing: the proxy keeps every query param, and `next.config` redirects carry the query.
+  - Nothing rewrites the url on load. The nuqs filters only change their own keys on user action; the only automatic `router.replace` is on `/payment/success`.
+
+**02e4c67 (Ziad's commit, "fixing seo", pushed 10:42): the revert**
+- `app/layout.tsx`: the `gtm-load` loader is `afterInteractive` again.
+- `metaPixel.js`, `snapPixel.js`, `twitterPixel.js`: `afterInteractive` again.
+- `gtm.ts`: comments only.
+- **Unchanged:** `GTM_QUEUE` (early clicks are still queued for GTM), the `TRACKING_OFF` guard on `/pleading/q/`, `inlineCss` off, the redirects. `@next/third-parties` stays uninstalled: its component renders unconditionally, so it would lose the guard.
+- **Production result:** gtm.js moved from after the load event to right after hydration. On the phone profile that's about when the load event fires, so a tap at ~6.5s still lost the click id (table below).
+
+**This commit: ad landings**
+- `GTM_QUEUE` calls `__loadGtm()` while the html is parsed when the url has `gclid=`, `gbraid=` or `wbraid=`, like google's standard head snippet.
+- Every other visit still waits for the `afterInteractive` loader.
+- The `TRACKING_OFF` guard runs first, so `/pleading/q/` still loads nothing.
+
+**Verified:**
+- **Method:** headless edge on a phone profile (4x cpu, 1.6 mbps, 150 ms latency) with fake click ids. Every GA4, Ads and pixel hit was intercepted and aborted, so nothing reached our accounts.
+- **Before the revert:** production, late loading. **After the revert:** production, 02e4c67. **This commit:** local `next start`.
+
+  | Scenario | Build | gtm.js requested | GTM running | `_gcl_*` cookie | first GA4 page_view (url) |
+  |---|---|---|---|---|---|
+  | gclid, stays | before the revert | 9.5s | | `_gcl_aw` | 16.5s (with gclid) |
+  | | after the revert | 4.9s | 8.8s | `_gcl_aw` 9.2s | 12.0s (with gclid) |
+  | | this commit | 1.6s | 5.9s | `_gcl_aw` 6.2s | 11.9s (with gclid) |
+  | gclid, tap at ~6.5–7s | before the revert | 5.1–6.5s | | none | 14.9–16.8s (no gclid) |
+  | | after the revert | 4.4s | 8.3s | none | 13.9s (no gclid) |
+  | | this commit (tap 6.7s) | 1.6s | 6.1s | `_gcl_aw` 6.5s | 13.2s (no gclid) |
+  | gbraid, tap at ~6.5–7s | before the revert | 5.2s | | none | 14.8s (no gbraid) |
+  | | after the revert | 4.8s | 9.9s | none | 14.5s (no gbraid) |
+  | | this commit (tap 6.6s) | 1.6s | 6.1s | `_gcl_ag` 6.4s | 12.9s (no gbraid) |
+  | no click id | this commit | 3.5s (after hydration) | 8.2s | none | 13.3s |
+
+- **Other checks:**
+  - `/pleading/q/<token>`: no tracking request and no tracking globals (local and production).
+  - A clean build; the manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`.
+
+**Open:**
+- **The margin is thin.** On the phone profile the cookie lands at 6.2–6.5s, so a tap earlier than about 6.2s still loses the click id. gtm.js takes about 4s to download at 1.6 mbps, while the page's own assets compete for the same bandwidth (D1 removes about 1 MB of avatar svgs from the home page).
+- **GA4's first page_view still misses the click id after an early tap.** It needs a second gtag.js and goes out at about 12–13s. The fix is in the GTM container: send the landing url as `page_location` on the session's first hit (GTM_QUEUE can push it into the dataLayer).
+- **Window load moves later** when gtm.js is requested before it (dynamically inserted async scripts hold the load event): about 15s locally on the phone profile. No metric we track uses the load event.

@@ -2,6 +2,8 @@
 // @next/third-parties <GoogleTagManager> did. never later: the conversion linker and ga4 read the
 // click id (gclid, gbraid, wbraid) from the url when gtm runs, and the first in-site navigation
 // removes it. loading after the load event (2605dd6) lost it for visitors who tapped a link first.
+// an ad landing (a click id in the url) requests gtm.js at once while the html is parsed, like
+// google's standard head snippet: after hydration was still too late for a tap at ~6.5s on a phone.
 //
 // the conversions in the gtm container fire on gtm's own click listeners (gtm.linkClick on the
 // whatsapp number and on the payment success page, gtm.click on the apple pay button). those
@@ -49,6 +51,9 @@ export const GTM_QUEUE = `(function (w, d) {
     s.src = "https://www.googletagmanager.com/gtm.js?id=${GTM_ID}";
     d.head.appendChild(s);
   };
+  // an ad landing: gtm.js now, so the conversion linker stores the click id before the visitor's
+  // first in-site navigation drops it from the url. every other visit waits for GTM_LOAD
+  if (/[?&](gclid|gbraid|wbraid)=/.test(w.location.search)) w.__loadGtm();
   function ready() {
     return started;
   }
