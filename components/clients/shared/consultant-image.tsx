@@ -42,8 +42,11 @@ const ConsultantImage = ({
   className,
   priority = false,
 }: Props) => {
+  // the gender avatar: a small webp (the old svgs wrapped a 1006x1024 png, ~0.6 MB each)
   const fallback =
-    gender === Gender.MALE ? "/svg/man-avatar.svg" : "/svg/woman-avatar.svg";
+    gender === Gender.MALE
+      ? "/layout/man-avatar.webp"
+      : "/layout/woman-avatar.webp";
 
   const src = image || fallback;
   const dimension = pixels[size];

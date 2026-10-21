@@ -20,7 +20,9 @@ interface Props {
 export function CenterAvatar({ name, image, gender, size, className }: Props) {
   const src =
     image ||
-    (gender === Gender.MALE ? "/svg/man-avatar.svg" : "/svg/woman-avatar.svg");
+    (gender === Gender.MALE
+      ? "/layout/man-avatar.webp"
+      : "/layout/woman-avatar.webp");
 
   return (
     <Image

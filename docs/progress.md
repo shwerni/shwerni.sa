@@ -4501,3 +4501,52 @@ The plan was approved with Ziad's decisions on 2026-10-21. The PDF and the check
 - **The margin is thin.** On the phone profile the cookie lands at 6.2–6.5s, so a tap earlier than about 6.2s still loses the click id. gtm.js takes about 4s to download at 1.6 mbps, while the page's own assets compete for the same bandwidth (D1 removes about 1 MB of avatar svgs from the home page).
 - **GA4's first page_view still misses the click id after an early tap.** It needs a second gtag.js and goes out at about 12–13s. The fix is in the GTM container: send the landing url as `page_location` on the session's first hit (GTM_QUEUE can push it into the dataLayer).
 - **Window load moves later** when gtm.js is requested before it (dynamically inserted async scripts hold the load event): about 15s locally on the phone profile. No metric we track uses the load event.
+
+## 2026-10-21 · Performance D1: the gender avatars as webp
+
+**Why:** the mobile LCP plan found two avatar svgs downloading on the home page before LCP:
+- `man-avatar.svg` is 712 KB and `woman-avatar.svg` 599 KB (524 + 441 KB transferred).
+- Each one only wraps a 1006×1024 png, stretched to its 110×112 box (the same aspect).
+- next/image doesn't optimize svgs, so every visit downloaded the full files.
+
+**Changes:**
+- `public/layout/man-avatar.webp` and `woman-avatar.webp`: that same png at 503×512, webp quality 90 (5.4 KB and 6.3 KB).
+  - 503 px covers the largest use (`lg`, 160 px, which next/image requests at 384 px on 2x screens).
+  - The difference to the original png, compared at 56, 112, 160 and 320 px, averages 0.40–0.57 on a 0–255 scale.
+- `components/clients/shared/consultant-image.tsx` and `components/clients/centers/center-avatar.tsx`: the fallback points at the webp files. These are the only two references.
+- **next/image now optimizes the fallback:** the home carousel gets a 0.7 KB avif per avatar (`w=128`).
+- **The svgs stay** in `public/svg/`, in case anything outside this repo links to them.
+
+**Verified:**
+- **Same look:** home consultant section on a mobile viewport (412 px, 2x) with the carousel frozen. A webp screenshot, then the same `<img>` elements pointed back at the svgs:
+  - mean difference 0.013/255;
+  - 0.008% of channels off by more than 8;
+  - side by side, no visible change.
+- **Lighthouse mobile, `/`, local `next start`, three runs each:**
+  - Tracker domains were blocked, so the test loads sent no hits.
+  - Before is c2b6935 (svg avatars); after is this commit.
+
+  | | score | LCP | TBT | KB downloaded before LCP (images) |
+  |---|---|---|---|---|
+  | before, median | 76 | 5.03s | 258 ms | 1,649 (1,075) |
+  | after, median | 76 | 5.09s | 247 ms | 709 (126) |
+
+  - **LCP and TBT:** unchanged within noise.
+  - **Why the lab LCP didn't move:** lighthouse's simulated LCP for an image only counts the requests the LCP depends on, and other images aren't among them. So the avatars never weighed on the lab number, and the plan's "large lab LCP impact" was wrong.
+  - **What did change:** the bytes before LCP, which is what a real phone downloads.
+- **Real effect on a throttled phone** (4x cpu, 1.6 mbps, 150 ms; the click-id test from the tracking entry, local, trackers' hits aborted):
+  - gtm.js downloads in about 2.8s instead of about 4s, because it no longer shares the bandwidth with 1 MB of svgs.
+
+  | | c2b6935 | this commit |
+  |---|---|---|
+  | GTM running | 5.9–6.1s | 4.7–4.8s |
+  | `_gcl_aw` / `_gcl_ag` stored (ad landing) | 6.2–6.5s | 4.8–5.1s |
+  | first GA4 page_view | 11.9–13.4s | 9.6–10.7s |
+  | window load | 14.8–16.3s | 11.0–12.8s |
+
+  - The ad-landing margin before an early tap grows from about 0.2s to about 1.3s.
+- A clean build; the manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`; tsc and eslint clean on both files.
+
+**Open:**
+- Measure production after the push: lighthouse (median of 3) and Speed Insights p75 over 7 days. The lab LCP isn't expected to move; real-phone LCP and INP may.
+- A2, A1 and C are on hold (Ziad is checking the Google Ads conversion and the GA4 property first).
