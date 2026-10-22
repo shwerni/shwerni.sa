@@ -7,10 +7,19 @@ import { useEffect, useRef, useState } from "react";
 import { useConsultantPresence } from "@/hooks/realtime/useOnlineConsultant";
 
 // icons
-import { Bell, Wifi, Clock, Users, Loader2, Briefcase } from "lucide-react";
+import {
+  Bell,
+  Wifi,
+  WifiOff,
+  Clock,
+  Users,
+  Loader2,
+  Briefcase,
+} from "lucide-react";
 
 export default function InstantDashboard({ userId }: { userId: string }) {
-  const { connected, counts, goOffline } = useConsultantPresence({ userId });
+  const { connected, counts, failure, goOffline, retry } =
+    useConsultantPresence({ userId });
   const router = useRouter();
 
   // Popup state
@@ -82,8 +91,13 @@ export default function InstantDashboard({ userId }: { userId: string }) {
     );
   };
 
+  // the 10-minute cycle starts on the first connect and a reconnect never restarts it, so a
+  // connection that drops often still gets the prompt (an open countdown keeps running too)
+  const cycleStartedRef = useRef(false);
+
   useEffect(() => {
-    if (!connected) return;
+    if (!connected || cycleStartedRef.current) return;
+    cycleStartedRef.current = true;
 
     popupIntervalRef.current = setInterval(
       () => {
@@ -91,14 +105,41 @@ export default function InstantDashboard({ userId }: { userId: string }) {
       },
       10 * 60 * 1000,
     );
-
-    // a dropped connection restarts the cycle on reconnect, so an open popup goes with it
-    return () => {
-      clearAllTimers();
-      setShowPopup(false);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected]);
+
+  // the timers end with the page only
+  useEffect(() => () => clearAllTimers(), []);
+
+  // the realtime server couldn't be reached, or the session ended: no endless spinner
+  if (!connected && failure) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
+        <div className="relative flex items-center justify-center">
+          <WifiOff className="w-10 h-10 text-red-500" />
+        </div>
+
+        <h2 className="mt-6 text-xl font-semibold text-gray-800">
+          {failure === "session"
+            ? "انتهت جلسة الدخول"
+            : "تعذّر الاتصال بالخادم"}
+        </h2>
+
+        <p className="mt-2 text-sm text-gray-500">
+          {failure === "session"
+            ? "برجاء تسجيل الدخول مرة أخرى ثم إعادة المحاولة"
+            : "لم نتمكن من تفعيل حالتك كمتاح للعملاء، تحقق من اتصالك بالإنترنت ثم أعد المحاولة"}
+        </p>
+
+        <button
+          onClick={retry}
+          className="mt-6 px-6 py-2.5 rounded-xl bg-theme hover:opacity-90 active:scale-95 transition-all text-white font-semibold text-sm"
+        >
+          إعادة المحاولة
+        </button>
+      </div>
+    );
+  }
 
   if (!connected) {
     return (

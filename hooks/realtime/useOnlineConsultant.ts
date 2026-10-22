@@ -9,7 +9,6 @@ import type { Socket } from "socket.io-client";
 // utils
 import {
   createRealtimeSocket,
-  fetchOnlineIds,
   fetchPresenceCounts,
   PresenceCounts,
 } from "@/lib/api/realtime/socket-client";
@@ -21,25 +20,30 @@ type PresenceChanged = {
   counts: PresenceCounts;
 };
 
-// the server checks the token after "connect" fires, so an emit right after connect can be
-// ignored. the public online list confirms it; each emit gets these checks before the next one
-const CONFIRM_CHECKS_MS = [1_000, 2_500, 5_000];
-const MAX_ONLINE_EMITS = 3;
+// the realtime server's answer to consultant-online
+type OnlineAck = { online: boolean; busyUntil?: number };
 
-// a server-side disconnect (refused token, rate limit) is never retried by socket.io itself
-const SERVER_DISCONNECT_RETRY_MS = 5_000;
+// why the page stopped trying: the server can't be reached, or there's no web session
+export type PresenceFailure = "unreachable" | "session";
+
+const ACK_TIMEOUT_MS = 5_000;
+
+// failed attempts in a row before the page shows an error: 2s, 4s, 8s, 16s, 30s apart
+const MAX_RETRIES = 5;
+const RETRY_BASE_MS = 2_000;
+const RETRY_MAX_MS = 30_000;
 
 // connection events don't broadcast counts, so the clients count is refreshed while online
 const COUNTS_REFRESH_MS = 30_000;
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 export function useConsultantPresence({ userId }: { userId: string }) {
-  const socketRef = useRef<Socket | null>(null);
-  // set by goOffline and unmount: no reconnect, no state updates
-  const stoppedRef = useRef(false);
-  // connected = the realtime server lists this consultant as online
+  // stops the current run (goOffline); each run sets its own
+  const stopRef = useRef<(() => void) | null>(null);
+  // connected = the realtime server acked this socket as online
   const [connected, setConnected] = useState(false);
+  const [failure, setFailure] = useState<PresenceFailure | null>(null);
+  // bumped by retry() to start a fresh run
+  const [run, setRun] = useState(0);
   const [onlineCount, setOnlineCount] = useState(0);
   const [counts, setCounts] = useState<PresenceCounts>({
     owners: 0,
@@ -50,113 +54,148 @@ export function useConsultantPresence({ userId }: { userId: string }) {
 
   useEffect(() => {
     if (!userId) return;
-    stoppedRef.current = false;
+
+    // per run: a strict-mode double mount or a retry never shares state with an older run
+    let cancelled = false;
+    let socket: Socket | null = null;
+    let failures = 0;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    const countsTimer = setInterval(() => {
+      if (socket?.connected) void refreshCounts();
+    }, COUNTS_REFRESH_MS);
+
+    // ends this run: offline on the server, no more emits, retries or state updates
+    function stop() {
+      if (cancelled) return;
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      clearInterval(countsTimer);
+      socket?.emit("consultant-offline");
+      socket?.disconnect();
+      socket = null;
+    }
+    stopRef.current = stop;
+
+    function fail(reason: PresenceFailure) {
+      if (cancelled) return;
+      stop();
+      setConnected(false);
+      setFailure(reason);
+    }
+
+    // one more failed attempt, retried with backoff; past the cap the run ends with an error
+    function retryLater(action: () => void) {
+      failures += 1;
+      if (failures > MAX_RETRIES) return fail("unreachable");
+
+      const delay = Math.min(RETRY_BASE_MS * 2 ** (failures - 1), RETRY_MAX_MS);
+      retryTimer = setTimeout(() => {
+        if (!cancelled) action();
+      }, delay);
+    }
 
     async function refreshCounts() {
       try {
         const fresh = await fetchPresenceCounts();
-        if (!stoppedRef.current) setCounts(fresh);
+        if (!cancelled) setCounts(fresh);
       } catch (err) {
         console.error("[presence] failed to fetch counts:", err);
       }
     }
 
-    async function isListed() {
+    // this socket's own ack decides; asking again is safe, the server counts a socket once
+    async function goOnline(s: Socket) {
+      let ack: OnlineAck | null = null;
       try {
-        return (await fetchOnlineIds()).includes(userId);
+        ack = (await s
+          .timeout(ACK_TIMEOUT_MS)
+          .emitWithAck("consultant-online")) as OnlineAck;
       } catch {
-        return false;
+        // no ack in time
       }
-    }
+      if (cancelled || socket !== s || !s.connected) return;
 
-    // emits consultant-online again only while the server doesn't list us: every processed
-    // emit adds a presence reference on the server, so a second one must never follow a success
-    async function goOnline(socket: Socket) {
-      for (let emit = 0; emit < MAX_ONLINE_EMITS; emit++) {
-        socket.emit("consultant-online");
-
-        for (const ms of CONFIRM_CHECKS_MS) {
-          await wait(ms);
-          if (stoppedRef.current || socketRef.current !== socket || !socket.connected)
-            return;
-          if (await isListed()) {
-            setConnected(true);
-            void refreshCounts();
-            return;
-          }
-        }
+      if (ack?.online) {
+        failures = 0;
+        setConnected(true);
+        void refreshCounts();
+        return;
       }
-      console.error("[presence] the realtime server never listed this consultant");
+
+      // refused until busyUntil (a paid instant session): the page reacts in step 3d
+      if (ack?.busyUntil) return;
+
+      // no ack, or the emit beat the server's token check
+      retryLater(() => void goOnline(s));
     }
 
     async function connect() {
-      let socket: Socket;
+      let s: Socket;
       try {
-        socket = await createRealtimeSocket("user");
+        s = await createRealtimeSocket("user", {
+          reconnectionAttempts: MAX_RETRIES,
+          reconnectionDelay: RETRY_BASE_MS,
+          reconnectionDelayMax: RETRY_MAX_MS,
+          // no web session: retrying can't help
+          onTokenError: (status) => {
+            if (status === 401) fail("session");
+          },
+        });
       } catch (err) {
         console.error("[presence] failed to load the socket client:", err);
-        return;
+        return retryLater(() => void connect());
       }
 
-      // unmounted while loading
-      if (stoppedRef.current) {
-        socket.disconnect();
+      // ended while loading
+      if (cancelled) {
+        s.disconnect();
         return;
       }
-      socketRef.current = socket;
+      socket = s;
 
       // every connect is a new socket on the server, so it announces itself again
-      socket.on("connect", () => {
-        if (stoppedRef.current) return;
-        void goOnline(socket);
+      s.on("connect", () => {
+        if (!cancelled) void goOnline(s);
       });
 
-      socket.on("connect_error", (err) => {
+      s.on("connect_error", (err) => {
         console.error("[presence] connect_error:", err.message);
       });
 
-      socket.on("disconnect", (reason) => {
-        if (stoppedRef.current) return;
+      s.on("disconnect", (reason) => {
+        if (cancelled) return;
         setConnected(false);
 
-        if (reason === "io server disconnect") {
-          retryTimer = setTimeout(() => {
-            if (!stoppedRef.current) socket.connect();
-          }, SERVER_DISCONNECT_RETRY_MS);
-        }
+        // socket.io never retries a server-side disconnect (refused token, rate limit) itself
+        if (reason === "io server disconnect") retryLater(() => s.connect());
       });
 
-      socket.on("presence-changed", (payload: PresenceChanged) => {
-        if (stoppedRef.current) return;
+      // socket.io's own reconnects (network drops) ran out
+      s.io.on("reconnect_failed", () => fail("unreachable"));
+
+      s.on("presence-changed", (payload: PresenceChanged) => {
+        if (cancelled) return;
         setOnlineCount(payload.onlineCount);
         setCounts(payload.counts);
       });
     }
 
     void connect();
-    const countsTimer = setInterval(() => {
-      if (socketRef.current?.connected) void refreshCounts();
-    }, COUNTS_REFRESH_MS);
 
-    return () => {
-      stoppedRef.current = true;
-      if (retryTimer) clearTimeout(retryTimer);
-      clearInterval(countsTimer);
-      socketRef.current?.emit("consultant-offline");
-      socketRef.current?.disconnect();
-      socketRef.current = null;
-    };
-  }, [userId]);
+    return stop;
+  }, [userId, run]);
 
   // explicit offline on the realtime server (revalidation timeout). the page keeps its current
   // state until the caller navigates away, so nothing flashes before the redirect
   const goOffline = useCallback(() => {
-    stoppedRef.current = true;
-    socketRef.current?.emit("consultant-offline");
-    socketRef.current?.disconnect();
-    socketRef.current = null;
+    stopRef.current?.();
   }, []);
 
-  return { connected, onlineCount, counts, goOffline };
+  // starts over after a failure
+  const retry = useCallback(() => {
+    setFailure(null);
+    setRun((n) => n + 1);
+  }, []);
+
+  return { connected, onlineCount, counts, failure, goOffline, retry };
 }

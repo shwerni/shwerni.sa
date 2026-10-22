@@ -4740,3 +4740,59 @@ The hold blocks only other bookings; it never changes presence. The refusal uses
 - `scripts/realtime-busy-test.js`: the end-to-end script (19 checks, double emit included). Secrets come from env vars only; `socket.io-client` comes through `NODE_PATH` (not a dependency of this repo).
 - Verified: eslint clean on the changed files; 9 of 9 realtime tests; `nest build`; 19 of 19 end-to-end checks locally.
 - `src/app.controller.spec.ts` was already broken (`getHello` no longer exists) and is unchanged.
+
+## 2026-10-22 · Pusher removal: independent review, and step 0b (realtime server)
+
+**State found by the review.** `c1d2f32`, `c395a73` and `4bb5072` are on `origin/main` of `shwerni.backend`, and every push to main deploys (`deploy.yml`), so Step 0 is most likely live. Step 1 isn't uncommitted: it is commit `56c6130` here, not pushed.
+
+**Step 0b (`shwerni.backend`): committed `1a74ea2`, not pushed (Ziad pushes after review).** Additive for the app: no event, payload or route changes.
+
+- Rate limiter: keyed on the right-most `X-Forwarded-For` entry (the one the AWS load balancer appends), falling back to `handshake.address`. Before, every client behind the load balancer shared its ip and the 20 connections a minute. Ips with no attempt in the last minute are dropped once a minute.
+- CORS: `ALLOWED_ORIGIN` entries lose trailing slashes; `http://localhost:3000` only when `NODE_ENV` isn't `production`; the list is read on each request through a cors callback (`corsOrigin`), in `main.ts` and the gateway, so a value from `.env` works too.
+- `/internal/consultant-busy`: 400 when `duration` isn't 30, 45 or 60, `startsAt` isn't a date, or `busyUntil` is more than 4 hours ahead.
+- `setBusy` keeps the block that ends later. `instant-booked` carries the `busyUntil` in force (same fields).
+- Internal secret guard: 401 (not 500) for an unset secret, a missing, empty or repeated header, or a header of another byte length.
+- Verified: `nest build`; eslint clean on the changed files; 47 unit tests pass (the old `app.controller.spec.ts` still fails as before); `scripts/realtime-busy-test.js` 30 of 30 against a local build; CORS headers checked with curl on a production-mode local build.
+
+**Website follow-ups from the review (not started).**
+
+- Step 1: confirm `consultant-online` with the ack (`emitWithAck`) instead of `/presence/online`, which also lists the consultant's other tabs, the app and a dropped socket for ~45s; a per-run `cancelled` flag in `useConsultantPresence` (StrictMode leaves an orphan socket in dev); back off and cap the server-disconnect retries, stop on a 401, show an error after the last emit.
+- Step 2 (B2): `BUSY_SUBQUERY` counts NEW and PROCESSING orders, so an abandoned checkout hides the consultant from the website list for 30 minutes. One predicate in both `getOnlineConsultantsList` and `getConsultantsOnline` (the app's list): a PAID meeting with start ≤ now < start + duration, in Riyadh time. It also covers a realtime restart or a failed `consultant-busy` call. Connect list pages as GUEST (every USER connection makes the server call `/api/internal/instant-snapshot`).
+- Step 3 (B1): the 10-minute hold can't stop a second payment: the Moyasar invoice has no `expired_at`, and the cron only cancels in the database after 20 to 40 minutes. Expire the gateway checkout with the hold, cancel the order at expiry, and refund an INSTANT order paid after its hold or for a consultant who is already busy.
+- Step 3: `reserveInstant` takes the date and time from the client (`addNMinutes` at the form's first render). Set them from the server clock; compute `busyUntil` with `+03:00`.
+- Step 3a: the guard also checks scheduled PAID meetings that overlap now, requires the consultant online, and uses `pg_advisory_xact_lock(<const>, cid)` on the transaction client.
+- Step 3c: run the `consultant-busy` call with `after()` or await it with its timeout; an un-awaited fetch can be cut off on Vercel.
+- Step 3c: when the `consultant-busy` call fails (timeout, network error, 400, 401, 5xx), alert the admin on Telegram with the order id and the consultant (name and user id), not only a console log. The alert itself never throws and never delays the payment.
+- `ALLOWED_ORIGIN` on the realtime server must list every origin the site is served from before Step 1 ships.
+
+## 2026-10-22 · Pusher removal step 1 follow-ups (consultant dashboard), on top of `56c6130`
+
+The realtime server (0 + 0b) is deployed; `scripts/realtime-busy-test.js` passes 28 of 28 against production (Ziad).
+
+**Files changed**
+
+- `hooks/realtime/useOnlineConsultant.ts`:
+  - "Online" comes from this socket's own ack: `socket.timeout(5000).emitWithAck("consultant-online")`, which answers `{ online, busyUntil? }`. The global `/presence/online` check is gone; it also listed the consultant's other tabs, the app, and a dropped socket for about 45s.
+  - Asking again is safe now, since the server counts a socket once. It's needed: an emit at `connect` can arrive before the server's token check and get `{ online: false }` with no `busyUntil` (seen in 1 of 3 local runs; the retry then acked online).
+  - `{ online: false, busyUntil }` (busy) stops asking; the page's reaction is step 3d.
+  - The shared `stoppedRef` is replaced by a `cancelled` flag per effect run. Each run owns its socket and timers, so a strict-mode double mount or a retry can't leave an older socket online. `goOffline()` calls the current run's `stop()`.
+  - Retries back off 2s, 4s, 8s, 16s, 30s, at most 5 in a row (ack timeouts, early refusals, server-side disconnects). socket.io's own reconnects use the same cap and delays. A 401 from `/api/realtime-token` stops at once. When retries run out, the hook returns `failure` (`"unreachable"` or `"session"`); `retry()` starts a fresh run.
+- `lib/api/realtime/socket-client.ts`: `createRealtimeSocket(kind, options?)` takes socket.io options and `onTokenError(status)`. With no second argument it behaves as before. The unused `fetchOnlineIds` is removed.
+- `components/consultant/instant/index.tsx`:
+  - The 10-minute cycle starts on the first connect and a reconnect never restarts it. An open 45-second countdown keeps running through a drop: its popup shows again on reconnect, and expiring while disconnected still sends the consultant offline and to `/dashboard`. The timers end only when the page unmounts.
+  - New error screen (below).
+
+**New UI (the only addition):** shown in place of the "جاري الاتصال بالخادم..." screen, with the same layout, once retries run out:
+
+- server unreachable: title "تعذّر الاتصال بالخادم", text "لم نتمكن من تفعيل حالتك كمتاح للعملاء، تحقق من اتصالك بالإنترنت ثم أعد المحاولة";
+- session ended (401): title "انتهت جلسة الدخول", text "برجاء تسجيل الدخول مرة أخرى ثم إعادة المحاولة";
+- both: a red `WifiOff` icon and a button "إعادة المحاولة".
+
+**Verified**
+
+- tsc clean; eslint clean on the three files.
+- Against a local build of the realtime server (throwaway secrets): an emit at `connect` was refused before the token check in 1 of 3 runs, and the retry acked online; the consultant was listed once and gone after disconnect; a bad token ends in `io server disconnect`.
+
+**Open**
+
+- `docs/progress.md` also holds the uncommitted review entry ("independent review, and step 0b"), which isn't from this step: does it go in this commit?
