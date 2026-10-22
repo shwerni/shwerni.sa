@@ -83,6 +83,7 @@ import {
 import { TAX_PERCENT, withTax } from "@/utils/tax";
 import { queueOrderInvoice } from "@/lib/daftra/auto";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
+import { scheduleConsultantBusy } from "@/lib/api/realtime/consultant-busy";
 import {
   INSTANT_DURATION,
   INSTANT_LIMIT_PER_IP,
@@ -119,6 +120,9 @@ export const onPaymentSuccess = async (
         ...newMeeting,
       };
     }
+    // instant: the consultant goes offline until the meeting ends (database + realtime server).
+    // after the response, never throws, never delays or breaks the payment
+    if (order.type === OrderType.INSTANT) scheduleConsultantBusy(order);
     // a pleading checkout: the case becomes PAID and its whole chat moves onto this meeting.
     // a no-op (null) for every other order; never throws. a payment on a declined or
     // canceled case isn't linked and goes to the admin telegram for a refund

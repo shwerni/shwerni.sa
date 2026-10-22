@@ -5176,3 +5176,23 @@ Commits: 3a (booking guard and rate limit), 3b (payment check, cron, success pag
 - the sound `public/audio/meeting-join.mp3`, vibration on phones, and the tab title "🔔 لديك جلسة فورية الآن".
 
 `instant-busy` and a refused ack still go straight to `/dashboard`.
+
+## 2026-10-22 · Step 3b committed (`45ae31d`); Step 3c, `onPaymentSuccess` → consultant busy (not committed yet)
+
+**Files changed**
+
+- `handlers/admin/order/payment.ts` (`onPaymentSuccess`): the approved diff, unchanged. After `createNewMeeting`, `if (order.type === OrderType.INSTANT) scheduleConsultantBusy(order)`, plus its import.
+- `lib/api/realtime/consultant-busy.ts` (new):
+  - `consultantBusyPayload(order)`: the body of `POST /internal/consultant-busy`. `busyUntil` = the meeting's start (`+03:00`) + its duration; `meetingUrl` is the consultant's own link (the OWNER participant), or the meeting's plain link when the room couldn't be created (never `participant=undefined`). Null, so nothing happens, for a center consultant (no user), no meeting, or a meeting that has already ended (a late mark-as-paid).
+  - `markConsultantBusy(order)`: `setConsultantOffline(userId)`, then the POST with `x-internal-secret` and a 3s timeout (the realtime server goes offline on every socket of his, sends `instant-booked`, refuses `consultant-online` until `busyUntil`). Any failure (the database; no answer in 3s; the network; a 4xx or 5xx) sends a Telegram alert with the order, the consultant's name and user id, and the reasons. A database failure still calls the realtime server. Never throws, even when the alert fails.
+  - `scheduleConsultantBusy(order)`: `after()` (the `lib/daftra/auto.ts` pattern) with a direct fallback outside a request scope, so the payment's response never waits for it.
+
+**Verified**
+
+- tsc clean; eslint clean (`payment.ts`: its old `refund` warning only).
+- 61 of 61 in the throwaway harness (the 46 earlier ones and 15 new):
+  - the payload: start + duration, the owner link; no user, no meeting, an ended meeting → nothing; a running meeting → busy until its end; no room → the plain link;
+  - success: the database offline, the POST to `/internal/consultant-busy` with the secret, JSON, a timeout signal, no alert;
+  - 400, 401, 500 and 503 → an alert with the order, the consultant and the status; a network error → an alert; no answer → an alert after about 3s; the database failing → the realtime server still called, and an alert;
+  - nothing to do → no call, no alert; never throws when the alert fails; `after()` outside a request still runs it;
+  - **end to end:** `markConsultantBusy` against a locally running realtime server (`7cdac2f`, throwaway secrets) → 201 and no alert, so the real payload passes the server's validation (duration 30, `startsAt` a date, `busyUntil` under 4 hours).
