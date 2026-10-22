@@ -5247,3 +5247,52 @@ Commits: 3a (booking guard and rate limit), 3b (payment check, cron, success pag
 
 **After the push is live (Ziad):** delete the four env vars on Vercel (`PUSHER_APP_ID`, `PUSHER_SECRET`, `NEXT_PUBLIC_PUSHER_KEY`, `NEXT_PUBLIC_PUSHER_CLUSTER`) in every environment where they exist, then disable the webhook in the Pusher dashboard and, once nothing has called it for a while, delete the Pusher app.
 - The rebuild passes (exit 0, compiled in 4.8 minutes); no `/api/pusher/*` route in its output; the manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`.
+
+## 2026-10-23 · Pusher removal: final status
+
+**Done.** Both repos are clean and match `origin/main` (website `a93ee99`, realtime server `7cdac2f` before this entry).
+
+| Step | Repo | Commit |
+|---|---|---|
+| 0 realtime: consultant-busy, instant-booked, instant-busy, ack | backend | `c1d2f32` |
+| 0 one reference per socket; busy e2e script | backend | `c395a73` |
+| 0b rate limit by client ip, runtime cors, stricter consultant-busy (Ziad) | backend | `1a74ea2` |
+| 0c get-presence-counts; test script on the guarded list | backend | `982cd65` |
+| 0c presence-changed counts for owner sockets only | backend | `6f2046a` |
+| 0d separate rate limit buckets (guests 120, members 20) | backend | `7cdac2f` |
+| 1 consultant dashboard on the realtime server | website | `56c6130` |
+| 1 follow-ups: ack, per-run cancel, capped retries | website | `cf4c0c7` |
+| 1 retries capped for connect_error | website | `856d9cb` |
+| 2 client lists on the realtime server (one rule for site and app) | website | `9976a09` |
+| 2b the site's side of the internal secret | website | `d0965b0` |
+| 3a booking guard under an advisory lock, created-order limits | website | `0376f68` |
+| 3b payment check under the lock, cron backstop, success page wait | website | `45ae31d` |
+| 3c consultant busy on PAID | website | `14f4047` |
+| 3d dashboard instant-booked notice | website | `aa036ac` |
+| 4 Pusher removed | website | `a93ee99` |
+
+**Final verification (2026-10-23)**
+
+- A case-insensitive search finds "pusher" only in this log; `pusher` and `pusher-js` are in neither `package.json` nor `package-lock.json`.
+- **`NEXT_PUBLIC_BACKEND_URL` is still used, by design of steps 1 and 2:** `lib/api/realtime/socket-client.ts:9` (the browser's socket address; not a secret). Two reference docs mention it (`docs/reference/server-surface.md:488`, which describes the step-1 code before step 2b, and `docs/reference/project-map.md`). The token routes (`/api/realtime-token`, `/guest`) return only `{ token }`, not the realtime address. The server-only `BACKEND_URL` is used for the site → realtime server calls (`lib/api/realtime/internal.ts`, `lib/api/realtime/consultant-busy.ts`). Moving the browser's address behind the token routes was not part of this migration: open, if wanted.
+- **firebase-admin isn't lazy:** `lib/api/room/firebase-admin.ts` calls `initializeApp` and `getMessaging` when it's imported. Other import-time clients, all older than this migration: `new UTApi()` (`handlers/gatewaies/moyasar-webhook.ts:19`), `new WebhookReceiver` (`app/api/livekit/webhook/route.ts:13`), `new OpenAI` (`lib/api/ai/client.ts:7`, `lib/api/ai/ai.ts:7`), the Prisma client (`lib/database/db.ts`). This migration added none. Open, if wanted.
+- `scripts/realtime-busy-test.js` against production: 29 of 34 pass. The 5 failures are one chain caused by the clock of the machine that ran it: its Windows clock source is "Local CMOS Clock" (never synced) and it is about 0.9s ahead (three readings against a time service: 658, 921, 912 ms).
+  - The test sent `busyUntil` = its now − 1 ms, which is still in the server's future, so the server accepted it (201) and blocked the test consultant. Hence the failures "busyUntil in the past → 400", "still listed after refused calls", "consultant-busy → wasOnline: true" (it was already offline: `false`, correct), and "guest got presence-changed" (already broadcast).
+  - "Online again after busyUntil" waits for its own clock's `busyUntil` + 300 ms, about 600 ms before the server's.
+  - Blocking itself passed: not listed after busy, `instant-booked` to the owner, refused acks, `instant-busy`, a second socket refused, a shorter second booking keeps the running block.
+  - Ziad's earlier production runs passed. Open: the script assumes the runner's clock is within about 300 ms of the server's (use margins of several seconds), or run it from a synced machine.
+- **Cross-check against the original task:**
+  - **consultant online:** the realtime server, socket and ack (`hooks/realtime/useOnlineConsultant.ts`);
+  - **online lists:** a guest socket plus the server action, one rule with the app (`hooks/useOnlineConsultants.ts`, `data/online-busy.ts`);
+  - **booking:** under an advisory lock (`data/online.ts`);
+  - **payment:** checked under the same lock (`data/instant-payment.ts`, `orderStatusPaid`);
+  - **busy on PAID:** `onPaymentSuccess` → `lib/api/realtime/consultant-busy.ts` → the realtime server;
+  - **revalidation:** every 10 minutes from the first connect (`components/consultant/instant/index.tsx`), a 45s deadline countdown, and on timeout `expire()` → `goOffline()` (`consultant-offline` + disconnect on the realtime server) → `/dashboard`.
+  - **Mobile API routes:** since `1924099` (before the migration) only `app/api/mobile/online/route.ts` changed, and its response is byte for byte the same (step 2b test); its content follows the approved shared rule (published, not busy). The confirm route and the others are unchanged in code and shape.
+
+**Still open**
+
+1. **Vercel (Ziad):** delete `PUSHER_APP_ID`, `PUSHER_SECRET`, `NEXT_PUBLIC_PUSHER_KEY` and `NEXT_PUBLIC_PUSHER_CLUSTER` in every environment, then disable the webhook in the Pusher dashboard (and later delete the Pusher app). **Keep `NEXT_PUBLIC_BACKEND_URL`:** the browser's socket uses it.
+2. **Step 4a** (realtime server): the internal secret on every HTTP route except `/` and `/robots.txt`; needs the Mau health-check path (or "none").
+3. **"After the migration"** (above): lateness tracking; the join-time safety net; the client waiting status; the possible double refund in `orderStatusRefund`; the app follow-up (`instant-booked`, `instant-busy`, a refused toggle); the request → accept → pay idea (note only).
+4. Smaller, from this check: the busy test's clock margins; optionally the browser's realtime address behind the token routes, and a lazy firebase-admin.
