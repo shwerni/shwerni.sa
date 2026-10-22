@@ -4796,3 +4796,45 @@ The realtime server (0 + 0b) is deployed; `scripts/realtime-busy-test.js` passes
 **Open**
 
 - `docs/progress.md` also holds the uncommitted review entry ("independent review, and step 0b"), which isn't from this step: does it go in this commit?
+
+## 2026-10-22 · Realtime server HTTP behind the internal secret: plan (approved), and the dashboard retry fix
+
+**Decision (Ziad).** There are no installed app versions yet, so every HTTP route on the realtime server requires `x-internal-secret` (`INTERNAL_SHARED_SECRET`). The exceptions are the socket.io path (JWT) and the public `/` and `/robots.txt`. The secret never goes into browser code or the app.
+
+**The realtime server's HTTP routes and their callers**
+
+| Route | Before | Callers | After |
+|---|---|---|---|
+| `GET /`, `GET /robots.txt` | public | browsers, crawlers, maybe the Mau health check | public |
+| `GET /presence/online` | public | main-site server (`app/api/online`, `app/api/mobile/online`), the test script | callers move to `/internal/presence/online`; removed in 4a |
+| `GET /presence/counts` | public | website browser (consultant dashboard) | replaced by the socket event `get-presence-counts`; removed in 4a |
+| `GET /internal/presence/online` | secret | none until 2b | secret |
+| `POST /internal/consultant-busy` | secret | the test script; main site from 3b | secret |
+| `POST /internal/instant-request` | secret | none | secret |
+| `/socket.io/` | JWT | website browser, app | JWT (Nest guards don't apply to it) |
+
+- **Mau health check:** not set in the repo, `deploy.yml` or the Mau CLI package. It's on Mau's side; Ziad checks the console. `/` and `/robots.txt` stay public either way.
+- **The app makes no HTTP calls to the realtime server** (only the socket), so no app change is needed for this. Its list comes from the main site's `/api/mobile/online`.
+
+**Who reads `counts` from `presence-changed`:** only OWNER sockets: the app's `use-consultant-presence-toggle` and the website's `useConsultantPresence`. The app's client list (`use-online-consultants`) only refetches on the event and reads nothing from it. Sending `counts` only to OWNER sockets breaks no client. That change waits for Ziad's go (it's an addition to 0c).
+
+**Steps**
+
+| Step | What |
+|---|---|
+| 0c | realtime server, additive, deployed before the website push: `get-presence-counts` (owners get `{ counts }`, every other socket `{ counts: null }`, so the ack always arrives); the test script reads `/internal/presence/online` with the secret; with Ziad's go, `presence-changed` carries `counts` only for OWNER sockets |
+| 2 | client lists (as planned) |
+| 2b | website: the dashboard asks for counts over the socket (`get-presence-counts`); `app/api/online` and `app/api/mobile/online` call `/internal/presence/online` with the secret (same `{ onlineIds }`, same responses); `/api/internal/presence` and `/api/internal/instant-snapshot` use the existing `verifyInternalSecret` (`lib/auth/internal-secret.ts`): 401 for an unset secret, a missing or empty header, or another byte length (an unset secret was a 500 before) |
+| 2b | `/api/internal/presence` body: bad JSON → 400; `consultantId` a non-empty string; `online` a real boolean; an unknown consultantId → 404 (was a 500); success stays `{ ok: true }` |
+| 2b | `/api/internal/instant-snapshot` body: bad JSON → 400; `consultantsNow` and `clientsNow` non-negative integers; `role` OWNER, USER or GUEST; success stays `{ ok: true }` |
+| 3 | busy on PAID (as planned) |
+| push | Steps 1 + 2 + 2b + 3 together |
+| 4a | realtime server: the secret is required on every HTTP route by default, with `/` and `/robots.txt` (plus the Mau health path, if it's another one) exempt; the public `PresenceController` removed; after the push is checked (no browser requests to the realtime server, no `/presence/*` hits in its logs) |
+| 4 | Pusher removal |
+
+Dashboard tabs still running the old javascript get 401 on counts after 4a until they're refreshed (the counts just stop updating).
+
+**Dashboard retry fix (website, before this plan).** On localhost, `/dashboard/instant` looped on `connect_error: xhr poll error`, because production CORS doesn't allow localhost.
+- In Node, socket.io's own reconnection did stop after 5 attempts and fired `reconnect_failed`, after about 60 to 90s with the hook's delays. The browser's endless loop wasn't reproduced; either way, the cap no longer depends on socket.io.
+- `reconnection: false`: `connect_error`, every disconnect (a drop or a server-side one), an ack failure or an early refusal each count as one failed attempt in the hook's own `retryLater` (2s, 4s, 8s, 16s, 30s). After 5 in a row comes the error screen. Only one retry is pending at a time.
+- Verified with the same loop against a dead port, delays scaled down: 6 attempts (the first plus 5 retries), then the failure, and nothing after it. tsc and eslint clean.

@@ -89,6 +89,8 @@ export function useConsultantPresence({ userId }: { userId: string }) {
       if (failures > MAX_RETRIES) return fail("unreachable");
 
       const delay = Math.min(RETRY_BASE_MS * 2 ** (failures - 1), RETRY_MAX_MS);
+      // one pending retry at a time: the newest failure decides what runs next
+      if (retryTimer) clearTimeout(retryTimer);
       retryTimer = setTimeout(() => {
         if (!cancelled) action();
       }, delay);
@@ -133,9 +135,8 @@ export function useConsultantPresence({ userId }: { userId: string }) {
       let s: Socket;
       try {
         s = await createRealtimeSocket("user", {
-          reconnectionAttempts: MAX_RETRIES,
-          reconnectionDelay: RETRY_BASE_MS,
-          reconnectionDelayMax: RETRY_MAX_MS,
+          // every retry goes through retryLater, so one cap covers them all
+          reconnection: false,
           // no web session: retrying can't help
           onTokenError: (status) => {
             if (status === 401) fail("session");
@@ -158,20 +159,19 @@ export function useConsultantPresence({ userId }: { userId: string }) {
         if (!cancelled) void goOnline(s);
       });
 
+      // the connection never opened (network, cors, server down)
       s.on("connect_error", (err) => {
+        if (cancelled) return;
         console.error("[presence] connect_error:", err.message);
+        retryLater(() => s.connect());
       });
 
-      s.on("disconnect", (reason) => {
+      // a drop, or a server-side disconnect (refused token, rate limit)
+      s.on("disconnect", () => {
         if (cancelled) return;
         setConnected(false);
-
-        // socket.io never retries a server-side disconnect (refused token, rate limit) itself
-        if (reason === "io server disconnect") retryLater(() => s.connect());
+        retryLater(() => s.connect());
       });
-
-      // socket.io's own reconnects (network drops) ran out
-      s.io.on("reconnect_failed", () => fail("unreachable"));
 
       s.on("presence-changed", (payload: PresenceChanged) => {
         if (cancelled) return;
