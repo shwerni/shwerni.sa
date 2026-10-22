@@ -25,6 +25,17 @@ type OnlineAck = { online: boolean; busyUntil?: number };
 // the realtime server's answer to get-presence-counts (null for a socket that isn't an owner)
 type CountsAck = { counts: PresenceCounts | null };
 
+// instant-booked: an instant order for this consultant was paid (the realtime server already
+// took him offline). meetingUrl is his own link; startsAt is iso
+export type InstantBooked = {
+  orderId: number;
+  meetingId: string;
+  meetingUrl: string;
+  startsAt: string;
+  duration: number;
+  busyUntil: number;
+};
+
 // why the page stopped trying: the server can't be reached, or there's no web session
 export type PresenceFailure = "unreachable" | "session";
 
@@ -44,6 +55,10 @@ export function useConsultantPresence({ userId }: { userId: string }) {
   // connected = the realtime server acked this socket as online
   const [connected, setConnected] = useState(false);
   const [failure, setFailure] = useState<PresenceFailure | null>(null);
+  // a paid instant session arrived (instant-booked)
+  const [booked, setBooked] = useState<InstantBooked | null>(null);
+  // refused: a paid instant session runs until busyUntil (instant-busy, or the online ack)
+  const [busy, setBusy] = useState(false);
   // bumped by retry() to start a fresh run
   const [run, setRun] = useState(0);
   const [onlineCount, setOnlineCount] = useState(0);
@@ -131,8 +146,11 @@ export function useConsultantPresence({ userId }: { userId: string }) {
         return;
       }
 
-      // refused until busyUntil (a paid instant session): the page reacts in step 3d
-      if (ack?.busyUntil) return;
+      // refused until busyUntil (a paid instant session): no more asking, the page leaves
+      if (ack?.busyUntil) {
+        setBusy(true);
+        return;
+      }
 
       // no ack, or the emit beat the server's token check
       retryLater(() => void goOnline(s));
@@ -185,6 +203,16 @@ export function useConsultantPresence({ userId }: { userId: string }) {
         setOnlineCount(payload.onlineCount);
         setCounts(payload.counts);
       });
+
+      // a paid instant session for this consultant: the page shows it
+      s.on("instant-booked", (payload: InstantBooked) => {
+        if (!cancelled) setBooked(payload);
+      });
+
+      // consultant-online refused (a paid instant session runs): the page leaves
+      s.on("instant-busy", () => {
+        if (!cancelled) setBusy(true);
+      });
     }
 
     void connect();
@@ -204,5 +232,14 @@ export function useConsultantPresence({ userId }: { userId: string }) {
     setRun((n) => n + 1);
   }, []);
 
-  return { connected, onlineCount, counts, failure, goOffline, retry };
+  return {
+    connected,
+    onlineCount,
+    counts,
+    failure,
+    booked,
+    busy,
+    goOffline,
+    retry,
+  };
 }

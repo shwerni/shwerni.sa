@@ -5196,3 +5196,28 @@ Commits: 3a (booking guard and rate limit), 3b (payment check, cron, success pag
   - 400, 401, 500 and 503 → an alert with the order, the consultant and the status; a network error → an alert; no answer → an alert after about 3s; the database failing → the realtime server still called, and an alert;
   - nothing to do → no call, no alert; never throws when the alert fails; `after()` outside a request still runs it;
   - **end to end:** `markConsultantBusy` against a locally running realtime server (`7cdac2f`, throwaway secrets) → 201 and no alert, so the real payload passes the server's validation (duration 30, `startsAt` a date, `busyUntil` under 4 hours).
+
+## 2026-10-22 · Step 3c committed (`14f4047`); Step 3d, the consultant dashboard reacts to a paid instant session
+
+**Files changed**
+
+- `hooks/realtime/useOnlineConsultant.ts`:
+  - listens for `instant-booked` (returned as `booked`, the event's payload) and `instant-busy` (returned as `busy`);
+  - a refused online ack (`{ online: false, busyUntil }`) also sets `busy` and stops asking;
+  - events after `goOffline()` are ignored.
+- `components/consultant/instant/index.tsx`:
+  - `busy` → the revalidation timers cleared, `goOffline()`, `router.push("/dashboard")` (like the revalidation timeout);
+  - `booked` → the timers cleared, `goOffline()` (the realtime server already took him offline), and the notice replaces the page.
+- `components/consultant/instant/booked-notice.tsx` (new), `InstantBookedNotice`, the approved design:
+  - a full-screen white page with a green pulsing video icon;
+  - "لديك جلسة فورية الآن" (text-3xl, theme colour);
+  - "تبدأ الجلسة الساعة {time}", the event's `startsAt` in Riyadh time (e.g. "03:15 مساءً"), left out if it isn't a date;
+  - the green "انضم للجلسة" button opening the event's `meetingUrl` in the same tab, only when it's one of the site's own links (`mainRoute`), else `/dashboard`;
+  - the small link "العودة إلى لوحة التحكم" → `/dashboard`;
+  - `public/audio/meeting-join.mp3` when it appears (a blocked autoplay plays on the first tap), a vibration on phones, and the tab title "🔔 لديك جلسة فورية الآن" while it shows.
+
+**Verified**
+
+- tsc clean; eslint clean on the three files.
+- The dashboard hook in the throwaway harness: 53 of 53 (49 earlier, 4 new): `instant-booked` → `booked` with the event and `busy` false; `instant-busy` → `busy`; a refused ack → `busy`, never connected, no second `consultant-online` in 10 minutes, no error screen; events after `goOffline()` → ignored.
+- The notice's layout, sound and link check aren't covered by an automated test (no DOM test library in the repo): manual test list.

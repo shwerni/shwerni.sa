@@ -6,6 +6,9 @@ import { useEffect, useRef, useState } from "react";
 // hooks
 import { useConsultantPresence } from "@/hooks/realtime/useOnlineConsultant";
 
+// components
+import { InstantBookedNotice } from "./booked-notice";
+
 // icons
 import {
   Bell,
@@ -18,7 +21,7 @@ import {
 } from "lucide-react";
 
 export default function InstantDashboard({ userId }: { userId: string }) {
-  const { connected, counts, failure, goOffline, retry } =
+  const { connected, counts, failure, booked, busy, goOffline, retry } =
     useConsultantPresence({ userId });
   const router = useRouter();
 
@@ -110,6 +113,27 @@ export default function InstantDashboard({ userId }: { userId: string }) {
 
   // the timers end with the page only
   useEffect(() => () => clearAllTimers(), []);
+
+  // refused online (a paid instant session runs until it ends): leave, like the revalidation
+  // timeout
+  useEffect(() => {
+    if (!busy) return;
+    clearAllTimers();
+    goOffline();
+    router.push("/dashboard");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busy]);
+
+  // a paid instant session arrived: offline here too (the realtime server already did it) and no
+  // more revalidation; the notice below takes the page
+  useEffect(() => {
+    if (!booked) return;
+    clearAllTimers();
+    goOffline();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [booked]);
+
+  if (booked) return <InstantBookedNotice booked={booked} />;
 
   // the realtime server couldn't be reached, or the session ended: no endless spinner
   if (!connected && failure) {
