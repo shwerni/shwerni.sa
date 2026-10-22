@@ -4570,3 +4570,173 @@ The plan was approved with Ziad's decisions on 2026-10-21. The PDF and the check
 **Open:**
 - Meta's template definitions aren't read anywhere (no business account id in the env), so the button index is set by hand in the dashboard form.
 
+
+## 2026-10-21 · Pusher removal: plan, and step 1 (consultant instant dashboard on the realtime server)
+
+**Plan.** Instant (presence, online consultants, busy on booking) moves from Pusher to the NestJS realtime server (`shwerni.backend`). The app already uses it (`hooks/realtime/*` in the app repo) with the events `consultant-online`, `consultant-offline` and `presence-changed {consultantId, online, onlineCount, counts}`. The website uses the same events. The mobile API routes don't change.
+
+| Step | What | Status |
+|---|---|---|
+| 0 | realtime server (not this repo): `POST /internal/consultant-busy {consultantId, orderId}` (forced offline for every socket of that consultant, `presence-changed` broadcast, `notifyPresenceChange(false)`, a new `instant-booked {orderId}` to `user:{id}`); an ack from `consultant-online`; `ALLOWED_ORIGIN` must cover every site origin | open: who changes the server |
+| 1 | consultant dashboard `/dashboard/instant` on the realtime server | done, waiting for review |
+| 2 | client lists (home `InstantList`, the `/instant` page) via `hooks/useOnlineConsultants.ts` rewritten in place; the list keeps its current filters and also requires the server's `onlineIds` | waiting |
+| 3 | `broadcastConsultantBusy` calls the server's `consultant-busy` instead of Pusher; the dashboard handles `instant-booked` | waiting for decisions 1 and 2 |
+| 4 | remove Pusher: `app/api/pusher/*`, `lib/api/pusher/*`, `hooks/useOnlineConsultant.ts`, the webhook and trigger code in `data/online.ts`, the dead `checkIsAnyConsultantOnline`, the `routes.ts` entry, the two prepared `.txt` files, `npm uninstall pusher pusher-js`. Vercel env vars removed **after** this is deployed (`data/online.ts` loads the Pusher server client as soon as it's imported): `PUSHER_APP_ID`, `PUSHER_SECRET`, `NEXT_PUBLIC_PUSHER_KEY`, `NEXT_PUBLIC_PUSHER_CLUSTER`; then the webhook disabled in the Pusher dashboard | waiting |
+
+Steps 1 and 2 go out in the same push: between them, lists load correctly from the database (the realtime server keeps `online_status` in sync through `/api/internal/presence`) but no longer update live.
+
+**Step 1 files changed**
+
+- `lib/api/realtime/socket-client.ts` (new): `socket.io-client` loaded on demand; `auth` is a callback, so every connect and reconnect gets a fresh 60s token (`/api/realtime-token` or `/guest`); `fetchOnlineIds` and `fetchPresenceCounts` for the server's public presence endpoints.
+- `hooks/realtime/useOnlineConsultant.ts`:
+  - `connected` now means "the realtime server lists this consultant", not "the socket opened". The server checks the token after `connect` fires, so an emit right after connect can be ignored, and a refused token still fires `connect`. The hook emits `consultant-online` and confirms against `/presence/online`. It emits again (at most 3 times) only while the server doesn't list the consultant, because every processed emit adds a presence reference on the server.
+  - A server-side disconnect (refused token, rate limit) is retried after 5s; socket.io never retries those itself.
+  - New `goOffline()`: emits `consultant-offline` and disconnects, without changing the page's state.
+  - Counts are refreshed every 30s while online, because client connections don't broadcast counts.
+- `components/consultant/instant/index.tsx`: `index.txt` applied, plus:
+  - on timeout, `goOffline()` runs before `router.push("/dashboard")`, so the consultant goes offline on the server explicitly, not only because the page unmounts;
+  - the countdown is computed from a deadline (a background tab slows its timers); still 10 minutes and 45 seconds, same UI;
+  - a dropped connection closes an open popup (the 10-minute cycle restarts on reconnect);
+  - `text-theme-500` → `text-theme-600`: `theme-500` isn't defined in `globals.css`, so the icon had no colour.
+- `app/api/realtime-token/route.ts` (website only): roles map to `OWNER` / `USER`, as the mobile route does. Before, staff roles reached the server as-is and were counted as guests.
+
+**Intended UI changes (from `index.txt`):** the single "عدد العملاء المتواجدين الآن" number (which actually counted consultants) is replaced by two cards, "مستشارون متصلون" (`counts.owners`) and "عملاء متواجدون" (`counts.clients`, guests not shown); the "العملاء" tile icon uses the theme colour.
+
+**Open questions**
+
+1. When the consultant goes busy: at order creation, before payment (current behaviour, recommended), or after PAID.
+2. What the dashboard does on `instant-booked`: go to `/dashboard` like the timeout (recommended), or a new UI.
+3. Step 0: changed by Ziad, or by Claude Code in `shwerni.backend`.
+4. The icon colour: `text-theme-600` (used here) or keep `text-blue-500`.
+
+## 2026-10-22 · Pusher removal: plan revised after Ziad's answers (replaces the plan table of 2026-10-21)
+
+**Decisions (Ziad)**
+
+1. The consultant goes offline when the instant order is **PAID**, in the shared paid path, for website and app bookings alike. An abandoned payment never knocks a consultant offline.
+2. On `instant-booked` the website dashboard goes to `/dashboard` (no new UI).
+3. Step 0 is drafted by Claude Code in `shwerni.backend`. It is additive only: nothing the app uses today changes. Ziad reviews and deploys.
+4. The icon is `text-theme-600`.
+5. Every instant API route and server function on the main site is going to be reused by the app. Paths, request and response shapes stay exactly as they are; only Pusher internals change.
+6. Pushes: Step 0 first, then Steps 1+2+3 together, then Step 4.
+
+**Findings**
+
+- **The shared PAID point is `onPaymentSuccess`** (`handlers/admin/order/payment.ts`). Both PAID writers call it:
+  - `orderStatusPaid`, reached through `updateOrderStatus` (the Moyasar and Tabby callbacks and webhooks, and the mobile `reservations/[oid]/confirm` route) and through the dashboard mark-paid;
+  - `data/wallet.ts` (wallet payment).
+  The meeting's participants (and so the consultant's meeting url) only exist after `createNewMeeting`, which `onPaymentSuccess` calls first.
+- **Nothing stops two clients paying for the same consultant at the same time.**
+  - `checkMeetingTimeConflict` only matches PAID meetings at exactly time−30 or time+30. The time itself isn't in its list, and minutes in between never match. An instant booked at 14:05 never conflicts with one at 14:06.
+  - Neither `reserveInstant` nor `Pay` checks that the consultant is online or free.
+  - Today the only protection is the Pusher broadcast that hides the consultant from open lists when the order is created. Decision 1 removes that.
+  - Unpaid orders are cancelled by the cron after 20 to 40 minutes.
+- The app's realtime hooks only listen to `presence-changed`. They don't listen to `instant-booked` or `instant-busy` yet, and they don't use the server's existing `instant-request` / `instant-response`.
+
+**Revised plan**
+
+| Step | What |
+|---|---|
+| 0 | `shwerni.backend`, additive only (spec below) |
+| 1 | consultant dashboard on the realtime server: done, not committed |
+| 2 | client lists (home `InstantList`, the `/instant` page): `hooks/useOnlineConsultants.ts` rewritten in place, same return shape; `getOnlineConsultantsList` unchanged (database based; the realtime server keeps `online_status` in sync); on `presence-changed`, remove locally when offline, debounced refetch when online; a USER or GUEST socket; `instant-list-new.txt` applied |
+| 3a | `reserveInstant`: no busy broadcast when the order is created; a guard before creating it (below). Its return shape doesn't change |
+| 3b | `lib/api/realtime/internal.ts` (new, server-only): `markConsultantBusy()` → `POST {BACKEND_URL}/internal/consultant-busy` with `INTERNAL_SHARED_SECRET`, a 3s timeout, never throws |
+| 3c | `onPaymentSuccess` (payment flow, applied only with Ziad's approval of this diff): after `createNewMeeting`, for an INSTANT order whose consultant has a user and whose meeting hasn't ended: `setConsultantOffline(userId)`, then `markConsultantBusy(...)`. It never throws and never delays the payment |
+| 3d | the dashboard hook: `instant-booked` or `instant-busy` → `/dashboard`; no more online retries while busy |
+| 4 | remove Pusher (as before); Vercel env vars removed after it is deployed: `PUSHER_APP_ID`, `PUSHER_SECRET`, `NEXT_PUBLIC_PUSHER_KEY`, `NEXT_PUBLIC_PUSHER_CLUSTER`; then the webhook disabled in the Pusher dashboard |
+
+**Guard before payment (3a, smallest fix).** Inside `reserveInstant`, the check and the order creation run in one transaction behind `pg_advisory_xact_lock(cid)`, so two simultaneous requests can't both pass. A booking is refused when this consultant already has an INSTANT order that is either:
+- PAID, with a meeting that hasn't ended (start + duration); or
+- NEW or PROCESSING, created in the last 10 minutes (the checkout hold).
+
+The hold blocks only other bookings; it never changes presence. The refusal uses the existing `{ state: false, code: "info", message }` with one new message, e.g. "هذا المستشار لديه حجز فوري الآن، برجاء اختيار مستشار آخر". Safety net in 3c: if a second INSTANT order still becomes PAID for a consultant who is already busy, alert the admin on Telegram.
+
+**Step 0 spec (`shwerni.backend`, additive)**
+
+- `PresenceService`: a `busyUntil` map; `setBusy(id, until)`, `isBusy(id)` (expired entries are dropped when read), `clear(id)` (removes every presence reference at once).
+- `POST /internal/consultant-busy` (`InternalSecretGuard`), body = the `instant-booked` payload. For every socket in `user:{id}`, `isOnlineConsultant = false`; then `clear(id)`, a `presence-changed online:false` broadcast if they were online, `notifyPresenceChange(id, false)` (always), and `instant-booked` to `user:{id}`.
+- `consultant-online` while busy: no presence; emits `instant-busy` to that socket; calls `notifyPresenceChange(id, false)`, which undoes the database ONLINE the app's presence route writes before it emits. Otherwise it behaves as today. The handler returns `{ online, busyUntil? }` as an ack; clients that don't ask for an ack (the app today) see no difference.
+- `ALLOWED_ORIGIN` accepts a comma-separated list; a single value works as today.
+- Unchanged: `consultant-offline`, `presence-changed`, `get-online-consultants`, `/presence/*`, `instant-request`, `instant-response`, `chat-message`.
+- The busy map lives in memory and is lost on a restart. The 3a guard still refuses bookings for a busy consultant.
+
+**Events (shared with the app)**
+
+- `instant-booked`, to `user:{consultantUserId}`:
+  `{ orderId: number, meetingId: string, meetingUrl: string, startsAt: string /* ISO */, duration: number, busyUntil: number /* epoch ms */ }`
+  `meetingUrl` is the consultant's own url (`meetingUrl(mid, OWNER participant)`, the one the WhatsApp meeting-url button sends). `busyUntil` = meeting start + duration.
+- `instant-busy`, to the socket that emitted `consultant-online`: `{ orderId: number, busyUntil: number }`.
+- The app doesn't listen for either yet (that's work in the app repo).
+
+**Instant API routes and server functions (paths and shapes unchanged)**
+
+| Route | Function behind it | Caller | Changes |
+|---|---|---|---|
+| `GET /api/realtime-token` | `mintRealtimeToken` | website socket client | Step 1: the role inside the token (open question) |
+| `GET /api/realtime-token/guest` | `mintRealtimeToken` | website guests (Step 2) | none |
+| `GET /api/online` | `getConsultantsOnline` | none on the website today | none |
+| `POST /api/internal/presence` | `setConsultantOnline/Offline` | realtime server | none |
+| `POST /api/internal/instant-snapshot` | `recordInstantSnapshot` | realtime server | none |
+| `POST /api/pusher/auth`, `/api/pusher/webhook` | Pusher, `handlePresenceWebhook` | pusher-js, the Pusher service | removed in Step 4 |
+| `GET /api/mobile/realtime-token` (+ `/guest`) | `mintRealtimeToken` | app `use-realtime-socket`, `lib/auth/realtime-auth` | none |
+| `GET /api/mobile/online` | `getConsultantsOnline` | app `use-online-consultants` | none |
+| `POST /api/mobile/consultants/consultant/presence` | `setConsultantOnline/Offline` | app `use-consultant-presence-toggle` | none |
+| `GET /api/mobile/consultants/consultant/instant-guard` | `getOwnerbyAuthor`, `checkUpcomingPaidSession` | app `use-instant-guard` | none |
+| `/api/mobile/reservations/instant` | POST commented out, GET stub | none | none |
+| `POST /api/mobile/reservations/[oid]/confirm` | `updateOrderStatus` → `onPaymentSuccess` | app | the 3c side effect only |
+| `POST /api/mobile/room/presence` | `userPresence` upsert (meeting presence, not instant) | app `use-heartbeat` | none |
+| server action `getOnlineConsultantsList` | `data/online.ts` | `hooks/useOnlineConsultants` | none |
+| server action `Pay` | `reserveInstant` | the `/instant` form | 3a |
+
+**Open**
+
+- `/api/realtime-token` (Step 1) now maps roles to OWNER / USER. The response shape is unchanged, but this isn't a Pusher change. Keep it or revert it?
+- The 10-minute checkout hold.
+- The 3c `onPaymentSuccess` diff needs Ziad's explicit approval (payment flow).
+
+## 2026-10-22 · Pusher removal: plan approved
+
+**Approved by Ziad**, with:
+
+- **`/api/realtime-token` role mapping (Step 1): kept.** The app never calls it. Its `api` helper prefixes every endpoint with `/api/mobile/` (`lib/api.ts:85` in the app repo), so `use-realtime-socket` and `lib/auth/realtime-auth` both go to `/api/mobile/realtime-token`, and nothing in the app calls `/api/realtime-token` directly.
+- **10-minute checkout hold: OK, released as soon as our status says the payment failed or was cancelled.** The 3a guard only counts NEW and PROCESSING orders, so every outcome that changes the status releases it at once:
+  - Moyasar callback, definitive failure → HOLD;
+  - Tabby, any verified status other than authorized or closed → HOLD;
+  - the `/payment/failed` page → REFUSED;
+  - the `/payment/cancel` page → REFUSED (the owner's own NEW order);
+  - mobile `reservations/[oid]/confirm` → the gateway's state.
+
+  A checkout the client just closes stays NEW (nothing tells us), so it holds for the full 10 minutes. HOLD is also used for "paid, but the amount doesn't match" (an admin case): it releases the hold too, and if an admin later marks it paid, 3c makes the consultant busy if the meeting hasn't ended.
+
+**App follow-up** (app repo, not this one)
+
+- Listen for `instant-booked` on the consultant's socket: show the booking (the in-app notification with `meetingUrl`) and show the consultant as offline.
+- Listen for `instant-busy`: the realtime server refused `consultant-online` until `busyUntil`.
+- The presence toggle must reflect a refused `consultant-online`. Today `use-consultant-presence-toggle` sets `intendedOnline` after the POST to `consultants/consultant/presence` and the emit, without waiting for the server. It should use the `consultant-online` ack (`{ online, busyUntil? }`) or `instant-busy`, and must never show "online" while busy. The realtime server already writes OFFLINE back to the database when it refuses.
+- Optional: use the `consultant-online` ack to confirm the toggle in general.
+
+## 2026-10-22 · Pusher removal step 0 (realtime server, `shwerni.backend`)
+
+**Committed: `c1d2f32` realtime: consultant-busy for paid instant orders (additive)**
+
+- `POST /internal/consultant-busy` (internal secret):
+  - every socket of the consultant stops counting as online;
+  - `presence-changed online:false` if they were online;
+  - `instant-booked { orderId, meetingId, meetingUrl, startsAt, duration, busyUntil }` to `user:{id}`;
+  - next.js told OFFLINE;
+  - 400 for a bad body or a `busyUntil` in the past.
+- `consultant-online` while busy: refused until `busyUntil`; `instant-busy { orderId, busyUntil }` to that socket; the database put back OFFLINE.
+- `consultant-online` returns `{ online, busyUntil? }` as an ack. Clients that don't ask for one (the app today) see no change.
+- `ALLOWED_ORIGIN` accepts a comma-separated list.
+- Ziad's uncommitted `src/realtime/presence-notifier.ts` was left out.
+- Verified: `nest build`; 5 unit tests; a local run of the built server (throwaway secrets, `NEXT_INTERNAL_URL` pointed at a dead local port) passed 16 end-to-end checks; CORS with two origins.
+
+**Second commit (waiting for Ziad's OK):**
+
+- A second `consultant-online` from a socket that is already online adds no reference. Before, that left the consultant listed after disconnect (a ghost).
+- `src/realtime/realtime.gateway.spec.ts`: 4 tests (double emit then disconnect, two sockets, offline then online on one socket, refused while busy). The double-emit test fails without the fix.
+- `package.json` jest `moduleNameMapper` (`.js` specifiers → `.ts`): needed by the first test that imports the gateway. Tests only.
+- `scripts/realtime-busy-test.js`: the end-to-end script (19 checks, double emit included). Secrets come from env vars only; `socket.io-client` comes through `NODE_PATH` (not a dependency of this repo).
+- Verified: eslint clean on the changed files; 9 of 9 realtime tests; `nest build`; 19 of 19 end-to-end checks locally.
+- `src/app.controller.spec.ts` was already broken (`getHello` no longer exists) and is unchanged.

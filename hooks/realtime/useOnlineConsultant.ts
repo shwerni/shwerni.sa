@@ -1,24 +1,47 @@
 "use client";
 
 // React
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // packages
-import { io, Socket } from "socket.io-client";
+import type { Socket } from "socket.io-client";
 
-type Counts = {
-  owners: number;
-  clients: number;
-  guests: number;
-  total: number;
+// utils
+import {
+  createRealtimeSocket,
+  fetchOnlineIds,
+  fetchPresenceCounts,
+  PresenceCounts,
+} from "@/lib/api/realtime/socket-client";
+
+type PresenceChanged = {
+  consultantId: string;
+  online: boolean;
+  onlineCount: number;
+  counts: PresenceCounts;
 };
+
+// the server checks the token after "connect" fires, so an emit right after connect can be
+// ignored. the public online list confirms it; each emit gets these checks before the next one
+const CONFIRM_CHECKS_MS = [1_000, 2_500, 5_000];
+const MAX_ONLINE_EMITS = 3;
+
+// a server-side disconnect (refused token, rate limit) is never retried by socket.io itself
+const SERVER_DISCONNECT_RETRY_MS = 5_000;
+
+// connection events don't broadcast counts, so the clients count is refreshed while online
+const COUNTS_REFRESH_MS = 30_000;
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function useConsultantPresence({ userId }: { userId: string }) {
   const socketRef = useRef<Socket | null>(null);
-  const connectingRef = useRef(false);
+  // set by goOffline and unmount: no reconnect, no state updates
+  const stoppedRef = useRef(false);
+  // connected = the realtime server lists this consultant as online
   const [connected, setConnected] = useState(false);
   const [onlineCount, setOnlineCount] = useState(0);
-  const [counts, setCounts] = useState<Counts>({
+  const [counts, setCounts] = useState<PresenceCounts>({
     owners: 0,
     clients: 0,
     guests: 0,
@@ -27,186 +50,113 @@ export function useConsultantPresence({ userId }: { userId: string }) {
 
   useEffect(() => {
     if (!userId) return;
-    if (connectingRef.current || socketRef.current) return;
-    connectingRef.current = true;
-    let mounted = true;
+    stoppedRef.current = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
-    async function fetchCounts() {
+    async function refreshCounts() {
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/presence/counts`,
-        );
-        const freshCounts = await res.json();
-        if (mounted) setCounts(freshCounts);
+        const fresh = await fetchPresenceCounts();
+        if (!stoppedRef.current) setCounts(fresh);
       } catch (err) {
-        console.error("[presence] failed to fetch initial counts:", err);
+        console.error("[presence] failed to fetch counts:", err);
       }
     }
 
+    async function isListed() {
+      try {
+        return (await fetchOnlineIds()).includes(userId);
+      } catch {
+        return false;
+      }
+    }
+
+    // emits consultant-online again only while the server doesn't list us: every processed
+    // emit adds a presence reference on the server, so a second one must never follow a success
+    async function goOnline(socket: Socket) {
+      for (let emit = 0; emit < MAX_ONLINE_EMITS; emit++) {
+        socket.emit("consultant-online");
+
+        for (const ms of CONFIRM_CHECKS_MS) {
+          await wait(ms);
+          if (stoppedRef.current || socketRef.current !== socket || !socket.connected)
+            return;
+          if (await isListed()) {
+            setConnected(true);
+            void refreshCounts();
+            return;
+          }
+        }
+      }
+      console.error("[presence] the realtime server never listed this consultant");
+    }
+
     async function connect() {
-      const res = await fetch("/api/realtime-token");
-      const { token } = await res.json();
+      let socket: Socket;
+      try {
+        socket = await createRealtimeSocket("user");
+      } catch (err) {
+        console.error("[presence] failed to load the socket client:", err);
+        return;
+      }
 
-      if (!mounted) return;
-
-      const socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL!;
-      const socket = io(socketUrl, { auth: { token } });
+      // unmounted while loading
+      if (stoppedRef.current) {
+        socket.disconnect();
+        return;
+      }
       socketRef.current = socket;
 
+      // every connect is a new socket on the server, so it announces itself again
       socket.on("connect", () => {
-        if (!mounted) return;
-        setConnected(true);
-        socket.emit("consultant-online");
-        // get the real current snapshot the moment we connect
-        void fetchCounts();
+        if (stoppedRef.current) return;
+        void goOnline(socket);
       });
 
       socket.on("connect_error", (err) => {
         console.error("[presence] connect_error:", err.message);
       });
 
-      socket.on("disconnect", () => {
-        if (!mounted) return;
+      socket.on("disconnect", (reason) => {
+        if (stoppedRef.current) return;
         setConnected(false);
+
+        if (reason === "io server disconnect") {
+          retryTimer = setTimeout(() => {
+            if (!stoppedRef.current) socket.connect();
+          }, SERVER_DISCONNECT_RETRY_MS);
+        }
       });
 
-      socket.on(
-        "presence-changed",
-        (payload: {
-          consultantId: string;
-          online: boolean;
-          onlineCount: number;
-          counts: Counts;
-        }) => {
-          if (!mounted) return;
-          setOnlineCount(payload.onlineCount);
-          setCounts(payload.counts);
-        },
-      );
+      socket.on("presence-changed", (payload: PresenceChanged) => {
+        if (stoppedRef.current) return;
+        setOnlineCount(payload.onlineCount);
+        setCounts(payload.counts);
+      });
     }
 
     void connect();
+    const countsTimer = setInterval(() => {
+      if (socketRef.current?.connected) void refreshCounts();
+    }, COUNTS_REFRESH_MS);
 
     return () => {
-      mounted = false;
-      connectingRef.current = false;
+      stoppedRef.current = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      clearInterval(countsTimer);
       socketRef.current?.emit("consultant-offline");
       socketRef.current?.disconnect();
       socketRef.current = null;
     };
   }, [userId]);
 
-  return { connected, onlineCount, counts };
+  // explicit offline on the realtime server (revalidation timeout). the page keeps its current
+  // state until the caller navigates away, so nothing flashes before the redirect
+  const goOffline = useCallback(() => {
+    stoppedRef.current = true;
+    socketRef.current?.emit("consultant-offline");
+    socketRef.current?.disconnect();
+    socketRef.current = null;
+  }, []);
+
+  return { connected, onlineCount, counts, goOffline };
 }
-// "use client";
-
-// // React
-// import { useEffect, useRef, useState } from "react";
-
-// // packages
-// import { io, Socket } from "socket.io-client";
-
-// type Counts = {
-//   owners: number;
-//   clients: number;
-//   guests: number;
-//   total: number;
-// };
-
-// export function useConsultantPresence({ userId }: { userId: string }) {
-//   const socketRef = useRef<Socket | null>(null);
-//   const connectingRef = useRef(false);
-//   const [connected, setConnected] = useState(false);
-//   const [onlineCount, setOnlineCount] = useState(0);
-//   const [counts, setCounts] = useState<Counts>({
-//     owners: 0,
-//     clients: 0,
-//     guests: 0,
-//     total: 0,
-//   });
-
-//   useEffect(() => {
-//     if (!userId) return;
-//     if (connectingRef.current || socketRef.current) return;
-
-//     connectingRef.current = true;
-//     let mounted = true;
-
-//     async function connect() {
-//       const res = await fetch("/api/realtime-token");
-//       const { token } = await res.json();
-
-//       if (!mounted) return;
-
-//       const socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL!;
-//       const socket = io(socketUrl, { auth: { token } });
-//       socketRef.current = socket;
-
-//       socket.on("connect", () => {
-//         if (!mounted) return;
-//         setConnected(true);
-//         socket.emit("consultant-online");
-//       });
-
-//       socket.on("connect_error", (err) => {
-//         console.error("[presence] connect_error:", err.message);
-//       });
-
-//       socket.on("disconnect", () => {
-//         if (!mounted) return;
-//         setConnected(false);
-//       });
-
-//       socket.on(
-//         "presence-changed",
-//         (payload: {
-//           consultantId: string;
-//           online: boolean;
-//           onlineCount: number;
-//           counts: Counts;
-//         }) => {
-//           if (!mounted) return;
-//           setOnlineCount(payload.onlineCount);
-//           setCounts(payload.counts);
-//         },
-//       );
-//     }
-
-//     void connect();
-
-//     return () => {
-//       mounted = false;
-//       connectingRef.current = false;
-//       socketRef.current?.emit("consultant-offline");
-//       socketRef.current?.disconnect();
-//       socketRef.current = null;
-//     };
-//   }, [userId]);
-
-//   // separate, independent effect: whenever we transition to connected,
-//   // fetch a fresh snapshot — decoupled from the socket event closure so it
-//   // can't be affected by a stale closure from a discarded connection attempt
-//   useEffect(() => {
-//     if (!connected) return;
-
-//     let cancelled = false;
-
-//     async function fetchCounts() {
-//       try {
-//         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/presence/counts`);
-//         const freshCounts = await res.json();
-//         if (!cancelled) setCounts(freshCounts);
-//       } catch (err) {
-//         console.error("[presence] failed to fetch initial counts:", err);
-//       }
-//     }
-
-//     void fetchCounts();
-
-//     return () => {
-//       cancelled = true;
-//     };
-//   }, [connected]);
-
-//   return { connected, onlineCount, counts };
-// }
