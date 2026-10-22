@@ -69,7 +69,7 @@ Section 1 was written from one page's manifest. These come from the full manifes
    - `createMeetingMessage` and `toggleUserBlock` are client-called actions with no session.
 7. **`POST /api/uploadthing/delete`** (public, file has `"use server"`) deletes any UploadThing `key` with no auth. The `chatAttachment` uploader in `app/api/uploadthing/core.ts` has `.middleware(async () => { return {}; })`, so it accepts uploads without login.
 8. **Messaging from company accounts.** `sendWhatsappText` (arbitrary text to any phone), `sendWhatsappTemplate`, 12 `notification*` functions including `notificationSecurityOtp`, and 7 `telegram*` functions are exposed on 12–22 pages.
-9. **`POST /api/pusher/auth`** trusts `userId` from form data (`const userId = formData.get("userId") as string;`). Any logged-in user can join the consultants presence channel as any consultant.
+9. **The old presence auth route** trusted `userId` from form data. Fixed first (the user came from the session), then the route was removed on 2026-10-22, see docs/progress.md.
 10. **Admin and staff data.**
     - `setSetting` / `setSettings` write site settings.
     - `getEmployeeInfo` / `getEmployeesByRole` look up staff.
@@ -204,7 +204,7 @@ Sorted by severity, then file. "Pages" lists pages when there are one or two; ot
 | 120 | `isMeetingNeedsReschedule`<br>data/meetings.ts:176 | `/meetings/[mid]`<br>`/reschedule/[mid]`<br>public page: yes | — | `lib/api/whatsapp/logic.ts` | read | none (scoped only by caller-supplied `mid`) | **High**: private session data / meeting links | remove "use server" |
 | 121 | `orderMeetingUrl`<br>data/meetings.ts:48 | `/meetings/[mid]`<br>`/reschedule/[mid]`<br>public page: yes | — | — | mutation | none (scoped only by caller-supplied `oid`) | **High**: private session data / meeting links | remove "use server" |
 | 122 | `participantAttendance`<br>data/meetings.ts:18 | `/meetings/[mid]`<br>`/reschedule/[mid]`<br>public page: yes | — | `components/clients/meetings/index.tsx` | mutation | none | **High**: private session data / meeting links | remove "use server" |
-| 123 | `handlePresenceWebhook`<br>data/online.ts:107 | 12 pages (see appendix)<br>public page: yes | — | `app/api/pusher/webhook/route.ts` | mutation | none (scoped only by caller-supplied `userId`) | **High**: mutation without auth or ownership (like `saveConsultant`) | remove "use server" |
+| 123 | `handlePresenceWebhook` (removed on 2026-10-22, see docs/progress.md, with its webhook route) | — | — | — | — | — | — | — |
 | 124 | `setConsultantOffline`<br>data/online.ts:348 | 12 pages (see appendix)<br>public page: yes | — | `app/api/internal/presence/route.ts`<br>`app/api/mobile/consultants/consultant/presence/route.ts` | mutation | none (scoped only by caller-supplied `userId`) | **High**: mutation without auth or ownership (like `saveConsultant`) | remove "use server" |
 | 125 | `setConsultantOnline`<br>data/online.ts:339 | 12 pages (see appendix)<br>public page: yes | — | `app/api/internal/presence/route.ts`<br>`app/api/mobile/consultants/consultant/presence/route.ts` | mutation | none (scoped only by caller-supplied `userId`) | **High**: mutation without auth or ownership (like `saveConsultant`) | remove "use server" |
 | 126 | `updateConsultantBaseCosts`<br>data/packages.ts:18 | `/dashboard/packages`<br>`/consultants/[cid]`<br>public page: yes | `components/consultant/packages/packages.tsx` | — | mutation | none (scoped only by caller-supplied `cid`) | **High**: mutation without auth or ownership (like `saveConsultant`) | needs an action |
@@ -392,7 +392,7 @@ Sorted by severity, then file. "Pages" lists pages when there are one or two; ot
 75 route files. Two layers apply before the handler runs:
 
 - `proxy.ts` rejects every `/api/mobile/*` request without `x-app-secret === APP_SECRET`. The same secret is checked again by `requireAppSecret` inside `createGetRoute` / `createPostRoute` / `route-factory`. It is a shared app secret, not a user identity.
-- Other `/api/*` paths need a NextAuth token unless they are in `publicRoutes` / `DynamicpublicRoutes` in `routes.ts`. Public: `/api/cron`, `/api/gatewaies/*`, `/api/internal`, `/api/meetings`, `/api/online`, `/api/pusher/webhook`, `/api/realtime-token`, `/api/revalidate`, `/api/uploadthing`, `/api/whatsapp`, plus `/api/auth` (prefix). Not public: `/api/pusher/auth` and `/api/livekit/webhook`.
+- Other `/api/*` paths need a NextAuth token unless they are in `publicRoutes` / `DynamicpublicRoutes` in `routes.ts`. Public: `/api/cron`, `/api/gatewaies/*`, `/api/internal`, `/api/meetings`, `/api/online`, `/api/realtime-token`, `/api/revalidate`, `/api/uploadthing`, `/api/whatsapp`, plus `/api/auth` (prefix). Not public: `/api/livekit/webhook`.
 
 "App secret" below means both layers. "Raw Prisma" is "yes" when the route returns a Prisma model type or a query without `select`, "no" when it builds its own object, and "unverified" when the shape comes from a `data/` function that wasn't read for this audit.
 
@@ -465,8 +465,6 @@ Sorted by severity, then file. "Pages" lists pages when there are one or two; ot
 | `mobile/test/notifications/instant` | POST | app secret + `requireMobileUser` | no | session id | unverified | test route |
 | `mobile/test/notifications` | POST | app secret + `requireMobileUser` | no | session id | no | test route |
 | `online` | GET | **none** (public) | no | n/a | unverified (`getConsultantsOnline`) | |
-| `pusher/auth` | POST | NextAuth token required by `proxy.ts`; the route itself reads none | no | **no**: `userId` from form data | no | see finding 9 |
-| `pusher/webhook` | POST | webhook signature (HMAC of body vs `x-pusher-signature`, compared with `!==`) | no | n/a | no | |
 | `realtime-token/guest` | GET | **none** (public) | no | n/a | no | mints a `GUEST` token |
 | `realtime-token` | GET | NextAuth `auth()` | no | session id | no | |
 | `revalidate` | POST | shared secret `x-dashboard-secret` | no (`typeof tag`) | n/a | no | |

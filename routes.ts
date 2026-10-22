@@ -30,7 +30,6 @@ export const publicRoutes = [
   "/api/revalidate",
   "/api/whatsapp",
   "/api/instant",
-  "/api/pusher/webhook",
   "/api/gatewaies/moyasar",
   "/api/gatewaies/tabby",
   "/api/uploadthing",

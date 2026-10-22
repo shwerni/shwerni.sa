@@ -15,10 +15,7 @@ import {
   getCouponByCode,
 } from "@/data/coupon";
 import { toggleFavorite as toggleFavoriteData } from "@/data/favorites";
-import {
-  checkIsAnyConsultantOnline as checkIsAnyConsultantOnlineData,
-  getOnlineConsultantsList as getOnlineConsultantsListData,
-} from "@/data/online";
+import { getOnlineConsultantsList as getOnlineConsultantsListData } from "@/data/online";
 import {
   getAvailableTimesForDate as getAvailableTimesForDateData,
   getConsultantsAvailableAt as getConsultantsAvailableAtData,
@@ -120,11 +117,6 @@ export async function toggleFavorite(
 }
 
 // ---------- online consultants ----------
-
-// public
-async function checkIsAnyConsultantOnline() {
-  return checkIsAnyConsultantOnlineData();
-}
 
 // the live ids come from the realtime server (server-side, behind the internal secret).
 // unreachable: an empty list, since no consultant can be online without it

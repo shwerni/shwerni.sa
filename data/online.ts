@@ -1,6 +1,5 @@
 import "server-only";
 import prisma from "@/lib/database/db";
-import { pusherServer } from "@/lib/api/pusher/pusher-server";
 import {
   Categories,
   Gender,
@@ -32,20 +31,6 @@ import {
   INSTANT_WINDOW_PASSED_NOTE,
 } from "@/constants/instant";
 
-const BUSY_SUBQUERY = `
-  EXISTS (
-    SELECT 1 FROM orders o
-    JOIN payments p ON p."orderId" = o."oid"
-    JOIN meetings m ON m."orderId" = o."oid"
-    WHERE o."consultantId" = c."cid"
-      AND p."payment" IN ('NEW', 'PROCESSING', 'PAID')
-      AND m."done" = false
-      AND m."date" = TO_CHAR(NOW() AT TIME ZONE 'Asia/Riyadh', 'YYYY-MM-DD')
-      AND m."time" >= TO_CHAR(NOW() AT TIME ZONE 'Asia/Riyadh' - INTERVAL '30 minutes', 'HH24:MI')
-      AND m."time" <= TO_CHAR(NOW() AT TIME ZONE 'Asia/Riyadh', 'HH24:MI')
-  )
-`;
-
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type OnlineConsultant = {
@@ -61,20 +46,6 @@ type OnlineConsultant = {
 
 // ─── Queries ─────────────────────────────────────────────────────────────────
 
-export async function checkIsAnyConsultantOnline(): Promise<boolean> {
-  // Also excludes busy consultants — consistent with the list
-  const result = await prisma.$queryRawUnsafe<{ count: bigint }[]>(`
-    SELECT COUNT(*) as count FROM consultants c
-    WHERE c."online_status" = 'ONLINE'
-    AND c."statusA" = 'PUBLISHED'
-    AND c."approved" = 'APPROVED'
-    AND c."status" = true
-    AND c."centerId" IS NULL
-    AND NOT ${BUSY_SUBQUERY}
-  `);
-  return Number(result[0]?.count ?? 0) > 0;
-}
-
 // the website's online list: the realtime server's live ids, listable and not busy right now
 // (the same rule as the app's getConsultantsOnline, data/online-busy.ts)
 export async function getOnlineConsultantsList(
@@ -89,88 +60,6 @@ export async function getOnlineConsultantsList(
     AND ${ONLINE_LISTABLE}
     AND NOT ${consultantBusyAt(new Date())}
   `;
-}
-
-// ─── Internal helpers ────────────────────────────────────────────────────────
-
-async function getAvailableCount(): Promise<number> {
-  const result = await prisma.$queryRawUnsafe<{ count: bigint }[]>(`
-    SELECT COUNT(*) as count FROM consultants c
-    WHERE c."online_status" = 'ONLINE'
-    AND c."statusA" = 'PUBLISHED'
-    AND c."approved" = 'APPROVED'
-    AND c."status" = true
-    AND c."centerId" IS NULL
-    AND NOT ${BUSY_SUBQUERY}
-  `);
-  return Number(result[0]?.count ?? 0);
-}
-
-async function trigger(
-  userId: string,
-  isOnline: boolean,
-  consultant: OnlineConsultant,
-) {
-  const onlineCount = await getAvailableCount();
-  await pusherServer.trigger("public-consultant-status", "status-changed", {
-    userId,
-    isOnline,
-    consultant,
-    anyOnline: onlineCount > 0,
-    onlineCount,
-  });
-}
-
-// ─── Webhook handler ─────────────────────────────────────────────────────────
-
-export async function handlePresenceWebhook(userId: string, isOnline: boolean) {
-  // Run update + fetch in parallel
-  const [, consultant] = await Promise.all([
-    prisma.consultant.update({
-      where: { userId },
-      data: {
-        online_status: isOnline ? OnlineStatus.ONLINE : OnlineStatus.OFFLINE,
-        online_at: isOnline ? new Date() : null,
-      },
-      select: { userId: true },
-    }),
-    prisma.consultant.findUnique({
-      where: { userId },
-      select: {
-        userId: true,
-        cid: true,
-        name: true,
-        image: true,
-        gender: true,
-        rate: true,
-        category: true,
-        cost30: true,
-      },
-    }),
-  ]);
-
-  if (!consultant) return;
-
-  // If going online, check if they're currently busy in a meeting
-  let isAvailable = isOnline;
-  if (isOnline) {
-    const busy = await prisma.$queryRawUnsafe<unknown[]>(`
-      SELECT 1 FROM orders o
-      JOIN payments p ON p."orderId" = o."oid"
-      JOIN meetings m ON m."orderId" = o."oid"
-      WHERE o."consultantId" = ${consultant.cid}
-        AND p."payment" IN ('NEW', 'PROCESSING', 'PAID')
-        AND m."done" = false
-        AND m."date" = TO_CHAR(NOW() AT TIME ZONE 'Asia/Riyadh', 'YYYY-MM-DD')
-        AND m."time" >= TO_CHAR(NOW() AT TIME ZONE 'Asia/Riyadh' - INTERVAL '30 minutes', 'HH24:MI')
-        AND m."time" <= TO_CHAR(NOW() AT TIME ZONE 'Asia/Riyadh', 'HH24:MI')
-      LIMIT 1
-    `);
-    isAvailable = busy.length === 0;
-  }
-
-  // found by userId, so its userId is this one (the column is nullable for center consultants)
-  await trigger(userId, isAvailable, { ...consultant, userId });
 }
 
 const UNAVAILABLE = {
@@ -380,43 +269,6 @@ export const reserveInstant = async (
     } satisfies ReserveResult<never>;
   }
 };
-
-// export async function handlePresenceWebhook(userId: string, isOnline: boolean) {
-//   await prisma.consultant.update({
-//     where: { userId },
-//     data: {
-//       online_status: isOnline ? OnlineStatus.ONLINE : OnlineStatus.OFFLINE,
-//       online_at: isOnline ? new Date() : null,
-//     },
-//     select: { userId: true },
-//   });
-
-//   const consultant = await prisma.consultant.findUnique({
-//     where: { userId },
-//     select: {
-//       userId: true,
-//       cid: true,
-//       name: true,
-//       image: true,
-//       gender: true,
-//       rate: true,
-//       category: true,
-//       cost30: true,
-//     },
-//   });
-
-//   const onlineCount = await prisma.consultant.count({
-//     where: { online_status: OnlineStatus.ONLINE },
-//   });
-
-//   await pusherServer.trigger("public-consultant-status", "status-changed", {
-//     userId,
-//     isOnline,
-//     consultant,
-//     anyOnline: onlineCount > 0,
-//     onlineCount,
-//   });
-// }
 
 // sets a consultant online in the db, called right before the socket
 // emits consultant-online so the two stay in sync

@@ -35,7 +35,7 @@ No code reaches Consultant through `article`/`question`/... relations named anyt
 | # | file:line | function | op | class | note |
 |---|---|---|---|---|---|
 | 1 | `app/(pages)/(site)/(sub-pages)/reels/actions.ts:103` | getConsultantsAvailableAt | findMany | DISC, covered | ⚠️ A |
-| 2 | `app/api/pusher/auth/route.ts:20` | POST | findUnique by userId | SELF | presence channel auth |
+| 2 | the old presence auth route (removed on 2026-10-22, see docs/progress.md) | POST | findUnique by userId | SELF | presence channel auth |
 | 3 | `data/admin/tools/oath.ts:9` | getAuthStateById | findUnique | SELF | |
 | 4 | `data/admin/tools/oath.ts:31` | confirmOathAcceptance | findUnique | SELF | |
 | 5 | `data/article.ts:304` | addArticleComment | findUnique by userId | SELF | |
@@ -168,7 +168,7 @@ Both are raw SQL on `consultant_timings`, used in booking. They're TRANS; no cen
 - **E.** `BotConsultantOrder` finds orders by the consultant's phone, for the WhatsApp/AI bot. If a center enters a phone number on its consultant, that person can read that consultant's orders over WhatsApp. That's a login-less consultant access path, which the spec rules out for v1.
 - **F.** `getCouponsForHome` and `getCoupons` list public coupons with their consultant. They must exclude center consultants **and** coupons with `centerId` set, or `type = CENTER`.
 - **G.** `getPaidPast3Days` drives the home "someone just booked X" notification (`components/clients/home/notification/notification.tsx`) and `actions/order.ts`. It's an order query, but its output is public and shows consultant names. Treat it as DISC: filter `order.centerId: null` once that column exists.
-- **H.** The online/instant lists are raw SQL against `consultants` joined to Redis presence. Presence comes from Pusher and the `presence-consultants` channel. Only logged-in owners join it, and center consultants can't log in, so in practice they never appear. Still add the filter, because the spec asks for safety by default.
+- **H.** The online/instant lists are raw SQL against `consultants` joined to Redis presence. Presence comes from the realtime server (consultant sockets; the old presence provider was removed on 2026-10-22). Only logged-in owners go online there, and center consultants can't log in, so in practice they never appear. Still add the filter, because the spec asks for safety by default.
 
 ---
 
@@ -431,7 +431,7 @@ export const applyCoupon = async (user: string, code: string, cid: number) =>
 8. **`userRole()` doesn't exist.** It's `roleServer()` (and `userServer()`), in `lib/auth/server.ts`.
 9. **There's no `middleware.ts`.** It's `proxy.ts`.
 10. **Required user ids.** `Consultant.userId String @unique` and `ConsultantTiming.userId String` are both required today.
-    - Code assumes they're present: `verifyToken`, the presence/Pusher code, `updateTimings(userId, …)` and the owner helpers all key on `userId`.
+    - Code assumes they're present: `verifyToken`, the presence code, `updateTimings(userId, …)` and the owner helpers all key on `userId`.
     - Center consultants with `userId = null` won't reach these paths, but types will widen to `string | null` and need handling.
 11. **Most discovery reads are raw SQL** (§1.3, about 20 sites). The "safe by default" goal of §6.1 doesn't hold for them: any new raw query that forgets `centerId IS NULL` leaks.
 12. **Dual-use helpers** (`getConsultantInfo`, `getConsultant`) can't be classified as one client. The spec's "existing name becomes safe, fails loudly" will break center booking pages until they're split.

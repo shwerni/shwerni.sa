@@ -677,7 +677,7 @@ Phase complete on 2026-10-02 (see the final entry in `docs/progress.md`).
   - the account takeover chain and account edits
   - `server-only` for server-only callers
   - `actions/` wrappers for client-called functions
-  - the open routes (meeting chats, uploadthing delete, pusher auth)
+  - the open routes (meeting chats, uploadthing delete, the old presence auth route, removed on 2026-10-22, see docs/progress.md)
   - Tabby verification and the cancel page
 - [x] Hotfix follow-ups:
   - OTP attempt limit
