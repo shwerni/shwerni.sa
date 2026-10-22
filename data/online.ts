@@ -2,7 +2,6 @@ import "server-only";
 import prisma from "@/lib/database/db";
 import { pusherServer } from "@/lib/api/pusher/pusher-server";
 import {
-  ApprovalState,
   Categories,
   Gender,
   OnlineStatus,
@@ -20,6 +19,7 @@ import { riyadhDateString } from "@/utils/date";
 import { orderInfoLabel } from "@/utils";
 import { ConsultantCard } from "@/types/layout";
 import { ReserveResult } from "@/types/admin";
+import { ONLINE_LISTABLE, consultantBusyAt } from "./online-busy";
 
 const BUSY_SUBQUERY = `
   EXISTS (
@@ -64,17 +64,20 @@ export async function checkIsAnyConsultantOnline(): Promise<boolean> {
   return Number(result[0]?.count ?? 0) > 0;
 }
 
-export async function getOnlineConsultantsList(): Promise<OnlineConsultant[]> {
-  return prisma.$queryRawUnsafe<OnlineConsultant[]>(`
+// the website's online list: the realtime server's live ids, listable and not busy right now
+// (the same rule as the app's getConsultantsOnline, data/online-busy.ts)
+export async function getOnlineConsultantsList(
+  onlineIds: string[],
+): Promise<OnlineConsultant[]> {
+  if (onlineIds.length === 0) return [];
+
+  return prisma.$queryRaw<OnlineConsultant[]>`
     SELECT c."userId", c."cid", c."name", c."image", c."gender", c."category", c."rate", c."cost30"
     FROM consultants c
-    WHERE c."online_status" = 'ONLINE'
-    AND c."statusA" = 'PUBLISHED'
-    AND c."approved" = 'APPROVED'
-    AND c."status" = true
-    AND c."centerId" IS NULL
-    AND NOT ${BUSY_SUBQUERY}
-  `);
+    WHERE c."userId" = ANY(${onlineIds}::text[])
+    AND ${ONLINE_LISTABLE}
+    AND NOT ${consultantBusyAt(new Date())}
+  `;
 }
 
 // ─── Internal helpers ────────────────────────────────────────────────────────
@@ -364,7 +367,8 @@ export async function setConsultantOffline(userId: string) {
 }
 
 // full profile data for consultants currently online, keyed by the
-// live id list nest already holds in memory
+// live id list nest already holds in memory. listable and not busy right now: the same rule as
+// the website's getOnlineConsultantsList (data/online-busy.ts)
 export async function getConsultantsOnline(
   userIds: string[],
   filters: { search?: string; categories?: string[]; gender?: string } = {},
@@ -400,9 +404,8 @@ export async function getConsultantsOnline(
       FROM "consultants" c
       WHERE
         c."userId" = ANY(${userIds}::text[])
-        AND c.status = true
-        AND c."centerId" IS NULL
-        AND c.approved = ${ApprovalState.APPROVED}::"ApprovalState"
+        AND ${ONLINE_LISTABLE}
+        AND NOT ${consultantBusyAt(new Date())}
         AND (${filters.categories?.length ?? 0} = 0 OR c.category = ANY(${filters.categories ?? []}::"Categories"[]))
         AND (${filters.gender ?? null}::text IS NULL OR c.gender = ${filters.gender ?? null}::"Gender")
         AND (${filters.search ?? null}::text IS NULL OR c.name ILIKE '%' || ${filters.search ?? null} || '%' OR c.title ILIKE '%' || ${filters.search ?? null} || '%')

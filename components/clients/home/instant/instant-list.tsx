@@ -8,21 +8,32 @@ import { useOnlineConsultants } from "@/hooks/useOnlineConsultants";
 // components
 import ConsultantCard from "./card";
 import Title from "../../shared/titles";
-
-// icons
-import { ArrowLeft, ArrowRight } from "lucide-react";
 import Section from "../../shared/section";
 import LoadingAnimation from "../../instant/skeleton";
 
-export default function InstantList() {
-  // get online consultants
-  const { consultants } = useOnlineConsultants();
+// utils
+import { clampPage } from "@/utils/pagination";
 
-  const [currentPage, setCurrentPage] = React.useState(0);
+// icons
+import { ArrowLeft, ArrowRight } from "lucide-react";
+
+export default function InstantList() {
+  // get online consultants; live updates start once the section scrolls into view
+  const sectionRef = React.useRef<HTMLElement>(null);
+  const { consultants } = useOnlineConsultants({ liveWhenVisible: sectionRef });
+
+  const [selectedPage, setCurrentPage] = React.useState(0);
   const itemsPerPage = 4;
 
   const showArrows = consultants?.length > itemsPerPage;
   const totalPages = Math.ceil((consultants?.length || 0) / itemsPerPage);
+
+  // the list can shrink while a page is open (a consultant goes offline): never an empty page
+  const currentPage = clampPage(
+    selectedPage,
+    consultants?.length || 0,
+    itemsPerPage,
+  );
 
   const visibleConsultants = consultants?.slice(
     currentPage * itemsPerPage,
@@ -30,15 +41,15 @@ export default function InstantList() {
   );
 
   const handleNextPage = () => {
-    setCurrentPage((prev) => (prev + 1) % totalPages);
+    setCurrentPage((currentPage + 1) % totalPages);
   };
 
   const handlePrevPage = () => {
-    setCurrentPage((prev) => (prev - 1 + totalPages) % totalPages);
+    setCurrentPage((currentPage - 1 + totalPages) % totalPages);
   };
 
   return (
-    <Section className="w-full px-4 py-5 space-y-6">
+    <Section ref={sectionRef} className="w-full px-4 py-5 space-y-6">
       <Title subTitle="" title="المستشارون المتاحون الآن" />
 
       {/* Conditional Rendering: Show Loading OR Content */}

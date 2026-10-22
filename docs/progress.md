@@ -4838,3 +4838,141 @@ Dashboard tabs still running the old javascript get 401 on counts after 4a until
 - In Node, socket.io's own reconnection did stop after 5 attempts and fired `reconnect_failed`, after about 60 to 90s with the hook's delays. The browser's endless loop wasn't reproduced; either way, the cap no longer depends on socket.io.
 - `reconnection: false`: `connect_error`, every disconnect (a drop or a server-side one), an ack failure or an early refusal each count as one failed attempt in the hook's own `retryLater` (2s, 4s, 8s, 16s, 30s). After 5 in a row comes the error screen. Only one retry is pending at a time.
 - Verified with the same loop against a dead port, delays scaled down: 6 attempts (the first plus 5 retries), then the failure, and nothing after it. tsc and eslint clean.
+
+## 2026-10-22 · Dashboard retry fix committed; Step 0c committed (realtime server, not pushed)
+
+**Website `856d9cb` (not pushed): dashboard retries capped for connect_error too.** Before the commit, the real hook (`hooks/realtime/useOnlineConsultant.ts`) was tested with a throwaway vitest harness outside the repo: a minimal react stand-in and a scripted socket that behaves like socket.io-client (a client disconnect emits `"io client disconnect"`). 7 of 7 pass:
+
+- `goOffline()` (revalidation timeout): one `consultant-offline`, one disconnect, then no reconnect, no new socket and no second `consultant-online` over 10 minutes;
+- unmount: the same;
+- `goOffline()` cancels a retry that was already scheduled;
+- unmount while the socket client is still loading: the socket is closed and never announces itself;
+- the counter resets after each online ack: 12 separate drops, each retried after the first delay (2s), never reach the error screen;
+- 5 failures in a row end on the error screen, with nothing after it;
+- `retry()` starts a fresh run with a fresh counter.
+
+Mutation checks:
+
+- Removing the `cancelled` check on `disconnect` alone still passes, because `retryLater`'s timer checks `cancelled` too (two guards). With both removed, the goOffline and unmount tests fail.
+- Removing the counter reset fails the 12-drops test.
+
+`npm run build` passes; the manifest shows only `"data/event.ts"` and `"lib/api/google.ts"`; eslint clean.
+
+**Realtime server `982cd65`: `get-presence-counts`.** Owners get `{ counts }`; every other socket gets `{ counts: null }`, so the ack always arrives. The test script reads `/internal/presence/online` with the secret.
+
+**Realtime server `6f2046a`: `presence-changed` counts for owner sockets only.**
+
+- Owner sockets also join `owners`. The event with `counts` goes to `owners`; the same change without `counts` goes to `public-presence` except `owners`, so every socket gets one event per change.
+- Unit tests: the two sends and their payloads; only owners join `owners`. 39 realtime tests pass.
+- `scripts/realtime-busy-test.js` locally (throwaway secrets): 36 of 36. An owner watcher and the consultant itself get one event with counts; a USER and a GUEST get one event without.
+
+**Mau health-check path:** still not filled in. `/` and `/robots.txt` stay public either way (Step 4a).
+
+**Next:** Ziad pushes Step 0c and runs the busy test against production. Then Step 2 (client lists) and Step 2b on the website.
+
+## 2026-10-22 · Step 2 plan (approved) and Step 0d (realtime server rate limit buckets)
+
+Step 0c is deployed; the busy test passes against production (Ziad).
+
+**Step 2 decisions (Ziad)**
+
+1. One source and one rule for both lists:
+   - online = the realtime server's `onlineIds`; the website's server action reads them server-side from the guarded `/internal/presence/online`;
+   - filters: approved, active, not in a center, **published** (now required by the app's list too), and the B2 busy rule.
+   - Response shapes don't change: the website keeps `{ userId, cid, name, image, gender, category, rate, cost30 }`; the app keeps `ConsultantCard` through `toCard`.
+2. B2 busy rule, one SQL fragment in `getOnlineConsultantsList` and `getConsultantsOnline`. Busy only with a PAID meeting, `done = false`, where start ≤ now < start + duration. The start is `(date || 'T' || time || ':00+03:00')::timestamptz` (correct across midnight), and `m.date` is limited to today or yesterday in Riyadh. NEW and PROCESSING no longer hide anyone.
+3. The consultant dashboard's "عملاء متواجدون" card shows `clients + guests` (website visitors connect as GUEST).
+4. The busy SQL is tested in a throwaway in-memory Postgres (PGlite through `npx`, outside the project, no dependency added). Cases: during a meeting, after it, before it, unpaid orders, `done = true`, and a session across midnight.
+5. Rate limit: Step 0d (below), deployed before the website push.
+6. List pages connect as GUEST, everyone included:
+   - **home:** only once the `InstantList` section scrolls into view (`IntersectionObserver`), disconnected when leaving the page;
+   - **`/instant`:** on mount.
+
+   Offline events remove the consultant locally; online events and reconnects trigger a debounced refetch; the list refetches when the tab becomes visible. Retries are capped and silent (the list still works, just not live). No browser HTTP to the realtime server.
+7. Callers:
+   - `getOnlineConsultantsList`: the `actions/site.ts` server action → `hooks/useOnlineConsultants.ts` → the home `InstantList` and `/instant`'s `steps/details.tsx`;
+   - `getConsultantsOnline`: `app/api/mobile/online` (the app) and `app/api/online` (no caller).
+   - `BUSY_SUBQUERY` stays only for the dead `checkIsAnyConsultantOnline` and the Pusher-only `getAvailableCount` until Step 4.
+8. `instant-list-new.txt` only moves two imports: no visible change.
+9. Pusher after Step 2: no client code. Server-side: the `reserveInstant` broadcast (removed in Step 3); dead until Step 4: `/api/pusher/*`, `lib/api/pusher/*`, `hooks/useOnlineConsultant.ts`, the packages and the env vars.
+
+**Step 0d (`shwerni.backend`, not committed yet):** separate rate limit buckets per ip.
+
+- `ConnectionRateLimiter.allow(ip, bucket = 'member')`: members (USER / OWNER) keep 20 a minute; guests get 120 a minute in a map of their own. Both maps are swept once a minute.
+- `handleConnection` checks the token first, then rate-limits by the verified role. GUEST sockets, and connections with a missing or invalid token, use the guest bucket, so guests on a shared ip (carrier nat) can never use up a consultant's or app user's limit.
+- Tests: 44 realtime tests. New ones: 120 guests a minute; separate windows per bucket on one ip; guest ips swept; through `handleConnection`, 120 guests then a refused guest and a refused invalid token while an OWNER and a USER from the same ip still connect; 20 members then refused while a guest still connects. The existing x-forwarded-for test now expects the guest bucket for a connection without a valid token.
+- `scripts/realtime-busy-test.js`:
+  - locally: the member bucket (20, then refused, another ip connects, a guest still connects) and the guest bucket (120, then refused, an OWNER and a USER from that ip still connect);
+  - `--rate-limit` against a server that isn't local: only the guest bucket (refused at or before 121, a faked x-forwarded-for still refused, a consultant on the ip still connects).
+  - Test ips now come from 198.18.0.0/15, each used once per run: the old 250-address pick collided once between two runs within a minute (an ip the first run had used up), which looked like a limiter failure.
+- Verified: eslint clean; `nest build`; the busy test 41 of 41, three runs in a row on one local server.
+
+## 2026-10-22 · Step 0d committed; Pusher removal step 2 (client lists on the realtime server)
+
+**Realtime server `7cdac2f` (not pushed): separate rate limit buckets for guests and members.** Ziad deploys it before the website push.
+
+**Step 2 files changed**
+
+- `data/online-busy.ts` (new): the one rule both lists use.
+  - `ONLINE_LISTABLE`: approved, active, published, not a center consultant.
+  - `consultantBusyAt(now)`, the B2 busy rule: a PAID meeting, `done = false`, start ≤ now < start + duration. The start is read with a fixed `+03:00`; only today's and yesterday's Riyadh dates are checked; a malformed `time` or `duration` is never cast (CASE). `now` is a parameter, so the test can fix it.
+- `data/online.ts`:
+  - `getOnlineConsultantsList(onlineIds)`: the realtime server's ids instead of `online_status`, plus `ONLINE_LISTABLE` and `NOT consultantBusyAt(now)`. `$queryRaw` instead of `$queryRawUnsafe`. Same columns.
+  - `getConsultantsOnline` (the app's list): the same two fragments in place of its own filters, so it now also requires published and leaves busy consultants out. Same columns and response.
+  - `BUSY_SUBQUERY` stays only for the dead `checkIsAnyConsultantOnline` and the Pusher-only `getAvailableCount` (Step 4).
+- `lib/api/realtime/internal.ts` (new, server-only): `getRealtimeOnlineIds()`, `GET {BACKEND_URL}/internal/presence/online` with `x-internal-secret`, a 3s timeout; throws on any failure.
+- `actions/site.ts`: the public `getOnlineConsultantsList` reads the ids through `getRealtimeOnlineIds()`. If that fails, it returns an empty list and logs. Same return type.
+- `hooks/useOnlineConsultants.ts`, rewritten in place, same return `{ consultants, loading, refetch }`:
+  - the list from the server action on mount, and again when the tab becomes visible (at most every 15s);
+  - live updates over a GUEST socket. An offline event removes that consultant locally; online events and reconnects trigger one debounced refetch (1s). An older answer still in flight when someone goes offline is dropped and fetched again.
+  - Capped silent retries: socket.io's own reconnection off; 5 failed connections in a row (2s to 30s), then live updates stop and the list keeps working. A connection counts as healthy only after 10s up, so a server that refuses right after connecting is capped too.
+  - New option `liveWhenVisible` (a ref): the socket opens only once that element scrolls into view (`IntersectionObserver`). Without it, it opens on mount. It closes on unmount.
+- `components/clients/home/instant/instant-list.tsx`: `instant-list-new.txt` applied (imports reordered), plus `liveWhenVisible` on its `Section`.
+- `components/clients/shared/section.tsx`: an optional `ref` prop (React 19), passed to the `<section>` it already renders. No markup change; other callers are unchanged.
+- `components/consultant/instant/index.tsx`: the "عملاء متواجدون" card shows `counts.clients + counts.guests`.
+- Unchanged: `/instant`'s `steps/details.tsx` (connects on mount), `app/api/mobile/online/route.ts`, `app/api/online/route.ts`. Their switch to `/internal/presence/online` is Step 2b.
+
+**Verified**
+
+- tsc clean; eslint clean on the changed files (`actions/site.ts` keeps its old unused `checkIsAnyConsultantOnline` warning).
+- The busy SQL, the real fragments, in PGlite (outside the project, no dependency added): 9 of 9.
+  - Cases: before, at the start, during, the last millisecond, at the end and after a meeting; a 60-minute session; NEW, PROCESSING, HOLD, REFUSED, CANCELED and REFUND never busy; `done = true` frees the consultant; a 23:45 and a 23:30 session crossing midnight; a 01:00 Riyadh meeting (22:00 UTC the day before); other days ignored; malformed `time` or `duration` rows skipped without breaking the query; `ONLINE_LISTABLE`.
+  - Mutations: removing `done = false`, or yesterday's date, fails its test.
+- The real hook through the throwaway vitest harness: 12 of 12 (with the dashboard hook's 7: 19 of 19).
+  - Cases: GUEST socket on mount for `/instant`; no socket until the home section is in view; leaving before that opens nothing; a lazy start refetches; offline removes without a refetch; a burst means one refetch; a stale answer is dropped; unmount never reconnects; connect errors capped at 6 attempts; refusal right after connect capped; a stable connection resets the counter; refetch on tab visible, at most every 15s, never while hidden.
+  - Mutations: removing the stale-answer drop, or resetting the counter on connect, fails its test.
+- No client code imports Pusher any more (only the dead `hooks/useOnlineConsultant.ts` and `lib/api/pusher/pusher-client.ts`, removed in Step 4).
+
+### Step 2 additions (Ziad, before testing): refetch stampede, home page clamp
+
+**Refetch stampede.** Every `presence-changed` online event made every connected visitor refetch about 1s later, all at once.
+
+- `lib/api/realtime/online-list-timing.ts` (new): `ONLINE_LIST_TTL_MS = 2000`, `REFETCH_MIN_MS = 2000`, `REFETCH_MAX_MS = 4000`, `refetchDelay()`. One file, so the cache and the jitter can't drift apart.
+- `lib/shared-ttl.ts` (new), `sharedTtl(load, ttlMs)`: callers share one in-flight load; a result is reused until its load *started* `ttlMs` ago; a failure is never kept. Per server instance, in memory.
+- `actions/site.ts`: `getOnlineConsultantsList` goes through `sharedTtl(loadOnlineConsultantsList, ONLINE_LIST_TTL_MS)`. However many visitors (or bots) call it, each instance does at most one database query and one realtime call per 2s. The return type is unchanged.
+- `hooks/useOnlineConsultants.ts`:
+  - after a change (an online event, a connection, a dropped stale answer), the visitor refetches at a random moment 2–4s later instead of about 1s;
+  - one refetch covers a burst. A change that arrives too late for the refetch already scheduled gets one more, between 2s after the last such change and 4s after the first (never an empty window: they all arrived in the 2s before that refetch);
+  - every connection now refetches, including the first on `/instant`, so changes between the page load and the connection are caught.
+- **How the TTL and the jitter fit the constraint:**
+  - every change-triggered refetch starts at least `REFETCH_MIN_MS` (= the TTL) after the client heard of the change. The server reuses a list only while its load started less than one TTL ago, so a refetch always gets a list loaded after the change, and a new consultant always appears;
+  - the latest refetch is 4s after the change, plus the request (a cache hit, or about 0.3s for a fresh load): within about 4.5s;
+  - going offline is still client-side and immediate;
+  - a jitter starting at 0.5s (below the TTL) would let a refetch get the list cached just before the change, and that visitor would miss the new consultant until the next event.
+
+**Home list page.** `utils/pagination.ts` (new) has `clampPage(page, count, perPage)`. `instant-list.tsx` derives the page it shows from the selected page and the list length (no extra state or effect), so a shrinking list never shows an empty page; the arrows move from the page shown.
+
+**Verified**
+
+- tsc clean; eslint clean on the changed files (`actions/site.ts`: the old warning only).
+- Hook, cache and pagination tests through the throwaway vitest harness: 31 of 31.
+  - **Jitter:** bounds 2.0s / 3.0s / 3.999s; a burst inside the window means one refetch; a late change gets a follow-up at 3.5s (= its change + 2s).
+  - **Property:** 20 random sequences of 8 changes each (a fixed seed); every change gets a refetch 2–4s after it.
+  - **`sharedTtl`:** 50 concurrent callers share one load; reuse until 2s after the load started; the TTL counts from the start of a slow load; failures are not kept.
+  - **Invariant:** `REFETCH_MIN_MS ≥ ONLINE_LIST_TTL_MS`.
+  - **Stampede:** 300 visitors after one consultant comes online, with a list cached just before the change; all 300 see the consultant within 5s, from at most 3 loads.
+  - **`clampPage`:** cases covered.
+- Mutations:
+  - spreading the follow-up from the last missed change (my first version) fails the property test (a change at 4626ms, its next refetch 4.5s later);
+  - `REFETCH_MIN_MS = 500` fails the invariant, the stampede (stale lists served) and the jitter tests.
+- The busy SQL in PGlite: 9 of 9, unchanged.

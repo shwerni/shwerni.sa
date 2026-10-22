@@ -47,6 +47,9 @@ import {
 // lib
 import { checkHuman } from "@/lib/bot-protection";
 import { isConsultant, ownConsultantCid, sessionUser } from "@/lib/auth/guards";
+import { getRealtimeOnlineIds } from "@/lib/api/realtime/internal";
+import { ONLINE_LIST_TTL_MS } from "@/lib/api/realtime/online-list-timing";
+import { sharedTtl } from "@/lib/shared-ttl";
 
 // prisma types
 import { UserRole } from "@/lib/generated/prisma/enums";
@@ -123,9 +126,29 @@ async function checkIsAnyConsultantOnline() {
   return checkIsAnyConsultantOnlineData();
 }
 
+// the live ids come from the realtime server (server-side, behind the internal secret).
+// unreachable: an empty list, since no consultant can be online without it
+async function loadOnlineConsultantsList() {
+  let onlineIds: string[];
+  try {
+    onlineIds = await getRealtimeOnlineIds();
+  } catch (err) {
+    console.error("[online] realtime presence unavailable:", err);
+    return [];
+  }
+  return getOnlineConsultantsListData(onlineIds);
+}
+
+// every visitor on this instance shares one list for ONLINE_LIST_TTL_MS (one database query and
+// one realtime call however many visitors, or bots, ask), see lib/api/realtime/online-list-timing.ts
+const sharedOnlineConsultantsList = sharedTtl(
+  loadOnlineConsultantsList,
+  ONLINE_LIST_TTL_MS,
+);
+
 // public
 export async function getOnlineConsultantsList() {
-  return getOnlineConsultantsListData();
+  return sharedOnlineConsultantsList();
 }
 
 // ---------- discover (data/reels) ----------

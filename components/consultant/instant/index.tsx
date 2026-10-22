@@ -225,7 +225,7 @@ export default function InstantDashboard({ userId }: { userId: string }) {
               </div>
               <span className="text-xs text-slate-500">عملاء متواجدون</span>
               <span className="text-2xl font-bold text-slate-900">
-                {counts.clients}
+                {counts.clients + counts.guests}
               </span>
             </div>
           </div>
