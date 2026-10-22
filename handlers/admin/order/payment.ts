@@ -82,6 +82,13 @@ import {
 // the vat rate is the TAX_PERCENT constant; the finance.tax setting is no longer read for charges
 import { TAX_PERCENT, withTax } from "@/utils/tax";
 import { queueOrderInvoice } from "@/lib/daftra/auto";
+import { getClientIp, rateLimit } from "@/lib/rate-limit";
+import {
+  INSTANT_DURATION,
+  INSTANT_LIMIT_PER_IP,
+  INSTANT_LIMIT_WINDOW_MS,
+  instantIpRateKey,
+} from "@/constants/instant";
 
 // how a payment became PAID. the webhooks pass nothing (every default is the old behaviour).
 // notifications: false sends nothing to the client, the consultant or the admin new-order
@@ -633,7 +640,8 @@ export async function Pay(
       };
     }
 
-    baseCost = pricing.cost[Number(i.duration) as 30 | 45 | 60];
+    // instant sessions are INSTANT_DURATION long whatever the form sends (reserveInstant too)
+    baseCost = pricing.cost[INSTANT_DURATION];
   } else if (data.order === "program") {
     const p = data as ProgramReservationFormType;
 
@@ -730,6 +738,13 @@ export async function Pay(
       message: "حدث خطأ أثناء إنشاء الطلب، برجاء المحاولة مرة أخرى",
     };
   }
+
+  // instant: one more created order for this ip (the Pay action reads the count first)
+  if (data.order === "instant")
+    await rateLimit(instantIpRateKey(await getClientIp()), {
+      limit: INSTANT_LIMIT_PER_IP,
+      window: `${INSTANT_LIMIT_WINDOW_MS / 60_000} m`,
+    });
 
   // ---------------------------------------------------------------
   // 5. record coupon usage with the SERVER-verified percent

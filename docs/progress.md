@@ -5069,3 +5069,45 @@ Ziad's design replaces the hold. There is no Moyasar `expired_at`, no Tabby ban 
 2. In the late-payment check, does "no other NEW or PROCESSING instant order" mean of any age (stricter, proposed) or only inside the window?
 3. The rate limit numbers.
 4. Separate: `orderStatusRefund` credits the wallet even after a gateway refund (`data/order/reserveation.ts:1116`), a possible double refund.
+
+### Step 3 plan: Ziad's changes (approved)
+
+1. **Race fix:** `orderStatusPaid` takes the same `pg_advisory_xact_lock(INSTANT_LOCK_NS, cid)` for every INSTANT payment (not the dashboard's) and checks that the consultant has no other PAID, not done meeting overlapping this one (this order left out). If he does: HOLD and a Telegram alert, as in `holdLateInstantPayment`. Late payments keep the extra checks (online, listable, no other open order).
+2. The late check's "no other NEW or PROCESSING instant order" counts only orders inside the 5-minute window, the same rule as booking.
+3. The 20-minute cancel cron also cancels window-passed instant HOLD orders that were never paid (`paidAt` empty). A later payment is still handled by the late check.
+4. Rate limits count created instant orders only: 3 per phone and 20 per ip in 10 minutes.
+5. HOLD text: "حجزك الفوري قيد المراجعة حاليًا، وسيتواصل معك فريق شاورني قريبًا."
+6. **Its own task after this migration:** the possible double refund. `orderStatusRefund` (`data/order/reserveation.ts:1062-1121`) credits the wallet (`addWalletCredit`, `:1116`) even when the REFUND comes from a gateway refund webhook (Moyasar `handlers/gatewaies/moyasar-webhook.ts`, Tabby `tabbyRefundWebhook`), so a client refunded to the card may be credited again.
+
+Commits: 3a (booking guard and rate limit), 3b (payment check, cron, success page), 3c (`onPaymentSuccess` busy), 3d (dashboard).
+
+## 2026-10-22 · Step 2b committed (`d0965b0`); Step 3a, booking guard and rate limit (not committed yet)
+
+**Files changed**
+
+- `constants/instant.ts` (new): `INSTANT_DURATION` (30), `INSTANT_PAYMENT_WINDOW_MS` (5 minutes), `INSTANT_LOCK_NS` (7301), the limits (10 minutes; 3 per phone; 20 per ip) and `instantIpRateKey(ip)`.
+- `data/online-busy.ts`: `consultantBusyBetween(from, to, { exceptOid? })`, busy at some moment of `[from, to]` (start ≤ to and from < end), checking the meetings dated the day before `from`, `from`'s day and `to`'s day. `consultantBusyAt(now)` is now `between(now, now)`, so the lists' rule is unchanged (the PGlite tests still pass 9 of 9).
+- `data/online.ts`, `reserveInstant`:
+  - **before the lock:** the server clock (`addNMinutes()`, Riyadh, now + 5 minutes) and `INSTANT_DURATION` instead of the form's date, time and duration; the realtime server's online ids (unreachable → nobody online).
+  - **one interactive transaction:** `pg_advisory_xact_lock(INSTANT_LOCK_NS, cid)`, then:
+    - listable and online, else "هذا المستشار غير متاح حالياً";
+    - another client's INSTANT order in NEW or PROCESSING, created inside the window → refused, "هذا المستشار لديه حجز فوري الآن، برجاء اختيار مستشار آخر";
+    - a PAID, not done meeting of any type during `[now, end of the new session]` → refused, same message;
+    - then the writes: the client's own open instant orders (same phone, or the same account) → CANCELED (`cancelled_at`, note "instant: cancelled, the client booked again"); another client's order past its window → HOLD (note "instant: payment window passed");
+    - `order.create`, inside the lock, so the next booking for this consultant sees it.
+  - `logBookedMeeting` and the notes after the commit, unchanged.
+  - The Pusher `broadcastConsultantBusy` and its call are removed. `checkMeetingTimeConflict` is no longer used for instant (unchanged for scheduled bookings). `trigger` stays until Step 4.
+- `data/instant-limits.ts` (new), `instantOrderAllowed(ip, phone)`: the phone's INSTANT orders in the last 10 minutes (any state: created orders) below 3, and the ip's `rate_limit` counter, read without counting, below 20. Fails open, like `lib/rate-limit.ts`.
+- `actions/booking.ts` (`Pay`): for `order === "instant"`, after BotID (`checkHuman`, unchanged), `instantOrderAllowed(getClientIp(), phone)`; refused → `{ state: false, message: baseActionErrors.rate_limited }`, the action's existing failure shape.
+- `handlers/admin/order/payment.ts` (`Pay`): instant price from `pricing.cost[INSTANT_DURATION]` (`:631-643`); after an instant order is created, `rateLimit(instantIpRateKey(ip))` counts it (refused bookings never reach this). `lib/rate-limit.ts` is unchanged.
+
+**Verified**
+
+- tsc clean; eslint clean (`handlers/admin/order/payment.ts`: its old `refund` warning only).
+- The real `reserveInstant` and `instantOrderAllowed` on a throwaway local Postgres 18 (port 54329, data dir in the scratchpad; never the shared database, no migrate or push), with a stand-in for the database client that runs the queries and transactions on real connections (only the ORM `order.create` replaced by the equivalent inserts). 17 of 17.
+  - **The new order:** server date and time (the form sent 2020-01-01 03:00, 60 min: stored now + 5, 30, NEW); commission (the consultant's own, else the default).
+  - **Refused:** offline; not listable; unknown consultant; realtime server unreachable; another client's NEW or PROCESSING order inside its window; a PAID instant meeting running now; a PAID scheduled meeting starting during the session. A refused booking leaves the client's own open order untouched.
+  - **Allowed:** PAID meetings that ended, start after the session, or are done; unpaid states (REFUSED, CANCELED, HOLD) never block; another client's order past its window → HOLD with its note, and the booking goes on; the same client (same phone, any consultant) → his order CANCELED with its note and `cancelled_at`; the same account with another phone matched too; another guest not matched by "temp".
+  - **Race:** two clients booking the same consultant at the same moment (the check widened by 300ms) → exactly one order, the other refused. Two consultants at the same moment → both booked.
+  - **Limits:** 3 per phone in 10 minutes (older orders and other phones don't count); 20 per ip, read without counting the check itself; an ended window doesn't count; fails open.
+- Mutation: without the advisory lock, the race test fails (both bookings succeed).

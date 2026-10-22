@@ -11,15 +11,25 @@ import {
   ReviewState,
   UserRole,
 } from "@/lib/generated/prisma/enums";
+import { Prisma } from "@/lib/generated/prisma/client";
 import { InstantFormType, instantSchema } from "@/schemas";
-import { checkMeetingTimeConflict } from "./order/reserveation";
 import { logBookedMeeting } from "./meeting-log";
-// the instant booking date is "now + a few minutes", an instant, so it is read in riyadh time
-import { riyadhDateString } from "@/utils/date";
+// the instant session starts "now + a few minutes" on the server clock, in riyadh time
+import { addNMinutes, dateTimeToString } from "@/utils/date";
 import { orderInfoLabel } from "@/utils";
 import { ConsultantCard } from "@/types/layout";
 import { ReserveResult } from "@/types/admin";
-import { ONLINE_LISTABLE, consultantBusyAt } from "./online-busy";
+import {
+  ONLINE_LISTABLE,
+  consultantBusyAt,
+  consultantBusyBetween,
+} from "./online-busy";
+import { getRealtimeOnlineIds } from "@/lib/api/realtime/internal";
+import {
+  INSTANT_DURATION,
+  INSTANT_LOCK_NS,
+  INSTANT_PAYMENT_WINDOW_MS,
+} from "@/constants/instant";
 
 const BUSY_SUBQUERY = `
   EXISTS (
@@ -162,29 +172,23 @@ export async function handlePresenceWebhook(userId: string, isOnline: boolean) {
   await trigger(userId, isAvailable, { ...consultant, userId });
 }
 
-async function broadcastConsultantBusy(userId: string) {
-  const consultant = await prisma.consultant.findUnique({
-    where: { userId },
-    select: {
-      userId: true,
-      cid: true,
-      name: true,
-      image: true,
-      gender: true,
-      rate: true,
-      category: true,
-      cost30: true,
-    },
-  });
+const UNAVAILABLE = {
+  state: false,
+  code: "error",
+  message: "هذا المستشار غير متاح حالياً",
+} satisfies ReserveResult<never>;
 
-  if (!consultant) return;
+const BUSY = {
+  state: false,
+  code: "info",
+  message: "هذا المستشار لديه حجز فوري الآن، برجاء اختيار مستشار آخر",
+} satisfies ReserveResult<never>;
 
-  // isOnline: false removes them from every client list immediately
-  // (found by userId, so its userId is this one)
-  await trigger(userId, false, { ...consultant, userId });
-}
-
-// reserve a new order (meeting) with owner — instant flow
+// reserve a new order (meeting) with owner — instant flow. one consultant's instant bookings and
+// payment checks run one at a time (an advisory lock). refused: the consultant isn't listable or
+// online, another client's instant order for him is still inside its payment window, or a PAID
+// meeting runs during the new session. the client's own open instant orders are cancelled, and
+// another client's order past its window goes to HOLD, then the booking goes on
 export const reserveInstant = async (
   formdata: InstantFormType,
   total: number,
@@ -205,83 +209,151 @@ export const reserveInstant = async (
 
     const data = parsed.data;
 
-    const conflict = await checkMeetingTimeConflict(
-      data.cid,
-      data.time,
-      riyadhDateString(data.date),
+    // the session starts from the server clock (riyadh, now + 5 minutes), never the form's date
+    // and time, and is always INSTANT_DURATION long
+    const now = new Date();
+    const slot = addNMinutes();
+    const endsAt = new Date(
+      new Date(`${slot.date}T${slot.time}:00+03:00`).getTime() +
+        INSTANT_DURATION * 60_000,
     );
 
-    if (conflict)
-      return {
-        state: false,
-        code: "info",
-        message: `هذا الموعد (${riyadhDateString(data.date)} - ${data.time}) تم حجزه بالفعل، برجاء اختيار وقت آخر`,
-      } satisfies ReserveResult<never>;
-
-    const owner = await prisma.consultant.findFirst({
-      where: { cid: data.cid },
-      select: { name: true, commission: true },
+    // live presence, read before the lock: no network call inside the transaction
+    const onlineIds = await getRealtimeOnlineIds().catch((err) => {
+      console.error("reserveInstant: realtime presence unavailable:", err);
+      return [] as string[];
     });
 
-    if (!owner || !owner.name)
-      return {
-        state: false,
-        code: "error",
-        message: "هذا المستشار غير متاح حالياً",
-      } satisfies ReserveResult<never>;
+    // the client's own orders: the same phone, or the same account when logged in
+    const isAccount = data.user !== "temp" && data.user !== "";
+    const own = Prisma.sql`(o.phone = ${data.phone}${
+      isAccount ? Prisma.sql` OR o.author = ${data.user}` : Prisma.empty
+    })`;
+    const openStates = Prisma.sql`(${PaymentState.NEW}::"PaymentState", ${PaymentState.PROCESSING}::"PaymentState")`;
+    const windowSeconds = INSTANT_PAYMENT_WINDOW_MS / 1000;
 
-    const { name, commission } = owner;
+    const booked = await prisma.$transaction(async (tx) => {
+      // one booking (or payment check) for this consultant at a time
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${INSTANT_LOCK_NS}::int, ${data.cid}::int)`;
 
-    // server default, never the client's claimed rate
-    const oCommission = commission ? commission : commissionRate;
+      // listable and online right now
+      const [owner] = await tx.$queryRaw<
+        { userId: string | null; name: string | null; commission: number | null }[]
+      >`SELECT c."userId", c.name, c.commission FROM consultants c WHERE c.cid = ${data.cid} AND ${ONLINE_LISTABLE}`;
+      if (!owner?.name || !owner.userId || !onlineIds.includes(owner.userId))
+        return UNAVAILABLE;
 
-    const order = await prisma.order.create({
-      data: {
-        origin,
-        author: data.user,
-        consultantId: data.cid,
-        name: data.name,
-        phone: data.phone,
-        type: OrderType.INSTANT,
-        meeting: {
-          create: {
-            session: 1,
-            date: riyadhDateString(data.date),
-            time: data.time,
-            duration: String(data.duration),
+      // another client's open instant order for him: inside its payment window, he's busy;
+      // past it, it goes to HOLD below and this booking goes on
+      const others = await tx.$queryRaw<{ oid: number; fresh: boolean }[]>`
+        SELECT o.oid, o.created_at > now() - make_interval(secs => ${windowSeconds}::double precision) AS fresh
+        FROM orders o
+        JOIN payments p ON p."orderId" = o.oid
+        WHERE o."consultantId" = ${data.cid}
+          AND o.type = ${OrderType.INSTANT}::"OrderType"
+          AND p.payment IN ${openStates}
+          AND NOT ${own}
+      `;
+      if (others.some((o) => o.fresh)) return BUSY;
+
+      // a PAID meeting (instant or scheduled) during [now, end of the new session]
+      const busy = await tx.$queryRaw<unknown[]>`
+        SELECT 1 FROM consultants c
+        WHERE c.cid = ${data.cid}
+          AND ${consultantBusyBetween(now, new Date(endsAt.getTime() - 1))}
+      `;
+      if (busy.length > 0) return BUSY;
+
+      const note = (text: string) =>
+        `${text} | modified_at: ${dateTimeToString(new Date())}`;
+
+      // the same client booking again: his own open instant orders are cancelled
+      await tx.$executeRaw`
+        WITH cancelled AS (
+          UPDATE payments p
+          SET payment = ${PaymentState.CANCELED}::"PaymentState", cancelled_at = now()
+          FROM orders o
+          WHERE p."orderId" = o.oid
+            AND o.type = ${OrderType.INSTANT}::"OrderType"
+            AND p.payment IN ${openStates}
+            AND ${own}
+          RETURNING p."orderId"
+        )
+        UPDATE orders SET info = array_append(info, ${note("instant: cancelled, the client booked again")})
+        WHERE oid IN (SELECT "orderId" FROM cancelled)
+      `;
+
+      // another client's order past its payment window: HOLD
+      const stale = others.map((o) => o.oid);
+      if (stale.length > 0)
+        await tx.$executeRaw`
+          WITH held AS (
+            UPDATE payments
+            SET payment = ${PaymentState.HOLD}::"PaymentState"
+            WHERE "orderId" = ANY(${stale}::int[]) AND payment IN ${openStates}
+            RETURNING "orderId"
+          )
+          UPDATE orders SET info = array_append(info, ${note("instant: payment window passed")})
+          WHERE oid IN (SELECT "orderId" FROM held)
+        `;
+
+      // server default, never the client's claimed rate
+      const oCommission = owner.commission ? owner.commission : commissionRate;
+
+      // created inside the lock, so the next booking for him sees it
+      const order = await tx.order.create({
+        data: {
+          origin,
+          author: data.user,
+          consultantId: data.cid,
+          name: data.name,
+          phone: data.phone,
+          type: OrderType.INSTANT,
+          meeting: {
+            create: {
+              session: 1,
+              date: slot.date,
+              time: slot.time,
+              duration: String(INSTANT_DURATION),
+            },
+          },
+          payment: {
+            create: {
+              total,
+              commission: oCommission,
+              tax,
+              payment: PaymentState.NEW,
+            },
+          },
+          info: [
+            orderInfoLabel(
+              null,
+              "new",
+              PaymentState.NEW,
+              total,
+              tax,
+              oCommission,
+              owner.name,
+              data.cid,
+            ),
+          ],
+        },
+        include: {
+          payment: true,
+          meeting: {
+            include: { participants: true },
+          },
+          consultant: {
+            select: { name: true, userId: true, phone: true },
           },
         },
-        payment: {
-          create: {
-            total,
-            commission: oCommission,
-            tax,
-            payment: PaymentState.NEW,
-          },
-        },
-        info: [
-          orderInfoLabel(
-            null,
-            "new",
-            PaymentState.NEW,
-            total,
-            tax,
-            oCommission,
-            name,
-            data.cid,
-          ),
-        ],
-      },
-      include: {
-        payment: true,
-        meeting: {
-          include: { participants: true },
-        },
-        consultant: {
-          select: { name: true, userId: true, phone: true },
-        },
-      },
+      });
+
+      return { state: true as const, order };
     });
+
+    if (!booked.state) return booked;
+    const { order } = booked;
 
     // meeting log: the booking's first meeting (customer). it never throws
     await logBookedMeeting(order);
@@ -296,10 +368,7 @@ export const reserveInstant = async (
         },
       });
 
-    // deactivate online state (center consultants have no user, so no presence)
-    if (order.consultant.userId)
-      await broadcastConsultantBusy(order.consultant.userId);
-
+    // the consultant goes busy when the order is PAID (onPaymentSuccess), not here
     return { state: true, order } satisfies ReserveResult<typeof order>;
   } catch (err) {
     console.error("reserveInstant:", err);
