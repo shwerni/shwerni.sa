@@ -9,7 +9,6 @@ import type { Socket } from "socket.io-client";
 // utils
 import {
   createRealtimeSocket,
-  fetchPresenceCounts,
   PresenceCounts,
 } from "@/lib/api/realtime/socket-client";
 
@@ -22,6 +21,9 @@ type PresenceChanged = {
 
 // the realtime server's answer to consultant-online
 type OnlineAck = { online: boolean; busyUntil?: number };
+
+// the realtime server's answer to get-presence-counts (null for a socket that isn't an owner)
+type CountsAck = { counts: PresenceCounts | null };
 
 // why the page stopped trying: the server can't be reached, or there's no web session
 export type PresenceFailure = "unreachable" | "session";
@@ -96,12 +98,17 @@ export function useConsultantPresence({ userId }: { userId: string }) {
       }, delay);
     }
 
+    // over this socket (owners only on the server), never browser http to the realtime server
     async function refreshCounts() {
+      const s = socket;
+      if (!s?.connected) return;
       try {
-        const fresh = await fetchPresenceCounts();
-        if (!cancelled) setCounts(fresh);
+        const ack = (await s
+          .timeout(ACK_TIMEOUT_MS)
+          .emitWithAck("get-presence-counts")) as CountsAck;
+        if (!cancelled && ack?.counts) setCounts(ack.counts);
       } catch (err) {
-        console.error("[presence] failed to fetch counts:", err);
+        console.error("[presence] failed to get counts:", err);
       }
     }
 

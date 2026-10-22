@@ -4,11 +4,10 @@ import type { NextRequest } from "next/server";
 
 // utils
 import { getConsultantsOnline } from "@/data/online";
+import { getRealtimeOnlineIds } from "@/lib/api/realtime/internal";
 
 // types
 import { ConsultantCard } from "@/types/layout";
-
-const BACKEND_URL = process.env.BACKEND_URL!;
 
 interface OnlineConsultantsResponse {
   consultants: ConsultantCard[];
@@ -39,10 +38,9 @@ export const GET = createGetRoute<OnlineConsultantsResponse>(
       searchParams.get("categories")?.split(",").filter(Boolean) ?? [];
     const gender = searchParams.get("gender") ?? undefined;
 
-    const res = await fetch(`${BACKEND_URL}/presence/online`, {
-      cache: "no-store",
-    });
-    const { onlineIds } = await res.json();
+    // the guarded list, server-side with the secret; a failure throws into the route's own
+    // error response, as before
+    const onlineIds = await getRealtimeOnlineIds();
 
     const consultants = await getConsultantsOnline(onlineIds, {
       search,

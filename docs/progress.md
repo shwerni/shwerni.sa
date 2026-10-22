@@ -4976,3 +4976,96 @@ Step 0c is deployed; the busy test passes against production (Ziad).
   - spreading the follow-up from the last missed change (my first version) fails the property test (a change at 4626ms, its next refetch 4.5s later);
   - `REFETCH_MIN_MS = 500` fails the invariant, the stampede (stale lists served) and the jitter tests.
 - The busy SQL in PGlite: 9 of 9, unchanged.
+
+## 2026-10-22 · Step 2 committed (`9976a09`); Pusher removal step 2b (the realtime server's HTTP behind the internal secret, the site's side)
+
+**Files changed**
+
+- `hooks/realtime/useOnlineConsultant.ts`: the dashboard's counts come from the socket's `get-presence-counts` ack (owners only on the server), after going online and every 30s while connected, instead of the public `GET /presence/counts`. `{ counts: null }` changes nothing. No request while disconnected.
+- `lib/api/realtime/socket-client.ts`: `fetchPresenceCounts` removed (no caller left); `PresenceCounts` stays.
+- `app/api/mobile/online/route.ts` and `app/api/online/route.ts`: the online ids come from `getRealtimeOnlineIds()` (the guarded `/internal/presence/online` with the secret, a 3s timeout) instead of the public `/presence/online`. Same responses. A failure still throws into each route's own error response.
+- `app/api/internal/presence/route.ts` (the realtime server's presence callback):
+  - `verifyInternalSecret`: 401 `{ error: "unauthorized" }` for an unset secret, a missing or empty header, or another byte length. Before, an unset secret, or a header of the same length in characters but more bytes, was a 500;
+  - body: bad JSON → 400 `{ error: "invalid body" }`; `consultantId` must be a non-empty string and `online` a real boolean;
+  - an unknown consultant (Prisma P2025) → 404 `{ error: "not found" }` instead of a 500; any other error still throws;
+  - success stays `{ ok: true }`. The shared `setConsultantOnline/Offline` are unchanged (the mobile presence route uses them too).
+- `app/api/internal/instant-snapshot/route.ts`: the same secret check. Body: bad JSON → 400; `consultantsNow` and `clientsNow` non-negative integers; `role` OWNER, USER or GUEST. Success stays `{ ok: true }`.
+- No browser or site code calls the realtime server's public `/presence/*` any more. Step 4a can put the secret on every HTTP route there.
+
+**`/api/mobile/online`, before and after.** The route's source is unchanged since `1924099` (before the migration) up to this step, and so is `getConsultantsOnline`'s SELECT list. A throwaway test runs the committed route (saved from HEAD) and the new one with identical mocks:
+
+- **Success:** for three queries (none; search + categories + gender; empty categories), status, content type and body are identical byte for byte; the same ids and filters reach `getConsultantsOnline`; there's no `userId` in the cards; the exact JSON is checked (bigint `reviews` as a number, `created_at` as ISO).
+- **Errors:** the realtime server down, or refusing with 401, gives the same 500 `{ error: "failed to fetch" }` from both versions.
+- **The only difference:** the URL (`/presence/online` → `/internal/presence/online`) and the `x-internal-secret` header.
+- **Mutation:** adding one field to the new route's response fails all four body checks.
+
+**Other tests (same harness):** 49 of 49.
+
+- The two internal routes: every 401 case (including a secret of the same length in characters but more bytes, and an unset secret), ten 400 bodies for presence and six for the snapshot, the 404, the rethrow of other errors, and success for the realtime server's real payloads.
+- The dashboard counts over the socket, with `fetch` never called.
+- The earlier hook, cache and pagination tests.
+
+## 2026-10-22 · Step 3 plan, revised (busy on PAID, using the order's own status; no checkout hold)
+
+Ziad's design replaces the hold. There is no Moyasar `expired_at`, no Tabby ban and no 10-minute hold. Not started; waiting for OK.
+
+**Constant:** `INSTANT_PAYMENT_WINDOW_MS = 5 * 60_000` in `constants/instant.ts` (new), read by `reserveInstant`, the late-payment check and the cancel cron.
+
+**1. Blocking, inside `reserveInstant` (`data/online.ts:188-310`)**
+
+- Before the transaction: the realtime server's online ids (`getRealtimeOnlineIds()`); the date and time from the server clock (`addNMinutes()`, Riyadh, the existing +5 minutes) instead of `data.date` / `data.time` (`:208-218`, `:249-250`); duration locked to 30.
+- One interactive transaction, first `pg_advisory_xact_lock(<INSTANT_LOCK_NS>, cid)`, then:
+  1. the same client's open instant orders (NEW or PROCESSING, any consultant; the same `author` when logged in, or the same phone) → CANCELED with an info note. The new booking goes on (point 3);
+  2. the consultant must be listable (`ONLINE_LISTABLE`) and in the online ids, else the existing "هذا المستشار غير متاح حالياً";
+  3. another INSTANT order for this consultant in NEW or PROCESSING:
+     - created less than the window ago → refused, "هذا المستشار لديه حجز فوري الآن، برجاء اختيار مستشار آخر";
+     - older → HOLD with the info note "instant: payment window passed", and the booking goes on (point 2);
+  4. a PAID meeting that isn't done, of any type, overlapping `[now, start + 30 min]` → refused with the same message. This uses `consultantBusyBetween(from, to, { exceptOid? })` in `data/online-busy.ts`; `consultantBusyAt(now)` becomes `between(now, now)`, and the meeting dates checked are yesterday, today and tomorrow;
+  5. `order.create` (`:238-285`), unchanged except for the server date and time.
+- `logBookedMeeting` and the notes (`:287-297`) after the commit, unchanged.
+- `checkMeetingTimeConflict` (`:208-219`) is no longer used for instant; it's unchanged for scheduled bookings.
+
+**2. Cancel cron backstop:** `app/api/cron/cancel-orders/route.ts:27`, before `cancelOrders`: instant NEW or PROCESSING orders older than the window → HOLD with the same info note.
+
+**3. Payment arriving: `orderStatusPaid` (`data/order/reserveation.ts`), after the PAID claim (`:949-966`), before the wallet step (`:970`).**
+
+- An INSTANT order whose state before the claim was NEW or PROCESSING → the normal path.
+- Any other state before the claim (HOLD, CANCELED, REFUSED, …) → `lateInstantPaymentAllowed(order)`:
+  - the consultant must be online (realtime server) and listable;
+  - no other INSTANT order of his in NEW or PROCESSING;
+  - no other PAID, not done meeting overlapping this one;
+  - any error counts as not free.
+  - Free → the normal path. Not free → `holdLateInstantPayment`: HOLD, an info note, a Telegram alert with the order and the consultant, `return "hold"`. No meeting, no consultant notification, no busy.
+- The dashboard's mark-as-paid (`source: "dashboard"`) is never held here: that's the admin handling it.
+- The two helpers live in `data/instant-payment.ts` (new), to avoid an import cycle between `data/online.ts` and `data/order/reserveation.ts`.
+
+**4. `onPaymentSuccess` (`handlers/admin/order/payment.ts:97-141`):** after `createNewMeeting` (`:107-114`), `if (order.type === OrderType.INSTANT) scheduleConsultantBusy(order)`. The helper is `lib/api/realtime/consultant-busy.ts` (new):
+
+- `after()` with a direct fallback (the `lib/daftra/auto.ts:27-34` pattern);
+- skipped for center consultants (no user) and for a meeting that has already ended;
+- `setConsultantOffline(userId)`, then `POST /internal/consultant-busy` with the secret and a 3s timeout;
+- the payload: `busyUntil` = start (`+03:00`) + duration, and the consultant's own meeting url;
+- any failure → a Telegram alert with the order, the consultant's name and user id, and the reason. It never throws and never delays the payment.
+
+**5. Success page (`app/(pages)/(site)/(sub-pages)/payment/success/page.tsx:76`):**
+
+- INSTANT and HOLD → a review message, no meeting link: "تم استلام الدفع" / "حجزك الفوري قيد المراجعة حاليًا، وسيتواصل معك فريق شاورني قريبًا لتأكيده." / "رقم الطلب #…" / the home button;
+- every other state → the meeting redirect, as today.
+
+**6. Dashboard (3d):** `hooks/realtime/useOnlineConsultant.ts` listens for `instant-booked` and `instant-busy` next to `presence-changed` (`:183`); the refused ack (`:134-135`) sets the same state; the hook returns `busy` (`:207`). `components/consultant/instant/index.tsx:21`: `busy` → `goOffline()` + `router.push("/dashboard")`. No new UI.
+
+**7. Pusher out of `reserveInstant`:** the call at `data/online.ts:300-301` and `broadcastConsultantBusy` (`:165-186`) removed. `trigger` (`:98`) stays until Step 4 (`handlePresenceWebhook`).
+
+**8. Bot protection:**
+
+- `Pay` already calls `checkHuman("Pay")` (`actions/booking.ts:18`): BotID in block mode, with `"/*"` in `utils/bot-protection.ts` covering `/instant`.
+- New, for `order === "instant"` only, in `actions/booking.ts`: `rateLimit` (`lib/rate-limit.ts`), 10 attempts per IP and 3 per phone in 10 minutes. A refusal returns the existing `{ state: false, message }` with the `rate_limited` message from `utils/action-errors.ts`.
+
+**9. Response shapes unchanged:** `Pay`, `ReserveResult`, `updateOrderStatus` / `orderStatusPaid` (the existing `"hold"`), the mobile confirm route (a HOLD already maps to `"failed"`), and the app's instant route (still a stub).
+
+**Open**
+
+1. A HOLD from "payment window passed" on an order nobody paid stays HOLD (it looks like a paid order needing review). Should the 20-minute cancel cron cancel window-passed HOLD orders that were never paid (`paidAt` null)? A payment arriving later is still handled by point 3.
+2. In the late-payment check, does "no other NEW or PROCESSING instant order" mean of any age (stricter, proposed) or only inside the window?
+3. The rate limit numbers.
+4. Separate: `orderStatusRefund` credits the wallet even after a gateway refund (`data/order/reserveation.ts:1116`), a possible double refund.

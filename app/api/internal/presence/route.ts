@@ -1,29 +1,51 @@
 // packages
 import { NextResponse } from "next/server";
-import { timingSafeEqual } from "crypto";
 
 // utils
 import { setConsultantOffline, setConsultantOnline } from "@/data/online";
+import { verifyInternalSecret } from "@/lib/auth/internal-secret";
 
+// prisma types
+import { Prisma } from "@/lib/generated/prisma/client";
+
+// the realtime server's presence callback (presence-notifier): { consultantId, online }
 export async function POST(request: Request) {
-  const provided = request.headers.get("x-internal-secret");
-  const expected = process.env.INTERNAL_SHARED_SECRET!;
-
-  if (!provided || provided.length !== expected.length) {
+  // 401 for an unset secret, a missing or empty header, or another byte length
+  if (!verifyInternalSecret(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const isValid = timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
-  if (!isValid) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "invalid body" }, { status: 400 });
   }
 
-  const { consultantId, online } = await request.json();
+  const { consultantId, online } = (body ?? {}) as Record<string, unknown>;
+  if (
+    typeof consultantId !== "string" ||
+    consultantId.length === 0 ||
+    typeof online !== "boolean"
+  ) {
+    return NextResponse.json({ error: "invalid body" }, { status: 400 });
+  }
 
-  if (online) {
-    await setConsultantOnline(consultantId);
-  } else {
-    await setConsultantOffline(consultantId);
+  try {
+    if (online) {
+      await setConsultantOnline(consultantId);
+    } else {
+      await setConsultantOffline(consultantId);
+    }
+  } catch (err) {
+    // no consultant with this user id (P2025: the update found no row)
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2025"
+    ) {
+      return NextResponse.json({ error: "not found" }, { status: 404 });
+    }
+    throw err;
   }
 
   return NextResponse.json({ ok: true });

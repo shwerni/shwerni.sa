@@ -53,16 +53,10 @@ export async function createRealtimeSocket(
   });
 }
 
+// live connection counts by role; owner sockets get them (get-presence-counts, presence-changed)
 export type PresenceCounts = {
   owners: number;
   clients: number;
   guests: number;
   total: number;
 };
-
-export async function fetchPresenceCounts(): Promise<PresenceCounts> {
-  const res = await fetch(`${REALTIME_URL}/presence/counts`, {
-    cache: "no-store",
-  });
-  return (await res.json()) as PresenceCounts;
-}
