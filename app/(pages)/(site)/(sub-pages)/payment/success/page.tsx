@@ -13,6 +13,7 @@ import OrderTable from "@/components/clients/shared/order-table";
 // prisma data
 import { getReservationByPid } from "@/data/order/reserveation";
 import { isPleadingOrder } from "@/data/pleading";
+import { waitForInstantLanding } from "@/data/instant-payment";
 
 // prisma types
 import { OrderType, UserRole } from "@/lib/generated/prisma/enums";
@@ -72,8 +73,39 @@ export default async function Page({ searchParams }: Props) {
   // wrong page
   if (!payment || !payment.id) return <Error404 />;
 
-  // redirect if INSTANT order
-  if (order.type === OrderType.INSTANT) redirect(url);
+  // instant: the gateway's confirmation may still be on its way, so the page waits (up to ~10s,
+  // payment/loading.tsx shows meanwhile): PAID with the meeting room ready → the meeting; HOLD
+  // (paid, but the consultant was no longer free), any other state, or still not final → the
+  // review message, no meeting link
+  if (order.type === OrderType.INSTANT) {
+    const landing = await waitForInstantLanding(order.oid);
+    if (landing.kind === "meeting")
+      redirect(
+        `${mainRoute}/meetings/${landing.mid}?participant=${landing.participant}`,
+      );
+    return (
+      <Section className="my-5 py-5 px-3 max-w-xl mx-auto">
+        <div className="flex flex-col items-center gap-3 pt-4 pb-2 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-50">
+            <CircleAlert className="h-8 w-8 text-amber-500" />
+          </div>
+          <h1 className="text-2xl font-bold text-amber-600">تم استلام الدفع</h1>
+          <p className="text-sm text-gray-600">
+            حجزك الفوري قيد المراجعة حاليًا، وسيتواصل معك فريق شاورني قريبًا.
+          </p>
+          <p className="text-sm font-medium text-gray-700">
+            رقم الطلب #{order.oid}
+          </p>
+        </div>
+        <div className="flex flex-col items-center gap-4 pt-2">
+          <LinkButton className="gap-2" href="/" variant="primary">
+            <Home className="h-4 w-4" />
+            الرجوع للصفحة الرئيسية
+          </LinkButton>
+        </div>
+      </Section>
+    );
+  }
 
   // validate success for other types
   const success =

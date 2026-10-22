@@ -5,6 +5,10 @@ export const INSTANT_DURATION = 30;
 // consultant can't be booked again; past it, the next booking puts it on HOLD and goes on
 export const INSTANT_PAYMENT_WINDOW_MS = 5 * 60_000;
 
+// the order info note when a booking (or the cancel cron) finds an order past its payment window
+// and puts it on HOLD; the cron cancels those that were never paid, matched by this text
+export const INSTANT_WINDOW_PASSED_NOTE = "instant: payment window passed";
+
 // the first key of pg_advisory_xact_lock(INSTANT_LOCK_NS, cid): booking and paying an instant
 // session for one consultant run one at a time
 export const INSTANT_LOCK_NS = 7301;

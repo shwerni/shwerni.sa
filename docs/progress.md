@@ -5111,3 +5111,68 @@ Commits: 3a (booking guard and rate limit), 3b (payment check, cron, success pag
   - **Race:** two clients booking the same consultant at the same moment (the check widened by 300ms) → exactly one order, the other refused. Two consultants at the same moment → both booked.
   - **Limits:** 3 per phone in 10 minutes (older orders and other phones don't count); 20 per ip, read without counting the check itself; an ended window doesn't count; fails open.
 - Mutation: without the advisory lock, the race test fails (both bookings succeed).
+
+## After the migration (planned in this order, none started)
+
+1. **Lateness tracking** (after instant is fully finished): record when a consultant joins against the meeting's start; flag on the admin dashboard when a consultant is late on 1 instant session or on 3 scheduled sessions; a lateness history per consultant.
+2. **Join-time safety net:** if the consultant hasn't joined an instant meeting within 5 minutes of the payment, alert the admin.
+3. **Client waiting status in the meeting room:** "your consultant has been notified and will join shortly".
+4. **The possible double refund in `orderStatusRefund`** (`data/order/reserveation.ts:1062-1121`): it credits the wallet (`addWalletCredit`, `:1116`) even when the REFUND comes from a gateway refund webhook (Moyasar `handlers/gatewaies/moyasar-webhook.ts`, Tabby `tabbyRefundWebhook`).
+5. **App follow-up** (app repo): listen for `instant-booked` and `instant-busy`; the presence toggle reflects a refused `consultant-online` (its ack `{ online, busyUntil? }`, or `instant-busy`).
+6. **Idea for later, not planned:** an Uber-style request → accept → pay flow. Kept as a note only; the fast pick-and-pay flow stays.
+
+## 2026-10-22 · Step 3a committed (`0376f68`)
+
+- **Where the instant limits are counted:** in the database, shared by every Vercel instance. The per-phone count is the `orders` table itself (INSTANT orders of that phone in the last 10 minutes). The per-ip count is the existing `rate_limit` table (the same store as `lib/rate-limit.ts`, key `instant-order:ip:<ip>`). Nothing is kept in memory, so the limits hold across instances and cold starts. The client list's 2s `sharedTtl` cache is the only per-instance memory in this migration, and it isn't a limit. Two simultaneous bookings from one ip can each read 19 and both pass, so 21 at most.
+- **Realtime server unreachable at booking:** `getRealtimeOnlineIds()` rejects, the error is logged ("reserveInstant: realtime presence unavailable"), the online ids count as empty, and the booking is refused with "هذا المستشار غير متاح حالياً" (`code: "error"`, the existing `ReserveResult` shape), not an exception. Covered by the guard test "realtime server unreachable: nobody counts as online".
+- Step 3d change (Ziad): on `instant-booked`, go offline and show a full-screen notice with a sound, a "انضم للجلسة" button (the event's `meetingUrl`) and a smaller link back to `/dashboard`. The design is shown before applying. `instant-busy` and a refused ack still go to `/dashboard`.
+
+## 2026-10-22 · Step 3b: payment check, cancel cron, success page (not committed yet)
+
+**Files changed**
+
+- `data/instant-payment.ts` (new):
+  - `holdInstantPaymentIfTaken(order, paymentId, before)`, called by `orderStatusPaid` for every INSTANT payment that isn't the dashboard's:
+    - it runs under the same `pg_advisory_xact_lock(INSTANT_LOCK_NS, cid)` as booking. Every payment: no other PAID, not done meeting overlapping this one (this order left out). A late payment (`before` isn't NEW or PROCESSING): also listable, online on the realtime server (read before the lock) and no other client's instant order inside its window;
+    - not free: HOLD, with `paidAt` (it was paid, so the cancel cron never touches it) and an info note "instant: paid (was X) but put on HOLD: <reason>", written inside the lock, then a Telegram alert with the order, the consultant's name and user id, and the reason;
+    - a failed check also holds and alerts.
+  - `holdStaleInstantOrders()` and `cancelUnpaidHeldInstantOrders(deadline)` for the cron.
+  - `readInstantLanding(oid)` and `waitForInstantLanding(oid)` for the success page.
+- `data/order/reserveation.ts` (`orderStatusPaid`): the approved diff. After the PAID claim and before the wallet step, `if (INSTANT && !dashboard && await holdInstantPaymentIfTaken(...)) return "hold"`. A held order gets no wallet step, no `onPaymentSuccess` (no meeting, no notification, no busy) and no final PAID write. The return values are unchanged.
+- `app/api/cron/cancel-orders/route.ts`:
+  - before `cancelOrders`, instant NEW or PROCESSING orders past the 5-minute window → HOLD with `INSTANT_WINDOW_PASSED_NOTE`;
+  - after it, window-passed HOLD orders never paid (`paidAt` empty) and older than 20 minutes → CANCELED (`cancelled_at`, note "instant: cancelled, never paid after its payment window"). Other HOLD orders (an amount mismatch, a paid order held) aren't touched;
+  - neither step can stop the existing cancel, and the response stays `{ cancelled }`.
+- `app/(pages)/(site)/(sub-pages)/payment/success/page.tsx`: for an INSTANT order, `waitForInstantLanding` re-reads the state every second for up to 10s, while the existing `payment/loading.tsx` shows:
+  - PAID with the client's participant (the room is ready) → the meeting;
+  - NEW, PROCESSING, or PAID without the room yet → keep waiting;
+  - HOLD, or any other state → the review message at once;
+  - still not final after 10s → the review message: "تم استلام الدفع" / "حجزك الفوري قيد المراجعة حاليًا، وسيتواصل معك فريق شاورني قريبًا." / "رقم الطلب #…", the home button, no meeting link.
+
+  Before, every instant order was sent straight to its meeting url, even before the room existed.
+- `constants/instant.ts`: `INSTANT_WINDOW_PASSED_NOTE` (booking and the cron use the same text).
+
+**Verified**
+
+- tsc clean; eslint clean on the six files.
+- On the throwaway local Postgres (port 54329): 46 of 46, the 17 booking-guard tests and:
+  - **the payment check, 18:**
+    - every payment: free stays PAID; the order's own meeting doesn't count; another PAID meeting (instant or scheduled) at that time → HOLD with `paidAt`, the note and the alert; a meeting that ended doesn't count; NEW / PROCESSING skip the late checks;
+    - late payments: free → PAID from HOLD, CANCELED and REFUSED; offline, realtime server unreachable, not listable, or another client inside the window → HOLD; a stale order outside the window doesn't count;
+    - races: two overlapping payments at the same moment → exactly one PAID; a payment and a booking at the same moment → one session, the booking refused;
+    - a failed check → HOLD and alert; the cron rules; a payment after the cron cancelled the order is still checked.
+  - **the success page wait, 11:** PAID with its room → at once; NEW → PAID without the room → the room → the meeting after about 3s; NEW → HOLD → review; PROCESSING the whole time → review after about 10s, at most 11 reads; PAID with no room in 10s → review; HOLD, REFUSED, CANCELED, REFUND or no order → review without waiting; the defaults (10s, a read every second).
+- The payment id is a string (cuid); tsc caught a wrong `number` in the helper, and the test schema now uses a text id too.
+- Mutation: without the lock in `holdInstantPaymentIfTaken`, two overlapping payments both go to HOLD (no session at all).
+- Not covered by a test: the 13-line call site in `orderStatusPaid` itself (the ORM calls around it aren't in the test stand-in). The helper it calls is covered.
+
+**Step 3d design (approved), applied in its own commit after 3c:** on `instant-booked`: `goOffline()`, the revalidation timers cleared, then a full-screen notice:
+
+- a green pulsing video icon;
+- "لديك جلسة فورية الآن" (text-3xl, theme colour);
+- "تبدأ الجلسة الساعة {time}" (the event's `startsAt` in Riyadh time);
+- the "انضم للجلسة" button (green, like "نعم، أنا هنا ✓"; the event's `meetingUrl`, same tab);
+- the small link "العودة إلى لوحة التحكم" → `/dashboard`;
+- the sound `public/audio/meeting-join.mp3`, vibration on phones, and the tab title "🔔 لديك جلسة فورية الآن".
+
+`instant-busy` and a refused ack still go straight to `/dashboard`.

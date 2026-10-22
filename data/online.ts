@@ -29,6 +29,7 @@ import {
   INSTANT_DURATION,
   INSTANT_LOCK_NS,
   INSTANT_PAYMENT_WINDOW_MS,
+  INSTANT_WINDOW_PASSED_NOTE,
 } from "@/constants/instant";
 
 const BUSY_SUBQUERY = `
@@ -293,7 +294,7 @@ export const reserveInstant = async (
             WHERE "orderId" = ANY(${stale}::int[]) AND payment IN ${openStates}
             RETURNING "orderId"
           )
-          UPDATE orders SET info = array_append(info, ${note("instant: payment window passed")})
+          UPDATE orders SET info = array_append(info, ${note(INSTANT_WINDOW_PASSED_NOTE)})
           WHERE oid IN (SELECT "orderId" FROM held)
         `;
 

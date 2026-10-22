@@ -36,9 +36,11 @@ import { aboveAndLowerTime, dateTimeToString } from "@/utils/time";
 import {
   CenterState,
   OrderOrigin,
+  OrderType,
   PaymentState,
   UserRole,
 } from "@/lib/generated/prisma/enums";
+import { holdInstantPaymentIfTaken } from "@/data/instant-payment";
 
 import { ReservationFormType, reservationSchema } from "@/schemas";
 
@@ -963,6 +965,17 @@ export const orderStatusPaid = async (
       });
       return now?.payment === PaymentState.PAID ? "already_paid" : "not_allowed";
     }
+
+    // instant: under the booking's advisory lock, the consultant must still be free for this
+    // session (no other PAID meeting at that time; a late payment also online, listable and no
+    // other client paying); otherwise HOLD for a person: no meeting, no notification, no busy.
+    // the dashboard's mark-as-paid is that person already, so it's never held here
+    if (
+      order.type === OrderType.INSTANT &&
+      !dashboard &&
+      (await holdInstantPaymentIfTaken(order, payment.id, payment.payment))
+    )
+      return "hold";
 
     // update wallet if it used. it runs before onPaymentSuccess, so a failed withdraw (HOLD)
     // sends no confirmation, telegram, invoice or pdf, and creates no room: only the alert below.
