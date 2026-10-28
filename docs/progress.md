@@ -5363,6 +5363,6 @@ New route; the website is untouched.
 - `app/api/mobile/owner/profile/visibility/route.ts` (new): `requireApprovedOwner`; body `{ visible: boolean }` (zod; anything else → 400 "بيانات خاطئة"); the website's `ownerVisibility(user.id, visible)` unchanged (its website caller: `toggle-visibility.tsx` through `actions/consultant.ts`); `state: false` → 500; returns `{ visible }`. A `userId` / `cid` in the body is ignored.
 - Decided (Ziad): `visible: true` is not refused when the listing isn't PUBLISHED, same as the website toggle.
 
-**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (lists `/api/mobile/owner/profile/visibility`), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 10 new of 19 total, all passing: `true` / `false` → the handler with the session user and echoed back; no body, invalid json, `{}`, `"true"`, `1`, `null` → 400 and nothing written; handler failure → 500; not an approved owner → 403 and nothing written.
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (lists `/api/mobile/owner/profile/visibility`), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 10 new of 19 total, all passing: `true` / `false` → the handler with the session user and echoed back; no body, invalid json, `{}`, `"true"`, `1`, `null` → 400 and nothing written; handler failure → 500; not an approved owner → 403 and nothing written. Ziad: the website toggle works with its toast; not tested in the app (the account isn't published, so the app disables the switch, as intended).
 
-**Open:** none.
+**Open:** the route itself hasn't been called from the app yet (needs a published owner).
