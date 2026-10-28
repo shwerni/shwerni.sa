@@ -5331,3 +5331,14 @@ From the app's `docs/api/handoff.md`. Additive response fields only; the website
 **Verified:** `npx tsc --noEmit`, eslint on the changed files (0 errors; 2 old warnings in `data/consultant.ts`), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`).
 
 **Open:** none.
+
+## Mobile API handoff, step 2: the oath text in one constant (2026-10-28)
+
+The oath text moves out of the website component so `GET /api/mobile/owner/oath` (step 3) and the website read one source. No visible change on the website.
+
+- `constants/oath.ts` (new): `CONSULTANT_OATH` = `{ title, intro, heading, terms }` (41 terms), generated from the component's own strings, not retyped.
+- `components/legacy/consultants/owner/oath/index.tsx`: `terms` = `CONSULTANT_OATH.terms`; the `h3`, the intro `p` and the `h6` render `{CONSULTANT_OATH.title / intro / heading}`. Markup, classes, the accept / reject flow and the warning line are unchanged.
+
+**Verified:** a scratchpad script compared the old component strings with the constant: title, intro, heading and all 41 terms identical, same order. `npx tsc --noEmit`, eslint on both files (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Website (Ziad): the dashboard loads; no consultant without the oath was available, so the oath page itself is covered by the text comparison. Step 1 (Ziad): the website dashboard loads; the app wasn't tested with a token yet.
+
+**Open:** none.
