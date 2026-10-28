@@ -5355,3 +5355,14 @@ New route; the website is untouched.
 **Verified:** `npx tsc --noEmit`, eslint on both files (clean), `npm run build` (lists `/api/mobile/owner/oath`), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest (scratchpad, the real route; auth and data mocked), 9 of 9: no row → not accepted with the 41 terms and exactly the contract's keys; accepted → iso `acceptedAt` by the session's cid; a lookup error → 500; 401 / 403 pass through; POST without a row → 404 and nothing written; a `cid` / `userId` in the body is ignored; a failed upsert → 500. Ziad: the website dashboard loads; the app against the local backend works.
 
 **Open:** none.
+
+## Mobile API handoff, step 4: PATCH /owner/profile/visibility (2026-10-28)
+
+New route; the website is untouched.
+
+- `app/api/mobile/owner/profile/visibility/route.ts` (new): `requireApprovedOwner`; body `{ visible: boolean }` (zod; anything else → 400 "بيانات خاطئة"); the website's `ownerVisibility(user.id, visible)` unchanged (its website caller: `toggle-visibility.tsx` through `actions/consultant.ts`); `state: false` → 500; returns `{ visible }`. A `userId` / `cid` in the body is ignored.
+- Decided (Ziad): `visible: true` is not refused when the listing isn't PUBLISHED, same as the website toggle.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (lists `/api/mobile/owner/profile/visibility`), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 10 new of 19 total, all passing: `true` / `false` → the handler with the session user and echoed back; no body, invalid json, `{}`, `"true"`, `1`, `null` → 400 and nothing written; handler failure → 500; not an approved owner → 403 and nothing written.
+
+**Open:** none.
