@@ -646,13 +646,14 @@ export const getOwnerByCid = async (cid: number) => {
   }
 };
 
-// the signed-in owner's consultant id, name and approval state, for the mobile app's
-// role gate (GET /api/mobile/owner/status and requireApprovedOwner); null when the owner
-// has no consultant row yet. same safe client as getOwnerbyAuthor (platform consultants)
+// the signed-in owner's consultant id, name, approval, publication (statusA) and own
+// visibility switch (status), for the mobile app's role gate (GET /api/mobile/owner/status
+// and requireApprovedOwner); null when the owner has no consultant row yet. same safe client
+// as getOwnerbyAuthor (platform consultants)
 export const getOwnerApprovalByUser = async (userId: string) => {
   return prisma.consultant.findUnique({
     where: { userId },
-    select: { cid: true, name: true, approved: true },
+    select: { cid: true, name: true, approved: true, statusA: true, status: true },
   });
 };
 

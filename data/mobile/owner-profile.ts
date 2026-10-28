@@ -16,6 +16,7 @@ import { dateToYears } from "@/schemas/consultant/profile";
 import type {
   ApprovalState,
   Categories,
+  ConsultantState,
   Gender,
   GenderPreference,
 } from "@/lib/generated/prisma/enums";
@@ -24,6 +25,8 @@ import type {
 const profileSelect = {
   cid: true,
   approved: true,
+  statusA: true,
+  status: true,
   adminNote: true,
   name: true,
   title: true,
@@ -57,6 +60,10 @@ export interface OwnerProfileBank {
 export interface OwnerProfile {
   cid: number;
   approval: ApprovalState;
+  // Consultant.statusA, same meaning as GET /owner/status
+  listing: ConsultantState;
+  // Consultant.status, the consultant's own show / hide switch
+  visible: boolean;
   adminNote: string | null;
   name: string;
   title: string;
@@ -110,6 +117,8 @@ export type OwnerProfileRow = NonNullable<
 export const toOwnerProfile = (row: OwnerProfileRow): OwnerProfile => ({
   cid: row.cid,
   approval: row.approved,
+  listing: row.statusA,
+  visible: row.status,
   adminNote: row.adminNote || null,
   name: row.name,
   title: row.title,

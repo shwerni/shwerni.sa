@@ -5296,3 +5296,16 @@ Commits: 3a (booking guard and rate limit), 3b (payment check, cron, success pag
 2. **Step 4a** (realtime server): the internal secret on every HTTP route except `/` and `/robots.txt`; needs the Mau health-check path (or "none").
 3. **"After the migration"** (above): lateness tracking; the join-time safety net; the client waiting status; the possible double refund in `orderStatusRefund`; the app follow-up (`instant-booked`, `instant-busy`, a refused toggle); the request → accept → pay idea (note only).
 4. Smaller, from this check: the busy test's clock margins; optionally the browser's realtime address behind the token routes, and a lazy firebase-admin.
+
+## Mobile API handoff, step 1: owner status and profile fields (2026-10-28)
+
+From the app's `docs/api/handoff.md`. Additive response fields only; the website is untouched.
+
+- `data/consultant.ts`: `getOwnerApprovalByUser` also selects `statusA` and `status`. Callers are mobile only (`requireApprovedOwner`, `GET /owner/status`, `POST /owner/profile`); `requireApprovedOwner` still returns `{ cid, name }` only.
+- `data/mobile/owner-oath.ts` (new): `getOwnerOath(cid)`, the oath row by the owner's own cid. It doesn't catch, unlike the website's `getAuthStateById` (which returns `null` on a database error too, and stays unchanged for `dashboard/layout.tsx`).
+- `app/api/mobile/owner/status/route.ts`: adds `oath` (a `consultant_oaths` row), `listing` (`statusA`) and `visible` (`status`). No consultant row: `oath: false`, `listing: null`, `visible: null`. A failed oath lookup is a 500, so the app shows its retry screen instead of the oath page.
+- `data/mobile/owner-profile.ts`: `profileSelect` + `OwnerProfile` add `listing` (`statusA`) and `visible` (`status`).
+
+**Verified:** `npx tsc --noEmit`, eslint on the changed files (0 errors; 2 old warnings in `data/consultant.ts`), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`).
+
+**Open:** none.
