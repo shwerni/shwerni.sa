@@ -5297,6 +5297,28 @@ Commits: 3a (booking guard and rate limit), 3b (payment check, cron, success pag
 3. **"After the migration"** (above): lateness tracking; the join-time safety net; the client waiting status; the possible double refund in `orderStatusRefund`; the app follow-up (`instant-booked`, `instant-busy`, a refused toggle); the request → accept → pay idea (note only).
 4. Smaller, from this check: the busy test's clock margins; optionally the browser's realtime address behind the token routes, and a lazy firebase-admin.
 
+## Follow-up 1: the browser's realtime address from the server (2026-10-23)
+
+**Website.** `NEXT_PUBLIC_BACKEND_URL` is gone. The browser learns the realtime address from the token routes.
+
+- `lib/api/realtime/public-url.ts` (new, `server-only`): `realtimePublicUrl()` returns the server-only `BACKEND_URL`, trimmed and without trailing slashes, or `null` when it's missing or empty.
+- `app/api/realtime-token/route.ts`: no session → 401 (unchanged, checked first); no address → 500 `{ error: "realtime unavailable" }`; otherwise `{ token, url }`.
+- `app/api/realtime-token/guest/route.ts`: no address → 500 `{ error: "realtime unavailable" }`; otherwise `{ token, url }`.
+- `lib/api/realtime/socket-client.ts`: `createRealtimeSocket` fetches `{ token, url }` before it creates the socket and connects to that url. A failed request (401, 500, or an answer without `token` or `url`) calls `onTokenError(status)` and throws, so no socket is made and there is no fallback to the site's own domain. The first handshake uses the prefetched token; every reconnect fetches a fresh one (a failure there: `onTokenError`, and the handshake goes on without a token, which the server refuses).
+- `hooks/realtime/useOnlineConsultant.ts`: only the catch comment and log text. The existing behaviour already covers the throw: a 401 → the "session" error; anything else → the capped retries, then the existing "unreachable" error. The client lists (`hooks/useOnlineConsultants.ts`) already treat a failed socket start as "no live updates" and keep the server-rendered list.
+- `/api/mobile/realtime-token` is untouched (`git diff --stat app/api/mobile` is empty).
+- Docs: `docs/reference/server-surface.md` (the socket-client row), `docs/reference/project-map.md` (the `NEXT_PUBLIC_BACKEND_URL` bullet removed).
+
+**Verified**
+
+- `grep -rn NEXT_PUBLIC_BACKEND_URL` outside `node_modules`, `.next` and this log: no matches.
+- tsc, eslint (changed files), `npm run build`, manifest check: see the hand-off message.
+- Throwaway vitest (scratchpad, the real route handlers and socket client; `@/auth` mocked, `socket.io-client` stubbed), 9 new tests: the url without its trailing slash for both routes; exactly `{ token, url }`; a missing, empty, blank or `/` `BACKEND_URL` → 500 on both routes; no session → 401 before the address check; the socket connects to the route's url with the caller's options; the first handshake reuses the prefetched token (one request); reconnects fetch fresh tokens; 401, 500 or a missing url → `onTokenError` + a throw and no socket; a failed reconnect token → `cb({})` + `onTokenError`. The existing hook suites still pass (62/62 in total).
+
+**Deploy note (Ziad).** `BACKEND_URL` must be the public realtime address the browser can reach (it already is what the site's server → realtime calls use). After this is deployed, `NEXT_PUBLIC_BACKEND_URL` can be deleted on Vercel.
+
+**Open:** none.
+
 ## Mobile API handoff, step 1: owner status and profile fields (2026-10-28)
 
 From the app's `docs/api/handoff.md`. Additive response fields only; the website is untouched.
