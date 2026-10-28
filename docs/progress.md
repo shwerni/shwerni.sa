@@ -5342,3 +5342,16 @@ The oath text moves out of the website component so `GET /api/mobile/owner/oath`
 **Verified:** a scratchpad script compared the old component strings with the constant: title, intro, heading and all 41 terms identical, same order. `npx tsc --noEmit`, eslint on both files (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Website (Ziad): the dashboard loads; no consultant without the oath was available, so the oath page itself is covered by the text comparison. Step 1 (Ziad): the website dashboard loads; the app wasn't tested with a token yet.
 
 **Open:** none.
+
+## Mobile API handoff, step 3: GET and POST /owner/oath (2026-10-28)
+
+New route; the website is untouched.
+
+- `app/api/mobile/owner/oath/route.ts` (new), both `requireMobileOwner` (before approval):
+  - `GET`: `{ accepted, acceptedAt, title, intro, heading, terms }`; the text from `CONSULTANT_OATH` (step 2), the acceptance from `getOwnerOath(cid)` (step 1; no consultant row → not accepted). A failed lookup is a 500, not `accepted: false`.
+  - `POST`: no consultant row → 404 "لم يتم إنشاء ملفك بعد"; then the website's `confirmOathAcceptance(user.id)` (unchanged, an upsert by the owner's own cid, safe to repeat; its `null` → 500); returns `{ accepted: true, acceptedAt }` read back from the row. The body is ignored.
+- `lib/auth/require-approved-owner.ts`: comment only, `/owner/oath` added to the routes that work before approval.
+
+**Verified:** `npx tsc --noEmit`, eslint on both files (clean), `npm run build` (lists `/api/mobile/owner/oath`), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest (scratchpad, the real route; auth and data mocked), 9 of 9: no row → not accepted with the 41 terms and exactly the contract's keys; accepted → iso `acceptedAt` by the session's cid; a lookup error → 500; 401 / 403 pass through; POST without a row → 404 and nothing written; a `cid` / `userId` in the body is ignored; a failed upsert → 500.
+
+**Open:** none.

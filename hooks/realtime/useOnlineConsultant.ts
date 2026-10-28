@@ -168,7 +168,8 @@ export function useConsultantPresence({ userId }: { userId: string }) {
           },
         });
       } catch (err) {
-        console.error("[presence] failed to load the socket client:", err);
+        // the socket client, the token or the realtime address couldn't be had
+        console.error("[presence] failed to start the socket:", err);
         return retryLater(() => void connect());
       }
 

@@ -157,7 +157,6 @@ Names only, collected with `process.env.X` over all source outside `node_modules
 
 **`NEXT_PUBLIC_` (shipped to the browser):**
 
-- `NEXT_PUBLIC_BACKEND_URL` (`hooks/realtime/useOnlineConsultant.ts`)
 - `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` (`components/wrappers/recaptcha.tsx`)
 
 None of the `NEXT_PUBLIC_` names is a secret by name. Their values were not checked.

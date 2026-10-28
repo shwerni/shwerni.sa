@@ -142,7 +142,7 @@ const sendApnsVoipWithFallback = async (
 
 // fcm data message — no "notification" key, so it's delivered as a plain
 // data payload the module parses natively before js runs. uses the
-// shared, pre-initialized messaging instance — a bare getMessaging()
+// shared messaging instance (initialized on first use) — a bare getMessaging()
 // call has no default app to fall back to unless initializeApp() ran
 // somewhere else in this same execution, which it won't in a cron's
 // own serverless invocation
@@ -150,7 +150,7 @@ const sendFcmVoipPush = async (
   deviceToken: string,
   event: IncomingCallEvent,
 ) => {
-  await messaging.send({
+  await messaging().send({
     token: deviceToken,
     data: {
       messageType: "incomingCall",

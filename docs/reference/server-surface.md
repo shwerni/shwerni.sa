@@ -485,7 +485,7 @@ Found by scanning `useEffect` / `React.useEffect` bodies (and local functions th
 | `components/legacy/consultants/owner/timings/tables/index.tsx` | 55 | `getTimings(author, cid, tday)` |
 | `hooks/useOnlineConsultants.ts` | 31 | `getOnlineConsultantsList` (via `fetchList`) |
 | `hooks/usIsOnline.ts` | 9 | `checkIsAnyConsultantOnline` |
-| `hooks/realtime/useOnlineConsultant.ts` | 28 | ``fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/presence/counts`)`` and `fetch("/api/realtime-token")` |
+| `lib/api/realtime/socket-client.ts` | 37 | `fetch("/api/realtime-token")` (or `/guest`): `{ token, url }`, the realtime address comes from the server-only `BACKEND_URL` |
 | `components/clients/chats/chat.tsx` | 123 | SWR ``/api/meetings/${mid}/chat``, every 7 s |
 | `components/clients/chats/list/chat.tsx` | 122 | SWR ``/api/meetings/${mid}/chat``, every 7 s |
 | `components/clients/chats/list/list.tsx` | 163 | SWR `/api/meetings/chats?author=${author}&role=${role}`, every 15 s |

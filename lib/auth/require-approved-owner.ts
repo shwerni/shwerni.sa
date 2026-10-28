@@ -16,7 +16,7 @@ import { ApprovalState, UserRole } from "@/lib/generated/prisma/enums";
 /**
  * the signed-in mobile user, only when their session role is OWNER
  * throws 401 without a session and 403 for any other role. use for /owner/* routes
- * that must work before approval: GET /owner/status, /owner/profile and the /api/uploadthing/mobile upload router
+ * that must work before approval: GET /owner/status, /owner/profile, /owner/oath and the /api/uploadthing/mobile upload router
  */
 export async function requireMobileOwner(request: NextRequest) {
   const user = await requireMobileUser(request);

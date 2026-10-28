@@ -22,7 +22,7 @@ export async function draftPleadingSummary(brief: string): Promise<string | null
   if (!text) return null;
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await openai().chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.2,
       response_format: { type: "json_object" },

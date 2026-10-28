@@ -1,17 +1,13 @@
 import "server-only";
 import { Gender } from "@/lib/generated/prisma/enums";
-// pacakges
-import OpenAI from "openai";
 
-// ai
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// ai: the shared client, built on first use (lib/api/ai/client.ts)
+import { openai } from "@/lib/api/ai/client";
 
 // send request
 const Ai = async (prompt: string) => {
   try {
-    const response = await openai.chat.completions.create({
+    const response = await openai().chat.completions.create({
       model: "gpt-4.1-mini",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
