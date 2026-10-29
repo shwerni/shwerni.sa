@@ -12,7 +12,8 @@ import CardSkeleton from "@/components/clients/shared/card-skeleton";
 import { getAllPublishedQuestion } from "@/data/question";
 
 export const metadata: Metadata = {
-  title: "سؤال وجواب | شاورني",
+  // the root template adds " | شاورني"
+  title: "سؤال وجواب",
   description:
     "تصفح أسئلة المستخدمين وإجابات المختصين في مجالات الأسرة والنفس والقانون والتنمية الشخصية.",
 };

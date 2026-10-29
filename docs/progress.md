@@ -5366,3 +5366,14 @@ New route; the website is untouched.
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (lists `/api/mobile/owner/profile/visibility`), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 10 new of 19 total, all passing: `true` / `false` → the handler with the session user and echoed back; no body, invalid json, `{}`, `"true"`, `1`, `null` → 400 and nothing written; handler failure → 500; not an approved owner → 403 and nothing written. Ziad: the website toggle works with its toast; not tested in the app (the account isn't published, so the app disables the switch, as intended).
 
 **Open:** the route itself hasn't been called from the app yet (needs a published owner).
+
+## Mobile API handoff, step 5: GET /owner/sessions (2026-10-28)
+
+New route; the website is untouched (`getAllPaidOwnersOrdersByAuthor` and `dashboard/orders/page.tsx` unchanged).
+
+- `data/mobile/owner-sessions.ts` (new): `getOwnerSessions(cid, from, to)`: meetings dated in [from, to] whose order is this consultant's with payment `PAID` (the website's filter), sorted by date, time. Selects only `mid, date, time, duration, done`, participants' `attended`, and the order's `oid, type, programId`: no client name / phone / email, no consultant phone, no payment rows. `type` = `PROGRAM` when the order has a program; `status` as the app's `getMeetingStatus` (completed = done or every participant attended, else upcoming; `cancelled` can't occur under the PAID filter, decided by Ziad); a malformed duration → 0.
+- `app/api/mobile/owner/sessions/route.ts` (new): `requireApprovedOwner`, the cid from it (a `cid` in the query is ignored). `from` / `to` must be real `YYYY-MM-DD` days, `to >= from`, at most 42 days apart, else 400 "نطاق التاريخ غير صالح". Returns `{ sessions, days }`; `days` counts upcoming sessions per day (days without any are left out).
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (lists `/api/mobile/owner/sessions`), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 13 new of 32 total, all passing: 7 bad ranges → 400 with no query (missing, bad format, 2026-02-30, reversed, 43 days, garbage); one day and exactly 42 days → 200; the prisma `where` is the session's cid + PAID and the select has no client or payment fields; type / status / duration / `days` mapping; 403 with no query; a database error → 500.
+
+**Open:** none.

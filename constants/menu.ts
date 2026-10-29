@@ -45,6 +45,8 @@ import {
   LayoutGrid,
   Boxes,
   Scale,
+  Handshake,
+  ClipboardCheck,
 } from "lucide-react";
 
 // react icons
@@ -172,6 +174,29 @@ export const subPages: Link[] = [
     label: "جلسة توجيهية",
     link: "/preconsultation",
     icon: MessageSquareWarning,
+    status: true,
+  },
+];
+
+// the home page's active services (components/clients/home/services.tsx) that subPages doesn't
+// have, shown after it in the client sidebar only (the footer keeps subPages)
+export const moreServices: Link[] = [
+  {
+    label: "الترافع",
+    link: "/pleading",
+    icon: Scale,
+    status: true,
+  },
+  {
+    label: "جلسة صلح",
+    link: "/reconciliation",
+    icon: Handshake,
+    status: true,
+  },
+  {
+    label: "المقاييس",
+    link: "/scales",
+    icon: ClipboardCheck,
     status: true,
   },
 ];

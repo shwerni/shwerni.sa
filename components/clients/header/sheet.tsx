@@ -21,7 +21,7 @@ import { SideBarBtn, SubMenu } from "@/components/clients/header/submenu";
 import { User } from "next-auth";
 
 // constants
-import { subPages, navLinks } from "@/constants/menu";
+import { subPages, moreServices, navLinks } from "@/constants/menu";
 
 // icons
 import { LogIn, LogOut, Menu } from "lucide-react";
@@ -144,7 +144,7 @@ const HeaderSheet = ({ user, path }: Props) => {
                         خدمات إضافية
                       </p>
                       <div className="space-y-1">
-                        {subPages.map(
+                        {[...subPages, ...moreServices].map(
                           (i, index) =>
                             i.status && (
                               <SideBarBtn
