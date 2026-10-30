@@ -5377,3 +5377,14 @@ New route; the website is untouched (`getAllPaidOwnersOrdersByAuthor` and `dashb
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (lists `/api/mobile/owner/sessions`), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 13 new of 32 total, all passing: 7 bad ranges → 400 with no query (missing, bad format, 2026-02-30, reversed, 43 days, garbage); one day and exactly 42 days → 200; the prisma `where` is the session's cid + PAID and the select has no client or payment fields; type / status / duration / `days` mapping; 403 with no query; a database error → 500.
 
 **Open:** none.
+
+## Mobile API handoff, step 6: GET /owner/instant (2026-10-30)
+
+New route; the website is untouched (`consultantBusyPayload` is reused unchanged; the payment path isn't touched).
+
+- `data/mobile/owner-instant.ts` (new): `getOwnerInstantOrders(cid, now)`: the consultant's PAID `INSTANT` orders with a meeting not done, dated yesterday or today (riyadh, so a session crossing midnight is found), newest first, at most 5. Selects only `oid` and the meeting's `mid, date, time, duration`.
+- `app/api/mobile/owner/instant/route.ts` (new): `requireApprovedOwner`, the cid from it. The first order whose `consultantBusyPayload(...)` isn't null (the meeting hasn't ended) gives `{ busyUntil, booking: { orderId, meetingId, startsAt, duration } }`; none → both null. Same start + duration math the payment sends to the realtime server; no `meetingUrl`, no client data. Instant sessions only (decided by Ziad), like the realtime server's refusal.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (lists `/api/mobile/owner/instant`), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 9 new of 41 total, all passing: no order → nulls; a running session → `busyUntil` = start + duration and exactly the public fields; a booked session not started yet counts; an ended (not done) order is skipped for the next; ended exactly now → not busy; 23:50 yesterday still busy at 00:10, with both riyadh days queried; at 23:00 utc the riyadh days are the next ones; the prisma where / select (session cid, PAID INSTANT, no client fields); 403 with no query; a database error → 500. Ziad: the website dashboard loads; not tested in the app (the app wires `GET /owner/instant` after step 9).
+
+**Open:** the route hasn't been called from the app yet.
