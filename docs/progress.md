@@ -5388,3 +5388,15 @@ New route; the website is untouched (`consultantBusyPayload` is reused unchanged
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (lists `/api/mobile/owner/instant`), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 9 new of 41 total, all passing: no order → nulls; a running session → `busyUntil` = start + duration and exactly the public fields; a booked session not started yet counts; an ended (not done) order is skipped for the next; ended exactly now → not busy; 23:50 yesterday still busy at 00:10, with both riyadh days queried; at 23:00 utc the riyadh days are the next ones; the prisma where / select (session cid, PAID INSTANT, no client fields); 403 with no query; a database error → 500. Ziad: the website dashboard loads; not tested in the app (the app wires `GET /owner/instant` after step 9).
 
 **Open:** the route hasn't been called from the app yet.
+
+## Mobile API handoff, step 7: POST consultants/consultant/presence removed (2026-10-30)
+
+Retired, as decided by Ziad (no released app build calls it; the app's instant tab uses the realtime `consultant-online` / `consultant-offline` acks).
+
+- `app/api/mobile/consultants/consultant/presence/route.ts` deleted (it was `requireMobileUser` with any role, and wrote `online_status` even while busy).
+- `setConsultantOnline` / `setConsultantOffline` (`data/online.ts`) stay: the realtime server's `app/api/internal/presence/route.ts` uses them.
+- `docs/reference/server-surface.md`: the route's row removed, and it's gone from the two callers cells.
+
+**Verified:** `npm run build` (only `/api/internal/presence` and `/api/mobile/room/presence` left), manifest check (only `data/event.ts`, `lib/api/google.ts`), `npx tsc --noEmit`. The first run failed on Next's generated `.next/types` / `.next/dev/types` validators, still pointing at the deleted route; the build regenerated `.next/types`, and the stale `.next/dev/types` (from `next dev`, with Ziad's dev server stopped) was deleted with his OK, then both passed. Ziad: the website dashboard loads; nothing uses the route.
+
+**Open:** none.
