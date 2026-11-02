@@ -12,7 +12,10 @@ import {
 } from "@/lib/api/routes/route-factory";
 
 // handlers
-import { saveConsultant } from "@/handlers/conusltant/owner/profile";
+import {
+  saveConsultant,
+  saveConsultantKeepVisibility,
+} from "@/handlers/conusltant/owner/profile";
 
 // data
 import { getOwnerApprovalByUser } from "@/data/consultant";
@@ -100,7 +103,11 @@ async function save(
       : null);
   if (!bank) throw new HttpError("يرجى إدخال بيانات الحساب البنكي", 400);
 
-  return saveConsultant(
+  // an edit keeps the consultant's own visibility switch; unlike the website, saving doesn't
+  // make a hidden profile visible again. creating is the website's save as is
+  const handler = row ? saveConsultantKeepVisibility : saveConsultant;
+
+  return handler(
     userId,
     phone,
     {

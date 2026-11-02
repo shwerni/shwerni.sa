@@ -26,8 +26,10 @@ import { checkSaudiIban } from "@/lib/api/gatewaies/iban";
 import { aiAcceptOwners } from "@/lib/api/ai/ai";
 import { sendReviewerNotification } from "@/lib/api/telegram/templates/owner";
 
-// save or create owner profile + bank account
-export const saveConsultant = async (
+// save or create owner profile + bank account. keepStatus: an edit leaves the consultant's own
+// visibility switch (status) as it is, instead of turning it back on (the mobile PATCH only)
+const saveConsultantProfile = async (
+  { keepStatus }: { keepStatus: boolean },
   author: string,
   phone: string,
   data: z.infer<typeof ConsultantSchema>,
@@ -143,7 +145,8 @@ export const saveConsultant = async (
           userId: author,
         },
         data: {
-          status: true,
+          // undefined leaves the column unchanged
+          status: keepStatus ? undefined : true,
           statusA: accept ? ConsultantState.PUBLISHED : ConsultantState.HOLD,
           phone: phone,
           name: profile.name,
@@ -188,6 +191,20 @@ export const saveConsultant = async (
     };
   }
 };
+
+// saveConsultant's arguments: the profile handler's, without the options
+type SaveConsultantArgs =
+  Parameters<typeof saveConsultantProfile> extends [unknown, ...infer Rest]
+    ? Rest
+    : never;
+
+// the website's save (actions/consultant.ts): an edit turns the profile visible again (status: true)
+export const saveConsultant = (...args: SaveConsultantArgs) =>
+  saveConsultantProfile({ keepStatus: false }, ...args);
+
+// the mobile PATCH /owner/profile: an edit keeps the visibility switch as the consultant left it
+export const saveConsultantKeepVisibility = (...args: SaveConsultantArgs) =>
+  saveConsultantProfile({ keepStatus: true }, ...args);
 
 // toggle profile visibility user
 export const ownerVisibility = async (author: string, state: boolean) => {

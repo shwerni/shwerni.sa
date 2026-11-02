@@ -5400,3 +5400,15 @@ Retired, as decided by Ziad (no released app build calls it; the app's instant t
 **Verified:** `npm run build` (only `/api/internal/presence` and `/api/mobile/room/presence` left), manifest check (only `data/event.ts`, `lib/api/google.ts`), `npx tsc --noEmit`. The first run failed on Next's generated `.next/types` / `.next/dev/types` validators, still pointing at the deleted route; the build regenerated `.next/types`, and the stale `.next/dev/types` (from `next dev`, with Ziad's dev server stopped) was deleted with his OK, then both passed. Ziad: the website dashboard loads; nothing uses the route.
 
 **Open:** none.
+
+## Mobile API handoff, step 8: PATCH /owner/profile keeps the visibility (2026-10-30)
+
+Before: `saveConsultant` sets `status: true` on every edit, so saving any edit in the app made a hidden profile visible again. Now the mobile edit keeps the consultant's own switch; the website behaves exactly as before.
+
+- `handlers/conusltant/owner/profile.ts`: the body of `saveConsultant` moved unchanged into an internal `saveConsultantProfile({ keepStatus }, ...)`; the only line it affects is the update's `status` (`keepStatus` → `undefined`, which leaves the column as it is). `saveConsultant` keeps its exact parameters and calls it with `keepStatus: false` (`status: true`, as before). New `saveConsultantKeepVisibility` = `keepStatus: true`. Not a new parameter on `saveConsultant`, because the website action (`actions/consultant.ts`) passes the browser's arguments through to it; the action is untouched. Create (no row) still sets `status: true`, `statusA: HOLD` either way.
+- `app/api/mobile/owner/profile/route.ts`: PATCH (a row exists) → `saveConsultantKeepVisibility`; POST (create) → `saveConsultant`, unchanged.
+- Website callers of `saveConsultant`: `actions/consultant.ts` → `components/legacy/consultants/owner/profile/form.tsx` (unchanged behaviour).
+
+**Verified:** `npx tsc --noEmit`, eslint (0 errors; 1 old warning, `_args` in `actions/consultant.ts:42`), `npm run build` (compile took 121.9 min on this run, TypeScript 3.4 min, then normal), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest against the real handler, 6 new of 47 total, all passing: the website save still writes `status: true`; the mobile save writes the identical update without `status`; review rules (PUBLISHED / HOLD), `pendingImage`, `adminNote` and the bank upsert unchanged for both; create unaffected (`status: true`, HOLD, reviewer notification); invalid input refused before any write. Website profile save: Ziad's result not reported (the message had the placeholder).
+
+**Open:** the website profile save and the app's edit-while-hidden still need a manual check.
