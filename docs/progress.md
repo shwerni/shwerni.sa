@@ -5554,3 +5554,14 @@ Approved by Ziad from the reviewed patch (`backups/patches/2026-11-02-batch-c-st
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 222 for the applied code, all passing; new for C1 (13): the real `upsertConsultantPackage` does the same upsert inside the transaction, switches off only the oldest beyond 3, nothing at exactly 3, `{ success: false }` on a failure; the route saves for the session cid (a body `consultantId` ignored) and returns the list with the rules, 6 bad bodies → 400 with nothing saved, cost 100 allowed, a failed save → 500, 403 with nothing saved.
 
 **Open:** none.
+
+## Mobile API batch C, step C2: PATCH /owner/discounts/{did} (2026-11-02)
+
+Approved by Ziad from the reviewed patch (`backups/patches/2026-11-02-batch-c-step9/c2-discounts.patch`, applied as is). No shared function changed: the website's `toggleDiscountState` (`data/discounts.ts`) is reused unchanged.
+
+- `data/mobile/owner-discounts.ts`: `getJoinableDiscount(did)`: the campaign's end, or null for a missing, hidden or center campaign.
+- `PATCH /owner/discounts/{did}` (added to the route): `requireApprovedOwner`; a bad id or a missing / hidden / center campaign → 404; `{ joined: boolean }` (else 400). Leaving is allowed any time (bookings keep the price stored on their payment). Joining a campaign that has ended → 400 "انتهى هذا الخصم" (decided by Ziad; the website allows the join, which has no effect on prices), with "now" read the way the site's pricing reads it, so it agrees with GET's `running`. Then `toggleDiscountState(did, joined, cid)`; `null` → 500. Returns `{ joined }`.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 230 for the applied code, all passing; new for C2 (8): join / leave for the session cid (a body `cid` ignored) and the lookup's select; 404 for a missing, hidden or center campaign with nothing saved; an ended campaign refuses joining and allows leaving; bad body → 400, bad id → 404 with no query, a failed toggle → 500; 403 with nothing saved.
+
+**Open:** none.

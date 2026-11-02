@@ -87,6 +87,20 @@ export const getOwnerDiscounts = async (cid: number): Promise<OwnerDiscount[]> =
 };
 
 /**
+ * a campaign a platform consultant may join or leave: its end, or null for a missing, hidden or
+ * center campaign (the routes answer 404, as GET does)
+ * @param did the campaign id from the url
+ */
+export const getJoinableDiscount = async (did: number) => {
+  const discount = await prisma.discount.findUnique({
+    where: { did },
+    select: { status: true, centerId: true, endDate: true },
+  });
+  if (!discount || !discount.status || discount.centerId !== null) return null;
+  return { endDate: discount.endDate };
+};
+
+/**
  * one platform campaign for this consultant, with every number computed on the server: the
  * consultant's own price per length, the campaign's price (applyRule, only for the lengths it
  * covers) and the consultant's earning on it (calculateDues with the commission a booking would
