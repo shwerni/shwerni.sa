@@ -5449,3 +5449,20 @@ Read-only; no shared function changed (`getWeekStartSaturday` / `timeZone` reuse
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (both routes listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 14 new: the orders shape and extras, status vs done (they differ only without participants), `PROGRAM`, the prisma where / select, 5 bad ranges → 400 with no query, exactly 42 days → 200; `enabled` true only with status and this week's saturday (false for last week, status off, no row); the 35-minute window, soonest first, a bad time dropped, a 23:50 session still listed at 00:10; 403 with no query and a database error → 500 for both.
 
 **Open:** none.
+
+## Mobile API batch A, step A4: owner chats list and thread (2026-11-02)
+
+Read-only; no shared function changed (the website's `getChatList` / `getMeetingData` (`data/chats.ts`) and the chat page's rules (`components/clients/chats/chat.tsx`) mirrored, not touched).
+
+- `data/mobile/owner-chats.ts` (new), shared by both routes (and batch B's send):
+  - `CHAT_WINDOW_MS` = 72 hours (the website closes at 72 whole hours; its list uses 100, backlog #16); `chatStart` reads the meeting's riyadh strings with `+03:00`.
+  - `clientLabel`: first name + the first letter of the second ("خالد عبدالله" → "خالد ع."), never the full name or phone.
+  - `ownerVisibleMessages`: the website's owner view, applied on the server (decided by Ziad): while the meeting is blocked, client messages at or after the latest block marker are hidden; markers (`blocked: true`, "تم الحظر") and the owner's messages stay.
+  - `getOwnerChats`: the consultant's PAID orders' meetings, still open (start + 72 h > now, future included; a malformed time is left out), `today` = dated today (riyadh). `last` = the newest visible message that isn't a marker. `q` (2-50): visible message text (case-insensitive) or the order number (`#` allowed); `last` = the newest match. Newest activity first.
+  - `getOwnerChatMeeting`: null for a missing meeting, another consultant's order or an unpaid one.
+- `GET /owner/chats`: `filter` = `today` / `all` (default), `q`; anything else → 400.
+- `GET /owner/chats/{mid}`: 404 unless it's this consultant's paid meeting; `{ chat: { mid, oid, client, closed, blocked }, messages }` oldest first with `mine`, `file`, `blocked`. Never participants (tokens).
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (both routes listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 17 new: the client label (4 cases); the block rule (at / after the latest marker, owner and markers kept, not applied once unblocked); 404 for another consultant's, unpaid or missing meeting; the thread shape (no full name, no participants); closed exactly at +72 h; the list window (72 h out, future in, malformed out), newest activity first and its prisma where; `last` skipping markers and hidden messages; `today`; `q` by text and by `#oid`; 3 bad queries → 400; 403 with no query and database errors → 500 for both.
+
+**Open:** none.
