@@ -5466,3 +5466,18 @@ Read-only; no shared function changed (the website's `getChatList` / `getMeeting
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (both routes listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 17 new: the client label (4 cases); the block rule (at / after the latest marker, owner and markers kept, not applied once unblocked); 404 for another consultant's, unpaid or missing meeting; the thread shape (no full name, no participants); closed exactly at +72 h; the list window (72 h out, future in, malformed out), newest activity first and its prisma where; `last` skipping markers and hidden messages; `today`; `q` by text and by `#oid`; 3 bad queries → 400; 403 with no query and database errors → 500 for both.
 
 **Open:** none.
+
+## Mobile API batch A, step A5: owner discounts and programs (2026-11-02)
+
+Read-only; no shared function changed. Reused unchanged: `getConsultantCost`, `resolveConsultantPricing`, `getFinanceConfig`, `applyRule`, `calculateDues`, `timeZone`. The website's `getActiveDiscounts`, `getProgramByPrid`, `getConsultantProgramByCid` mirrored, not touched.
+
+- `data/mobile/owner-discounts.ts` (new):
+  - `getOwnerDiscounts`: `status: true` campaigns with `centerId: null`, newest first, the public fields only (never `users`, `limit`, `maxUses`, `usedCount`, `overrides`, `visibility`), `joined` from the consultant's `DiscountConsultant.status`.
+  - `getOwnerDiscount`: null for a missing, hidden or center campaign. Prices for 30 / 45 / 60 on the server: `price` = `getConsultantCost`, `final` = `applyRule` for the covered lengths, `earning` = `calculateDues({ total: final, commission }).consultantEarning`, with the commission a booking would use (the consultant's own, else the platform default from `getFinanceConfig`, as `reserveConsultant` / `reserveInstant` do; the contract named only `getOwnerForDues`, whose commission can be null). `running` and `applied` read "now" the way the site's pricing does (`timeZone().iso`, `resolveConsultantPricing`), so the two agree.
+- `data/mobile/owner-programs.ts` (new): published programs (newest first) with the `PublicProgram` columns, never `commission`, plus `enrollment: { status, active } | null`; one program adds `description` and `features`, null when missing or not published.
+- `lib/api/routes/parse-id.ts` (new): `parseIntId`, so a bad id (`abc`, `0`, `1.5`, over the Int column) is a 404 instead of a database error.
+- Routes (new): `GET /owner/discounts`, `GET /owner/discounts/{did}`, `GET /owner/programs`, `GET /owner/programs/{prid}`; all `requireApprovedOwner`, the cid from it.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (all four listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 23 new: the list's where / select (no private fields) and `joined`; PERCENT / FIXED / OVERRIDE prices and earnings, uncovered lengths at full price; the platform-default commission; `joined`, `running`, `applied`; 404 for a missing, hidden or center campaign and for 5 bad ids (no query); no price row → 500; programs list (published, no commission, enrollment), one program (description, features, no status / commission), 404 missing / unpublished / bad id; 403 with no query and database errors → 500 for all four.
+
+**Open:** none.
