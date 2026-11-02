@@ -22,6 +22,32 @@ export interface OwnerCoupon {
   status: CouponState;
 }
 
+interface CouponRow {
+  id: string;
+  code: string;
+  discount: number;
+  limits: number | null;
+  starts_at: Date | null;
+  expires_at: Date | null;
+  visibility: CouponVisibility;
+  status: CouponState;
+}
+
+/**
+ * a coupon as the app shows it (never the users array)
+ * @param row the stored coupon
+ */
+export const toOwnerCoupon = (row: CouponRow): OwnerCoupon => ({
+  id: row.id,
+  code: row.code,
+  discount: row.discount,
+  limits: row.limits,
+  startsAt: row.starts_at?.toISOString() ?? null,
+  expiresAt: row.expires_at?.toISOString() ?? null,
+  visibility: row.visibility,
+  status: row.status,
+});
+
 /**
  * the consultant's coupons, newest first: the where of the website's getConsultantsCoupons,
  * never the users array (client ids)
@@ -43,14 +69,26 @@ export const getOwnerCoupons = async (cid: number): Promise<OwnerCoupon[]> => {
     orderBy: { created_at: "desc" },
   });
 
-  return rows.map((row) => ({
-    id: row.id,
-    code: row.code,
-    discount: row.discount,
-    limits: row.limits,
-    startsAt: row.starts_at?.toISOString() ?? null,
-    expiresAt: row.expires_at?.toISOString() ?? null,
-    visibility: row.visibility,
-    status: row.status,
-  }));
+  return rows.map(toOwnerCoupon);
 };
+
+/**
+ * whether any coupon (any owner, any type) already has this code: codes are unique
+ * @param code the upper-case code
+ */
+export const couponCodeExists = async (code: string) =>
+  !!(await prisma.coupon.findUnique({ where: { code }, select: { id: true } }));
+
+/**
+ * the code of one of the consultant's own coupons, null when the id isn't theirs (the website
+ * deletes by code)
+ * @param cid the owner's own consultant id (from requireApprovedOwner)
+ * @param id the coupon id from the url
+ */
+export const getOwnerCouponCode = async (cid: number, id: string) =>
+  (
+    await prisma.coupon.findFirst({
+      where: { id, consultantId: cid },
+      select: { code: true },
+    })
+  )?.code ?? null;
