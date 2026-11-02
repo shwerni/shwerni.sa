@@ -5530,3 +5530,16 @@ No shared function changed: the website's `createConsultantsCoupon` and `deleteC
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (both listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 21 new of 209 total, all passing: create for the session cid (a body `consultantId` ignored) with the code upper-cased and no `users`; unlimited / no expiry / PRIVATE mapping; 12 bad bodies → 400 with nothing created; 1, 50 and 12.5 allowed; a taken code → 409 with the website's message and nothing created; taken in between → 409, a failed insert → 500; delete own by code, another's → 404 with nothing deleted, a failed delete → 500; 403 with nothing created or deleted.
 
 **Open:** none.
+
+## Mobile API batch B, follow-up: the consultant can send in a blocked chat (2026-11-02)
+
+Decided by Ziad: like the website, a blocked chat still accepts the consultant's messages (the block stops the client; the website shows only an overlay to the consultant).
+
+- `app/api/mobile/owner/chats/[mid]/messages/route.ts`: the `meeting.blocked` → 403 check removed; the 72-hour window (403 "تم إغلاق المحادثة") stays. Nothing else changed.
+- The B3 entry's open item is resolved by this.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 209 of 209 for the applied code (the B3 blocked case now expects the message to be sent with the OWNER token). The batch C / step 9 test files were left out: their code isn't applied yet. (tsc first failed on the generated `.next/types` from the earlier unapplied batch C build; the build regenerated it.)
+
+**Backlog:** unblock from the app (the app has no block / unblock route; blocking and unblocking stay on the website). To copy into the app's website backlog (`docs/dashboard/chat/spec.md` in the app repo).
+
+**Open:** none.

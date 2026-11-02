@@ -31,8 +31,9 @@ const CONTACT_INFO_ERROR = "عفواً، لا يُسمح بتبادل وسائل
 
 const MessageSchema = z.object({ content: z.string().trim().min(1).max(2000) });
 
-// the approved owner sends a text message in their own paid meeting's chat. the 72-hour window and
-// the block are checked here on the server; then the website's createMeetingMessage, with the
+// the approved owner sends a text message in their own paid meeting's chat. the 72-hour window is
+// checked here on the server; a blocked chat still accepts the consultant's messages, like the
+// website (the block stops the client). then the website's createMeetingMessage, with the
 // meeting's OWNER participant from the database (its AI contact check and the first-message-of-
 // the-day whatsapp notice to the client)
 export const POST = createPostRoute<OwnerChatSent, Params>(
@@ -51,7 +52,6 @@ export const POST = createPostRoute<OwnerChatSent, Params>(
     if (Number.isFinite(start) && Date.now() >= start + CHAT_WINDOW_MS) {
       throw new HttpError("تم إغلاق المحادثة", 403);
     }
-    if (meeting.blocked) throw new HttpError("تم حظر هذا المستخدم", 403);
 
     const participantId = await getOwnerParticipantId(mid);
     if (!participantId) throw new Error("meeting has no owner participant");
