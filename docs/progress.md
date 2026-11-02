@@ -5412,3 +5412,16 @@ Before: `saveConsultant` sets `status: true` on every edit, so saving any edit i
 **Verified:** `npx tsc --noEmit`, eslint (0 errors; 1 old warning, `_args` in `actions/consultant.ts:42`), `npm run build` (compile took 121.9 min on this run, TypeScript 3.4 min, then normal), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest against the real handler, 6 new of 47 total, all passing: the website save still writes `status: true`; the mobile save writes the identical update without `status`; review rules (PUBLISHED / HOLD), `pendingImage`, `adminNote` and the bank upsert unchanged for both; create unaffected (`status: true`, HOLD, reviewer notification); invalid input refused before any write. Website profile save: Ziad's result not reported (the message had the placeholder).
 
 **Open:** the website profile save and the app's edit-while-hidden still need a manual check.
+
+## Mobile API batch A, step A1: owner timings, specialties, packages, coupons (2026-11-02)
+
+Read-only routes; no shared function changed (the website functions below are mirrored, not touched). All `requireApprovedOwner`, the cid from it (a `cid` in the query is ignored); new mobile queries in `data/mobile/` select only the contract's fields and don't swallow errors (a failed lookup is a 500).
+
+- `GET /owner/timings` (`data/mobile/owner-timings.ts`): `{ days }`, all 7 weekdays, ONLINE times (the type the website saves) sorted, `[]` for none. Mirrors `getTimings` (one day at a time on the website).
+- `GET /owner/specialties` (`data/mobile/owner-specialties.ts`): `{ category, specialties, selected }`, the website's `getConsultantSpecialties` by cid, without the cid.
+- `GET /owner/packages` (`data/mobile/owner-packages.ts`): `{ packages: [{ count, cost, isActive, updatedAt }], counts, minCost: 100, maxActive: 3 }`, by count; the where of `getConsultantsPackages` (platform only). 100 and 3 checked against the website (`components/consultant/packages/packages.tsx:141`, `data/packages.ts:90`).
+- `GET /owner/coupons` (`data/mobile/owner-coupons.ts`): `{ coupons }`, newest first; the where of `getConsultantsCoupons`, never `users`. `limits` as stored (the website stores an unlimited 0 as null).
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (lists all four; the first run failed at "Collecting page data" for `/scales/[slug]` with Prisma P1001, database unreachable, a network failure; the retry passed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 13 new: each shape and its prisma where / select (session cid, no `users`), weekdays filled and sorted, specialties row gone → 403, 403 with no query and a database error → 500 for all four.
+
+**Open:** none.
