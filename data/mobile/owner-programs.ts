@@ -63,6 +63,26 @@ export const getOwnerPrograms = async (cid: number): Promise<OwnerProgram[]> => 
 };
 
 /**
+ * whether a program exists and is published (only those can be joined)
+ * @param prid the program id from the url
+ */
+export const isProgramPublished = async (prid: number) =>
+  (
+    await prisma.program.findUnique({ where: { prid }, select: { status: true } })
+  )?.status === ProgramState.PUBLISHED;
+
+/**
+ * this consultant's enrollment in a program, null when not enrolled
+ * @param cid the owner's own consultant id (from requireApprovedOwner)
+ * @param prid the program id from the url
+ */
+export const getOwnerEnrollment = (cid: number, prid: number): Promise<OwnerEnrollment> =>
+  prisma.programConsultant.findUnique({
+    where: { consultantId_programId: { consultantId: cid, programId: prid } },
+    select: { status: true, active: true },
+  });
+
+/**
  * one published program with its description and features, and this consultant's enrollment
  * (the website's getProgramByPrid + getConsultantProgramByCid, with a select). null when the
  * program is missing or not published

@@ -5565,3 +5565,15 @@ Approved by Ziad from the reviewed patch (`backups/patches/2026-11-02-batch-c-st
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 230 for the applied code, all passing; new for C2 (8): join / leave for the session cid (a body `cid` ignored) and the lookup's select; 404 for a missing, hidden or center campaign with nothing saved; an ended campaign refuses joining and allows leaving; bad body → 400, bad id → 404 with no query, a failed toggle → 500; 403 with nothing saved.
 
 **Open:** none.
+
+## Mobile API batch C, step C3: POST /owner/programs/{prid}/enroll and PATCH /owner/programs/{prid} (2026-11-02)
+
+Approved by Ziad from the reviewed patch (`backups/patches/2026-11-02-batch-c-step9/c3-programs.patch`, applied as is). No shared function changed: the website's `EnrollOnProgram` and `toggleProgramState` (`data/programs.ts`) are reused unchanged.
+
+- `data/mobile/owner-programs.ts`: `isProgramPublished(prid)`, `getOwnerEnrollment(cid, prid)`.
+- `POST /owner/programs/{prid}/enroll` (new): `requireApprovedOwner`; the body is ignored; a bad id or a program that is missing or not PUBLISHED → 404 (the website function doesn't check); an existing enrollment → 409 "أنت منضم لهذا البرنامج بالفعل" (new message), checked first because the website function returns null for both a taken key and a failure; a null create re-checks: enrolled → 409, else 500. Returns `{ enrollment: { status: PENDING, active: false } }`. Proposing a program stays on the website.
+- `PATCH /owner/programs/{prid}` (added to the route): `{ active: boolean }` (else 400); not enrolled → 404; `toggleProgramState(prid, cid, active)` (any time, like the website; booked program orders go on); `null` → 500. Returns `{ enrollment }`.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (both listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 252 for the applied code, all passing (the whole batch C file now loads); new for C3: enroll PENDING for the session cid (a body `cid` / `status` ignored), a missing or unpublished program → 404 with nothing created, already enrolled → 409 with nothing created, enrolled in between → 409, a failed insert → 500; the switch for the session cid, not enrolled → 404 with nothing saved, bad body → 400, a failed switch → 500; 403 with nothing written on all batch C routes.
+
+**Open:** none.
