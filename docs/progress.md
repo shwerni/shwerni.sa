@@ -5425,3 +5425,15 @@ Read-only routes; no shared function changed (the website functions below are mi
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (lists all four; the first run failed at "Collecting page data" for `/scales/[slug]` with Prisma P1001, database unreachable, a network failure; the retry passed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 13 new: each shape and its prisma where / select (session cid, no `users`), weekdays filled and sorted, specialties row gone → 403, 403 with no query and a database error → 500 for all four.
 
 **Open:** none.
+
+## Mobile API batch A, step A2: owner dues and dues summary (2026-11-02)
+
+Read-only; no shared function changed. `calculateDues` (`utils/admin/dues.ts`) is reused unchanged; the website dues page (`components/legacy/consultants/owner/dues/index.tsx`, `getAllDuesOwner` / `getDuesOwnenByMonth`) is mirrored, not touched.
+
+- `data/mobile/owner-dues.ts` (new): `getOwnerDues(cid)`: the website's where (`payment: PAID`, `centerId: null`; refunded orders are `REFUND`, so out), created_at desc then oid desc, a select with only `oid, type, programId, created_at, due_at`, the payment's `total, commission, usedCoupon { type, discount }`, and the first meeting's `done` + participants' `attended` (no client name / phone, no payment details). Per order, the website's rules: a coupon counts only with a discount; `calculateDues` gives `afterCoupon`, `share`, `platformShare`; `done` = the badge rule (done, or every participant attended); `type` = `PROGRAM` with a program. Each row carries its riyadh month of `due_at`. `sumShare` = the footer's sum, rounded to 2 decimals.
+- `GET /owner/dues` (new): `requireApprovedOwner`; `month` = `YYYY-MM` (riyadh boundaries, decided in the contract; the website still uses UTC) or `all` (default); `cursor` = the last `oid`; 20 per page. `total` covers the whole filter; `months` = the distinct riyadh months, newest first, ignoring the month filter. A bad `month` or `cursor` (including one not in the filter) → 400 "بيانات خاطئة".
+- `GET /owner/dues/summary` (new): `{ unpaid }` = the same sum for all (the website dues page's total, decided 2026-10-30).
+
+**Verified:** `npx tsc --noEmit`, eslint (clean; a first run warned about an unused destructured `_month`, fixed by returning `{ due, month }` rows), `npm run build` (both routes listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 19 new of 79 total, all passing: money for no coupon / CONSULTANT / GENERAL / PLATFORM and a 0% coupon; summary = the website footer's sum (computed the website's way) = dues total for all; riyadh month boundaries (23:59 / 00:30 +03:00), months distinct and newest first; 3 pages of 45 with the total on every page, exactly 20 → no next; 6 bad inputs → 400; the done rule and `PROGRAM`; exactly the contract's keys; the prisma where / select; 403 with no query and a database error → 500 for both.
+
+**Open:** none.
