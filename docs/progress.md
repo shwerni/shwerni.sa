@@ -5543,3 +5543,14 @@ Decided by Ziad: like the website, a blocked chat still accepts the consultant's
 **Backlog:** unblock from the app (the app has no block / unblock route; blocking and unblocking stay on the website). To copy into the app's website backlog (`docs/dashboard/chat/spec.md` in the app repo).
 
 **Open:** none.
+
+## Mobile API batch C, step C1: PUT /owner/packages (2026-11-02)
+
+Approved by Ziad from the reviewed patch (`backups/patches/2026-11-02-batch-c-step9/c1-packages.patch`, applied as is).
+
+- `data/packages.ts` `upsertConsultantPackage` (shared): the upsert and the "max 3 active" switch-off (oldest `updated_at` first) now run in one interactive `prisma.$transaction`, so the list never ends with 4 active; same writes, same `{ success }`, same `revalidatePath`. Website caller: `components/consultant/packages/packages.tsx` → `actions/consultant.ts` `upsertConsultantPackage` → here.
+- `PUT /owner/packages` (added to the packages route): `requireApprovedOwner`; zod on the server (the website checks only in the browser, backlog #18): `count` one of `PACKAGE_SESSION_COUNTS`, `cost` an integer 100..2147483647 (the Int column), `isActive` a boolean; else 400. Saved with `upsertConsultantPackage(cid, ...)`; `{ success: false }` → 500. Returns the whole list as GET (switching one on can switch another off).
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 222 for the applied code, all passing; new for C1 (13): the real `upsertConsultantPackage` does the same upsert inside the transaction, switches off only the oldest beyond 3, nothing at exactly 3, `{ success: false }` on a failure; the route saves for the session cid (a body `consultantId` ignored) and returns the list with the rules, 6 bad bodies → 400 with nothing saved, cost 100 allowed, a failed save → 500, 403 with nothing saved.
+
+**Open:** none.

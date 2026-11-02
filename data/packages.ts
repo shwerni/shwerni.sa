@@ -72,32 +72,36 @@ export async function upsertConsultantPackage(
   isActive: boolean,
 ) {
   try {
-    await prisma.package.upsert({
-      where: { consultantId_count: { consultantId, count } },
-      update: { cost, isActive },
-      create: { consultantId, count, cost, isActive },
-    });
-
-    // if activating, enforce max 3 active packages
-    if (isActive) {
-      const activePackages = await prisma.package.findMany({
-        where: { consultantId, isActive: true },
-        orderBy: { updated_at: "asc" }, // oldest updated = last one toggled on
-        select: { id: true },
+    // the upsert and the "max 3 active" switch-off in one transaction, so the list never
+    // ends with more than 3 active packages
+    await prisma.$transaction(async (tx) => {
+      await tx.package.upsert({
+        where: { consultantId_count: { consultantId, count } },
+        update: { cost, isActive },
+        create: { consultantId, count, cost, isActive },
       });
 
-      // if more than 3 active, deactivate the oldest ones
-      if (activePackages.length > 3) {
-        const toDeactivate = activePackages
-          .slice(0, activePackages.length - 3) // everything except the 3 most recent
-          .map((p) => p.id);
-
-        await prisma.package.updateMany({
-          where: { id: { in: toDeactivate } },
-          data: { isActive: false },
+      // if activating, enforce max 3 active packages
+      if (isActive) {
+        const activePackages = await tx.package.findMany({
+          where: { consultantId, isActive: true },
+          orderBy: { updated_at: "asc" }, // oldest updated = last one toggled on
+          select: { id: true },
         });
+
+        // if more than 3 active, deactivate the oldest ones
+        if (activePackages.length > 3) {
+          const toDeactivate = activePackages
+            .slice(0, activePackages.length - 3) // everything except the 3 most recent
+            .map((p) => p.id);
+
+          await tx.package.updateMany({
+            where: { id: { in: toDeactivate } },
+            data: { isActive: false },
+          });
+        }
       }
-    }
+    });
 
     revalidatePath("/dashboard/consultant");
     return { success: true };
