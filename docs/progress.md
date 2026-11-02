@@ -5437,3 +5437,15 @@ Read-only; no shared function changed. `calculateDues` (`utils/admin/dues.ts`) i
 **Verified:** `npx tsc --noEmit`, eslint (clean; a first run warned about an unused destructured `_month`, fixed by returning `{ due, month }` rows), `npm run build` (both routes listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 19 new of 79 total, all passing: money for no coupon / CONSULTANT / GENERAL / PLATFORM and a 0% coupon; summary = the website footer's sum (computed the website's way) = dues total for all; riyadh month boundaries (23:59 / 00:30 +03:00), months distinct and newest first; 3 pages of 45 with the total on every page, exactly 20 → no next; 6 bad inputs → 400; the done rule and `PROGRAM`; exactly the contract's keys; the prisma where / select; 403 with no query and a database error → 500 for both.
 
 **Open:** none.
+
+## Mobile API batch A, step A3: owner order history and free sessions (2026-11-02)
+
+Read-only; no shared function changed (`getWeekStartSaturday` / `timeZone` reused unchanged; the website functions below mirrored, not touched).
+
+- `GET /owner/orders` (`data/mobile/owner-orders.ts`, new route): `requireApprovedOwner`; `from` / `to` the same rule as `/owner/sessions` (real days, `to >= from`, at most 42 days, else 400). The sessions query and select (this consultant's PAID orders, meetings in the range) plus `session` (Meeting.session), `sessions` (Order.sessionCount) and `done`. `status` as `/owner/sessions` (attended needs a participant); `done` the website's badge rule (done, or every participant attended, true without participants). A separate route: `/owner/sessions` is untouched.
+- `GET /owner/free-sessions` (`data/mobile/owner-free-sessions.ts`): `{ enabled, sessions }`. `enabled` = the website's check (`components/legacy/consultants/owner/freeSession/index.tsx`: `status` and `activeWeek` equal to `getWeekStartSaturday(timeZone().iso)`). Sessions dated from yesterday (riyadh) kept while start + 35 minutes >= now, soonest first; only `fid, date, time, duration` (never name, phone, author, url or info).
+- `GET /owner/free-sessions/{fid}/link` moved to batch B (it creates and saves a Google Meet link the first time).
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (both routes listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 14 new: the orders shape and extras, status vs done (they differ only without participants), `PROGRAM`, the prisma where / select, 5 bad ranges → 400 with no query, exactly 42 days → 200; `enabled` true only with status and this week's saturday (false for last week, status off, no row); the 35-minute window, soonest first, a bad time dropped, a 23:50 session still listed at 00:10; 403 with no query and a database error → 500 for both.
+
+**Open:** none.
