@@ -41,14 +41,17 @@ export async function updateConsultantSpecialties(
   cid: number,
   selectedIds: string[],
 ) {
-  await prisma.consultantSpecialty.deleteMany({
-    where: { consultantId: cid },
-  });
+  // replace the selection in one transaction, so a failure never leaves the consultant with none
+  await prisma.$transaction([
+    prisma.consultantSpecialty.deleteMany({
+      where: { consultantId: cid },
+    }),
 
-  await prisma.consultantSpecialty.createMany({
-    data: selectedIds.map((id) => ({
-      consultantId: cid,
-      specialtyId: id,
-    })),
-  });
+    prisma.consultantSpecialty.createMany({
+      data: selectedIds.map((id) => ({
+        consultantId: cid,
+        specialtyId: id,
+      })),
+    }),
+  ]);
 }

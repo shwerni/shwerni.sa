@@ -88,6 +88,14 @@ export function createPatchRoute<T, P = Record<string, string>>(
 }
 
 // wraps a data mutator with app-secret auth, dynamic params, bigint-safe serialization, and error handling
+export function createPutRoute<T, P = Record<string, string>>(
+  fetcher: Fetcher<T, P>,
+  options?: CreateRouteOptions,
+) {
+  return buildHandler<T, P>(fetcher, options);
+}
+
+// wraps a data mutator with app-secret auth, dynamic params, bigint-safe serialization, and error handling
 export function createDeleteRoute<T, P = Record<string, string>>(
   fetcher: Fetcher<T, P>,
   options?: CreateRouteOptions,

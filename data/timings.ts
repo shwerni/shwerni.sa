@@ -14,25 +14,28 @@ export const updateTimings = async (
   type: TimingType = "ONLINE"
 ) => {
   try {
-    // delete old day timings
-    await prisma.consultantTiming.deleteMany({
-      where: {
-        consultantId,
-        day,
-        type,
-      },
-    });
+    // replace the day's timings in one transaction, so a failure never leaves the day empty
+    await prisma.$transaction([
+      // delete old day timings
+      prisma.consultantTiming.deleteMany({
+        where: {
+          consultantId,
+          day,
+          type,
+        },
+      }),
 
-    // update
-    await prisma.consultantTiming.createMany({
-      data: times.map((time) => ({
-        userId,
-        consultantId,
-        day,
-        time,
-        type,
-      })),
-    });
+      // update
+      prisma.consultantTiming.createMany({
+        data: times.map((time) => ({
+          userId,
+          consultantId,
+          day,
+          time,
+          type,
+        })),
+      }),
+    ]);
 
     // return
     return true;

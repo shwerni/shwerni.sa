@@ -5481,3 +5481,17 @@ Read-only; no shared function changed. Reused unchanged: `getConsultantCost`, `r
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (all four listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 23 new: the list's where / select (no private fields) and `joined`; PERCENT / FIXED / OVERRIDE prices and earnings, uncovered lengths at full price; the platform-default commission; `joined`, `running`, `applied`; 404 for a missing, hidden or center campaign and for 5 bad ids (no query); no price row → 500; programs list (published, no commission, enrollment), one program (description, features, no status / commission), 404 missing / unpublished / bad id; 403 with no query and database errors → 500 for all four.
 
 **Open:** none.
+
+## Mobile API batch B, step B1: PUT /owner/timings and PUT /owner/specialties, in transactions (2026-11-02)
+
+Two shared website functions changed, only to write in one transaction (decided by Ziad: a safe improvement for the website too, no visible change; website backlog #9 and #13):
+
+- `data/timings.ts` `updateTimings`: the day's delete + `createMany` now go through one `prisma.$transaction([...])`; same arguments, same writes, same result (`true`, `null` on failure). Website callers: `components/legacy/consultants/owner/timings/tables/index.tsx` → `handlers/conusltant/owner/timings.ts` `saveTimings` → `actions/consultant.ts` `updateTimings` → here.
+- `data/specialties.ts` `updateConsultantSpecialties`: the delete + `createMany` in one `prisma.$transaction([...])`; same writes, a failure still throws. Website caller: `components/legacy/consultants/owner/specialty/index.tsx` → `actions/consultant.ts` `updateConsultantSpecialties` → here.
+- `lib/api/routes/route-factory.ts`: `createPutRoute` added (same handler as the others; existing routes untouched).
+- `PUT /owner/timings` (added to `app/api/mobile/owner/timings/route.ts`): `requireApprovedOwner`, user and cid from it. zod: `day` a `Weekday`, `times` only the 48 `itimes` slots, no repeats, at most 48, `[]` allowed; else 400 "بيانات خاطئة". Sorted, saved with `updateTimings(user, cid, day, times, ONLINE)`; `null` → 500 "حدث خطأ ما برجاء المحاولة مرة اخري". Returns `{ day, times }`. (The contract lists duplicates as a 400 and also says "dedupe": they're refused.)
+- `PUT /owner/specialties` (added to `app/api/mobile/owner/specialties/route.ts`): `{ ids }`, no repeats, every id a `Specialty` of the consultant's own category (else 400); saved with `updateConsultantSpecialties(cid, ids)`; returns `{ selected }`.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (both routes listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 25 new of 158 total, all passing: the real `updateTimings` / `updateConsultantSpecialties` issue exactly the old delete + createMany (same where / data) inside one `$transaction`, `updateTimings` returns `true` / `null` and keeps its `type`, `updateConsultantSpecialties` still throws; PUT timings saves the sorted slots for the session (body ids ignored), `[]` and all 48 allowed, 7 bad bodies → 400 with nothing saved, a failed save → 500 with the contract's message; PUT specialties saves own-category ids, `[]` allowed, 4 bad bodies → 400 with nothing saved, a throw → 500; 403 with nothing saved for both.
+
+**Open:** none.
