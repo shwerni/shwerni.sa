@@ -2,6 +2,7 @@
 import { sendNotification } from "@/lib/notifications/mobile/send-notification";
 import { Reservation } from "@/types/admin";
 import { meetingDateTime, meetingLabel } from "@/utils/date";
+import { OrderType } from "@/lib/generated/prisma/enums";
 
 const REMINDER_MINUTES_BEFORE = 5;
 
@@ -32,20 +33,25 @@ export async function mobileNotifyOrderConfirmed(order: Reservation) {
     actionCategory: "order-confirmed",
   });
 
-  // 2. client — reminder before session
-  await sendNotification({
-    userId: order.author,
-    type: "scheduled",
-    title: "🔔 تذكير بجلستك",
-    description: `جلستك مع المستشار ${order.consultant.name} تبدأ خلال ${REMINDER_MINUTES_BEFORE} دقائق، رقم الطلب #${order.oid}، نتمنى لك حضورًا موفقًا 🌸`,
-    category: "SESSION_REMINDER",
-    targetId: String(order.oid),
-    actionCategory: "reservation-reminder",
-    timeToSend: scheduledReminderTime,
-  });
+  // 2. client — reminder before session. not for an INSTANT order: its start has already passed
+  // the reminder time, so it would fire at once
+  if (order.type !== OrderType.INSTANT) {
+    await sendNotification({
+      userId: order.author,
+      type: "scheduled",
+      title: "🔔 تذكير بجلستك",
+      description: `جلستك مع المستشار ${order.consultant.name} تبدأ خلال ${REMINDER_MINUTES_BEFORE} دقائق، رقم الطلب #${order.oid}، نتمنى لك حضورًا موفقًا 🌸`,
+      category: "SESSION_REMINDER",
+      targetId: String(order.oid),
+      actionCategory: "reservation-reminder",
+      timeToSend: scheduledReminderTime,
+    });
+  }
 
-  // 3. consultant — instant confirmation
-  if (order.consultant.userId) {
+  // 3. consultant — instant confirmation. not for an INSTANT order: the consultant gets its own
+  // ring + INSTANT_BOOKED push (notify/instant.ts), and a reminder at an already-passed start
+  // would fire at once
+  if (order.consultant.userId && order.type !== OrderType.INSTANT) {
     await sendNotification({
       userId: order.consultant.userId,
       type: "instant",

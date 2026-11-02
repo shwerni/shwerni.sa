@@ -45,6 +45,7 @@ import { createNewMeeting } from "@/data/rooms";
 import { reserveProgram } from "@/data/order/program";
 import { reserveConsultant } from "@/data/order/reserveation";
 import { mobileNotifyOrderConfirmed } from "@/lib/notifications/mobile/notify/reservation";
+import { scheduleInstantBooked } from "@/lib/notifications/mobile/notify/instant";
 import {
   getFinanceConfig,
   getPleadingCommission,
@@ -128,6 +129,9 @@ export const onPaymentSuccess = async (
     // canceled case isn't linked and goes to the admin telegram for a refund
     await linkPaidPleading(order.oid, order.meeting[0].mid);
     if (notifications) {
+      // instant, any origin: ring + push the consultant's app (after the response, never throws)
+      if (order.type === OrderType.INSTANT) scheduleInstantBooked(order);
+
       // send order notify
       if (order.origin === OrderOrigin.APP) {
         await mobileNotifyOrderConfirmed(order);
