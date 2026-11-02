@@ -58,3 +58,14 @@ export const getOwnerFreeSessions = async (
 
   return { enabled, sessions };
 };
+
+/**
+ * whether this free session belongs to the consultant (the link route answers 404 otherwise)
+ * @param cid the owner's own consultant id (from requireApprovedOwner)
+ * @param fid the free session id from the url
+ */
+export const ownsFreeSession = async (cid: number, fid: number) =>
+  !!(await prisma.freeSession.findFirst({
+    where: { fid, consultantId: cid },
+    select: { fid: true },
+  }));

@@ -5495,3 +5495,14 @@ Two shared website functions changed, only to write in one transaction (decided 
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (both routes listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 25 new of 158 total, all passing: the real `updateTimings` / `updateConsultantSpecialties` issue exactly the old delete + createMany (same where / data) inside one `$transaction`, `updateTimings` returns `true` / `null` and keeps its `type`, `updateConsultantSpecialties` still throws; PUT timings saves the sorted slots for the session (body ids ignored), `[]` and all 48 allowed, 7 bad bodies → 400 with nothing saved, a failed save → 500 with the contract's message; PUT specialties saves own-category ids, `[]` allowed, 4 bad bodies → 400 with nothing saved, a throw → 500; 403 with nothing saved for both.
 
 **Open:** none.
+
+## Mobile API batch B, step B2: PATCH /owner/free-sessions and GET /owner/free-sessions/{fid}/link (2026-11-02)
+
+No shared function changed: the website's `toggleFreesessionState` and `freeSessionMeetingUrl` (`data/freesession.ts`) are reused unchanged.
+
+- `PATCH /owner/free-sessions` (added to the free-sessions route): `requireApprovedOwner`; `{ enabled: boolean }` (else 400 "بيانات خاطئة"); `toggleFreesessionState(cid, enabled)` (upserts this week's saturday, as the website switch); its `null` → 500; returns `{ enabled }`.
+- `GET /owner/free-sessions/{fid}/link` (new, moved from batch A): `requireApprovedOwner`; the free session must be this consultant's (`ownsFreeSession`, new in `data/mobile/owner-free-sessions.ts`), else 404 (also for a bad id, via `parseIntId`). Then `freeSessionMeetingUrl(fid)`: the stored link (the website creates it at booking, `handlers/admin/freesession.ts`), or a new Google Meet link saved the first time; `null` → 500. Returns `{ url }`.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (both listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 13 new of 171 total, all passing: the switch on / off for the session cid (a body `cid` ignored), 3 bad bodies → 400 with nothing saved, a failed switch → 500; the link for an own session, another consultant's → 404 with no link created, 3 bad ids → 404 with no query, no link → 500; 403 with nothing done for both. (The A3 test file now mocks `data/freesession`, which the route imports for PATCH.)
+
+**Open:** none.
