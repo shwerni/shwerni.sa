@@ -5506,3 +5506,15 @@ No shared function changed: the website's `toggleFreesessionState` and `freeSess
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (both listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 13 new of 171 total, all passing: the switch on / off for the session cid (a body `cid` ignored), 3 bad bodies → 400 with nothing saved, a failed switch → 500; the link for an own session, another consultant's → 404 with no link created, 3 bad ids → 404 with no query, no link → 500; 403 with nothing done for both. (The A3 test file now mocks `data/freesession`, which the route imports for PATCH.)
 
 **Open:** none.
+
+## Mobile API batch B, step B3: POST /owner/chats/{mid}/messages (2026-11-02)
+
+No shared function changed: the website's `createMeetingMessage` (`data/chats.ts`) is reused unchanged.
+
+- `data/mobile/owner-chats.ts`: `getOwnerParticipantId(mid)`, the meeting's OWNER participant token from the database.
+- `POST /owner/chats/{mid}/messages` (new): `requireApprovedOwner`; the meeting must be this consultant's paid one (`getOwnerChatMeeting`, else 404); `{ content }` trimmed, 1-2000 characters, text only (else 400 "بيانات خاطئة"). Checked on the server (the website checks them only in the browser, backlog #16): the 72-hour window → 403 "تم إغلاق المحادثة"; `meeting.blocked` → 403 "تم حظر هذا المستخدم" (the contract's rule). Then `createMeetingMessage({ mid, content, participantId })` with the OWNER token from the database (never from the request; the sender role comes from that participant): its AI contact check (→ 400 with the website's message) and its first-message-of-the-day WhatsApp notice to the client. Returns `{ message }` in the thread's shape.
+- **Difference from the website, by the contract:** on the website the consultant can still type in a blocked chat (only an overlay shows "تم حظر هذا المستخدم"); the app's send is refused until the chat is unblocked, and there's no unblock route for the app yet.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (listed; four cron routes timed out on the first page-collection attempt and passed on Next's retry, unrelated), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest, 17 new of 188 total, all passing: sent as the OWNER token from the database with a body `participantId` / `sender` ignored, trimmed; 404 for another consultant's, unpaid or missing meeting with nothing sent; 4 bad bodies → 400; 2000 characters allowed; closed at +72 h → 403 and one minute before → sent; blocked → 403; the AI refusal → 400 with its message; a failed save → 500; no owner participant → 500 with nothing sent; 403 with nothing read or sent.
+
+**Open:** sending in a blocked chat: the app refuses (contract), the website allows it; Ziad to decide whether the app needs an unblock action or should allow it like the website.

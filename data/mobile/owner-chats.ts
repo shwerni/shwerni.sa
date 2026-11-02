@@ -190,6 +190,19 @@ export const getOwnerChats = async (
 };
 
 /**
+ * the meeting's OWNER participant token, looked up on the server so the consultant's message goes
+ * through createMeetingMessage as the consultant; null when the meeting has none
+ * @param mid the meeting id (already checked to be the consultant's own)
+ */
+export const getOwnerParticipantId = async (mid: string) =>
+  (
+    await prisma.participant.findFirst({
+      where: { meetingId: mid, role: UserRole.OWNER },
+      select: { participant: true },
+    })
+  )?.participant ?? null;
+
+/**
  * one meeting's chat for the consultant, or null when it isn't theirs: a missing meeting, another
  * consultant's order or an unpaid one all read as null (the routes answer 404)
  * @param cid the owner's own consultant id (from requireApprovedOwner)
