@@ -5620,3 +5620,15 @@ Ziad confirmed the database: `db push` added only the three columns, part B ran 
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 266 of 266 (the harness moved to this session's scratchpad); new (7): `sendPushNotifications` returns the same tickets and deletes dead tokens, the same zero-message warning; the detailed variant's accepted / dead split (other errors in neither), a failed request (nothing accepted or deleted), zero messages (no request), the new fields reach Expo; `lastSeenAt` set on create and update.
 
 **Open:** none.
+
+## Chats, step 3: client chat routes (2026-11-04)
+
+New client routes (the app's المحادثات); no shared website function changed. `createMeetingMessage` is called unchanged (its channel rule is step 5).
+
+- `data/mobile/owner-chats.ts`: `toChatMessage(message, reader)` (mine = sent by the reader's role); `toOwnerChatMessage` = the OWNER reader, same output as before. `messageSelect` and `ChatMessageRow` exported for the client file.
+- `data/mobile/client-chats.ts` (new): the owner rules from the client's side: `getClientChats` (orders with `author` = the session's user and PAID, the website's `getChatList(author, USER)`; the 72-hour window, future included; `today`; `q` by visible text or `#oid`; newest activity first; `unread` = the consultant's messages after `clientReadAt`, null = all, never a marker), `getClientChatMeeting` (null for another user's, unpaid or missing meeting), `getClientParticipantId` (the meeting's USER token from the database), `toClientThread` (no block markers, `blocked` always false: the website never shows the client a block). The consultant: `cid, name, image, gender` only.
+- `GET /api/mobile/chats`, `GET /api/mobile/chats/{mid}` (`closed` at +72 h), `POST /api/mobile/chats/{mid}/messages` (trimmed 1-2000; closed → 403 "تم إغلاق المحادثة"; a blocked chat still accepts it, like the website; the AI refusal → 400; sent with the USER token from the database, never from the request). All `requireMobileUser`; anything not the client's paid meeting → 404.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (all three listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 280 of 280 (the owner chat tests unchanged: the refactor keeps their output); new (14): the list's shape, where (author + PAID) and consultant select, `unread` after the read time / all without one, markers never counted or last; the window, today, search by text and `#oid`; 2 bad queries → 400; the thread without markers or blocked flags, 404 for another user's / unpaid / missing meeting, closed at +72 h; the send as the USER token (body `participantId` / `sender` ignored), 404 / 400 / 403 with nothing sent, the AI refusal → 400, a failed save or no participant → 500; 401 with no query.
+
+**Open:** none.

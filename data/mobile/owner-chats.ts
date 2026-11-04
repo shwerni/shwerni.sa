@@ -9,8 +9,8 @@ import { PaymentState, UserRole } from "@/lib/generated/prisma/enums";
 // a chat is open until 72 hours after the meeting's time (the website closes it at 72 whole hours)
 export const CHAT_WINDOW_MS = 72 * 3_600_000;
 
-// the message fields the owner chat routes read
-const messageSelect = {
+// the message fields the chat routes read (owner and client)
+export const messageSelect = {
   id: true,
   content: true,
   sender: true,
@@ -21,7 +21,7 @@ const messageSelect = {
   blocked: true,
 } as const;
 
-interface ChatMessageRow {
+export interface ChatMessageRow {
   id: string;
   content: string;
   sender: UserRole;
@@ -86,19 +86,30 @@ export const ownerVisibleMessages = <T extends Pick<ChatMessageRow, "sender" | "
 };
 
 /**
- * a message as the app shows it
+ * a message as the app shows it to one side of the chat
  * @param message the stored message
+ * @param reader whose app it is: mine = sent by this role
  */
-export const toOwnerChatMessage = (message: ChatMessageRow): OwnerChatMessage => ({
+export const toChatMessage = (
+  message: ChatMessageRow,
+  reader: UserRole,
+): OwnerChatMessage => ({
   id: message.id,
   content: message.content,
-  mine: message.sender === UserRole.OWNER,
+  mine: message.sender === reader,
   at: message.createdAt.toISOString(),
   file: message.fileUrl
     ? { url: message.fileUrl, name: message.fileName, type: message.fileType }
     : null,
   blocked: message.blocked,
 });
+
+/**
+ * a message as the consultant's app shows it
+ * @param message the stored message
+ */
+export const toOwnerChatMessage = (message: ChatMessageRow) =>
+  toChatMessage(message, UserRole.OWNER);
 
 // GET /api/mobile/owner/chats -> chats[]
 export interface OwnerChatSummary {
