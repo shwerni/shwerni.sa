@@ -119,6 +119,7 @@ export interface OwnerChatSummary {
   date: string;
   time: string;
   last: { content: string; file: boolean; at: string; mine: boolean } | null;
+  unread: number;
 }
 
 /**
@@ -126,7 +127,8 @@ export interface OwnerChatSummary {
  * the website's getChatList) within 72 hours after the meeting's time, future meetings included.
  * last = the newest visible message that isn't a block marker (the website list skips markers);
  * with q, only chats whose visible messages contain q (case-insensitive) or whose order number is
- * q, and last = the newest matching message
+ * q, and last = the newest matching message. unread = the client's messages the consultant can see
+ * (not those hidden by a block, never a marker) sent after ownerReadAt (null = all)
  * @param cid the owner's own consultant id (from requireApprovedOwner)
  * @param options today: only meetings dated today (riyadh); q: the search
  * @param now the current time in ms
@@ -150,6 +152,7 @@ export const getOwnerChats = async (
       date: true,
       time: true,
       blocked: true,
+      ownerReadAt: true,
       orders: { select: { oid: true, name: true } },
       orderMessages: { orderBy: { createdAt: "asc" }, select: messageSelect },
     },
@@ -192,6 +195,11 @@ export const getOwnerChats = async (
                 mine: last.sender === UserRole.OWNER,
               }
             : null,
+          unread: messages.filter(
+            (message) =>
+              message.sender === UserRole.USER &&
+              (meeting.ownerReadAt === null || message.createdAt > meeting.ownerReadAt),
+          ).length,
         },
       },
     ];

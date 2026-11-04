@@ -5632,3 +5632,13 @@ New client routes (the app's المحادثات); no shared website function cha
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (all three listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 280 of 280 (the owner chat tests unchanged: the refactor keeps their output); new (14): the list's shape, where (author + PAID) and consultant select, `unread` after the read time / all without one, markers never counted or last; the window, today, search by text and `#oid`; 2 bad queries → 400; the thread without markers or blocked flags, 404 for another user's / unpaid / missing meeting, closed at +72 h; the send as the USER token (body `participantId` / `sender` ignored), 404 / 400 / 403 with nothing sent, the AI refusal → 400, a failed save or no participant → 500; 401 with no query.
 
 **Open:** none.
+
+## Chats, step 4: read routes + the owner list's unread (2026-11-04)
+
+- `data/chat-read.ts` (new, shared with the website's chat page in step 6): `markChatRead(mid, reader, until)`: one conditional `updateMany` (`readAt` null or older than the target) setting `clientReadAt` / `ownerReadAt` to `min(until, now)`, so it only moves forward and never past the server's now (a message arriving between the poll and the call stays unread); returns the side's stored read time.
+- `POST /api/mobile/owner/chats/{mid}/read` (`requireApprovedOwner` + `getOwnerChatMeeting`) and `POST /api/mobile/chats/{mid}/read` (`requireMobileUser` + `getClientChatMeeting`): `{ until }` (a parseable time, else 400) → `{ readAt }`; anything but the reader's own paid meeting → 404; allowed on a closed chat.
+- `data/mobile/owner-chats.ts` `getOwnerChats`: selects `ownerReadAt`; `unread` per chat = the client's messages the consultant can see (`ownerVisibleMessages`: not those hidden by a block, never a marker) after `ownerReadAt` (null = all). `GET /owner/chats` returns it.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (both read routes listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 293 of 293 (the A4 test now expects `unread`); new (13): the conditional forward-only update, a future `until` capped at now, the stored time returned when `until` was older; both routes write their own side, 404 for another consultant's / another user's / unpaid meeting with nothing written, 4 bad bodies → 400, auth errors pass through; the owner `unread` after the read time (own messages and markers never count), all without one, messages hidden by a block never count.
+
+**Open:** none.
