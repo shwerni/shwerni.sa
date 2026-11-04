@@ -94,6 +94,10 @@ model Meeting {
   recalledAt DateTime?
   mode       TimingType @default(ONLINE) // per meeting, packages can mix
 
+  // chat read state, one per side: the chat was read up to this moment (null = nothing read)
+  clientReadAt DateTime?
+  ownerReadAt  DateTime?
+
   // @relations
   orderId       Int
   orders        Order          @relation(fields: [orderId], references: [oid])

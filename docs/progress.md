@@ -5589,3 +5589,23 @@ Payment flow; approved by Ziad from the reviewed patch (`backups/patches/2026-11
 **Verified:** `npx tsc --noEmit`, eslint (0 errors; the old `refund` warning in `onPaymentRefund`), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 259 of 259; for step 9 (7): the ring (consultant user, meeting id, client as caller) and the push with the website's text; the push still sent when the ring fails or there's no VoIP token; a failed push logged, never thrown; nothing for a center consultant or an ended meeting; scheduled through `after()`, and run at once outside a request; INSTANT app orders → only the client's confirmation; SCHEDULED → all four unchanged.
 
 **Open:** to be checked on a device: the ring opens `/meetings` with the meeting id (the app session), and a website instant booking now also rings the consultant's app.
+
+## Chats (client chat, read state, message push), step 1: schema + SQL (2026-11-04)
+
+From the app's handoff ("Chats: client chat, read state, message push") and `docs/client/chats/spec.md` §6; schema approved by Ziad 2026-11-04.
+
+- `prisma/models/reservation.prisma` `Meeting`: `clientReadAt DateTime?`, `ownerReadAt DateTime?` (the chat read state, one per side).
+- `prisma/models/notification.prisma` `PushToken`: `lastSeenAt DateTime @default(now())` (the app last registered the token; 30 days unseen = inactive for the chat channel rule).
+- `docs/sql/2026-11-04-chat-read-state.sql` (new): part A = what `prisma db push` runs (for review); part B = the one-off backfill (open chats start as read: meetings dated from 4 riyadh days ago or later, both sides; `COALESCE`, in a transaction, safe to run twice).
+- `npx prisma validate` and `npx prisma generate` only; nothing was run against the database (CLAUDE.md).
+
+**Deploy order (Ziad):**
+1. `npx prisma db push` from this repo (only the three columns: nullable or defaulted, no table rewrite; the other two codebases keep working), then part B in the supabase sql editor.
+2. Only then deploy this commit or any later one from this task: once the generated client knows the columns, every meeting / push token query without a `select` (many website pages) reads them and fails until they exist.
+3. The other two codebases must never `db push` an older schema (it would drop these columns).
+
+**Decided (Ziad, 2026-11-04), for step 5:** website users without the app get two changes to the chat WhatsApp: the daily notice resets at riyadh midnight (was the server's UTC midnight, 03:00 riyadh), and a blocked client's messages notify nobody.
+
+**Verified:** `npx prisma validate`, `npx prisma generate`, `npx tsc --noEmit`.
+
+**Open:** Ziad runs the push and part B, then confirms; steps 2-6 wait for that.

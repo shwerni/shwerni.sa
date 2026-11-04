@@ -51,6 +51,8 @@ model PushToken {
   token     String   @unique
   platform  String
   createdAt DateTime @default(now())
+  // the app last registered this token (every open / sign-in); not seen for 30 days = inactive
+  lastSeenAt DateTime @default(now())
 
   @@index([userId])
   @@map("push-tokens")
