@@ -21,10 +21,13 @@ export const POST = createGetRoute(async (request) => {
     throw new HttpError("invalid platform", 400);
   }
 
+  // lastSeenAt: the app registers on every open / sign-in; 30 days unseen = inactive for the chat
+  // channel rule (the token is kept)
+  const now = new Date();
   await prisma.pushToken.upsert({
     where: { token: expoPushToken },
-    update: { userId: user.id, platform },
-    create: { token: expoPushToken, userId: user.id, platform },
+    update: { userId: user.id, platform, lastSeenAt: now },
+    create: { token: expoPushToken, userId: user.id, platform, lastSeenAt: now },
   });
 
   return { success: true };

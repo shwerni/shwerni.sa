@@ -17,6 +17,19 @@ export interface PushMessage {
   // links this push to a client-registered notification category, which
   // is what actually attaches os-level action buttons (e.g. "mark done")
   categoryId?: string;
+  // android: the notification channel the app created (e.g. "chat")
+  channelId?: string;
+  // android: replaces a notification with the same tag already on the device
+  tag?: string;
+  // ios: groups notifications with the same thread id
+  threadId?: string;
+}
+
+// what happened to each token of one send: accepted by expo, or no longer registered (deleted)
+export interface PushDelivery {
+  tickets: ExpoPushTicket[];
+  accepted: string[];
+  dead: string[];
 }
 
 interface ExpoPushTicket {
@@ -51,9 +64,23 @@ export async function sendPushNotifications(
     return [];
   }
 
+  return (await sendPushNotificationsDetailed(messages)).tickets;
+}
+
+/**
+ * the same send, also telling which tokens expo accepted and which were no longer registered
+ * (deleted, as sendPushNotifications does). a token of a batch whose request failed is in neither
+ * @param messages notifications to send, each targeting one expo push token
+ */
+export async function sendPushNotificationsDetailed(
+  messages: PushMessage[]
+): Promise<PushDelivery> {
+  if (messages.length === 0) return { tickets: [], accepted: [], dead: [] };
+
   const batches = chunk(messages, EXPO_PUSH_BATCH_SIZE);
   const tickets: ExpoPushTicket[] = [];
   const deadTokens: string[] = [];
+  const acceptedTokens: string[] = [];
 
   for (const batch of batches) {
     const response = await fetch(EXPO_PUSH_URL, {
@@ -76,6 +103,7 @@ export async function sendPushNotifications(
     // expo returns tickets in the same order as the messages sent, so this
     // index lines each ticket back up with the token that produced it
     batchTickets.forEach((ticket, index) => {
+      if (ticket.status === "ok" && batch[index]) acceptedTokens.push(batch[index].to);
       if (ticket.status === "error" && ticket.details?.error === "DeviceNotRegistered") {
         deadTokens.push(batch[index].to);
       }
@@ -98,5 +126,5 @@ export async function sendPushNotifications(
     console.warn(`removed ${deadTokens.length} push token(s) no longer registered`);
   }
 
-  return tickets;
+  return { tickets, accepted: acceptedTokens, dead: deadTokens };
 }

@@ -5609,3 +5609,14 @@ From the app's handoff ("Chats: client chat, read state, message push") and `doc
 **Verified:** `npx prisma validate`, `npx prisma generate`, `npx tsc --noEmit`.
 
 **Open:** Ziad runs the push and part B, then confirms; steps 2-6 wait for that.
+
+## Chats, step 2: push token last seen + the detailed push send (2026-11-04)
+
+Ziad confirmed the database: `db push` added only the three columns, part B ran without errors. No behaviour change in this step.
+
+- `app/api/mobile/notifications/register-token/route.ts`: the upsert sets `lastSeenAt = now()` on create and on update.
+- `lib/notifications/mobile/mobile-push.ts`: `PushMessage` gains the optional `channelId` (android channel), `tag` (android: replaces the shown notification) and `threadId` (ios: groups), checked against Expo's message format. New `sendPushNotificationsDetailed(messages)` → `{ tickets, accepted, dead }` (a token of a batch whose request failed is in neither); `sendPushNotifications` now wraps it with the same zero-message warning, logs, dead-token deletion and return value. Its callers are unchanged: the notification dispatch cron, `ring-participant`, `campaign-fanout`, `pushToUser`.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 266 of 266 (the harness moved to this session's scratchpad); new (7): `sendPushNotifications` returns the same tickets and deletes dead tokens, the same zero-message warning; the detailed variant's accepted / dead split (other errors in neither), a failed request (nothing accepted or deleted), zero messages (no request), the new fields reach Expo; `lastSeenAt` set on create and update.
+
+**Open:** none.
