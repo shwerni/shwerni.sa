@@ -40,6 +40,7 @@ import {
   getMeetingAccess,
   toggleUserBlock as toggleUserBlockData,
 } from "@/data/chats";
+import { markChatRead as markChatReadData } from "@/data/chat-read";
 
 // lib
 import { checkHuman } from "@/lib/bot-protection";
@@ -246,6 +247,29 @@ export async function createMeetingMessage(
   ...[payload]: Parameters<typeof createMeetingMessageData>
 ) {
   return createMeetingMessageData({ ...payload, sender: undefined });
+}
+
+// participants only (checked by participantId): the chat page marks its side read up to the newest
+// message it shows. the side comes from that participant record (clientReadAt or ownerReadAt), the
+// same read state the app uses; it only moves forward and never past now
+export async function markMeetingChatRead(
+  mid: string,
+  participantId: string,
+  until: string,
+) {
+  if (typeof mid !== "string" || typeof participantId !== "string" || typeof until !== "string") {
+    return null;
+  }
+  const untilDate = new Date(until);
+  if (!Number.isFinite(untilDate.getTime())) return null;
+
+  const access = await getMeetingAccess(mid);
+  const participant = access?.participants.find((p) => p.participant === participantId);
+  if (!participant) return null;
+
+  const reader = participant.role === UserRole.OWNER ? UserRole.OWNER : UserRole.USER;
+  const readAt = await markChatReadData(mid, reader, untilDate);
+  return readAt ? readAt.toISOString() : null;
 }
 
 // the meeting's consultant only: either logged in as that consultant, or holding the

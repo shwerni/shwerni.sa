@@ -361,11 +361,15 @@ export async function getChatList(author: string, role: UserRole) {
 
     const chats = await Promise.all(
       openMeetings.map(async (m) => {
+        // the other side's messages after this side's read time (the website chat page and the
+        // app both set it); no read time yet = all of them, as before
+        const readAt = isOwner ? m.ownerReadAt : m.clientReadAt;
         const unreadCount = await prisma.orderMessage.count({
           where: {
             meetingId: m.mid,
             sender: { not: role },
             blocked: false,
+            ...(readAt ? { createdAt: { gt: readAt } } : {}),
           },
         });
 

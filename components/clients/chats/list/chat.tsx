@@ -16,7 +16,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import ConsultantImage from "@/components/clients/shared/consultant-image";
 
 // prisma data
-import { createMeetingMessage, toggleUserBlock } from "@/actions/site";
+import { createMeetingMessage, markMeetingChatRead, toggleUserBlock } from "@/actions/site";
+import { AppDownloadNote } from "@/components/clients/chats/app-download-note";
 
 // schemas
 import { type MeetingData, type MeetingMessage } from "@/schemas/chat";
@@ -264,6 +265,18 @@ export default function ChatClient({
       return true;
     });
   })();
+
+  // mark this side read up to the newest message shown: on load and whenever a newer one arrives
+  // (the app's read state too). failures are ignored; the next newer message retries
+  const newestShown = visibleMessages.length
+    ? new Date(visibleMessages[visibleMessages.length - 1].createdAt).toISOString()
+    : null;
+  const lastMarkedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!newestShown || lastMarkedRef.current === newestShown) return;
+    lastMarkedRef.current = newestShown;
+    markMeetingChatRead(mid, participantId, newestShown).catch(() => {});
+  }, [newestShown, mid, participantId]);
 
   const groupedMessages = (() => {
     const groups: Array<{ date: string; messages: Messages[] }> = [];
@@ -566,6 +579,9 @@ export default function ChatClient({
               )}
             </Button>
           </div>
+
+          {/* the app line: hidden until the store links are set at the app's release */}
+          <AppDownloadNote />
         </div>
       )}
     </div>
