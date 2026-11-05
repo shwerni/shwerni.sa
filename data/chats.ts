@@ -10,7 +10,7 @@ import { PaymentState, UserRole } from "@/lib/generated/prisma/enums";
 import { type MeetingLogActor, writeMeetingLog } from "./meeting-log";
 
 // lib
-import { notificationNewChatMessage } from "@/lib/notifications/site";
+import { scheduleChatMessageNotice } from "@/lib/notifications/mobile/notify/chat";
 import { timeZone } from "@/utils/date";
 import { differenceInHours } from "date-fns";
 
@@ -45,13 +45,18 @@ export async function createMeetingMessage(payload: NewMessage) {
         mid: true,
         session: true,
         orderId: true,
+        blocked: true,
+        clientReadAt: true,
+        ownerReadAt: true,
         participants: true,
         orders: {
           select: {
+            author: true,
             name: true,
             phone: true,
             consultant: {
               select: {
+                userId: true,
                 name: true,
                 phone: true,
               },
@@ -74,25 +79,6 @@ export async function createMeetingMessage(payload: NewMessage) {
 
     // current sender role
     const currentSender = sender ?? participant.role;
-
-    // today
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-
-    // has message today
-    const hasToday = await prisma.orderMessage.findFirst({
-      where: {
-        meetingId: mid,
-        sender: currentSender,
-        createdAt: {
-          gte: startOfToday,
-        },
-      },
-      select: { id: true },
-    });
-
-    // check if first message
-    const firstToday = !hasToday;
 
     // check message for phones or urls
     if (content) {
@@ -118,32 +104,10 @@ export async function createMeetingMessage(payload: NewMessage) {
       },
     });
 
-    // if first message today, send notification to the receiver
-    if (firstToday) {
-      // order
-      const order = meeting.orders;
-
-      // phone receiver
-      const notifyPhone =
-        currentSender === UserRole.OWNER ? order.phone : order.consultant.phone;
-
-      // name receiver
-      const notifyName =
-        currentSender === UserRole.OWNER ? order.name : order.consultant.name;
-
-      // role receiver
-      const rparticipant = meeting.participants.find(
-        (p) => p.role !== currentSender,
-      )?.participant;
-
-      await notificationNewChatMessage(
-        notifyPhone,
-        notifyName,
-        meeting.orderId,
-        meeting.session,
-        `${meeting.mid}?participant=${rparticipant || ""}`,
-      );
-    }
+    // tell the receiver after the response: an app push for every message when they have the
+    // app, else the whatsapp for the sender's first message of the riyadh day; nothing for a
+    // blocked client (lib/notifications/mobile/notify/chat.ts). never delays or fails the send
+    scheduleChatMessageNotice({ sender: currentSender, message, meeting });
 
     return { success: true, data: message };
   } catch {

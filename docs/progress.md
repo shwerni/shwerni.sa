@@ -5655,3 +5655,19 @@ Website changes (asked by Ziad; the app's handoff §6). Nothing visible changes 
 **Verified:** `npx tsc --noEmit`, eslint (no problems in the changed files), `npm run build` (the first run failed prerendering `/event` with Prisma P1001, the database unreachable; the retry passed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 298 of 298; new (5): the action marks the client side for the client's token and the owner side for the consultant's, null with nothing written for a foreign token / missing meeting / bad time / wrong type; `unreadCount` after each side's read time, and exactly the old count without one; the app line renders nothing while the links are empty. The page effect (mark read on load / on newer messages) is checked by hand (website test list).
 
 **Open:** release checklist: fill `APP_STORE_LINKS` to show the app line.
+
+## Chats, step 5: the push per message + the channel rule in createMeetingMessage (2026-11-05)
+
+Approved by Ziad from the reviewed patch (`backups/patches/2026-11-05-chats-step5/step5-channel-rule.patch`, applied as is; the working tree was checked equal to it before committing).
+
+- `data/chats.ts` `createMeetingMessage`: the select adds `blocked`, `clientReadAt`, `ownerReadAt`, `orders.author`, `consultant.userId`; the "first message today" lookup (server midnight) and the inline whatsapp block are replaced by `scheduleChatMessageNotice({ sender, message, meeting })`. Validation, the AI check, the create and the return value are unchanged. Callers (same signature and return): `actions/site.ts` `createMeetingMessage` (← `components/clients/chats/chat.tsx`, `components/clients/chats/list/chat.tsx`), `POST /owner/chats/{mid}/messages`, `POST chats/{mid}/messages`.
+- `lib/notifications/mobile/notify/chat.ts` (new), run after the response (`after()`), never throwing:
+  1. a blocked meeting and a client sender: nobody is notified (decided by Ziad)
+  2. receiver tokens seen in the last 30 days: a chat push to each for every message (title: the client's first name + initial / the consultant's name, "(n)" over 1 unread; body cut at 150, file-only "📎 ملف مرفق"; data `{ type: CHAT_MESSAGE, targetId: mid, role }`; `categoryId` chatMessage, `channelId` chat, `tag` / `threadId` = mid); no notification row, no whatsapp
+  3. no token accepted (`sendPushNotificationsDetailed` deletes exactly the `DeviceNotRegistered` tokens): the whatsapp for this message, any time of day
+  4. no active tokens: the whatsapp as before (same template and link) for the sender's first message of the riyadh day (decided by Ziad; was the server's utc midnight)
+- Side effect: a failing whatsapp no longer turns a saved message into a failed send (it now runs after the response).
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 314 of 314; for step 5 (16): every branch of the rule, the riyadh-midnight boundary, a center consultant without a user, the unchanged send result and refusals, the select; end to end with the real push sender: all tokens dead → deleted + whatsapp, one dead + one accepted → only the dead deleted and no whatsapp, a rate-limit error → token kept + whatsapp. Ziad's device test (before this commit): the feature works.
+
+**Open:** one report of a push and a whatsapp for the same receiver (who has the app); see the next entry.
