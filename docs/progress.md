@@ -5642,3 +5642,16 @@ New client routes (the app's المحادثات); no shared website function cha
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (both read routes listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 293 of 293 (the A4 test now expects `unread`); new (13): the conditional forward-only update, a future `until` capped at now, the stored time returned when `until` was older; both routes write their own side, 404 for another consultant's / another user's / unpaid meeting with nothing written, 4 bad bodies → 400, auth errors pass through; the owner `unread` after the read time (own messages and markers never count), all without one, messages hidden by a block never count.
 
 **Open:** none.
+
+## Chats, step 6: website read state + the hidden app line (2026-11-05)
+
+Website changes (asked by Ziad; the app's handoff §6). Nothing visible changes for users today: the list's unread badge is commented out on the website, and the app line is hidden until release.
+
+- `actions/site.ts` `markMeetingChatRead(mid, participantId, until)` (new server action): participants only, checked by the participant token like `createMeetingMessage`; the side comes from that participant's role (OWNER → `ownerReadAt`, else `clientReadAt`); `markChatRead` (step 4: forward only, never past now). A token not in the meeting, a missing meeting or a bad time → null, nothing written.
+- `components/clients/chats/chat.tsx` (the client page, `app/(pages)/(site)/(features)/chats/[mid]`) and `components/clients/chats/list/chat.tsx` (the consultant's dashboard chat, `dashboard/chats/[mid]`; the spec named only `chat.tsx`): mark the chat read up to the newest message shown, on load and whenever a newer one arrives (a ref skips repeats; failures ignored). The app line under the input bar (open chats only).
+- `data/chats.ts` `getChatList`: `unreadCount` counts the other side's messages after this side's read time; no read time = all of them, as before (backlog #12). Its only reader is the commented-out badge in `components/clients/chats/list/list.tsx`.
+- `constants/app-stores.ts` (new): `APP_STORE_LINKS` = `{ appStore: "", googlePlay: "" }`; `components/clients/chats/app-download-note.tsx` (new, `AppDownloadNote`): "حمّل تطبيق شاورني لتصلك الرسائل فورًا" with the store links, `text-xs` muted, rendering nothing while both links are empty (the release checklist sets them).
+
+**Verified:** `npx tsc --noEmit`, eslint (no problems in the changed files), `npm run build` (the first run failed prerendering `/event` with Prisma P1001, the database unreachable; the retry passed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 298 of 298; new (5): the action marks the client side for the client's token and the owner side for the consultant's, null with nothing written for a foreign token / missing meeting / bad time / wrong type; `unreadCount` after each side's read time, and exactly the old count without one; the app line renders nothing while the links are empty. The page effect (mark read on load / on newer messages) is checked by hand (website test list).
+
+**Open:** release checklist: fill `APP_STORE_LINKS` to show the app line.
