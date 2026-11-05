@@ -18,6 +18,16 @@ import { UserRole } from "@/lib/generated/prisma/enums";
 const ACTIVE_TOKEN_MS = 30 * 86_400_000;
 // the push body is cut here; the full text is in the chat
 const BODY_MAX = 150;
+// ios: the line under the sender's name, so the push reads as a message
+const SUBTITLE = "رسالة جديدة";
+
+/**
+ * one line per message saying which channel was used (the meeting id and the reason only: no
+ * names, phones or text), to trace what the receiver got
+ * @param mid the meeting id
+ * @param outcome what happened
+ */
+const logChannel = (mid: string, outcome: string) => console.info(`[chat] mid=${mid} ${outcome}`);
 
 // what createMeetingMessage has once the message is saved
 export interface ChatMessageNotice {
@@ -84,7 +94,10 @@ export async function notifyChatMessage(
   const { sender, message, meeting } = notice;
   const fromClient = sender !== UserRole.OWNER;
 
-  if (meeting.blocked && fromClient) return;
+  if (meeting.blocked && fromClient) {
+    logChannel(meeting.mid, "none (blocked client)");
+    return;
+  }
 
   const receiverRole = fromClient ? UserRole.OWNER : UserRole.USER;
   const receiverId = fromClient ? meeting.orders.consultant.userId : meeting.orders.author;
@@ -120,6 +133,7 @@ export async function notifyChatMessage(
       tokens.map(({ token }) => ({
         to: token,
         title: unread > 1 ? `${name} (${unread})` : name,
+        subtitle: SUBTITLE,
         body,
         data: { type: "CHAT_MESSAGE", targetId: meeting.mid, role: receiverRole },
         categoryId: "chatMessage",
@@ -131,7 +145,12 @@ export async function notifyChatMessage(
       })),
     );
 
-    if (delivery.accepted.length === 0) await sendChatWhatsapp(notice);
+    if (delivery.accepted.length === 0) {
+      logChannel(meeting.mid, `whatsapp (push not accepted: 0/${tokens.length}, ${delivery.dead.length} dead)`);
+      await sendChatWhatsapp(notice);
+      return;
+    }
+    logChannel(meeting.mid, `push (${delivery.accepted.length}/${tokens.length} accepted), no whatsapp`);
     return;
   }
 
@@ -144,7 +163,12 @@ export async function notifyChatMessage(
       createdAt: { gte: riyadhDayStart(now) },
     },
   });
-  if (earlierToday === 0) await sendChatWhatsapp(notice);
+  if (earlierToday === 0) {
+    logChannel(meeting.mid, "whatsapp (no active app token, first message of the riyadh day)");
+    await sendChatWhatsapp(notice);
+    return;
+  }
+  logChannel(meeting.mid, "none (no active app token, not the first message of the riyadh day)");
 }
 
 // after the response (next's after()), so a notice never delays or fails the send; outside a

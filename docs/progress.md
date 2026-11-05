@@ -5671,3 +5671,19 @@ Approved by Ziad from the reviewed patch (`backups/patches/2026-11-05-chats-step
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 314 of 314; for step 5 (16): every branch of the rule, the riyadh-midnight boundary, a center consultant without a user, the unchanged send result and refusals, the select; end to end with the real push sender: all tokens dead → deleted + whatsapp, one dead + one accepted → only the dead deleted and no whatsapp, a rate-limit error → token kept + whatsapp. Ziad's device test (before this commit): the feature works.
 
 **Open:** one report of a push and a whatsapp for the same receiver (who has the app); see the next entry.
+
+## Chats, follow-up: "رسالة جديدة" on the chat push + a channel log; the push + whatsapp report (2026-11-05)
+
+**The report (Ziad): one receiver with the app got both the push and the whatsapp.** Checked read-only before changing anything:
+- the working tree matched the reviewed step 5 patch exactly; the only sender of the chat whatsapp (`session_chat_notify`) left in the repo is `sendChatWhatsapp` in `lib/notifications/mobile/notify/chat.ts` (no leftover call; `wa-debounce-process` is the whatsapp bot's inbound queue, unrelated)
+- for one message the new rule sends the push **or** the whatsapp: the whatsapp after a push only when Expo accepted none of the receiver's tokens (then the push wasn't delivered either)
+- the old code (production, and this repo before step 5) never sends a chat push, only the daily whatsapp
+- so a push and a whatsapp most likely came from two different messages handled by two code versions: production (`shwerni.sa`, old code: whatsapp), or a dev server running while step 5 was out of the tree (the patch was applied, reverted to keep the tree clean while waiting for review, then applied again at 02:48; `next dev` reloads on each change). To be retested by Ziad after this commit, with the new log below
+
+**Changes:**
+- `lib/notifications/mobile/mobile-push.ts`: `PushMessage.subtitle` (ios only).
+- `lib/notifications/mobile/notify/chat.ts`: the chat push gets `subtitle: "رسالة جديدة"` (title and body unchanged). Android: Expo's push format has no subText / summary field (checked against its message format), so it shows on iOS only; see Open. One `console.info` line per message with the channel chosen: `[chat] mid=… push (n/m accepted), no whatsapp` / `whatsapp (push not accepted: 0/m, d dead)` / `whatsapp (no active app token, first message of the riyadh day)` / `none (…)`: the meeting id and the reason only, never names, phones or text.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 315 of 315 (the exact push message now with the subtitle; the five log lines, with no name, phone or text in them).
+
+**Open:** Android has no subtitle through Expo's push service: either the app shows it (a data-only push presented by the app: needs `expo-task-manager` for a killed app, declined earlier), or it goes into the title / body (Ziad asked to keep those as they are). Ziad to decide.

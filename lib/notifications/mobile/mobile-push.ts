@@ -17,6 +17,8 @@ export interface PushMessage {
   // links this push to a client-registered notification category, which
   // is what actually attaches os-level action buttons (e.g. "mark done")
   categoryId?: string;
+  // ios only: a line between the title and the body (expo has no android equivalent)
+  subtitle?: string;
   // android: the notification channel the app created (e.g. "chat")
   channelId?: string;
   // android: replaces a notification with the same tag already on the device
