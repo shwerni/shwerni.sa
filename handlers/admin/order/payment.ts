@@ -38,12 +38,13 @@ import {
 } from "@/schemas";
 
 // prisma data
-import { applyCoupon, saveACoupon } from "@/data/coupon";
+import { saveACoupon } from "@/data/coupon";
 import { reserveInstant } from "@/data/online";
 import { CheckIsBlocked } from "@/data/blocked";
 import { createNewMeeting } from "@/data/rooms";
 import { reserveProgram } from "@/data/order/program";
 import { reserveConsultant } from "@/data/order/reserveation";
+import { quoteBooking } from "@/handlers/admin/order/booking-quote";
 import { mobileNotifyOrderConfirmed } from "@/lib/notifications/mobile/notify/reservation";
 import { scheduleInstantBooked } from "@/lib/notifications/mobile/notify/instant";
 import {
@@ -51,7 +52,6 @@ import {
   getPleadingCommission,
   getReconciliationConfig,
 } from "@/data/admin/settings/finance";
-import { resolveConsultantPricing } from "@/data/event";
 import {
   getPleadingCheckout,
   getPleadingForCheckout,
@@ -86,7 +86,6 @@ import { queueOrderInvoice } from "@/lib/daftra/auto";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
 import { scheduleConsultantBusy } from "@/lib/api/realtime/consultant-busy";
 import {
-  INSTANT_DURATION,
   INSTANT_LIMIT_PER_IP,
   INSTANT_LIMIT_WINDOW_MS,
   instantIpRateKey,
@@ -569,133 +568,13 @@ export async function Pay(
   data: ReservationFormType | ProgramReservationFormType | InstantFormType,
 ) {
   // ---------------------------------------------------------------
-  // 0. block check
+  // 0-3. block check, finance config, base cost + coupon and totals: the shared price
+  //      (handlers/admin/order/booking-quote.ts), the same for the app's quote and booking
   // ---------------------------------------------------------------
-  const isBlocked = await CheckIsBlocked(data.phone);
-  if (isBlocked) {
-    return { state: false, step: "blocked", message: "هذا الحساب محظور" };
-  }
+  const quote = await quoteBooking(data);
+  if (!quote.state) return quote;
 
-  // ---------------------------------------------------------------
-  // 1. finance config — the ONLY source for tax + platform commission
-  // ---------------------------------------------------------------
-  const finance = await getFinanceConfig();
-  if (!finance) {
-    return {
-      state: false,
-      step: "finance",
-      message: "تعذّر إتمام العملية، برجاء المحاولة لاحقاً",
-    };
-  }
-
-  // ---------------------------------------------------------------
-  // 2. resolve base cost + coupon — all server side
-  // ---------------------------------------------------------------
-  let baseCost: number;
-  let discountPercent = 0;
-
-  if (data.order === "consultant") {
-    const d = data as ReservationFormType;
-
-    if (d.package) {
-      // package price wins: flat, no event discount, no coupon
-      const pkg = await prisma.package.findUnique({
-        where: { id: d.package },
-        select: { cost: true, consultantId: true, isActive: true },
-      });
-
-      if (!pkg || !pkg.isActive || pkg.consultantId !== d.cid) {
-        return {
-          state: false,
-          step: "package",
-          message: "الباقة غير متاحة حالياً",
-        };
-      }
-
-      baseCost = pkg.cost;
-    } else {
-      const pricing = await resolveConsultantPricing(d.cid);
-      if (!pricing) {
-        return {
-          state: false,
-          step: "pricing",
-          message: "تعذّر تحديد سعر الجلسة، برجاء المحاولة لاحقاً",
-        };
-      }
-
-      baseCost = pricing.cost[Number(d.duration) as 30 | 45 | 60];
-
-      // coupon allowed only if this duration isn't already discounted
-      const durationDiscounted =
-        pricing.discount?.durations.includes(Number(d.duration)) ?? false;
-
-      if (!durationDiscounted && d.couponCode) {
-        const coupon = await applyCoupon(d.user ?? "temp", d.couponCode, d.cid);
-        // invalid/tampered coupon → ignore silently, charge full price
-        if (coupon.state && typeof coupon.discount === "number")
-          discountPercent = coupon.discount;
-      }
-    }
-  } else if (data.order === "instant") {
-    const i = data as InstantFormType;
-
-    const pricing = await resolveConsultantPricing(i.cid);
-    if (!pricing) {
-      return {
-        state: false,
-        step: "pricing",
-        message: "تعذّر تحديد سعر الجلسة، برجاء المحاولة لاحقاً",
-      };
-    }
-
-    // instant sessions are INSTANT_DURATION long whatever the form sends (reserveInstant too)
-    baseCost = pricing.cost[INSTANT_DURATION];
-  } else if (data.order === "program") {
-    const p = data as ProgramReservationFormType;
-
-    const program = await prisma.program.findUnique({
-      where: { prid: p.prid },
-      select: { price: true, status: true },
-    });
-
-    if (!program || program.status !== "PUBLISHED") {
-      return {
-        state: false,
-        step: "program",
-        message: "البرنامج غير متاح حالياً",
-      };
-    }
-
-    baseCost = program.price;
-  } else {
-    return {
-      state: false,
-      step: "order_type",
-      message: "نوع الطلب غير صالح",
-    };
-  }
-
-  // ---------------------------------------------------------------
-  // 3. compute totals — the ONLY place amounts are calculated
-  // ---------------------------------------------------------------
-  const payment = calculatePayment({
-    baseCost,
-    tax: TAX_PERCENT,
-    discountPercent,
-  });
-
-  const cost = payment.total; // pre-tax, discounted → Payment.total
-  // tax-inclusive → charged to the card; computed from the stored (rounded) total so every
-  // later check (webhooks, mobile) gets exactly this amount back from the order
-  const total = withTax(cost);
-
-  if (!Number.isFinite(total) || total <= 0) {
-    return {
-      state: false,
-      step: "amount",
-      message: "تعذّر حساب قيمة الدفع، برجاء المحاولة لاحقاً",
-    };
-  }
+  const { finance, discountPercent, cost, total } = quote;
 
   // ---------------------------------------------------------------
   // 4. create the order — tax + commission passed in, never re-read
