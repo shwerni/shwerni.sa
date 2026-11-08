@@ -5687,3 +5687,15 @@ Approved by Ziad from the reviewed patch (`backups/patches/2026-11-05-chats-step
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 315 of 315 (the exact push message now with the subtitle; the five log lines, with no name, phone or text in them).
 
 **Open:** Android has no subtitle through Expo's push service: either the app shows it (a data-only push presented by the app: needs `expo-task-manager` for a killed app, declined earlier), or it goes into the title / body (Ziad asked to keep those as they are). Ziad to decide.
+
+## Mobile booking, step 1: one pricing function shared by Pay (2026-11-09)
+
+From the app's handoff "Booking: mobile booking through Pay" (decided 2026-11-05) and `docs/client/booking/spec.md`. Payment flow: reviewed by Ziad and committed as `d0f4821` ("coupon quote").
+
+- `handlers/admin/order/booking-quote.ts` (new): `quoteBooking(data)` = `Pay`'s steps 0-3 moved unchanged (block check, `getFinanceConfig`, the base price: a package's flat cost / `resolveConsultantPricing` with the coupon only on a duration the campaign doesn't discount / `cost[INSTANT_DURATION]` / a published program's price, then `calculatePayment` + `withTax` and the amount check). Same failure objects (`step`, `message`). Extras for the app's quote, from values already computed (no extra queries): `base`, `campaign`, `coupon`, `couponError` (the coupon's own message, or "لا يمكن استخدام الكوبون مع هذا الحجز" where the website's rule allows none). The block check runs only with a phone (the app's quote has no form phone; the website always sends one).
+- `handlers/admin/order/payment.ts` `Pay`: steps 0-3 replaced by `quoteBooking(data)`; steps 4-6 use the same `finance`, `discountPercent`, `cost`, `total`. Three imports only steps 0-3 used are removed.
+- Decided by Ziad (2026-11-09), for steps 5 and 6: the app's create routes always run the block check with the signed-in account's phone (tested with a blocked account).
+
+**Verified:** `npx tsc --noEmit`, eslint (0 errors; the old `refund` warning), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). `Pay` unchanged: a snapshot of 24 scenarios recorded on the code before the move (blocked, no finance config, packages valid / missing / inactive / another consultant's, coupons valid / invalid / on a discounted duration / guest, instant with the ip counter, program, a refused reservation, an order without payment, both gateways failing, zero price, unsupported method), each with its result, the redirect url and every call with its arguments: all 24 identical after the move. 7 more tests for the quote's extras. 346 of 346 in the throwaway suite.
+
+**Open:** none.
