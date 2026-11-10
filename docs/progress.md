@@ -5713,3 +5713,21 @@ Payment flow; reviewed by Ziad, plus his addition (the tabby guard).
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 362 of 362; new (16): the helper equals `acceptedChargeAmounts` with no wallet part (4 totals, new and pre-cutoff, null / undefined / 0) and takes a wallet part off (cents too); webhook: a website order paid in full → PAID, a wrong amount → HOLD with the same alert; a wallet part: the card's part → PAID, the full total → HOLD; `confirm` sends the card's part to the gateway check, PAID ending in HOLD reports "failed"; `result` settles PAID and REFUSED through `updateOrderStatus` (never a direct write), the full total doesn't match with a wallet part; tabby: no wallet part → captured as before, a wallet part → HOLD + alert and no capture, a wrong amount → HOLD + the same alert.
 
 **Open:** none.
+
+## Next.js 16.4.3 (security, 2026-11-10)
+
+Asked by Ziad (the management server on 16.4.0 was affected). Commit `8f121db`, on its own so it can be deployed alone.
+
+- `next` 16.2.9 → 16.4.3 and `eslint-config-next` 16.2.4 → 16.4.3, still pinned exactly. This repo was inside all three advisories' affected range (16.0.0 - 16.4.0; patched in 16.4.1):
+  - GHSA-2464-fhr4-w9xw (critical): unauthenticated remote code execution in image optimization with svg files
+  - GHSA-673q-mjm6-r5xr (critical): remote code execution in `use cache` functions returning typed arrays (this site has cache components on and uses `use cache`)
+  - GHSA-p3m5-59mp-jv5r (high): cpu denial of service through server actions
+- The lockfile moved only next's own packages (`next`, `@next/*`, the swc binaries, `eslint-config-next` / `@next/eslint-plugin-next`), `sharp` 0.34.5 → 0.35.5 (the workaround version the first advisory names) and a few small helpers; no auth, payment or app dependency. Every package depending on next (next-auth, better-auth, uploadthing, botid, speed-insights) resolves to 16.4.3.
+
+**Verified:** `npx tsc --noEmit`, the throwaway suite (362 of 362), `npm run build` on 16.4.3 (the first run failed prerendering with Prisma P1001, the database unreachable; the retry passed), manifest check (only `data/event.ts`, `lib/api/google.ts`). `next` is no longer in `npm audit`. `npx eslint .` reports 40 errors (react-hooks rules: set-state-in-effect, static-components, refs, immutability) in 23 files neither this task nor the upgrade touched; `eslint-plugin-react-hooks` is the same installed version (7.1.1) before and after, so they were already there (the steps lint their changed files only).
+
+**New build warning (16.4):** "`cacheComponents` is enabled without a corresponding `partialPrefetching` option". A warning only; `next.config` left as is (Ziad to decide true / false).
+
+**Website backlog #23 (after booking), security:** `npm audit` still reports high / critical items outside next: `next-auth` / `@auth/core` (critical), `better-auth` (critical, through its drizzle / kysely adapters), `@auth/prisma-adapter`, `uploadthing` / `@uploadthing/*` / `effect`, `postcss`, `zod`, `nanoid`, `mysql2` / `@prisma/config` (via prisma), `@grpc/grpc-js`, `fast-uri`, `js-yaml`, `brace-expansion`, `browserslist`, `source-map-js`, `vite`, `puppeteer-core` / `chromium-bidi`. Not touched here (CLAUDE.md: no upgrades beyond the plan, no auth setup changes; several are auth packages and some are dev / build tools). A separate task: check which are reachable in production, then upgrade in small steps with the auth ones reviewed one by one. To copy into the app repo's website backlog list (`docs/progress.md`, after #22).
+
+**Open:** the `partialPrefetching` choice; backlog #23.
