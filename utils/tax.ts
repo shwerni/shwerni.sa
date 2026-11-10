@@ -37,3 +37,22 @@ export function acceptedChargeAmounts(
 
   return [...amounts];
 }
+
+/**
+ * every amount (sar) the card may be charged for this payment: acceptedChargeAmounts minus the
+ * wallet part (Payment.wallet: the app's wallet switch; debited from the wallet when the order turns
+ * PAID, never charged to the card). a payment without a wallet part (every website order) gets
+ * exactly acceptedChargeAmounts. used by every check of a gateway's charge (the moyasar webhook,
+ * the app's confirm and result)
+ * @param payment the order's payment: its pre-tax total and its wallet part
+ * @param createdAt the order's creation time (acceptedChargeAmounts' legacy window)
+ */
+export function acceptedGatewayAmounts(
+  payment: { total: number; wallet?: number | null },
+  createdAt: Date | null | undefined,
+): number[] {
+  const wallet = payment.wallet && payment.wallet > 0 ? payment.wallet : 0;
+  return acceptedChargeAmounts(payment.total, createdAt).map(
+    (amount) => Math.round((amount - wallet) * 100) / 100,
+  );
+}

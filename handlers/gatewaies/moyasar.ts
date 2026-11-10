@@ -13,7 +13,7 @@ import { telegramAdmin } from "@/lib/api/telegram/telegram";
 import { moyasarInvoiceDetails } from "@/lib/api/gatewaies/moyasar";
 
 // utils
-import { acceptedChargeAmounts, withTax } from "@/utils/tax";
+import { acceptedGatewayAmounts, withTax } from "@/utils/tax";
 import { isMoyasarDefinitiveFailure, type Status } from "@/utils/gatewaies";
 
 // types: only invoice_id is read, everything else in the body is ignored
@@ -51,9 +51,12 @@ async function CheckPaymentState(payment: Moyasar) {
 
   // paid: only when amount (halalas), currency and invoice all match this order
   if (invoice.status === "paid") {
-    const expected = Math.round(withTax(orderPayment.total) * 100);
+    // the card's part: the tax-inclusive total minus the app's wallet part (none on website orders)
+    const expected = Math.round(
+      (withTax(orderPayment.total) - (orderPayment.wallet && orderPayment.wallet > 0 ? orderPayment.wallet : 0)) * 100,
+    );
     // remove after 2026-10-09: pre-cutoff orders also accept the old formulas (in halalas)
-    const accepted = acceptedChargeAmounts(orderPayment.total, order?.created_at).map(
+    const accepted = acceptedGatewayAmounts(orderPayment, order?.created_at).map(
       (a) => Math.round(a * 100),
     );
     const matches =

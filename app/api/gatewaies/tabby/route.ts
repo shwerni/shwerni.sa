@@ -58,6 +58,16 @@ export async function POST(request: Request) {
 
     // authorized: capture only when tabby's amount matches what this order charged
     if (status === "authorized") {
+      // a wallet part never goes with tabby (the app's booking refuses it): if one is there, a
+      // person decides (HOLD, no capture), rather than charging tabby beside a wallet debit at PAID
+      if (payment.wallet && payment.wallet > 0) {
+        await updateOrderStatus(pid, PaymentState.HOLD);
+        await telegramAdmin(
+          `shwerni-error: tabby payment=${pid} on an order with a wallet part (${payment.wallet} SAR), not captured, order set to hold`,
+        );
+        return NextResponse.json({ success: false });
+      }
+
       // the same calculation Pay charges with
       const expected = withTax(payment.total);
       // remove after 2026-10-09: pre-cutoff orders also accept the old formulas

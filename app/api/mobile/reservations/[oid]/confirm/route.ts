@@ -5,7 +5,7 @@ import { NextRequest } from "next/server";
 import { requireMobileUser } from "@/lib/auth/require-mobile-user";
 import { createPostRoute } from "@/lib/api/routes/route-factory";
 import prisma from "@/lib/database/db";
-import { acceptedChargeAmounts } from "@/utils/tax";
+import { acceptedGatewayAmounts } from "@/utils/tax";
 
 // prisma types
 import { PaymentMethod, PaymentState } from "@/lib/generated/prisma/enums";
@@ -86,8 +86,9 @@ export const POST = createPostRoute<PaymentResultResponse, { oid: string }>(
           ? await verifyTabbyPayment(pid)
           : await verifyMoyasarPayment(
               pid,
-              // remove after 2026-10-09: pre-cutoff orders also accept the old formulas
-              acceptedChargeAmounts(order.payment.total, order.created_at),
+              // the card's part (the wallet part is debited at PAID); remove after 2026-10-09:
+              // pre-cutoff orders also accept the old formulas
+              acceptedGatewayAmounts(order.payment, order.created_at),
               order.oid,
             );
 
@@ -98,6 +99,16 @@ export const POST = createPostRoute<PaymentResultResponse, { oid: string }>(
 
       if (state !== PaymentState.NEW) {
         await updateOrderStatus(pid, state);
+
+        // the stored state decides: the PAID path can end in HOLD (a taken instant slot, a
+        // failed wallet debit), which must not show as success
+        state =
+          (
+            await prisma.payment.findUnique({
+              where: { id: order.payment.id },
+              select: { payment: true },
+            })
+          )?.payment ?? state;
 
         console.log(
           `[payment-result] updated payment ${order.payment.id} to state=${state}`,

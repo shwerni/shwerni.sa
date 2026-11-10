@@ -5699,3 +5699,17 @@ From the app's handoff "Booking: mobile booking through Pay" (decided 2026-11-05
 **Verified:** `npx tsc --noEmit`, eslint (0 errors; the old `refund` warning), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). `Pay` unchanged: a snapshot of 24 scenarios recorded on the code before the move (blocked, no finance config, packages valid / missing / inactive / another consultant's, coupons valid / invalid / on a discounted duration / guest, instant with the ip counter, program, a refused reservation, an order without payment, both gateways failing, zero price, unsupported method), each with its result, the redirect url and every call with its arguments: all 24 identical after the move. 7 more tests for the quote's extras. 346 of 346 in the throwaway suite.
 
 **Open:** none.
+
+## Mobile booking, step 2: the expected-charge helper (2026-11-10)
+
+Payment flow; reviewed by Ziad, plus his addition (the tabby guard).
+
+- `utils/tax.ts`: `acceptedGatewayAmounts(payment, createdAt)` = `acceptedChargeAmounts` minus `Payment.wallet` (the app's wallet part, debited at PAID, never charged to the card). No wallet part (every website order) = `acceptedChargeAmounts` exactly.
+- Used by every check of a Moyasar charge: the webhook (`handlers/gatewaies/moyasar.ts`: accepted amounts and the alert's "expected … halalas"), the app's `confirm` and `result` routes.
+- `app/api/gatewaies/tabby/route.ts` (Ziad's addition): an authorized payment on an order with a wallet part (the app's create routes never allow it) → HOLD + an admin alert, never captured. Without a wallet part, unchanged.
+- Fixes flagged in review: the app's `result` route wrote PAID / REFUSED straight to the payment, skipping the whole PAID path (meeting, notifications, wallet debit, busy, invoice; CLAUDE.md); it now goes through `updateOrderStatus()` like `confirm`. `confirm` and `result` report the stored state after the update (the PAID path can end in HOLD: a taken instant slot, a failed wallet debit; it showed "success"). Three leftover debug logs removed from `result`.
+- Not changed: the app's `confirm` for a Tabby order still marks it PAID through `updateOrderStatus` after `verifyTabbyPayment`; a Tabby order can't carry a wallet part (steps 5-6 refuse it).
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 362 of 362; new (16): the helper equals `acceptedChargeAmounts` with no wallet part (4 totals, new and pre-cutoff, null / undefined / 0) and takes a wallet part off (cents too); webhook: a website order paid in full → PAID, a wrong amount → HOLD with the same alert; a wallet part: the card's part → PAID, the full total → HOLD; `confirm` sends the card's part to the gateway check, PAID ending in HOLD reports "failed"; `result` settles PAID and REFUSED through `updateOrderStatus` (never a direct write), the full total doesn't match with a wallet part; tabby: no wallet part → captured as before, a wallet part → HOLD + alert and no capture, a wrong amount → HOLD + the same alert.
+
+**Open:** none.
