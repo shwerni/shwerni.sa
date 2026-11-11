@@ -5769,3 +5769,14 @@ From the app's handoff "Release: privacy page and account deletion" (`docs/clien
 7. only role USER can self-delete; every other role gets 403
 
 The ✋ steps stay diff-first: the schema (`User.deletedAt`), the session end, the notices (skip whatsapp / push for deleted users).
+
+## Mobile booking, step 3: POST reservations/quote (2026-11-11)
+
+Read-only (nothing created, no money moved); committed without a diff review, as agreed.
+
+- `app/api/mobile/reservations/quote/route.ts` (new): `requireMobileUser`; a zod body with the choices only (`order`, `cid`, `duration` 30 / 45 / 60 or `package`, `prid`, `couponCode`, `wallet`, `method`; any price, total, tax, commission or user in the body is dropped). The price is `quoteBooking` (step 1, Pay's own pricing) with the coupon's user = the session's user, so the summary and the charge can't differ. Returns `base`, `campaign`, `coupon`, `couponError`, `subtotal` (Payment.total), `taxPercent`, `total`, `wallet` (`{ balance, applied = min(balance, total) }`, null when not asked), `due`, `methods` (the finance config's `visaMoyasar` / `tabby`; card only while the wallet is applied and something is due; none when the wallet covers all). quoteBooking failures: package / pricing / program → 404, order type → 400, else 500. No block check here (the quote has no form phone; the create routes check the account's phone, Ziad's rule).
+- `data/mobile/instant-availability.ts` (new): `instantAvailability(cid, userId)`, a read-only preview of reserveInstant's checks (listable and online on the realtime server; no other client's open instant order inside its payment window, the client's own by account or account phone excluded; no PAID session in [now, end of a session starting in 5 minutes]) with reserveInstant's own messages → 409 from the quote. reserveInstant, under its lock, still decides at booking time.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (lists `/api/mobile/reservations/quote`), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 395 of 395; new (18), with the real quoteBooking: a coupon for the session's user (a body `user` / `total` / `finance` ignored), wallet partial (card only), wallet covering all (due 0, no methods), no wallet, a package (no coupon), the config's methods only, no block check; instant bookable / offline → 409 / another client paying → 409 / a paid overlap → 409; 5 bad bodies → 400; missing package / pricing → 404; 401 with nothing priced.
+
+**Open:** none.
