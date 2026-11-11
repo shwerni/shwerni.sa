@@ -12,6 +12,7 @@ import { PaymentMethod, PaymentState } from "@/lib/generated/prisma/enums";
 import { verifyMoyasarPayment } from "@/utils/gatewaies/verify/verify";
 import { verifyTabbyPayment } from "@/utils/gatewaies/verify/tabby";
 import { updateOrderStatus } from "@/data/order/reserveation";
+import { telegramAdmin } from "@/lib/api/telegram/telegram";
 
 interface PaymentResultResponse {
   oid: number;
@@ -96,6 +97,21 @@ export const POST = createPostRoute<PaymentResultResponse, { oid: string }>(
 
       state = result.state;
       failureReason = result.failureReason;
+
+      // a wallet part never goes with tabby (the app's booking refuses it): if one is there, a
+      // person decides (HOLD + alert), as the tabby webhook does, rather than PAID beside a wallet
+      // debit
+      if (
+        order.payment.method === PaymentMethod.tabby &&
+        state === PaymentState.PAID &&
+        order.payment.wallet &&
+        order.payment.wallet > 0
+      ) {
+        state = PaymentState.HOLD;
+        await telegramAdmin(
+          `shwerni-error: tabby payment=${pid} on order #${order.oid} with a wallet part (${order.payment.wallet} SAR), order set to hold`,
+        );
+      }
 
       if (state !== PaymentState.NEW) {
         await updateOrderStatus(pid, state);

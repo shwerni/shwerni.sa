@@ -5731,3 +5731,13 @@ Asked by Ziad (the management server on 16.4.0 was affected). Commit `8f121db`, 
 **Website backlog #23 (after booking), security:** `npm audit` still reports high / critical items outside next: `next-auth` / `@auth/core` (critical), `better-auth` (critical, through its drizzle / kysely adapters), `@auth/prisma-adapter`, `uploadthing` / `@uploadthing/*` / `effect`, `postcss`, `zod`, `nanoid`, `mysql2` / `@prisma/config` (via prisma), `@grpc/grpc-js`, `fast-uri`, `js-yaml`, `brace-expansion`, `browserslist`, `source-map-js`, `vite`, `puppeteer-core` / `chromium-bidi`. Not touched here (CLAUDE.md: no upgrades beyond the plan, no auth setup changes; several are auth packages and some are dev / build tools). A separate task: check which are reachable in production, then upgrade in small steps with the auth ones reviewed one by one. To copy into the app repo's website backlog list (`docs/progress.md`, after #22).
 
 **Open:** the `partialPrefetching` choice; backlog #23.
+
+## Mobile booking, step 2 follow-up: the wallet guard on confirm's tabby path (2026-11-11)
+
+Asked and reviewed by Ziad (defence in depth, like the tabby webhook in step 2).
+
+- `app/api/mobile/reservations/[oid]/confirm/route.ts`: when `verifyTabbyPayment` reports PAID for an order with a wallet part (the app's booking never allows tabby with the wallet), the state becomes HOLD with an admin alert instead of PAID; `updateOrderStatus` then stores HOLD and the app sees "failed". Tabby without a wallet part, refused payments and moyasar with a wallet part (the allowed case) are unchanged.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 366 of 366; new (4): tabby without a wallet part → PAID as before; tabby with one → HOLD + alert, never PAID, "failed"; tabby refused with one → REFUSED, no alert; moyasar with a wallet part → PAID, no alert.
+
+**Open:** confirm's tabby path marks PAID on AUTHORIZED without the amount check or the capture the webhook does; fixed as its own step next (approved by Ziad).
