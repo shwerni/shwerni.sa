@@ -40,7 +40,11 @@ import {
   PaymentState,
   UserRole,
 } from "@/lib/generated/prisma/enums";
+import { Prisma } from "@/lib/generated/prisma/client";
 import { holdInstantPaymentIfTaken } from "@/data/instant-payment";
+
+// constants
+import { UNPAID_HOLD_MINUTES } from "@/constants/booking";
 
 import { ReservationFormType, reservationSchema } from "@/schemas";
 
@@ -68,11 +72,12 @@ export const reserveConsultant = async (
     // data
     const data = parsed.data;
 
-    // check time conflict
+    // check time conflict (the booking client's own unpaid orders don't count against them)
     const conflict = await checkMeetingTimeConflict(
       data.cid,
       data.time,
       dateToString(data.date),
+      { author: data.user, phone: data.phone },
     );
 
     if (conflict)
@@ -238,12 +243,23 @@ export const checkMeetingTimeConflict = async (
   cid: number,
   time: string,
   date: string,
+  // the booking client: their own unpaid orders don't hold the slot against them (back from the
+  // payment screen and booking the same time again)
+  own?: { author?: string | null; phone?: string | null },
 ) => {
   try {
-    // half hour before and after ofset check
-    const timeOffset: string[] = aboveAndLowerTime(time);
+    // the same time, and half an hour before and after
+    const timeOffset: string[] = [time, ...aboveAndLowerTime(time)];
 
-    // check if order conflict
+    const ownAuthor = own?.author && own.author !== "temp" ? own.author : null;
+    const ownPhone = own?.phone || null;
+    const notOwn = Prisma.sql`NOT (
+      (${ownAuthor}::text IS NOT NULL AND o.author = ${ownAuthor}::text)
+      OR (${ownPhone}::text IS NOT NULL AND o.phone = ${ownPhone}::text)
+    )`;
+
+    // check if order conflict: a paid order, or another client's unpaid order younger than
+    // UNPAID_HOLD_MINUTES (it holds the slot while its client pays)
     const conflict = await prisma.$queryRaw<{ exists: boolean }[]>`
       SELECT EXISTS (
         SELECT 1
@@ -253,7 +269,14 @@ export const checkMeetingTimeConflict = async (
         WHERE o."consultantId" = ${cid}
           AND m.date = ${date}
           AND m.time = ANY(${timeOffset}::text[])
-          AND p.payment = 'PAID'
+          AND (
+            p.payment = 'PAID'
+            OR (
+              p.payment IN ('NEW', 'PROCESSING')
+              AND o.created_at > now() - make_interval(mins => ${UNPAID_HOLD_MINUTES}::int)
+              AND ${notOwn}
+            )
+          )
       ) as exists
     `;
 

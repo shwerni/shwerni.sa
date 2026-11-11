@@ -2,10 +2,13 @@
 import { Prisma } from "@/lib/generated/prisma/client";
 import { PaymentState } from "@/lib/generated/prisma/enums";
 
+// constants
+import { UNPAID_HOLD_MINUTES } from "@/constants/booking";
+
 /**
  * the single rule for "this weekly timing ct is a free slot on this date", appended to a
- * WHERE on "consultant_timings" ct: after the same-day cutoff, no paid / new / processing
- * meeting and no free session at that time. getConsultantAvailableTimes (times route,
+ * WHERE on "consultant_timings" ct: after the same-day cutoff, no paid meeting, no new / processing
+ * meeting younger than UNPAID_HOLD_MINUTES, and no free session at that time. getConsultantAvailableTimes (times route,
  * website date steps, Pay's slot check) and the mobile next-slots query both use it, so a
  * card can never show a slot the booking screen calls unavailable
  * @param date the calendar date (yyyy-MM-dd): a value, or a sql expression per row
@@ -34,10 +37,13 @@ export const freeSlotWhere = ({
               o."consultantId" = ct."consultantId"
               AND m."time" = ct."time"
               AND m."date" = ${date}
-              AND p."payment" IN (
-                ${PaymentState.PAID},
-                ${PaymentState.NEW},
-                ${PaymentState.PROCESSING}
+              AND (
+                p."payment" = ${PaymentState.PAID}
+                -- an unpaid order holds the slot for UNPAID_HOLD_MINUTES only
+                OR (
+                  p."payment" IN (${PaymentState.NEW}, ${PaymentState.PROCESSING})
+                  AND o."created_at" > now() - make_interval(mins => ${UNPAID_HOLD_MINUTES}::int)
+                )
               )
           )
 
