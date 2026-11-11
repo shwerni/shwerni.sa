@@ -5741,3 +5741,31 @@ Asked and reviewed by Ziad (defence in depth, like the tabby webhook in step 2).
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 366 of 366; new (4): tabby without a wallet part → PAID as before; tabby with one → HOLD + alert, never PAID, "failed"; tabby refused with one → REFUSED, no alert; moyasar with a wallet part → PAID, no alert.
 
 **Open:** confirm's tabby path marks PAID on AUTHORIZED without the amount check or the capture the webhook does; fixed as its own step next (approved by Ziad).
+
+## Mobile booking, step 2c: one settle path for authorized tabby payments (2026-11-11)
+
+Payment flow; reviewed by Ziad, committed by him as `b8fb9d8` ("app pay bug", identical to the reviewed patch) and pushed with the rest of main (booking steps 1-2c, the next 16.4.3 upgrade and the docs are on origin/main; the planned upgrade-only deploy branch `deploy/next-16.4.3` wasn't used).
+
+- `handlers/gatewaies/tabby.ts`: `settleAuthorizedTabby(pid, details)` replaces `tabbyPayment` (only the webhook used it): already PAID → nothing; a wallet part → HOLD + alert, no capture; tabby's amount not this order's charge (or not SAR) → HOLD + the webhook's alert, no capture; otherwise captured once (no capture when tabby's record already holds one; a failed capture is re-checked on tabby's record before it counts as failed), then PAID through `updateOrderStatus`.
+- `app/api/gatewaies/tabby/route.ts`: the authorized branch calls it (same checks and alert texts); `closed` stays a no-op.
+- `app/api/mobile/reservations/[oid]/confirm/route.ts`, tabby orders: tabby's record → AUTHORIZED runs the same settle path; REJECTED / EXPIRED → REFUSED; CLOSED (captured, or closed by a cancel or refund) and an unverifiable record change nothing (before: CLOSED was marked PAID). The app is told the stored state. Moyasar unchanged.
+- `utils/gatewaies/verify/tabby.ts` deleted (no callers left; it marked PAID on a plain CLOSED).
+- Captured once: both callers check the stored state and tabby's captures first; a true race ends with tabby refusing the second capture and the loser re-reading tabby's record (PAID once, no HOLD, no alert).
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build`, manifest check. Throwaway vitest 377 of 377; new (18), against a fake tabby that refuses a second capture: every branch; the race (webhook + confirm from the same uncaptured record → one capture, PAID, no HOLD or alert); webhook then confirm → no second capture; confirm: wrong amount → HOLD + alert + "failed", wallet part → HOLD, REJECTED → REFUSED, CLOSED / unverifiable → unchanged; moyasar never touches tabby.
+
+**Open:** none.
+
+## Account deletion: plan approved, after booking steps 3-7 (2026-11-11)
+
+From the app's handoff "Release: privacy page and account deletion" (`docs/client/account-deletion/spec.md`). Anonymization only: no User row or related row is deleted; the user id stays so orders, payments, meetings, chats, wallet and notifications stay linked. Decided by Ziad:
+
+1. public names anonymized: `Review.name`, `ArticleComment.name`, `Question.name`
+2. like orders (`name`, `phone` → "مستخدم محذوف"): the user's `Pleading`, `FreeSession`, `PreConsultation`, `BankTransferRequest` (`clientName`, `clientPhone`) and the `Guest` rows of the user's orders
+3. kept as they are: `PleadingDocument` (signed agreement), `DaftraClient` (tax invoices), `Blocked` (fraud list), the whatsapp bot rows keyed by phone (`WaChat`, `botUsage`, `WaDebounce`, `CampaignContact`)
+4. removed as credentials: `Account` (NextAuth) and `MobileAccount` (Better Auth) rows, with the sessions (`MobileSession`), push / VoIP tokens and pending codes (`MobileVerification`, `VerificationToken`)
+5. approved auth change: a `deletedAt` refusal in the session helpers (`userServer`, `sessionUser`, `requireMobileUser`), since website sessions are JWTs that can't be revoked
+6. the user's `Participant` tokens replaced (old WhatsApp chat links stop working)
+7. only role USER can self-delete; every other role gets 403
+
+The ✋ steps stay diff-first: the schema (`User.deletedAt`), the session end, the notices (skip whatsapp / push for deleted users).
