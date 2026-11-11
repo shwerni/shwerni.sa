@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 
 // handlers
-import { tabbyPayment } from "@/handlers/gatewaies/tabby";
+import { settleAuthorizedTabby } from "@/handlers/gatewaies/tabby";
 
 // prisma data
 import {
@@ -13,9 +13,6 @@ import {
 // lib
 import { tabbyPaymentDetails } from "@/lib/api/gatewaies/tabby";
 import { telegramAdmin } from "@/lib/api/telegram/telegram";
-
-// utils
-import { acceptedChargeAmounts, withTax } from "@/utils/tax";
 
 // prisma types
 import { PaymentState } from "@/lib/generated/prisma/enums";
@@ -56,35 +53,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true });
     }
 
-    // authorized: capture only when tabby's amount matches what this order charged
+    // authorized: the wallet guard, the amount check and the capture, once, then PAID (shared
+    // with the app's confirm, handlers/gatewaies/tabby.ts)
     if (status === "authorized") {
-      // a wallet part never goes with tabby (the app's booking refuses it): if one is there, a
-      // person decides (HOLD, no capture), rather than charging tabby beside a wallet debit at PAID
-      if (payment.wallet && payment.wallet > 0) {
-        await updateOrderStatus(pid, PaymentState.HOLD);
-        await telegramAdmin(
-          `shwerni-error: tabby payment=${pid} on an order with a wallet part (${payment.wallet} SAR), not captured, order set to hold`,
-        );
-        return NextResponse.json({ success: false });
-      }
-
-      // the same calculation Pay charges with
-      const expected = withTax(payment.total);
-      // remove after 2026-10-09: pre-cutoff orders also accept the old formulas
-      const accepted = acceptedChargeAmounts(payment.total, order?.created_at);
-      const amountMatches =
-        accepted.includes(Number(details.amount)) && details.currency === "SAR";
-
-      if (!amountMatches) {
-        await updateOrderStatus(pid, PaymentState.HOLD);
-        await telegramAdmin(
-          `shwerni-error: tabby payment=${pid} amount ${details.amount} ${details.currency} does not match order total ${expected} SAR, order set to hold`,
-        );
-        return NextResponse.json({ success: false });
-      }
-
-      // update order to paid (after a successful capture)
-      const paid = await tabbyPayment(pid, details.amount);
+      const paid = await settleAuthorizedTabby(pid, details);
       return NextResponse.json({ success: paid });
     }
 

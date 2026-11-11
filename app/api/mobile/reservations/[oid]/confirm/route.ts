@@ -10,9 +10,9 @@ import { acceptedGatewayAmounts } from "@/utils/tax";
 // prisma types
 import { PaymentMethod, PaymentState } from "@/lib/generated/prisma/enums";
 import { verifyMoyasarPayment } from "@/utils/gatewaies/verify/verify";
-import { verifyTabbyPayment } from "@/utils/gatewaies/verify/tabby";
 import { updateOrderStatus } from "@/data/order/reserveation";
-import { telegramAdmin } from "@/lib/api/telegram/telegram";
+import { tabbyPaymentDetails } from "@/lib/api/gatewaies/tabby";
+import { settleAuthorizedTabby } from "@/handlers/gatewaies/tabby";
 
 interface PaymentResultResponse {
   oid: number;
@@ -79,52 +79,53 @@ export const POST = createPostRoute<PaymentResultResponse, { oid: string }>(
     let state = order.payment.payment;
     let failureReason: string | null = null;
 
-    if (state === PaymentState.NEW && pid) {
+    // the stored state decides what the app is told: the PAID path can end in HOLD (a taken
+    // instant slot, a failed wallet debit, a wrong amount), which must not show as success
+    const storedState = async () =>
+      (
+        await prisma.payment.findUnique({
+          where: { id: order.payment!.id },
+          select: { payment: true },
+        })
+      )?.payment ?? state;
+
+    if (state === PaymentState.NEW && pid && order.payment.method === PaymentMethod.tabby) {
+      console.log(`[payment-result] re-verifying with tabby, pid=${pid}`);
+
+      // the tabby webhook's own path: an AUTHORIZED payment gets the wallet guard, the amount
+      // check and the capture (once, even when the webhook runs too), then PAID; a wrong amount or
+      // a wallet part goes to HOLD with an alert. rejected / expired → REFUSED. CLOSED (captured,
+      // or closed by a cancel or refund) and the rest change nothing here: the webhook settles it
+      const details = await tabbyPaymentDetails(pid);
+      const status = details?.status.toUpperCase();
+      console.log(`[payment-result] tabby returned status=${status ?? "unverifiable"}`);
+
+      if (details && status === "AUTHORIZED") {
+        await settleAuthorizedTabby(pid, details);
+      } else if (status === "REJECTED" || status === "EXPIRED") {
+        await updateOrderStatus(pid, PaymentState.REFUSED);
+      }
+
+      state = await storedState();
+    } else if (state === PaymentState.NEW && pid) {
       console.log(`[payment-result] re-verifying with gateway, pid=${pid}`);
 
-      const result =
-        order.payment.method === PaymentMethod.tabby
-          ? await verifyTabbyPayment(pid)
-          : await verifyMoyasarPayment(
-              pid,
-              // the card's part (the wallet part is debited at PAID); remove after 2026-10-09:
-              // pre-cutoff orders also accept the old formulas
-              acceptedGatewayAmounts(order.payment, order.created_at),
-              order.oid,
-            );
+      const result = await verifyMoyasarPayment(
+        pid,
+        // the card's part (the wallet part is debited at PAID); remove after 2026-10-09:
+        // pre-cutoff orders also accept the old formulas
+        acceptedGatewayAmounts(order.payment, order.created_at),
+        order.oid,
+      );
 
       console.log(`[payment-result] gateway returned:`, result);
 
       state = result.state;
       failureReason = result.failureReason;
 
-      // a wallet part never goes with tabby (the app's booking refuses it): if one is there, a
-      // person decides (HOLD + alert), as the tabby webhook does, rather than PAID beside a wallet
-      // debit
-      if (
-        order.payment.method === PaymentMethod.tabby &&
-        state === PaymentState.PAID &&
-        order.payment.wallet &&
-        order.payment.wallet > 0
-      ) {
-        state = PaymentState.HOLD;
-        await telegramAdmin(
-          `shwerni-error: tabby payment=${pid} on order #${order.oid} with a wallet part (${order.payment.wallet} SAR), order set to hold`,
-        );
-      }
-
       if (state !== PaymentState.NEW) {
         await updateOrderStatus(pid, state);
-
-        // the stored state decides: the PAID path can end in HOLD (a taken instant slot, a
-        // failed wallet debit), which must not show as success
-        state =
-          (
-            await prisma.payment.findUnique({
-              where: { id: order.payment.id },
-              select: { payment: true },
-            })
-          )?.payment ?? state;
+        state = await storedState();
 
         console.log(
           `[payment-result] updated payment ${order.payment.id} to state=${state}`,
