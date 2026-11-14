@@ -9,7 +9,9 @@ import {
   canSelfDelete,
   consumeDeletionCode,
   deletionBlockers,
+  liveUserIdByPhone,
   sendDeletionCode,
+  verifyDeletionCode,
   type DeletionBlocker,
 } from "@/data/account-deletion";
 
@@ -66,4 +68,43 @@ export async function deleteAccount(userId: string, code: string): Promise<{ del
   await anonymizeAccount(userId);
   console.log(`[account-delete] user=${userId} anonymized`);
   return { deleted: true };
+}
+
+// ---------------------------------------------------------------
+// the website's signed-out flow (/account/delete): the phone and its code identify the account.
+// the code goes to the phone of an existing account only, and the answer is the same either way,
+// so the page never tells whether a phone has an account
+// ---------------------------------------------------------------
+
+// a deletion code to this phone's account (any role: a consultant then sees the support message)
+export async function requestAccountDeletionCodeByPhone(
+  phone: string,
+): Promise<{ sentTo: string; expiresIn: number }> {
+  const answer = { sentTo: `•••• ${phone.slice(-4)}`, expiresIn: DELETION_CODE_TTL_SECONDS };
+  const userId = await liveUserIdByPhone(phone);
+  if (!userId) return answer;
+
+  const sent = await sendDeletionCode(userId);
+  if (sent === "rate_limited") throw new HttpError("عدد كبير من المحاولات، حاول لاحقاً", 429);
+  return answer;
+}
+
+// the phone's code proves the account: then the same check as signed in (the code stays)
+export async function checkAccountDeletionByPhone(
+  phone: string,
+  code: string,
+): Promise<{ selfService: boolean; blockers: DeletionBlocker[] }> {
+  const userId = await liveUserIdByPhone(phone);
+  if (!userId || !(await verifyDeletionCode(userId, code))) {
+    throw new HttpError("رمز التحقق غير صحيح أو منتهي الصلاحية", 400);
+  }
+  if (!(await canSelfDelete(userId))) return { selfService: false, blockers: [] };
+  return { selfService: true, blockers: await deletionBlockers(userId) };
+}
+
+// the deletion by the phone and its code (the same deletion as signed in)
+export async function deleteAccountByPhone(phone: string, code: string): Promise<{ deleted: true }> {
+  const userId = await liveUserIdByPhone(phone);
+  if (!userId) throw new HttpError("رمز التحقق غير صحيح أو منتهي الصلاحية", 400);
+  return deleteAccount(userId, code);
 }

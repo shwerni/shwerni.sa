@@ -5873,3 +5873,18 @@ The code and routes went into Ziad's commit `599c5cb` ("fixing app booking"), id
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (the three routes listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 510 of 510; deletion (44): the flow, every 403, blockers, code hashing / expiry / tries / rate limit, the transaction's writes (only credentials deleted, no user or record row), the token statement, the timeout option, a failure inside → 500; the blockers' sql and the token statement on pglite; the session end (website helpers, realtime token, requireMobileUser) and the whatsapp skip.
 
 **Decided (noted):** a paid package with sessions not booked counts as upcoming; 5 wrong tries end a code; delete keeps the code when a blocker appears.
+
+## Account deletion: the website page /account/delete (2026-11-14)
+
+Google Play's web link (reachable without the app). New UI, asked by Ziad; the app's texts and the site's card / OTP look (verify-otp, forget-password).
+
+- `app/(pages)/(site)/(sub-pages)/account/delete/page.tsx` (noindex) + `components/clients/user/account-delete.tsx`:
+  - signed in (website session): the account's check → blockers with the support links, a consultant / staff → "تواصل مع الدعم لإغلاق حساب المستشار", else what happens / what stays → "إرسال رمز التحقق" (the account's own phone) → the 5-digit code → "حذف الحساب نهائيًا" → the confirm dialog → "تم حذف حسابك" and the website sign-out
+  - signed out: the phone → the code → "تحقق" (the code proves the phone; then the same check) → "حذف الحساب نهائيًا" → the confirm → done. No website sign-in is needed: app accounts made by a phone code have no password, so the website's password login couldn't reach them
+- `actions/account-deletion.ts` (public, `checkHuman` on every step, ip limits): `startAccountDeletion`, `sendAccountDeletionCode`, `verifyAccountDeletionCode`, `confirmAccountDeletion`; signed in, the session's account always wins over a phone in the input.
+- `handlers/clients/account-deletion.ts`: the signed-out variants on the same steps (`requestAccountDeletionCodeByPhone`: the same answer whether the phone has an account or not, a code only to a live account's phone; `checkAccountDeletionByPhone`: the code checked without using it; `deleteAccountByPhone`: the app's `deleteAccount`).
+- `data/account-deletion.ts`: `verifyDeletionCode` (a right code stays, a wrong one counts a try), `liveUserIdByPhone` (digits or `+digits`, never a deleted account).
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (`/account/delete` listed), manifest check (only `data/event.ts`, `lib/api/google.ts`; the new `actions/account-deletion.ts` is the only new server reference). Throwaway vitest 532 of 532; new (22) on the actions with the real handlers and data: start (signed out / client / consultant), the code (a live account's phone in any format, an unknown phone → the same answer and nothing sent, a deleted account's old phone → nothing, signed in → the account's phone whatever is sent, a blocker, the 3 / 10 minutes limit, a bot), verify (the right code kept, a wrong one counted, another account's code, an unknown phone, a consultant, blockers after the code), confirm (signed out, a consultant → refused, signed in ignores the input phone, wrong code, blocker, malformed, bot). Not run in a browser (Ziad's manual pass).
+
+**Decided (noted):** signed out uses the phone + code instead of a website sign-in (no auth change); a consultant gets the code too and then sees the support message; no link to the page from the website's account page yet (a UI change, Ziad's call).

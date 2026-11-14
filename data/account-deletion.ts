@@ -130,9 +130,10 @@ export async function sendDeletionCode(
 
 /**
  * is this the account's current deletion code? a wrong code counts a try; after
- * DELETION_CODE_MAX_TRIES (or once expired) the code is gone. a right code is consumed
+ * DELETION_CODE_MAX_TRIES (or once expired) the code is gone. consume: a right code is used up
+ * (the deletion); without it the code stays for the deletion step (the website's check)
  */
-export async function consumeDeletionCode(userId: string, code: string): Promise<boolean> {
+async function matchDeletionCode(userId: string, code: string, consume: boolean): Promise<boolean> {
   const identifier = codeIdentifier(userId);
   const row = await prisma.mobileVerification.findFirst({
     where: { identifier },
@@ -151,7 +152,7 @@ export async function consumeDeletionCode(userId: string, code: string): Promise
     !!stored && stored.length === given.length && timingSafeEqual(Buffer.from(stored), given);
 
   if (match) {
-    await prisma.mobileVerification.deleteMany({ where: { identifier } });
+    if (consume) await prisma.mobileVerification.deleteMany({ where: { identifier } });
     return true;
   }
 
@@ -165,6 +166,26 @@ export async function consumeDeletionCode(userId: string, code: string): Promise
     });
   }
   return false;
+}
+
+// the deletion step: a right code is used up
+export const consumeDeletionCode = (userId: string, code: string) =>
+  matchDeletionCode(userId, code, true);
+
+// the website's check step (signed out): a right code proves the phone and stays for the deletion
+export const verifyDeletionCode = (userId: string, code: string) =>
+  matchDeletionCode(userId, code, false);
+
+// a live (not deleted) account by its phone, for the website's signed-out flow
+export async function liveUserIdByPhone(phone: string): Promise<string | null> {
+  // the website sends digits only; an account may hold the same number with a leading +
+  const digits = phone.replace(/\D/g, "");
+  if (!digits) return null;
+  const user = await prisma.user.findFirst({
+    where: { phone: { in: [digits, `+${digits}`] }, deletedAt: null },
+    select: { id: true },
+  });
+  return user?.id ?? null;
 }
 
 /**
