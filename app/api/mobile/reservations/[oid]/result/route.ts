@@ -16,7 +16,8 @@ const MOYASAR_SECRET_KEY = process.env.MOYASAR_SECRET!;
 
 interface PaymentResultResponse {
   oid: number;
-  status: "success" | "pending" | "failed";
+  // review: HOLD, a person checks the payment (the app: "حجزك قيد المراجعة حاليًا...")
+  status: "success" | "pending" | "failed" | "review";
   amountSar: number;
   consultantName: string;
   consultantImage: string | null;
@@ -112,7 +113,9 @@ export const GET = createGetRoute<PaymentResultResponse, { oid: string }>(
           ? "success"
           : state === PaymentState.REFUSED
             ? "failed"
-            : "pending",
+            : state === PaymentState.HOLD
+              ? "review"
+              : "pending",
       amountSar: order.payment.total,
       consultantName: order.consultant.name,
       consultantImage: order.consultant.image,

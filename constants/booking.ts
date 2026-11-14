@@ -7,3 +7,8 @@ export const BOOKING_WINDOW_DAYS = 7;
 // an unpaid (NEW / PROCESSING) order holds its slot this long, on the website and the app; older,
 // it no longer blocks the slot, even before the cancel cron (every 20 minutes) cancels it
 export const UNPAID_HOLD_MINUTES = 15;
+
+// the app's create routes: at most APP_UNPAID_ORDER_LIMIT orders not PAID per account in
+// APP_UNPAID_WINDOW_MINUTES (429)
+export const APP_UNPAID_ORDER_LIMIT = 5;
+export const APP_UNPAID_WINDOW_MINUTES = 10;

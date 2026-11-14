@@ -5795,3 +5795,33 @@ Slot rules for the website and the app; committed by Ziad as `4bbf8cd` ("booking
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 404 of 404; new (9) run the real SQL of both queries on an in-memory postgres (pglite): same-time paid conflict, ±30 as before, fresh NEW / PROCESSING hold, older than 15 minutes free, CANCELED / REFUSED / HOLD free, own order by account / by phone, own PAID still conflicts, other consultant ignored, free session still conflicts, the slot list; the old code fails 5 of them.
 
 **Open:** none.
+
+## Mobile booking, step 5: POST reservations, the app's scheduled booking (2026-11-14)
+
+Payment flow; diff reviewed by Ziad, with two changes from his review (the own-order exception, HOLD as review).
+
+- `app/api/mobile/reservations/route.ts`: the new `POST` (the old commented-out POST removed; the stub `GET` left for step 7). In order:
+  1. `requireMobileUser`; a zod body with the contract's choices only (`cid`, `date`, `time`, `duration` or `package`, `name`, `phone`, `notes`, `method`, `couponCode`, `wallet`, `beneficiary`); any user, price, total, finance or coupon percent in the body is dropped; bad body → 400
+  2. block check on the signed-in account's phone (Ziad's rule), always, before anything is priced → 403
+  3. 5 orders not PAID from this account in 10 minutes → 429 (cancelled and refused attempts count, so cancel + book again can't loop)
+  4. the price: `quoteBooking` (Pay's, the quote's), which also block-checks the form's phone (403); a coupon for the session's user only
+  5. a package as the website: its session count, 45 minutes, MULTIPLE
+  6. the slot: one of the consultant's weekly timings, free under `freeSlotWhere`, in the slot lists' window (7 days from riyadh now + 25 minutes) → else 409. The client's own fresh unpaid (NEW) order at that slot, matched by account only (never the form's phone), doesn't hold it against them; it's cancelled (compare-and-set on NEW, as the app's cancel route) once the new order exists, so a client never has two unpaid orders for one slot
+  7. before the order exists: the wallet covers up to the total; with a wallet part and something due, card only (tabby → 400); a method the finance config doesn't allow → 400
+  8. `reserveConsultant` with the server's cost, tax and commission, origin APP (conflict → 409, consultant gone → 404); `saveACoupon` with the server-verified percent
+  9. the answer `{ oid, next, amount, total }`: no wallet → `moyasar` / `tabby`, the whole total in halalas; a wallet part → `Payment.wallet` (debited at PAID), `moyasar`, the rest; the wallet covering all → method wallet, its own `wallet_<uuid>` pid, PAID at once through `updateOrderStatus()` (the debit, the meeting, the notifications) → `paid`; if that debit fails (the balance dropped) the existing PAID path holds the order with an admin alert and the app gets 409
+- `handlers/admin/order/app-booking.ts` (new): `planAppPayment` (the wallet / method rule), `finishAppBooking` (store the wallet part, the next step); step 6 reuses both.
+- `data/mobile/booking.ts` (new): `accountPhone`, `unpaidOrderLimitReached`, `ownUnpaidAtSlot`, `isBookableSlot`, `cancelUnpaidOrders`, `packageSessionCount`, `setAppWalletPart`.
+- `lib/booking/free-slot-where.ts`: an optional `exceptOrders` (only the app's booking passes it); without it the lists' sql is unchanged.
+- `constants/booking.ts`: `APP_UNPAID_ORDER_LIMIT = 5`, `APP_UNPAID_WINDOW_MINUTES = 10`.
+- `app/api/mobile/reservations/[oid]/result/route.ts`: a HOLD order now reports `status: "review"` (before: "pending"), for the app's "حجزك قيد المراجعة حاليًا، وسيتواصل معك فريق شاورني قريبًا.". The app contract's result status becomes `"success" | "pending" | "failed" | "review"`.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 446 of 446; new: 33 route tests with the real quoteBooking and wallet plan (body prices ignored, coupon, package, beneficiary, partial / full wallet, full wallet debit failing → 409, tabby with a wallet part → 400, a method outside the config → 400, **a blocked account phone with a clean form phone → 403, nothing priced or created**, a blocked form phone → 403, both phones checked, 429 at 5, slot not free / outside the window → 409, the own order excepted and cancelled after the new order, reserveConsultant's failures), 6 on the real SQL of `isBookableSlot` (pglite: the own order excepted, another client's unpaid or paid order and a free session still block, the lists' sql unchanged without exceptOrders), 3 on the result route (HOLD → review).
+
+**Decided (noted, not asked):** own-order exception covers NEW only (an own PROCESSING order still holds the slot; app orders stay NEW until confirm). `confirm` still reports a HOLD as "failed" (reviewed in steps 2 / 2c); aligning it with the result route's "review" is a payment-route change, proposed for Ziad.
+
+**Website backlog #24:** a full-wallet app payment is debited through `payPartiallyByWallet`, so its wallet history line reads "سحب جزئي من المحفظة" (partial). Kept by Ziad's decision; fix the label later.
+
+**For the app session:** `GET reservations/{oid}/result` → `status: "review"` for a held order (show "حجزك قيد المراجعة حاليًا، وسيتواصل معك فريق شاورني قريبًا."); `POST reservations` is live with the planned contract (errors 400 / 401 / 403 / 404 / 409 / 429 as `{ error }`).
+
+**Open:** confirm's HOLD → "review" (proposal above).

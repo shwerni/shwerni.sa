@@ -1,107 +1,188 @@
-// "use server";
+// packages
+import { z } from "zod";
+import { NextResponse, type NextRequest } from "next/server";
 
-import { NextResponse } from "next/server";
+// utils
+import { TAX_PERCENT } from "@/utils/tax";
+import { HttpError } from "@/lib/api/http-error";
+import { createPostRoute } from "@/lib/api/routes/route-factory";
+import { requireMobileUser } from "@/lib/auth/require-mobile-user";
 
-// // React & Next
-// import { NextResponse, type NextRequest } from "next/server";
+// handlers
+import { quoteBooking } from "@/handlers/admin/order/booking-quote";
+import {
+  finishAppBooking,
+  planAppPayment,
+  type BookingCreated,
+} from "@/handlers/admin/order/app-booking";
 
-// // utils
-// import { requireMobileUser } from "@/lib/auth/require-mobile-user";
-// import prisma from "@/lib/database/db";
+// prisma data
+import { saveACoupon } from "@/data/coupon";
+import { CheckIsBlocked } from "@/data/blocked";
+import { reserveConsultant } from "@/data/order/reserveation";
+import {
+  accountPhone,
+  cancelUnpaidOrders,
+  isBookableSlot,
+  ownUnpaidAtSlot,
+  packageSessionCount,
+  unpaidOrderLimitReached,
+} from "@/data/mobile/booking";
 
-// // actions — reused as-is from web
-// import { CheckIsBlocked } from "@/data/blocked";
-// import { saveACoupon } from "@/data/coupon";
-// import { reserveConsultant } from "@/data/order/reserveation";
+// schemas
+import { schemas } from "@/schemas/schemas";
+import type { ReservationFormType } from "@/schemas";
 
-// // prisma types
-// import { OrderOrigin } from "@/lib/generated/prisma/enums";
-// import { PaymentState } from "@/lib/generated/prisma/browser";
+// prisma types
+import { OrderOrigin, OrderType, SessionType } from "@/lib/generated/prisma/enums";
 
-// // an abandoned NEW order older than this no longer holds the slot
-// const PENDING_ORDER_TTL_MINUTES = 15;
-// // generous for legitimate retries, tight enough to make order-spam pointless
-// const MAX_ORDERS_PER_WINDOW = 10;
-// const RATE_WINDOW_MINUTES = 10;
+// the client's choices only: never a price, a total, a tax, a commission, a coupon percent or a user
+const ScheduledSchema = z
+  .object({
+    cid: z.number().int().positive(),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+    duration: z.union([z.literal(30), z.literal(45), z.literal(60)]).optional(),
+    package: z.string().trim().min(1).max(64).optional(),
+    name: schemas.name,
+    phone: schemas.phone,
+    notes: z.string().max(200).optional(),
+    method: z.enum(["visaMoyasar", "tabby"]),
+    couponCode: z.string().trim().min(1).max(32).optional(),
+    wallet: z.boolean().optional(),
+    beneficiary: z.object({ name: schemas.name, phone: schemas.phone }).optional(),
+  })
+  .refine((b) => b.duration !== undefined || b.package !== undefined);
 
-// export async function POST(request: NextRequest) {
-//   const user = await requireMobileUser(request);
+// quoteBooking's and reserveConsultant's failures as the app's errors
+const failureStatus: Record<string, number> = {
+  blocked: 403,
+  package: 404,
+  pricing: 404,
+  owner_missing: 404,
+  conflict: 409,
+  invalid: 400,
+  order_type: 400,
+};
 
-//   const raw = await request.json();
-//   const data = { ...raw, user: user.id };
+const SLOT_TAKEN = "هذا الموعد غير متاح، برجاء اختيار وقت آخر";
+const CREATE_FAILED = "حدث خطأ أثناء إنشاء الطلب، برجاء المحاولة مرة أخرى";
 
-//   const isBlocked = await CheckIsBlocked(data.phone);
-//   if (isBlocked) {
-//     return NextResponse.json({ state: false, message: "هذا الحساب محظور" });
-//   }
+// a scheduled booking from the app: Pay's rules with the session's user and origin APP. the price is
+// quoteBooking (the same as the quote and the website), the slot must be one of the consultant's
+// free slots now, and the app gets the next step (its in-app card screen, tabby, or paid by the
+// wallet) instead of a redirect
+export const POST = createPostRoute<BookingCreated>(
+  async (request: NextRequest) => {
+    const user = await requireMobileUser(request);
 
-//   if (data.order !== "consultant") {
-//     return NextResponse.json({ state: false, message: "نوع الحجز غير مدعوم" });
-//   }
+    const body = await request.json().catch(() => null);
+    const parsed = ScheduledSchema.safeParse(body);
+    if (!parsed.success) throw new HttpError("بيانات خاطئة", 400);
+    const input = parsed.data;
 
-//   const recentCount = await prisma.order.count({
-//     where: {
-//       author: user.id,
-//       created_at: { gte: new Date(Date.now() - RATE_WINDOW_MINUTES * 60_000) },
-//     },
-//   });
+    // the account's own phone is checked whatever the form sends (the form's phone: quoteBooking)
+    const phone = await accountPhone(user.id);
+    if (phone && (await CheckIsBlocked(phone))) throw new HttpError("هذا الحساب محظور", 403);
 
-//   if (recentCount >= MAX_ORDERS_PER_WINDOW)
-//     return NextResponse.json({
-//       state: false,
-//       message: "عدد كبير من المحاولات، حاول لاحقاً",
-//     });
+    if (await unpaidOrderLimitReached(user.id)) {
+      throw new HttpError("عدد كبير من المحاولات، حاول لاحقاً", 429);
+    }
 
-//   // reuse an in-flight order for the same slot instead of creating a
-//   // duplicate — covers back+retry taps, double taps, and app relaunches.
-//   // assumes reserveConsultant creates the meeting row up front to lock
-//   // the slot, even before payment — confirm this holds true
-//   const existing = await prisma.order.findFirst({
-//     where: {
-//       author: user.id,
-//       consultantId: data.cid,
-//       payment: { is: { payment: PaymentState.NEW } },
-//       created_at: {
-//         gte: new Date(Date.now() - PENDING_ORDER_TTL_MINUTES * 60_000),
-//       },
-//       meeting: { some: { date: data.date, time: data.time } },
-//     },
-//     include: { payment: true },
-//   });
+    const quote = await quoteBooking({
+      order: "consultant",
+      phone: input.phone,
+      user: user.id,
+      cid: input.cid,
+      duration: input.duration,
+      package: input.package,
+      couponCode: input.couponCode,
+    });
+    if (!quote.state) throw new HttpError(quote.message, failureStatus[quote.step] ?? 500);
 
-//   if (existing && existing.payment) {
-//     return NextResponse.json({
-//       state: true,
-//       oid: existing.oid,
-//       paymentId: existing.payment.id,
-//       total: existing.payment.total,
-//     });
-//   }
+    // the website's package booking: its session count, 45 minutes each
+    const sessions = input.package ? await packageSessionCount(input.package) : 1;
+    if (!sessions) throw new HttpError("الباقة غير متاحة حالياً", 404);
 
-//   const total = data.cost[data.duration] * data.sessions;
+    // the client's own unpaid order for this slot doesn't hold it against them (it's cancelled below)
+    const own = await ownUnpaidAtSlot(user.id, input.cid, input.date, input.time);
+    if (!(await isBookableSlot(input.cid, input.date, input.time, own))) {
+      throw new HttpError(SLOT_TAKEN, 409);
+    }
 
-//   // order starts as PaymentState.NEW, exactly like web — oid is available
-//   // immediately, before any payment attempt happens
-//   const result = await reserveConsultant(data, total, OrderOrigin.APP);
+    // before the order exists: tabby with the wallet or a method the config doesn't allow → 400
+    const plan = await planAppPayment(
+      user.id,
+      quote.total,
+      input.wallet,
+      input.method,
+      quote.finance.payments,
+    );
 
-//   if (!result || result.state === false) return;
-//   const order = result.order;
+    // the order, built on the server (reserveConsultant re-validates it and checks the slot)
+    const formdata: ReservationFormType = {
+      order: "consultant",
+      user: user.id,
+      cid: input.cid,
+      consultant: "",
+      collaboration: null,
+      unavailable: [],
+      cost: { 30: quote.cost, 45: quote.cost, 60: quote.cost },
+      scale: null,
+      times: {},
+      finance: {
+        tax: TAX_PERCENT,
+        commission: quote.finance.commission,
+        payments: quote.finance.payments,
+        couponEnabled: quote.finance.couponEnabled,
+      },
+      type: OrderType.SCHEDULED,
+      sessionType: input.package ? SessionType.MULTIPLE : SessionType.ONCE,
+      sessions,
+      package: input.package ?? null,
+      date: new Date(`${input.date}T00:00:00Z`),
+      time: input.time,
+      duration: input.package ? "45" : String(input.duration),
+      name: input.name,
+      phone: input.phone,
+      notes: input.notes ?? "",
+      hasBeneficiary: !!input.beneficiary,
+      beneficiaryName: input.beneficiary?.name,
+      beneficiaryPhone: input.beneficiary?.phone,
+      method: input.method,
+      // the coupon is recorded below (saveACoupon); reserveConsultant doesn't store it
+      hasCoupon: false,
+      acceptTerms: true,
+    };
 
-//   if (!order || !order.payment) {
-//     return NextResponse.json({ state: false, message: "حدث خطأ ما" });
-//   }
+    const result = await reserveConsultant(
+      formdata,
+      quote.cost,
+      TAX_PERCENT,
+      quote.finance.commission,
+      OrderOrigin.APP,
+    );
+    if (result.state === false) {
+      throw new HttpError(
+        result.message ?? CREATE_FAILED,
+        failureStatus[result.code ?? ""] ?? 500,
+      );
+    }
+    const payment = result.order?.payment;
+    if (!result.order || !payment) throw new HttpError(CREATE_FAILED, 500);
+    const order = { oid: result.order.oid, payment };
 
-//   if (data.couponPercent && data.couponCode) {
-//     await saveACoupon(data.user, data.couponCode, order.payment.id);
-//   }
+    // never two unpaid orders of one client for the same slot
+    await cancelUnpaidOrders(own);
 
-//   return NextResponse.json({
-//     state: true,
-//     oid: order.oid,
-//     paymentId: order.payment.id,
-//     total,
-//   });
-// }
-export async function GET(request: Request) {
+    // the coupon's use, with the server-verified percent (Pay's step 5)
+    if (quote.coupon) await saveACoupon(user.id, quote.coupon.code, payment.id);
+
+    return finishAppBooking(order, plan, input.method, quote.total);
+  },
+  { errorMessage: "حدث خطأ ما برجاء المحاولة مرة اخري" },
+);
+
+export async function GET() {
   return NextResponse.json({ sucess: true });
 }

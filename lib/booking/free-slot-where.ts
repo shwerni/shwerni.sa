@@ -14,13 +14,17 @@ import { UNPAID_HOLD_MINUTES } from "@/constants/booking";
  * @param date the calendar date (yyyy-MM-dd): a value, or a sql expression per row
  * @param after the cutoff time (HH:mm) for that date: a value, a sql expression, or
  * undefined/null for no cutoff
+ * @param exceptOrders orders that don't hold the slot (the app's booking: the client's own unpaid
+ * order, cancelled when the new one is created); none for every list
  */
 export const freeSlotWhere = ({
   date,
   after,
+  exceptOrders,
 }: {
   date: string | Prisma.Sql;
   after: string | Prisma.Sql | null | undefined;
+  exceptOrders?: number[];
 }) => Prisma.sql`
           AND (
             ${after}::time IS NULL
@@ -36,7 +40,12 @@ export const freeSlotWhere = ({
             WHERE
               o."consultantId" = ct."consultantId"
               AND m."time" = ct."time"
-              AND m."date" = ${date}
+              AND m."date" = ${date}${
+                exceptOrders?.length
+                  ? Prisma.sql`
+              AND o.oid <> ALL(${exceptOrders}::int[])`
+                  : Prisma.empty
+              }
               AND (
                 p."payment" = ${PaymentState.PAID}
                 -- an unpaid order holds the slot for UNPAID_HOLD_MINUTES only
