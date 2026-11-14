@@ -31,7 +31,11 @@ interface ClientChatSent {
 // the website's refusal when a message carries contact details or links (createMeetingMessage)
 const CONTACT_INFO_ERROR = "عفواً، لا يُسمح بتبادل وسائل التواصل الخارجي أو الروابط.";
 
-const MessageSchema = z.object({ content: z.string().trim().min(1).max(2000) });
+// nonce: the app's own id for the message, echoed on its live copy (realtime-chat-plan.md section 12)
+const MessageSchema = z.object({
+  content: z.string().trim().min(1).max(2000),
+  nonce: z.string().min(1).max(64).optional(),
+});
 
 // the signed-in client sends a text message in their own paid meeting's chat. the 72-hour window is
 // checked here on the server; a blocked chat still accepts the message, like the website (the
@@ -60,6 +64,7 @@ export const POST = createPostRoute<ClientChatSent, Params>(
     const result = await createMeetingMessage({
       mid,
       content: parsed.data.content,
+      nonce: parsed.data.nonce,
       participantId,
     });
     if (result && "error" in result && result.error === CONTACT_INFO_ERROR) {

@@ -11,6 +11,7 @@ import { type MeetingLogActor, writeMeetingLog } from "./meeting-log";
 
 // lib
 import { scheduleChatMessageNotice } from "@/lib/notifications/mobile/notify/chat";
+import { scheduleChatMessageLive, scheduleChatRefresh } from "@/lib/api/realtime/chat-events";
 import { timeZone } from "@/utils/date";
 import { differenceInHours } from "date-fns";
 
@@ -23,11 +24,13 @@ interface NewMessage {
   fileUrl?: string;
   fileType?: string;
   fileName?: string;
+  // the app's send: its own id for the message, echoed on the sender's live copy
+  nonce?: string;
 }
 
 export async function createMeetingMessage(payload: NewMessage) {
   // payload validate
-  const { mid, content, sender, participantId, fileUrl, fileType, fileName } =
+  const { mid, content, sender, participantId, fileUrl, fileType, fileName, nonce } =
     payload;
 
   // valdiate
@@ -108,6 +111,10 @@ export async function createMeetingMessage(payload: NewMessage) {
     // app, else the whatsapp for the sender's first message of the riyadh day; nothing for a
     // blocked client (lib/notifications/mobile/notify/chat.ts). never delays or fails the send
     scheduleChatMessageNotice({ sender: currentSender, message, meeting });
+
+    // live to whoever has this chat open in the app (the realtime server), after the response;
+    // never delays or fails the send (polling and the push cover a miss)
+    scheduleChatMessageLive(mid, message, meeting.blocked, nonce);
 
     return { success: true, data: message };
   } catch {
@@ -258,6 +265,9 @@ export async function toggleUserBlock(
         before: { blocked: meeting.blocked },
         after: { blocked: shouldBlock },
       });
+
+    // the consultant's open chat in the app reloads (the marker, the hidden client messages)
+    scheduleChatRefresh(mid);
 
     return { success: true };
   } catch (err) {

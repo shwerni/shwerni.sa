@@ -5904,3 +5904,18 @@ From the app's handoff (Articles, Scales, Support bot); every route `requireMobi
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (the 8 routes listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 558 of 558; new (26): mapping and public fields, cursors, bad queries, 401 / 404 / 400, the read counted after the response and never failing it, likes and comments as the session's user, the comment name / author from the session, the comment limits; scales mapping, private / unpublished → 404; the bot's cap, phone and burst guard; the real sql of `getMobileArticles` (category, viral, search, paging, a center's article dropped) and `getScalesForList` on pglite.
 
 **Decided (noted):** a session without a name comments as "مستخدم"; the bot keys the chat by `user:<id>` for an account without a phone.
+
+## Realtime chat: the Next.js part (section 12 of the NestJS plan) (2026-11-14)
+
+The contract in `shwerni.backend/docs/realtime-chat-plan.md` section 12 (the realtime server's commits `b6764fb`, `cedab60`, `8b6c280`, `5e576aa`, deployed first).
+
+- join tickets: `GET /api/mobile/chats/{mid}/realtime` (client: the thread GET's check, their own paid order's meeting) and `GET /api/mobile/owner/chats/{mid}/realtime` (approved owner, their own) → `{ ticket }`, 404 once the chat is closed (72 hours). `lib/api/realtime/chat-ticket.ts` `mintChatTicket`: HS256 with `REALTIME_JWT_SECRET`, sub = the user, aud `chat-join`, iss `shwerni-next`, 60 s, `mid`, `side` (USER / OWNER); the client's ticket adds `peer` (an HMAC key, never a user id) and `peerLastSeenAt` (UserPresence, epoch ms or null) when the consultant has a user. `data/mobile/chat-realtime.ts` `getChatPeer`.
+- after a message is saved: `createMeetingMessage` calls `scheduleChatMessageLive` (`lib/api/realtime/chat-events.ts`): `POST {BACKEND_URL}/internal/chat-message` with `x-internal-secret`, in `after()`, 2 s, never throws, logged on failure. Per side: the client never gets a block marker; the consultant doesn't get a client message while the meeting is blocked (the website's owner view); a message over 10,000 characters isn't sent live (the server's limit; polling and the push cover it).
+- the nonce: the app's send routes (`chats/{mid}/messages`, `owner/chats/{mid}/messages`) take an optional `nonce` (1-64), echoed on the sender's live copy only; the website's `createMeetingMessage` action drops any nonce.
+- `toggleUserBlock` → `POST /internal/chat-refresh` `{ mid, side: "OWNER" }` (same helper).
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (both ticket routes listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 579 of 579; new (21): the tickets verified with jose (claims, 60 s, the HMAC key, no user id inside, no peer for a center consultant or the owner, wrong secret fails), 404 for another's / closed chat, 401; the per-side payload rules and the nonce; the calls (secret header, after the response, a timeout or a 400 never throws, refresh to OWNER only); the wiring (saved message with meeting.blocked and the nonce, a refused message sends nothing, block → refresh, the send route's nonce and its 64 limit). `chat5`'s count of after() tasks moved from 1 to 2 (the notice, then the live copy).
+
+**For the app session:** the ticket routes are live as section 12 says; send `nonce` with a message to match its live echo.
+
+**Open:** none on this side; the realtime server's own checks (`scripts/realtime-chat-test.js`) run against a deployed pair.

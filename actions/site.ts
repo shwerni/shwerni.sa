@@ -246,7 +246,8 @@ export async function createNewProgram(
 export async function createMeetingMessage(
   ...[payload]: Parameters<typeof createMeetingMessageData>
 ) {
-  return createMeetingMessageData({ ...payload, sender: undefined });
+  // nonce is the app's (its routes check it); the website never sends one
+  return createMeetingMessageData({ ...payload, sender: undefined, nonce: undefined });
 }
 
 // participants only (checked by participantId): the chat page marks its side read up to the newest
