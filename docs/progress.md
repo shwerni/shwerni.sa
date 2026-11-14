@@ -5847,3 +5847,12 @@ Payment route; diff reviewed by Ziad (asked in the step 5 review, to match the r
 - `app/api/mobile/reservations/[oid]/confirm/route.ts`: a HOLD order now reports `status: "review"` (before: "failed"): wrong tabby amount, a wallet part on tabby, a PAID that ended in HOLD (failed wallet debit). REFUSED stays "failed", NEW "pending", PAID "success". **App contract:** confirm's status is `"success" | "pending" | "failed" | "review"`, like the result route.
 
 **Verified:** `npx tsc --noEmit`, eslint (clean); throwaway vitest 467 of 467 (the three HOLD cases now expect "review"; REJECTED → REFUSED still "failed"). Build and manifest run with step 7.
+
+## Mobile booking, step 7: old reservation routes removed (2026-11-14)
+
+- `app/api/mobile/reservations/new/route.ts` deleted (all commented out, only a stub `GET`; no caller in the app or the website).
+- the stub `GET` (`{ sucess: true }`) removed from `app/api/mobile/reservations/route.ts` and `app/api/mobile/reservations/instant/route.ts` (not in the app's contract); both keep only their new `POST`.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (no `reservations/new` route), manifest check (only `data/event.ts`, `lib/api/google.ts`). This build also covers the confirm HOLD → review commit.
+
+**Booking (steps 1-7) done.** Open: none.

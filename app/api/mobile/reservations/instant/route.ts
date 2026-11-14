@@ -1,6 +1,6 @@
 // packages
 import { z } from "zod";
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 
 // utils
 import { TAX_PERCENT } from "@/utils/tax";
@@ -143,7 +143,3 @@ export const POST = createPostRoute<BookingCreated>(
   },
   { errorMessage: "حدث خطأ ما برجاء المحاولة مرة اخري" },
 );
-
-export async function GET() {
-  return NextResponse.json({ sucess: true });
-}
