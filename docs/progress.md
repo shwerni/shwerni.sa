@@ -5780,3 +5780,18 @@ Read-only (nothing created, no money moved); committed without a diff review, as
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (lists `/api/mobile/reservations/quote`), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 395 of 395; new (18), with the real quoteBooking: a coupon for the session's user (a body `user` / `total` / `finance` ignored), wallet partial (card only), wallet covering all (due 0, no methods), no wallet, a package (no coupon), the config's methods only, no block check; instant bookable / offline → 409 / another client paying → 409 / a paid overlap → 409; 5 bad bodies → 400; missing package / pricing → 404; 401 with nothing priced.
 
 **Open:** none.
+
+## Mobile booking, step 4: unpaid orders hold their slot for 15 minutes (2026-11-11)
+
+Slot rules for the website and the app; committed by Ziad as `4bbf8cd` ("booking modification", identical to the tested version) and pushed before the diff review; reviewed afterwards and approved by Ziad (2026-11-14).
+
+- `constants/booking.ts`: `UNPAID_HOLD_MINUTES = 15`.
+- `lib/booking/free-slot-where.ts` (slot lists on the website and app, Pay's slot check): a NEW / PROCESSING order hides its slot only while it is younger than 15 minutes (before: until the cancel cron, every 20 minutes, cancelled it). PAID orders and free sessions as before.
+- `data/order/reserveation.ts`, `checkMeetingTimeConflict` (at reservation time):
+  - bug fix: the requested time itself is now checked (before: only 30 minutes before and after, so an already paid slot could be sold again from a stale slot list)
+  - another client's NEW / PROCESSING order younger than 15 minutes holds the slot (before: PAID only, so two clients could both reach payment for the same slot)
+  - the booking client's own unpaid orders (by account, or by phone; the guest author "temp" never matches) don't block them; `reserveConsultant` passes `{ author, phone }`, the free session caller passes nothing (unchanged)
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 404 of 404; new (9) run the real SQL of both queries on an in-memory postgres (pglite): same-time paid conflict, ±30 as before, fresh NEW / PROCESSING hold, older than 15 minutes free, CANCELED / REFUSED / HOLD free, own order by account / by phone, own PAID still conflicts, other consultant ignored, free session still conflicts, the slot list; the old code fails 5 of them.
+
+**Open:** none.
