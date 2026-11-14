@@ -1,4 +1,7 @@
 "use client";
+// React & Next
+import Link from "next/link";
+
 // components
 import {
   Field,
@@ -23,7 +26,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 
 // icons
-import { CircleAlert, IdCard, KeyRound, Pencil } from "lucide-react";
+import { CircleAlert, IdCard, KeyRound, Pencil, Trash2 } from "lucide-react";
 
 interface Props {
   user: User;
@@ -155,6 +158,16 @@ const UserAccount = ({ user }: Props) => {
           </Button>
         </FieldSet>
       </form>
+      {/* account deletion (the page google play links to) */}
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-red-100 bg-red-50/50 px-4 py-3">
+        <p className="text-xs text-gray-700">حذف حسابك نهائيًا وإغلاقه</p>
+        <Button asChild variant="danger" size="sm">
+          <Link href="/account/delete">
+            <Trash2 />
+            حذف الحساب
+          </Link>
+        </Button>
+      </div>
     </div>
   );
 };

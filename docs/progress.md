@@ -5919,3 +5919,7 @@ The contract in `shwerni.backend/docs/realtime-chat-plan.md` section 12 (the rea
 **For the app session:** the ticket routes are live as section 12 says; send `nonce` with a message to match its live echo.
 
 **Open:** none on this side; the realtime server's own checks (`scripts/realtime-chat-test.js`) run against a deployed pair.
+
+## Website account page: a link to /account/delete (2026-11-14)
+
+Small UI change approved by Ziad: `components/clients/user/account.tsx` gets a row under the form ("حذف حسابك نهائيًا وإغلاقه" + a "حذف الحساب" button linking to `/account/delete`). No tests (minor UI step; Ziad's manual pass). eslint: only the existing unused `data` warning.
