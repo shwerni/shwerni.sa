@@ -1,5 +1,8 @@
 import "server-only";
 
+// constants
+import { DELETED_USER_LABEL } from "@/constants/account";
+
 // the params and the components they build (header, body, buttons): components.ts
 import { buildTemplateComponents, type TemplateParams } from "@/lib/api/whatsapp/components";
 export type { HeaderParam, TemplateParams } from "@/lib/api/whatsapp/components";
@@ -16,6 +19,11 @@ function buildEndpoint(marketing: boolean | "media") {
   if (marketing === "media") return base + "media";
   return base + (marketing ? "marketing_messages" : "messages");
 }
+
+// no number to send to: empty, or a deleted (anonymized) client's records, whose phone is
+// DELETED_USER_LABEL. such a send is skipped, never sent to meta
+const noRecipient = (to: string | null | undefined) =>
+  !to || to.trim() === "" || to === DELETED_USER_LABEL;
 
 // whatsapp api
 const whatsapp = (body: object, marketing: boolean = false) =>
@@ -56,6 +64,9 @@ export const sendWhatsappTemplate = async (
   language = "ar",
   marketing: boolean = false,
 ): Promise<WhatsappSendResult> => {
+  // a deleted client (or no number): skipped
+  if (noRecipient(to)) return { ok: false, errorMessage: "no recipient (deleted account)" };
+
   // an invalid param (a coupon meta would refuse) fails this send without calling meta
   const built = buildTemplateComponents(params);
   if (!built.ok) return { ok: false, errorMessage: built.errorMessage };
@@ -160,6 +171,9 @@ export const sendWhatsappText = async (
   phone: string,
   text: string,
 ): Promise<WhatsappSendResult> => {
+  // a deleted client (or no number): skipped
+  if (noRecipient(phone)) return { ok: false, errorMessage: "no recipient (deleted account)" };
+
   if (!WHATSAPP_URL || !WHATSAPP_TOKEN) {
     return {
       ok: false,

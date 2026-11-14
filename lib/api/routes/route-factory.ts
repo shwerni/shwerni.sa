@@ -50,7 +50,7 @@ function buildHandler<T, P>(
       // flattening everything into a generic 500
       if (error instanceof HttpError) {
         return NextResponse.json(
-          { error: error.message },
+          { ...error.extra, error: error.message },
           { status: error.status },
         );
       }

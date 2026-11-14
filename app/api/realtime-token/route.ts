@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 
 // auth
-import { auth } from "@/auth";
+import { userServer } from "@/lib/auth/server";
 
 // utils
 import { mintRealtimeToken } from "@/lib/api/realtime/mint-token";
@@ -16,9 +16,10 @@ function toRealtimeRole(role: string | null | undefined): "USER" | "OWNER" {
 
 // a token and the realtime server's address (the browser has no other source for it)
 export async function GET() {
-  const session = await auth();
+  // userServer: a deleted account gets no token
+  const user = await userServer();
 
-  if (!session?.user?.id) {
+  if (!user?.id) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -26,6 +27,6 @@ export async function GET() {
   if (!url)
     return NextResponse.json({ error: "realtime unavailable" }, { status: 500 });
 
-  const token = await mintRealtimeToken(session.user.id, toRealtimeRole(session.user.role));
+  const token = await mintRealtimeToken(user.id, toRealtimeRole(user.role));
   return NextResponse.json({ token, url });
 }

@@ -7,6 +7,9 @@ import { mobileAuth } from "@/lib/auth/mobile-auth";
 // utils
 import { HttpError } from "@/lib/api/http-error";
 
+// prisma data
+import { isAccountDeleted } from "@/data/account-state";
+
 /**
  * resolves the signed-in mobile user from the request's session token
  * throws a 401 HttpError when there is no valid session - every notification
@@ -25,6 +28,11 @@ export async function requireMobileUser(request: NextRequest) {
   // console.log("[requireMobileUser] session result:", session ? `user=${session.user?.id}` : "null");
 
   if (!session?.user) {
+    throw new HttpError("unauthorized", 401);
+  }
+
+  // a deleted (anonymized) account: its sessions are removed at deletion; refused here as well
+  if (await isAccountDeleted(session.user.id)) {
     throw new HttpError("unauthorized", 401);
   }
 

@@ -29,7 +29,10 @@ model User {
   role          UserRole  @default(USER)
   phoneChangedAt    DateTime? @map("phone_changed_at")
   passwordChangedAt DateTime? @map("password_changed_at")
-  
+  // account deletion (anonymization): set when the client deletes their account; the row and its
+  // records stay linked, the personal fields are cleared and the session checks refuse it
+  deletedAt         DateTime? @map("deleted_at")
+
   // @relations
   Wallet              Wallet[]
   Favorite            Favorite[]
