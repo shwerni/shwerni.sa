@@ -5888,3 +5888,19 @@ Google Play's web link (reachable without the app). New UI, asked by Ziad; the a
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (`/account/delete` listed), manifest check (only `data/event.ts`, `lib/api/google.ts`; the new `actions/account-deletion.ts` is the only new server reference). Throwaway vitest 532 of 532; new (22) on the actions with the real handlers and data: start (signed out / client / consultant), the code (a live account's phone in any format, an unknown phone → the same answer and nothing sent, a deleted account's old phone → nothing, signed in → the account's phone whatever is sent, a blocker, the 3 / 10 minutes limit, a bot), verify (the right code kept, a wrong one counted, another account's code, an unknown phone, a consultant, blockers after the code), confirm (signed out, a consultant → refused, signed in ignores the input phone, wrong code, blocker, malformed, bot). Not run in a browser (Ziad's manual pass).
 
 **Decided (noted):** signed out uses the phone + code instead of a website sign-in (no auth change); a consultant gets the code too and then sees the support message; no link to the page from the website's account page yet (a UI change, Ziad's call).
+
+## Client pages' routes: articles, scales, support bot (2026-11-14)
+
+From the app's handoff (Articles, Scales, Support bot); every route `requireMobileUser`, public fields only.
+
+- articles:
+  - `GET articles`: `data/mobile/articles.ts` `getMobileArticles` (a copy of `getArticles`' query plus an optional category clause and the read count; `getArticles` unchanged), cursor = page number, `pageSize` ≤ 24, `search` ≤ 100, `orderby` newest / viral; excerpt by `htmlToText`, `minutesToRead`
+  - `GET articles/{aid}`: `getArticleByAid` (published, not a center's) + `extractArticleSideFast` + `getArticleLikes(aid, session user)`; one read counted in `after()` (a failure never fails the request). `extractArticleSideFast` moved unchanged from the website's article page to `utils/article.ts` (checked identical; the page imports it)
+  - `POST articles/{aid}/like`: `toggleArticleLike` as the session's user, published only
+  - `GET / POST articles/{aid}/comments`: published comments without author / user / consultant ids; a new comment with the session's name (15 chars, the website form's limit) and id, stored HOLD, 5 per 10 minutes per user (429)
+- scales: `GET scales/list` (`getScalesForList` in `data/scales.ts`: `getScalesForHome`'s filters and columns, by order then creation; `GET scales` unchanged), `GET scales/{slug}` (`getScaleBySlug` + published + public, mapped without reversed / order / timestamps)
+- bot: `POST bot` → the website's `SendChatBot` with the signed-in cap (`user:<id>`, `BOT_DAILY_LIMIT`), the account's phone and name (never from the body), a 10 a minute burst guard (429, its `message` is the answer)
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (the 8 routes listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 558 of 558; new (26): mapping and public fields, cursors, bad queries, 401 / 404 / 400, the read counted after the response and never failing it, likes and comments as the session's user, the comment name / author from the session, the comment limits; scales mapping, private / unpublished → 404; the bot's cap, phone and burst guard; the real sql of `getMobileArticles` (category, viral, search, paging, a center's article dropped) and `getScalesForList` on pglite.
+
+**Decided (noted):** a session without a name comments as "مستخدم"; the bot keys the chat by `user:<id>` for an account without a phone.

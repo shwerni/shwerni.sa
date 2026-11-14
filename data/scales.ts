@@ -316,3 +316,15 @@ export const getScalesForHome = async (limit: number = 8) => {
     return [];
   }
 };
+
+// the app's scale list: every published, public, active scale card (getScalesForHome's filters and
+// columns, without the random order and the limit), by order then creation
+export const getScalesForList = async () =>
+  prisma.$queryRaw<PublicScale[]>`
+    SELECT id, slug, title, image, subtitle
+    FROM "scales"
+    WHERE status = CAST(${ScaleState.PUBLISHED} AS "ScaleState")
+      AND type = CAST(${ScaleType.PUBLIC} AS "ScaleType")
+      AND "isActive" = true
+    ORDER BY "order" ASC, "createdAt" ASC
+  `;
