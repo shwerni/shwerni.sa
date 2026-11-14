@@ -5825,3 +5825,17 @@ Payment flow; diff reviewed by Ziad, with two changes from his review (the own-o
 **For the app session:** `GET reservations/{oid}/result` → `status: "review"` for a held order (show "حجزك قيد المراجعة حاليًا، وسيتواصل معك فريق شاورني قريبًا."); `POST reservations` is live with the planned contract (errors 400 / 401 / 403 / 404 / 409 / 429 as `{ error }`).
 
 **Open:** confirm's HOLD → "review" (proposal above).
+
+## Mobile booking, step 6: POST reservations/instant (2026-11-14)
+
+Payment flow; diff reviewed and approved by Ziad.
+
+- `app/api/mobile/reservations/instant/route.ts`: the new `POST` (the old commented-out code replaced; the stub `GET` left for step 7). Body `{ cid, name, phone, notes?, method, wallet? }`; any date, time, duration, price, coupon or user in it is ignored. In order: block check on the signed-in account's phone (403); the website's instant limit (3 instant orders per form phone in 10 minutes), the same per account, and the 5 unpaid orders limit (429; no ip limit); `quoteBooking` for `instant` (INSTANT_DURATION's price, no coupon; also block-checks the form's phone); the wallet / method rule of step 5 (tabby with a wallet part → 400); `reserveInstant` with origin APP, which decides under its lock (not online / listable, busy, another client paying → 409 with its message); `finishAppBooking` → `{ oid, next, amount, total }` (all wallet: PAID through `updateOrderStatus()`; held by that path, e.g. the consultant taken meanwhile → 409).
+- `data/online.ts`: `reserveInstant` stores the payment method on app orders, as `reserveConsultant` does (confirm picks the gateway by it); website orders unchanged.
+- `data/mobile/booking.ts`: `instantLimitReached`.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 467 of 467; new (21): body prices / dates / coupons ignored, card, tabby, wallet part, all wallet, all wallet held → 409, tabby with a wallet part → 400, **a blocked account phone with a clean form phone → 403, nothing priced or created**, a blocked form phone → 403, each limit and its window, reserveInstant's refusals → 409, bad bodies → 400, 401; reserveInstant stores the method for APP only.
+
+**Decided (noted):** every created instant order counts toward the instant limit, paid or not (the website's rule); the account limit counts by account (the account's phone is covered by the form phone count).
+
+**Open:** none.

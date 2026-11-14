@@ -1,106 +1,149 @@
+// packages
+import { z } from "zod";
+import { NextResponse, type NextRequest } from "next/server";
+
 // utils
-import { requireMobileUser } from "@/lib/auth/require-mobile-user";
-import { createPostRoute } from "@/lib/api/routes/route-factory";
-import { phoneNumber } from "@/utils";
+import { TAX_PERCENT } from "@/utils/tax";
+import { addNMinutes } from "@/utils/date";
 import { HttpError } from "@/lib/api/http-error";
-import { InstantFormType } from "@/schemas";
+import { createPostRoute } from "@/lib/api/routes/route-factory";
+import { requireMobileUser } from "@/lib/auth/require-mobile-user";
+
+// handlers
+import { quoteBooking } from "@/handlers/admin/order/booking-quote";
+import {
+  finishAppBooking,
+  planAppPayment,
+  type BookingCreated,
+} from "@/handlers/admin/order/app-booking";
+
+// prisma data
 import { CheckIsBlocked } from "@/data/blocked";
-import { calculatePayment } from "@/utils/admin/payments";
 import { reserveInstant } from "@/data/online";
+import { INSTANT_BUSY, INSTANT_UNAVAILABLE } from "@/data/mobile/instant-availability";
+import {
+  accountPhone,
+  instantLimitReached,
+  unpaidOrderLimitReached,
+} from "@/data/mobile/booking";
+
+// schemas
+import { schemas } from "@/schemas/schemas";
+import type { InstantFormType } from "@/schemas";
+
+// constants
+import { INSTANT_DURATION } from "@/constants/instant";
+
+// prisma types
 import { OrderOrigin } from "@/lib/generated/prisma/enums";
-import prisma from "@/lib/database/db";
-import { NextResponse } from "next/server";
 
-interface InstantReservationBody {
-  cid: number;
-  consultant: string;
-  cost: number;
-  duration: number;
-  finance: {
-    tax: number;
-    commission: number;
-    payments: string[];
-    couponEnabled: boolean;
-  };
-  name: string;
-  phone: string;
-  notes: string;
-  method: string;
-  couponCode?: string;
-  couponPercent?: number;
-}
+// the client's choices only: no date, time, duration, price, coupon or user (the server's clock,
+// INSTANT_DURATION and the price)
+const InstantSchema = z.object({
+  cid: z.number().int().positive(),
+  name: schemas.name,
+  phone: schemas.phone,
+  notes: z.string().max(200).optional(),
+  method: z.enum(["visaMoyasar", "tabby"]),
+  wallet: z.boolean().optional(),
+});
 
-interface InstantReservationResponse {
-  oid: number;
-  total: number;
-  method: string;
-}
+// quoteBooking's failures as the app's errors
+const failureStatus: Record<string, number> = {
+  blocked: 403,
+  pricing: 404,
+  order_type: 400,
+};
 
-// generous for legitimate retries, tight enough to make order-spam pointless
-const MAX_ORDERS_PER_WINDOW = 10;
-const RATE_WINDOW_MINUTES = 10;
+const CREATE_FAILED = "حدث خطأ أثناء إنشاء الطلب، برجاء المحاولة مرة أخرى";
+const RATE_LIMITED = "عدد كبير من المحاولات، حاول لاحقاً";
 
-// export const POST = createPostRoute<InstantReservationResponse>();
-// async (request) => {
-//   const user = await requireMobileUser(request);
+// an instant booking from the app: Pay's instant rules with the session's user and origin APP.
+// the price is quoteBooking (INSTANT_DURATION, no coupon); reserveInstant, under its lock, decides
+// whether the consultant is bookable now (online, listable, not busy, no other client paying)
+export const POST = createPostRoute<BookingCreated>(
+  async (request: NextRequest) => {
+    const user = await requireMobileUser(request);
 
-//   const body: InstantReservationBody = await request.json();
+    const body = await request.json().catch(() => null);
+    const parsed = InstantSchema.safeParse(body);
+    if (!parsed.success) throw new HttpError("بيانات خاطئة", 400);
+    const input = parsed.data;
 
-//   const isBlocked = await CheckIsBlocked(body.phone);
+    // the account's own phone is checked whatever the form sends (the form's phone: quoteBooking)
+    const phone = await accountPhone(user.id);
+    if (phone && (await CheckIsBlocked(phone))) throw new HttpError("هذا الحساب محظور", 403);
 
-//   if (isBlocked) throw new HttpError("هذا الحساب محظور", 403);
-//   const recentCount = await prisma.order.count({
-//     where: {
-//       author: user.id,
-//       created_at: {
-//         gte: new Date(Date.now() - RATE_WINDOW_MINUTES * 60_000),
-//       },
-//     },
-//   });
+    // the website's instant limit per phone, the same per account (no ip limit), and the app's unpaid limit
+    if (
+      (await instantLimitReached(user.id, input.phone)) ||
+      (await unpaidOrderLimitReached(user.id))
+    ) {
+      throw new HttpError(RATE_LIMITED, 429);
+    }
 
-//   if (recentCount >= MAX_ORDERS_PER_WINDOW) {
-//     throw new HttpError("عدد كبير من المحاولات، حاول لاحقاً", 429);
-//   }
-//   const payment = calculatePayment({
-//     baseCost: body.cost,
-//     tax: body.finance.tax,
-//     discountPercent: body.couponPercent ?? 0,
-//   });
+    const quote = await quoteBooking({
+      order: "instant",
+      phone: input.phone,
+      user: user.id,
+      cid: input.cid,
+    });
+    if (!quote.state) throw new HttpError(quote.message, failureStatus[quote.step] ?? 500);
 
-//   const result = await reserveInstant(
-//     {
-//       order: "instant",
-//       user: user.id,
-//       cid: body.cid,
-//       consultant: body.consultant,
-//       cost: body.cost,
-//       duration: body.duration,
-//       date: new Date(),
-//       time: new Date().toTimeString().slice(0, 5),
-//       finance: body.finance,
-//       name: body.name,
-//       phone: phoneNumber(body.phone),
-//       notes: body.notes,
-//       method: body.method,
-//       couponCode: body.couponCode,
-//       couponPercent: body.couponPercent,
-//       hasCoupon: !!body.couponCode,
-//       acceptTerms: true,
-//     } as InstantFormType,
-//     payment.total,
-//     OrderOrigin.APP,
-//   );
+    // before the order exists: tabby with the wallet or a method the config doesn't allow → 400
+    const plan = await planAppPayment(
+      user.id,
+      quote.total,
+      input.wallet,
+      input.method,
+      quote.finance.payments,
+    );
 
-//   if (!result || result.state === false)
-//     throw new HttpError("نوع الطلب غير صالح", 400);
+    // reserveInstant takes the session's start from the server clock; these are for the schema only
+    const slot = addNMinutes();
+    const formdata: InstantFormType = {
+      order: "instant",
+      user: user.id,
+      cid: input.cid,
+      cost: quote.cost,
+      date: new Date(),
+      duration: INSTANT_DURATION,
+      consultant: "",
+      time: slot.time,
+      finance: {
+        tax: TAX_PERCENT,
+        commission: quote.finance.commission,
+        payments: quote.finance.payments,
+        couponEnabled: quote.finance.couponEnabled,
+      },
+      name: input.name,
+      phone: input.phone,
+      notes: input.notes ?? "",
+      method: input.method,
+      hasCoupon: false,
+      acceptTerms: true,
+    };
 
-//   const order = result.order;
+    const result = await reserveInstant(
+      formdata,
+      quote.cost,
+      TAX_PERCENT,
+      quote.finance.commission,
+      OrderOrigin.APP,
+    );
+    if (result.state === false) {
+      // not online / listable, busy, or another client paying → 409 with reserveInstant's message
+      const refused = result.message === INSTANT_UNAVAILABLE || result.message === INSTANT_BUSY;
+      throw new HttpError(result.message ?? CREATE_FAILED, refused ? 409 : 500);
+    }
+    const payment = result.order?.payment;
+    if (!result.order || !payment) throw new HttpError(CREATE_FAILED, 500);
 
-//   if (!order?.payment) throw new HttpError("حدث خطأ ما", 500);
+    return finishAppBooking({ oid: result.order.oid, payment }, plan, input.method, quote.total);
+  },
+  { errorMessage: "حدث خطأ ما برجاء المحاولة مرة اخري" },
+);
 
-//   return { oid: order.oid, total: payment.totalWTax, method: body.method };
-// },
-
-export async function GET(request: Request) {
+export async function GET() {
   return NextResponse.json({ sucess: true });
 }

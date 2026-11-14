@@ -7,7 +7,7 @@ import { randomUUID } from "node:crypto";
 import prisma from "@/lib/database/db";
 
 // prisma types
-import { PaymentMethod, PaymentState } from "@/lib/generated/prisma/enums";
+import { OrderType, PaymentMethod, PaymentState } from "@/lib/generated/prisma/enums";
 
 // lib
 import { freeSlotWhere } from "@/lib/booking/free-slot-where";
@@ -16,6 +16,7 @@ import { freeSlotWhere } from "@/lib/booking/free-slot-where";
 import { add25Minutes, dateToWeekDay, getDatesAhead } from "@/utils/date";
 
 // constants
+import { INSTANT_LIMIT_PER_PHONE, INSTANT_LIMIT_WINDOW_MS } from "@/constants/instant";
 import {
   APP_UNPAID_ORDER_LIMIT,
   APP_UNPAID_WINDOW_MINUTES,
@@ -43,6 +44,18 @@ export async function unpaidOrderLimitReached(userId: string): Promise<boolean> 
     },
   });
   return count >= APP_UNPAID_ORDER_LIMIT;
+}
+
+// the app's instant limit: the website's INSTANT_LIMIT_PER_PHONE instant orders per phone in
+// INSTANT_LIMIT_WINDOW_MS (the form's phone), plus the same per account; no ip limit (mobile
+// networks share ips). every created instant order counts, as on the website
+export async function instantLimitReached(userId: string, phone: string): Promise<boolean> {
+  const since = new Date(Date.now() - INSTANT_LIMIT_WINDOW_MS);
+  const [byPhone, byAccount] = await Promise.all([
+    prisma.order.count({ where: { type: OrderType.INSTANT, phone, created_at: { gt: since } } }),
+    prisma.order.count({ where: { type: OrderType.INSTANT, author: userId, created_at: { gt: since } } }),
+  ]);
+  return byPhone >= INSTANT_LIMIT_PER_PHONE || byAccount >= INSTANT_LIMIT_PER_PHONE;
 }
 
 /**

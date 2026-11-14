@@ -213,6 +213,8 @@ export const reserveInstant = async (
               commission: oCommission,
               tax,
               payment: PaymentState.NEW,
+              // the app's confirm route picks the gateway by it (as reserveConsultant)
+              ...(origin === OrderOrigin.APP && { method: data.method }),
             },
           },
           info: [
