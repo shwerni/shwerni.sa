@@ -1,5 +1,4 @@
 // packages
-import { z } from "zod";
 import type { NextRequest } from "next/server";
 
 // utils
@@ -9,6 +8,7 @@ import { requireMobileUser } from "@/lib/auth/require-mobile-user";
 
 // data
 import { createMeetingMessage } from "@/data/chats";
+import { ChatSendSchema, resolveChatAttachment } from "@/lib/chat/send-input";
 import {
   CHAT_WINDOW_MS,
   chatStart,
@@ -31,13 +31,7 @@ interface ClientChatSent {
 // the website's refusal when a message carries contact details or links (createMeetingMessage)
 const CONTACT_INFO_ERROR = "عفواً، لا يُسمح بتبادل وسائل التواصل الخارجي أو الروابط.";
 
-// nonce: the app's own id for the message, echoed on its live copy (realtime-chat-plan.md section 12)
-const MessageSchema = z.object({
-  content: z.string().trim().min(1).max(2000),
-  nonce: z.string().min(1).max(64).optional(),
-});
-
-// the signed-in client sends a text message in their own paid meeting's chat. the 72-hour window is
+// the signed-in client sends a text message, a file (its upload's signed token) or both in their own paid meeting's chat. the 72-hour window is
 // checked here on the server; a blocked chat still accepts the message, like the website (the
 // consultant doesn't see it). then the website's createMeetingMessage, with the meeting's USER
 // participant from the database (its AI contact check and the receiver's notice)
@@ -50,7 +44,7 @@ export const POST = createPostRoute<ClientChatSent, Params>(
     if (!meeting) throw new HttpError("not found", 404);
 
     const body = await request.json().catch(() => null);
-    const parsed = MessageSchema.safeParse(body);
+    const parsed = ChatSendSchema.safeParse(body);
     if (!parsed.success) throw new HttpError("بيانات خاطئة", 400);
 
     const start = chatStart(meeting.date, meeting.time);
@@ -61,11 +55,21 @@ export const POST = createPostRoute<ClientChatSent, Params>(
     const participantId = await getClientParticipantId(mid);
     if (!participantId) throw new Error("meeting has no client participant");
 
+    // a file only through its upload's signed token (this user, this chat, 30 minutes, once)
+    const file = parsed.data.attachment
+      ? await resolveChatAttachment(parsed.data.attachment, user.id, mid)
+      : null;
+
     const result = await createMeetingMessage({
       mid,
       content: parsed.data.content,
       nonce: parsed.data.nonce,
       participantId,
+      ...(file && {
+        fileUrl: file.url,
+        fileName: file.name ?? undefined,
+        fileType: file.type ?? undefined,
+      }),
     });
     if (result && "error" in result && result.error === CONTACT_INFO_ERROR) {
       throw new HttpError(CONTACT_INFO_ERROR, 400);

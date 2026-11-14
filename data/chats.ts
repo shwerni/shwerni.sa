@@ -122,6 +122,16 @@ export async function createMeetingMessage(payload: NewMessage) {
   }
 }
 
+// is this file already in this meeting's chat? the app's attachment token is good for 30 minutes,
+// and this makes it single use: a second send of the same upload is refused
+export async function chatFileAlreadySent(mid: string, fileUrl: string): Promise<boolean> {
+  const message = await prisma.orderMessage.findFirst({
+    where: { meetingId: mid, fileUrl },
+    select: { id: true },
+  });
+  return !!message;
+}
+
 export async function getChatMeeting(mid: string) {
   try {
     const meeting = await prisma.meeting.findUnique({

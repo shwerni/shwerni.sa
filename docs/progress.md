@@ -5923,3 +5923,18 @@ The contract in `shwerni.backend/docs/realtime-chat-plan.md` section 12 (the rea
 ## Website account page: a link to /account/delete (2026-11-14)
 
 Small UI change approved by Ziad: `components/clients/user/account.tsx` gets a row under the form ("حذف حسابك نهائيًا وإغلاقه" + a "حذف الحساب" button linking to `/account/delete`). No tests (minor UI step; Ziad's manual pass). eslint: only the existing unused `data` warning.
+
+## Chat images and files in the app (feature 3 of the realtime plan) (2026-11-14)
+
+Wasn't built yet (the app's upload router had only the consultant profile files). Built from the website's `chatAttachment`.
+
+- `app/api/uploadthing/mobile/core.ts` `chatAttachment`: the website's types and sizes (image 8MB, pdf 16MB, one file), input `{ mid }`; `requireChatUploader`: the client of their own paid order's meeting (any role, as the client chat routes) or the approved consultant of it, never a closed chat (72 hours), `chat.upload:<userId>` 30 an hour. `onUploadComplete` → `{ url, name, type, attachment }`.
+- `lib/api/realtime/chat-attachment.ts`: the attachment token, HS256 with `REALTIME_JWT_SECRET`, aud `chat-attachment`, iss `shwerni-next`, 30 minutes, `{ sub: userId, mid, url, name, type }`; `readChatAttachment` checks signature, audience, issuer, expiry, sub, mid and an https url.
+- the two app send routes take `{ content?, attachment?, nonce? }` (content or attachment; content ≤ 2000 as before; text-only bodies unchanged) through `lib/chat/send-input.ts`: the token must be this user's for this chat, unexpired, and not sent already (`chatFileAlreadySent` in `data/chats.ts`: single use without a new table); then `fileUrl / fileName / fileType` from the token go to `createMeetingMessage`. A raw url in the body is never used.
+- the website router and action are unchanged (their unchecked `fileUrl` stays backlog W1).
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 596 of 596; new (17): the token (right user and meeting, **wrong meeting, wrong user, expired at 30 minutes, reused**, another audience, another secret, a tampered payload, a non-https url), the upload access (client, approved consultant, another's chat, an unapproved consultant, closed, the hourly limit, no session), the route's types / sizes and the token in its answer, the send routes (the token's file saved and a body url ignored, the consultant can't use the client's token, text only as before, neither → 400).
+
+**Decided (noted):** the single-use check is a lookup, so two sends of one token in the same instant could both pass (both would show the same file twice; no access is gained).
+
+**For the app session:** `useUploadThing("chatAttachment", { headers })` against `/api/uploadthing/mobile` with `{ mid }`; send `{ attachment, content?, nonce }`; a used, expired or foreign token answers 400 "المرفق غير صالح أو انتهت صلاحيته، برجاء رفعه مرة أخرى".
