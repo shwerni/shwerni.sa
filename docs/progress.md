@@ -5839,3 +5839,11 @@ Payment flow; diff reviewed and approved by Ziad.
 **Decided (noted):** every created instant order counts toward the instant limit, paid or not (the website's rule); the account limit counts by account (the account's phone is covered by the form phone count).
 
 **Open:** none.
+
+## Mobile booking: confirm reports HOLD as review (2026-11-14)
+
+Payment route; diff reviewed by Ziad (asked in the step 5 review, to match the result route).
+
+- `app/api/mobile/reservations/[oid]/confirm/route.ts`: a HOLD order now reports `status: "review"` (before: "failed"): wrong tabby amount, a wallet part on tabby, a PAID that ended in HOLD (failed wallet debit). REFUSED stays "failed", NEW "pending", PAID "success". **App contract:** confirm's status is `"success" | "pending" | "failed" | "review"`, like the result route.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean); throwaway vitest 467 of 467 (the three HOLD cases now expect "review"; REJECTED → REFUSED still "failed"). Build and manifest run with step 7.

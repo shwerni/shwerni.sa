@@ -17,7 +17,8 @@ import { settleAuthorizedTabby } from "@/handlers/gatewaies/tabby";
 interface PaymentResultResponse {
   oid: number;
   cid: number;
-  status: "success" | "pending" | "failed";
+  // review: HOLD, a person checks the payment (as the result route)
+  status: "success" | "pending" | "failed" | "review";
   method: string | null;
   amountSar: number;
   consultantName: string;
@@ -27,10 +28,12 @@ interface PaymentResultResponse {
   failureReason: string | null;
 }
 
-// maps internal payment state to the three-way status the result screen understands
-function toResultStatus(state: PaymentState): "success" | "pending" | "failed" {
+// maps internal payment state to the status the result screen understands (HOLD: review, as the
+// result route)
+function toResultStatus(state: PaymentState): "success" | "pending" | "failed" | "review" {
   if (state === PaymentState.PAID) return "success";
   if (state === PaymentState.NEW) return "pending";
+  if (state === PaymentState.HOLD) return "review";
   return "failed";
 }
 
