@@ -8,6 +8,7 @@ import { requireMobileUser } from "@/lib/auth/require-mobile-user";
 
 // data
 import { createMeetingMessage } from "@/data/chats";
+import { ensureMeetingParticipant } from "@/data/rooms";
 import { ChatSendSchema, resolveChatAttachment } from "@/lib/chat/send-input";
 import {
   CHAT_WINDOW_MS,
@@ -15,7 +16,7 @@ import {
   toChatMessage,
   type OwnerChatMessage,
 } from "@/data/mobile/owner-chats";
-import { getClientChatMeeting, getClientParticipantId } from "@/data/mobile/client-chats";
+import { getClientChatMeeting } from "@/data/mobile/client-chats";
 
 // prisma types
 import { UserRole } from "@/lib/generated/prisma/enums";
@@ -52,8 +53,8 @@ export const POST = createPostRoute<ClientChatSent, Params>(
       throw new HttpError("تم إغلاق المحادثة", 403);
     }
 
-    const participantId = await getClientParticipantId(mid);
-    if (!participantId) throw new Error("meeting has no client participant");
+    // after the access check above: a meeting left without this side's participant gets one
+    const participantId = await ensureMeetingParticipant(mid, UserRole.USER);
 
     // a file only through its upload's signed token (this user, this chat, 30 minutes, once)
     const file = parsed.data.attachment

@@ -176,19 +176,6 @@ export const getClientChatMeeting = async (userId: string, mid: string) => {
 };
 
 /**
- * the meeting's USER participant token, looked up on the server so the client's message goes
- * through createMeetingMessage as the client; null when the meeting has none
- * @param mid the meeting id (already checked to be the client's own)
- */
-export const getClientParticipantId = async (mid: string) =>
-  (
-    await prisma.participant.findFirst({
-      where: { meetingId: mid, role: UserRole.USER },
-      select: { participant: true },
-    })
-  )?.participant ?? null;
-
-/**
  * the thread as the client sees it: no block markers, no blocked flag (always false)
  * @param messages the meeting's messages, oldest first
  */

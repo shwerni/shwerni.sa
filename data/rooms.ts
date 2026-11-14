@@ -77,6 +77,46 @@ const createParticipants = async (mid: string) => {
   }
 };
 
+/**
+ * this meeting's participant token for one side, created when it's missing. a paid meeting can be
+ * left without participants: createRoom makes the room first, and when createParticipants fails (it
+ * swallows errors) or the request ends in between, every later createRoom fails on the room's
+ * unique keys and never makes them. the token is made like createParticipants (randomId, the
+ * role, the meeting). one caller at a time per meeting (an advisory lock), so two sends can't make
+ * two tokens. the caller must have checked that the user is this side of this meeting
+ * @param mid the meeting
+ * @param role USER (the client) or OWNER (the consultant)
+ */
+export async function ensureMeetingParticipant(
+  mid: string,
+  role: typeof UserRole.USER | typeof UserRole.OWNER,
+): Promise<string> {
+  const existing = await prisma.participant.findFirst({
+    where: { meetingId: mid, role },
+    orderBy: { createdAt: "asc" },
+    select: { participant: true },
+  });
+  if (existing) return existing.participant;
+
+  return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`participant:${mid}`}))`;
+
+    const again = await tx.participant.findFirst({
+      where: { meetingId: mid, role },
+      orderBy: { createdAt: "asc" },
+      select: { participant: true },
+    });
+    if (again) return again.participant;
+
+    const created = await tx.participant.create({
+      data: { participant: randomId(), role, meetingId: mid },
+      select: { participant: true },
+    });
+    console.error(`[participants] mid=${mid} had no ${role} participant, created one`);
+    return created.participant;
+  });
+}
+
 // source is only for the meeting log: SYSTEM when the order became PAID (onPaymentSuccess),
 // SITE when the customer picks the next session (selectSession)
 export async function createNewMeeting(

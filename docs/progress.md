@@ -5938,3 +5938,15 @@ Wasn't built yet (the app's upload router had only the consultant profile files)
 **Decided (noted):** the single-use check is a lookup, so two sends of one token in the same instant could both pass (both would show the same file twice; no access is gained).
 
 **For the app session:** `useUploadThing("chatAttachment", { headers })` against `/api/uploadthing/mobile` with `{ mid }`; send `{ attachment, content?, nonce }`; a used, expired or foreign token answers 400 "المرفق غير صالح أو انتهت صلاحيته، برجاء رفعه مرة أخرى".
+
+## Bug: the consultant can't send in a chat ("meeting has no owner participant") (2026-11-15)
+
+Reported on meeting `ZJnrk9d0PL`: `POST /api/mobile/owner/chats/{mid}/messages` → 500, the thread GET 200.
+
+- **Cause (from the code; the read-only database check was blocked by the session's permission check, so the counts are for Ziad to run):** the lookup was right (`Participant.meetingId` = the meeting's `mid`, role `OWNER`); the meeting has no OWNER participant. Participants are only made inside `createRoom` (`data/rooms.ts`), after the room: when `createParticipants` fails (it swallows its error) or the request ends between the two (e.g. a slow `createGoogleMeeting` on a webhook), the room exists without participants, and every later `createRoom` (a retry, a mark-as-paid after HOLD) fails on the room's unique `roomId` / `roomName` and never makes them. The same path makes package / program sessions (`data/sessions.ts`), so any order kind can be hit. The thread GET doesn't read participants, so it worked.
+- **The website:** its consultant chat opens only with a participant token (`/dashboard/chats/{mid}?participant=`), so such a meeting has no working chat link there either (nothing to send from).
+- **Fix:** `ensureMeetingParticipant(mid, role)` in `data/rooms.ts`: the side's existing token, or a new one made like `createParticipants` (`randomId()`, the role, the meeting), under a per-meeting advisory lock so two sends can't make two. Both app send routes call it **after** their access checks (approved owner of this meeting / the client of their own paid meeting, chat open), so only the meeting's own side can cause one to be made. `getOwnerParticipantId` / `getClientParticipantId` removed (only these routes used them). The client route had the same failure for a meeting without a USER participant; fixed the same way.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 604 of 604; new (8), `ensureMeetingParticipant` on pglite (its advisory lock included): an existing token reused, a missing OWNER made (one, only that side, reused next time), no participants at all; the routes: the consultant sends in a meeting without an OWNER participant (was the 500), the client without a USER one, and nothing is made for another consultant's meeting, an unapproved owner, another client's meeting, a closed chat or a bad body.
+
+**Open (Ziad):** the counts of meetings without participants (query in the reply); such meetings may also have no meeting room / link (the same failure), which this fix doesn't touch.

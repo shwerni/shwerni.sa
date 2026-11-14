@@ -7,13 +7,16 @@ import { createPostRoute } from "@/lib/api/routes/route-factory";
 import { requireApprovedOwner } from "@/lib/auth/require-approved-owner";
 
 // data
+// prisma types
+import { UserRole } from "@/lib/generated/prisma/enums";
+
 import { createMeetingMessage } from "@/data/chats";
+import { ensureMeetingParticipant } from "@/data/rooms";
 import { ChatSendSchema, resolveChatAttachment } from "@/lib/chat/send-input";
 import {
   CHAT_WINDOW_MS,
   chatStart,
   getOwnerChatMeeting,
-  getOwnerParticipantId,
   toOwnerChatMessage,
   type OwnerChatMessage,
 } from "@/data/mobile/owner-chats";
@@ -51,8 +54,8 @@ export const POST = createPostRoute<OwnerChatSent, Params>(
       throw new HttpError("تم إغلاق المحادثة", 403);
     }
 
-    const participantId = await getOwnerParticipantId(mid);
-    if (!participantId) throw new Error("meeting has no owner participant");
+    // after the access check above: a meeting left without this side's participant gets one
+    const participantId = await ensureMeetingParticipant(mid, UserRole.OWNER);
 
     // a file only through its upload's signed token (this user, this chat, 30 minutes, once)
     const file = parsed.data.attachment
