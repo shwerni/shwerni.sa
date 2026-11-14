@@ -232,11 +232,16 @@ export async function anonymizeAccount(userId: string): Promise<void> {
       where: { role: UserRole.USER, meeting: { orders: { author: userId } } },
       select: { id: true },
     });
-    for (const participant of participants) {
-      await tx.participant.update({
-        where: { id: participant.id },
-        data: { participant: randomId() },
-      });
+    // one statement for all of them (a loop of updates could outlast the transaction's timeout)
+    if (participants.length > 0) {
+      const ids = participants.map((participant) => participant.id);
+      const tokens = ids.map(() => randomId());
+      await tx.$executeRaw`
+        UPDATE participants p
+        SET participant = t.token
+        FROM unnest(${ids}::text[], ${tokens}::text[]) AS t(id, token)
+        WHERE p.id = t.id
+      `;
     }
 
     // access ends
@@ -251,5 +256,7 @@ export async function anonymizeAccount(userId: string): Promise<void> {
       },
     });
     if (user.phone) await tx.verificationToken.deleteMany({ where: { phone: user.phone } });
-  });
+  },
+  // about 20 statements over the network: more room than prisma's 5 second default, all or nothing
+  { maxWait: 10_000, timeout: 30_000 });
 }

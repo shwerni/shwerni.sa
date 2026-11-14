@@ -5856,3 +5856,20 @@ Payment route; diff reviewed by Ziad (asked in the step 5 review, to match the r
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (no `reservations/new` route), manifest check (only `data/event.ts`, `lib/api/google.ts`). This build also covers the confirm HOLD → review commit.
 
 **Booking (steps 1-7) done.** Open: none.
+
+## Account deletion: backend (2026-11-14)
+
+The code and routes went into Ziad's commit `599c5cb` ("fixing app booking"), identical to the tested working tree (compared byte for byte); the session-end and notice-skip parts were reviewed after the commit. Follow-up commit: the participant tokens in one statement and a wider transaction timeout.
+
+- schema: `User.deletedAt` (`deleted_at`), pushed by Ziad.
+- routes (`requireMobileUser`): `GET account/delete/check`, `POST account/delete/code`, `POST account/delete`, logic in `handlers/clients/account-deletion.ts` (shared with the website page) and `data/account-deletion.ts`:
+  - self-service: role USER without a consultant row; anyone else, or a deleted account, 403
+  - blockers on check, code and delete: a PAID order with a meeting not done whose end (riyadh date + time + duration) is ahead, or a paid package with sessions not booked yet (`upcoming_sessions`); `Wallet.credit > 0` (`wallet_balance`) → 409 `{ error, blockers }` (`HttpError` got an optional `extra`, spread by the route factory)
+  - the code: 5 digits by the sign-in whatsapp template to the account's own phone, 5 minutes, sha256-hashed in `MobileVerification` (`account-delete:<userId>`), 3 sends per 10 minutes (429), 5 wrong tries then gone; delete re-checks the blockers before consuming it
+  - the anonymization: one interactive transaction (maxWait 10 s, timeout 30 s), nothing but credentials deleted: user (name → "مستخدم محذوف", phone / email / image / password / verified dates → null, deletedAt), orders + their guest rows, pleadings, free sessions, pre-consultations, bank transfers (name / phone → the label), reviews / article comments / questions (name), the client's participant tokens replaced (one statement); removed: next-auth accounts, better auth accounts and sessions, push and voip tokens, pending codes
+- session end (approved auth change): `userServer` (so `sessionUser`) and `roleServer` return nothing for a deleted account (its website jwt can't be revoked); `requireMobileUser` → 401; the website realtime token uses `userServer`. `data/account-state.ts` `isAccountDeleted` (react cache).
+- notices: `sendWhatsappTemplate` / `sendWhatsappText` skip an empty number or "مستخدم محذوف" without calling meta; push / voip need nothing (the tokens are removed, a new one needs a session).
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (the three routes listed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 510 of 510; deletion (44): the flow, every 403, blockers, code hashing / expiry / tries / rate limit, the transaction's writes (only credentials deleted, no user or record row), the token statement, the timeout option, a failure inside → 500; the blockers' sql and the token statement on pglite; the session end (website helpers, realtime token, requireMobileUser) and the whatsapp skip.
+
+**Decided (noted):** a paid package with sessions not booked counts as upcoming; 5 wrong tries end a code; delete keeps the code when a blocker appears.
