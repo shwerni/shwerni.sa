@@ -133,6 +133,7 @@ export const subPages: Link[] = [
     label: "المدونة",
     link: "/articles",
     icon: Newspaper,
+    status: true,
   },
   {
     label: "حجز فوري",
