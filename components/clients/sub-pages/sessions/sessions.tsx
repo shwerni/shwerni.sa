@@ -11,7 +11,6 @@ import { Separator } from "@/components/ui/separator";
 import PickDateTime from "../../shared/pick-date-time";
 
 // utils
-import { findParticipant } from "@/utils";
 import { calendarDayToString } from "@/utils/date";
 
 // prisma data
@@ -54,21 +53,23 @@ const SessionPick = ({ order, program, session }: Props) => {
             order.oid,
             time,
             calendarDayToString(date),
-            session,
           );
 
           // validate
-          if (meeting) {
+          if (meeting.ok) {
             // toast
             toast.success({ message: "تم تأكيد الاختيار بنجاح" });
 
-            // redirect
+            // redirect (the client's own participant token only)
             router.push(
-              `/meetings/${meeting.mid}?session=${session}&participant=${findParticipant(meeting.participants)?.participant}`,
+              `/meetings/${meeting.mid}?session=${session}&participant=${meeting.participant}`,
             );
             // return
             return true;
           }
+
+          // refused: the slot was just taken, or the pick isn't valid anymore
+          toast.error({ message: meeting.message });
         } catch {
           // return
           return null;

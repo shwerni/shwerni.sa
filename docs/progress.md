@@ -6108,3 +6108,99 @@ The harness timeout went from 5 s to 30 s (the in-memory postgres and better-aut
   - manifest check unchanged.
 
 **For the dashboard session:** wherever the dashboard writes `User.phoneVerified`, also write `mobilePhoneVerified`: `true` when it sets `phoneVerified` to a date, `false` when it clears it. The main site does the same (`handlers/auth/verify.ts`, `reset.ts`, `userInfo.ts`, `app/api/mobile/auth/set-password/route.ts`, `app/api/mobile/account/profile/phone/route.ts`, `data/account-deletion.ts`). The dashboard's schema needs the `mobilePhoneVerified` column first.
+
+
+## Standing rule: client and consultant link access (Ziad, 2026-11-23)
+
+Recorded in `CLAUDE.md`.
+- **Clients never log in, on any link:** package next-session, reschedule, chat. The link is the access. Links get secured by server signing (#26); no login checks are added for clients.
+- **Consultants are always logged in** (website or app) for anything done as the consultant: his chat participant token, rescheduling, marking sessions, his dashboard actions. A link alone never gives consultant access or a consultant token.
+
+## Backlog #25, step 1: the package next-session pick is checked on the server (2026-11-23)
+
+Plan approved by Ziad (`/sessions/{id}?session=N`, website only; the app has no next-session route).
+
+**Before:** `selectSession` (public action → `data/sessions.ts`) had no conflict check (double booking). It also re-validated nothing: the session number, the time and a 60-minute default came from the browser (package sessions are 45), and it returned **every participant token, the consultant's included**.
+
+- **The slot lists hide ±30 minutes** (`lib/booking/free-slot-where.ts`):
+  - a weekly time is listed only when no PAID or fresh-unpaid meeting and no free session starts within 30 minutes of it, the same rule `checkMeetingTimeConflict` enforces, so a listed slot is never refused unless it was just taken;
+  - every list changes the same way (website and center date steps, this page, the app's `times` and `next-slots`, `isBookableSlot`); fewer slots show next to booked ones (approved);
+  - one shared fragment `startsNear` compares real date-times: **the midnight bug is fixed** (before, both checks compared "HH:mm" within one date: a 23:30 on D didn't block 00:00 on D+1, and wrongly blocked 00:00 on D).
+- **`checkMeetingTimeConflict`** (`data/order/reserveation.ts`) uses the same `startsNear` (±30, across midnight); the own-unpaid-order exception for normal booking is unchanged.
+- **`isBookableSlot`** moved, unchanged, to `data/booking/slots.ts` (shared); the app's create route imports it from there. Its window matches the page's `PickDateTime` (Riyadh now + 25 minutes, 7 days, the same weekly timings). No lead grace (decided).
+- **New `handlers/clients/package-session.ts` `pickNextSession(oid, { date, time })`:**
+  - the order is MULTIPLE and PAID;
+  - the session number is the order's meetings + 1 (≤ `sessionCount`);
+  - the duration is the first meeting's (45 for packages, the program's for programs);
+  - the slot is `isBookableSlot` **and** `checkMeetingTimeConflict` with no own-order exception (the package's own sessions block too);
+  - it answers `{ ok, mid, participant }` with **only the client's own token** (`ensureMeetingParticipant(mid, USER)`), or `{ ok: false, error: "slot_taken" | "invalid", message }`.
+- `data/sessions.ts`: `getOrderForNextSession` and `createPickedSession` (the same creation, log, room and notice as before); the old `selectSession` data function is gone.
+- `actions/site.ts` `selectSession(oid, time, date)`: still public and link-based (no login, per the standing rule); any session number or duration sent is ignored.
+- `components/clients/sub-pages/sessions/sessions.tsx`: uses `meeting.participant` (no more `findParticipant` over all tokens) and shows the refusal message ("هذا الموعد غير متاح، برجاء اختيار وقت آخر"). Same UI otherwise.
+- The consultant lock is left for step 2 (it must wrap normal booking, free sessions and this path together).
+
+**Verified:** `npx tsc --noEmit`, eslint on the changed files, `npm run build` (the auth-field guard first), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 725 of 725; new (26) on real SQL (pglite):
+- the ±30 lists (paid, free session, fresh unpaid; old unpaid and cancelled don't hide; `exceptOrders`; another consultant);
+- **midnight:** a 23:30 on D blocks 00:00 on D+1 and doesn't block 00:00 on D, in both the list and the conflict check; the same for free sessions and a 00:00 on D+1 against 23:30 on D;
+- `checkMeetingTimeConflict` ±30 and the own-order exception;
+- `pickNextSession`: session 2 with duration 45 and only the client's token; **every slot `getConsultantAvailableTimes` lists is accepted**; refused at the same time, ±30, a free session, another client's fresh unpaid order, the package's own session, the slot it just took, a non-timing, a past date and outside the window; invalid for an unpaid order, a single-session order, all sessions booked, no first session, a missing order and a bad date / time; a guest and an account order both work with no login; a body session / duration ignored; a program takes its first duration;
+- `isBookableSlot` with ±30.
+
+**Read-only SQL for Ziad** (how many paid meetings already overlap, and picked sessions stored with the wrong duration):
+```sql
+with m as (
+  select mt.mid, mt."orderId", o."consultantId" as cid, o.session as kind, mt.session as n,
+         (mt.date || ' ' || mt.time)::timestamp as s,
+         (mt.date || ' ' || mt.time)::timestamp
+           + (case when mt.duration ~ '^\d{1,3}$' then mt.duration::int else 60 end) * interval '1 minute' as e
+  from meetings mt
+  join orders o on o.oid = mt."orderId"
+  join payments p on p."orderId" = o.oid and p.payment = 'PAID'
+  where mt.date ~ '^\d{4}-\d{2}-\d{2}$' and mt.time ~ '^\d{2}:\d{2}$'
+)
+select count(*) as overlapping_pairs,
+       count(*) filter (where a.kind = 'MULTIPLE' or b.kind = 'MULTIPLE') as involving_a_package,
+       count(*) filter (where (a.kind = 'MULTIPLE' and a.n > 1) or (b.kind = 'MULTIPLE' and b.n > 1)) as involving_a_picked_session,
+       count(*) filter (where greatest(a.s, b.s) > now()) as upcoming
+from m a join m b on a.cid = b.cid and a."orderId" <> b."orderId" and a.mid < b.mid and a.s < b.e and b.s < a.e;
+
+select count(*) as sessions_with_wrong_duration
+from meetings m
+join orders o on o.oid = m."orderId" and o.session = 'MULTIPLE'
+join meetings first on first."orderId" = m."orderId" and first.session = 1
+where m.session > 1 and m.duration <> first.duration;
+```
+
+### Order of the next steps (Ziad)
+1. **The consultant-token leak fix (High, its own step):**
+   - `/meetings/[mid]` returns only the viewer's own participant;
+   - consultant chat and meeting links (the WhatsApp chat notice, consultant-busy, the Telegram template, `/dashboard/chats`) require the consultant's login and ownership of the order;
+   - client links stay login-free.
+2. **#25 step 2:** the per-consultant booking lock (`pg_advisory_xact_lock(INSTANT_LOCK_NS, cid)`, shared with instant) around `reserveConsultant`, free sessions and `pickNextSession`.
+3. **#27, High part:** the reschedule access split.
+4. **#26:** signed links.
+5. **#25 step 3 (✋ payments, when scheduled):** re-check scheduled orders at PAID time (the late-payment race).
+
+### High: consultant tokens reachable from a link without a consultant login (listed; fixed in the step above)
+- `data/sessions.ts` `selectSession` returned every participant token (**fixed in this step**).
+- `/meetings/[mid]?participant=…` (`app/(pages)/(site)/(features)/meetings/[mid]/page.tsx`): `data/meetings.ts` `getMeeting` (`participants: true`) is passed whole to `components/clients/meetings/index.tsx`, so a client's link exposes the consultant's token.
+- The WhatsApp chat notice to the consultant (`lib/notifications/mobile/notify/chat.ts` `sendChatWhatsapp`) links `/chats/{mid}?participant=<consultant token>`. The chat page (`app/(pages)/(site)/(features)/chats/[mid]/page.tsx`) and the actions `createMeetingMessage`, `markMeetingChatRead` and `toggleUserBlock` (`actions/site.ts`) act as the consultant on that token alone.
+- `/dashboard/chats/[mid]?participant=…` (`app/(pages)/(consultants)/dashboard/chats/[mid]/page.tsx`): any signed-in user holding the token acts as the consultant (not checked as this consultant).
+- Consultant meeting links carrying the token: `lib/api/realtime/consultant-busy.ts` (`meetingUrl(mid, owner.participant)`), and the admin Telegram template `lib/api/telegram/templates/index.ts:120`.
+
+### Website backlog
+- **#26 (High): server-signed client links.**
+  - **Problem:** `utils/admin/encryption.ts` "encrypts" link ids with AES and a hard-coded key, and is imported by a client component (`components/clients/sub-pages/scales/order.tsx`), so the key ships in the browser bundle and links can be forged.
+  - **Fix:** HMAC-signed links with a server-only secret for every client link: package next-session, reschedule, chat.
+  - **Transition:** links already sent on WhatsApp keep working for a fixed window (both formats accepted, the old one logged); after it, only signed links.
+- **#27: `rescheduleMeeting`** (`data/reschedule.ts`, public action in `actions/site.ts`).
+  - The client side works through a signed link (no login); the consultant side needs the consultant's login and must own the order. **The access split is its own High item, done right after #25 step 2.**
+  - The conflict checks for reschedule and `reserveProgram` (`data/order/program.ts`) stay in #27.
+- **#28 (Medium): guest identity, "session.user ?? guest"** (plan only).
+  - **Today:**
+    - guest bookings and orders store `author = "temp"` (the forms and `actions/booking.ts`; coupons count "temp" in `data/coupon.ts`);
+    - the website bot keeps a `guest-xxxxxxx` id in localStorage (`guest_bot_id`, `components/clients/bot/index.tsx`), used as the bot chat's key; guest bot limits are counted by IP (`actions/ai.ts`);
+    - realtime guest tokens are a new `guest:<uuid>` per request (`app/api/realtime-token/guest`, `app/api/mobile/realtime-token/guest`);
+    - favorites (`data/favorites.ts`) and "my orders / sessions" (`/orders`, the `(user)` layout) need an account; there is no guest version;
+    - nothing ties a guest's orders together.
+  - **Target:** an httpOnly server-signed guest cookie, one shared `actor()` helper returning the user or the guest, guest data merged into the account on sign-up or login, and opening a signed link (#26) attaching that order to the current guest.

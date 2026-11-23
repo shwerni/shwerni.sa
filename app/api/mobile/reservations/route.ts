@@ -20,10 +20,10 @@ import {
 import { saveACoupon } from "@/data/coupon";
 import { CheckIsBlocked } from "@/data/blocked";
 import { reserveConsultant } from "@/data/order/reserveation";
+import { isBookableSlot } from "@/data/booking/slots";
 import {
   accountPhone,
   cancelUnpaidOrders,
-  isBookableSlot,
   ownUnpaidAtSlot,
   packageSessionCount,
   unpaidOrderLimitReached,

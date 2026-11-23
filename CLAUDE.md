@@ -26,6 +26,11 @@ Follow the "Code style" section of `docs/refactor-playbook.md`: lowercase commen
 - **Never trust ids, prices or user ids from the client.** Take the user from the session, look up the owner from the database, and compute prices on the server.
 - **Before every push**, run the manifest check from "After every phase".
 
+## Access rule for client and consultant links (standing, Ziad 2026-11-23)
+
+- **Clients never log in, on any link:** package next-session, reschedule, chat. The link is the access. Links get secured by server signing (backlog #26); never add login checks for clients.
+- **Consultants are always logged in** (website or app) for anything done as the consultant: his chat participant token, rescheduling, marking sessions, his dashboard actions. A link alone must never give consultant access or a consultant token.
+
 ## Decisions that override the plan
 
 - **Bot protection is Vercel BotID**, not reCAPTCHA or Turnstile. reCAPTCHA removal is its own phase (files listed in section 9 of the plan); don't mix it into other phases.

@@ -31,7 +31,7 @@ import {
 import { orderInfoLabel } from "@/utils";
 import { dateToString } from "@/utils/date";
 import { paidSplit } from "@/utils/order-split";
-import { aboveAndLowerTime, dateTimeToString } from "@/utils/time";
+import { dateTimeToString } from "@/utils/time";
 
 import {
   CenterState,
@@ -45,6 +45,9 @@ import { holdInstantPaymentIfTaken } from "@/data/instant-payment";
 
 // constants
 import { UNPAID_HOLD_MINUTES } from "@/constants/booking";
+
+// lib
+import { startsNear } from "@/lib/booking/free-slot-where";
 
 import { ReservationFormType, reservationSchema } from "@/schemas";
 
@@ -248,8 +251,10 @@ export const checkMeetingTimeConflict = async (
   own?: { author?: string | null; phone?: string | null },
 ) => {
   try {
-    // the same time, and half an hour before and after
-    const timeOffset: string[] = [time, ...aboveAndLowerTime(time)];
+    // the same rule as the slot lists (lib/booking/free-slot-where.ts): another start within
+    // CONFLICT_WINDOW_MINUTES, compared as real date-times so it works across midnight
+    const near = (row: { date: Prisma.Sql; time: Prisma.Sql }) =>
+      startsNear({ date, time }, row);
 
     const ownAuthor = own?.author && own.author !== "temp" ? own.author : null;
     const ownPhone = own?.phone || null;
@@ -267,8 +272,7 @@ export const checkMeetingTimeConflict = async (
         JOIN meetings m ON o.oid = m."orderId"
         JOIN payments p ON p."orderId" = o.oid
         WHERE o."consultantId" = ${cid}
-          AND m.date = ${date}
-          AND m.time = ANY(${timeOffset}::text[])
+          AND ${near({ date: Prisma.sql`m.date`, time: Prisma.sql`m.time` })}
           AND (
             p.payment = 'PAID'
             OR (
@@ -284,10 +288,9 @@ export const checkMeetingTimeConflict = async (
     const free = await prisma.$queryRaw<{ exists: boolean }[]>`
     SELECT EXISTS (
     SELECT 1
-    FROM "free_sessions"
-    WHERE "consultantId" = ${cid}
-      AND date = ${date}
-      AND time = ANY(${timeOffset}::text[])
+    FROM "free_sessions" fs
+    WHERE fs."consultantId" = ${cid}
+      AND ${near({ date: Prisma.sql`fs.date`, time: Prisma.sql`fs.time` })}
       ) as exists
     `;
 

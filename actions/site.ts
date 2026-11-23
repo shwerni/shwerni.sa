@@ -25,7 +25,6 @@ import {
   rescheduleMeeting as rescheduleMeetingData,
 } from "@/data/reschedule";
 import { submitScaleResult as submitScaleResultData } from "@/data/scales";
-import { selectSession as selectSessionData } from "@/data/sessions";
 import {
   acceptNewreview as acceptNewreviewData,
   getReviewsForConsultant as getReviewsForConsultantData,
@@ -41,6 +40,9 @@ import {
   toggleUserBlock as toggleUserBlockData,
 } from "@/data/chats";
 import { markChatRead as markChatReadData } from "@/data/chat-read";
+
+// handlers
+import { pickNextSession } from "@/handlers/clients/package-session";
 
 // lib
 import { checkHuman } from "@/lib/bot-protection";
@@ -183,11 +185,11 @@ export async function submitScaleResult(
   return submitScaleResultData(...args);
 }
 
-// public: /sessions/[id]
-export async function selectSession(
-  ...args: Parameters<typeof selectSessionData>
-) {
-  return selectSessionData(...args);
+// public: /sessions/[id]. the link is the access (clients never log in); the session number,
+// the duration and the slot rules are all decided on the server (handlers/clients/package-session.ts),
+// so any session or duration sent by the browser is ignored
+export async function selectSession(oid: number, time: string, date: string) {
+  return pickNextSession(Number(oid), { date, time });
 }
 
 // ---------- reviews ----------
