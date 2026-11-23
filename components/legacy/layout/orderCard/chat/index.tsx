@@ -10,19 +10,18 @@ import { CircleAlert } from "lucide-react";
 // props
 interface Props {
   mid: string;
-  participantId: string;
   firstMessage: string | null;
 }
 
 // return default
 export default function OrderReason({
   mid,
-  participantId,
   firstMessage,
 }: Props) {
+  // the consultant's chat, by his login (no token in the url)
   return (
     <Link
-      href={`/chats/${mid}?participant=${participantId}`}
+      href={`/dashboard/chats/${mid}`}
       className="flex flex-col gap-1 w-full mx-auto my-2 p-3 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-lg transition-all"
     >
       <div className="flex items-center gap-2">

@@ -4,8 +4,10 @@ import { UploadThingError } from "uploadthing/server";
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 
 // prisma data
-import { getMeetingAccess } from "@/data/chats";
 import { getPleadingAccess } from "@/data/pleading";
+
+// handlers
+import { chatSide } from "@/handlers/meetings/meeting-access";
 
 // hooks
 import { userServer } from "@/lib/auth/server";
@@ -58,14 +60,11 @@ export const ourFileRouter = {
     image: { maxFileSize: "8MB", maxFileCount: 1 },
     pdf: { maxFileSize: "16MB", maxFileCount: 1 },
   })
-    // same rule as the chat route: the uploader must hold a participant token of this meeting
+    // same rule as the chat route: the client's own token, or the consultant's with his login
     .input(z.object({ mid: z.string().min(1), participant: z.string().min(1) }))
     .middleware(async ({ input }) => {
-      const access = await getMeetingAccess(input.mid);
-      const isParticipant = !!access?.participants.some(
-        (p) => p.participant === input.participant,
-      );
-      if (!isParticipant) throw new UploadThingError("Unauthorized");
+      const side = await chatSide(input.mid, input.participant, "chat-upload");
+      if (!side) throw new UploadThingError("Unauthorized");
       return { mid: input.mid };
     })
     .onUploadComplete(async ({ file }) => {

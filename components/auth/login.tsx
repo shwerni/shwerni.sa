@@ -6,7 +6,8 @@ import Image from "next/image";
 import Logo from "@/components/shared/logo";
 import LogInForm from "@/components/auth/login-form";
 
-const Login = () => {
+// callbackUrl: where the login goes back to (the page checked it)
+const Login = ({ callbackUrl }: { callbackUrl?: string }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2">
       {/* right side */}
@@ -18,7 +19,7 @@ const Login = () => {
         </h2>
         {/* logIn form */}
         <div className="space-y-3">
-          <LogInForm />
+          <LogInForm callbackUrl={callbackUrl} />
           <div className="flex items-center justify-center gap-2">
             <h5 className="text-sm text-gray-500">ليس لديك حساب؟</h5>
             <Link className="text-sm text-theme underline" href="/register">

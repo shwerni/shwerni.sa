@@ -15,6 +15,9 @@ import { PhoneSchema, ResetSchema } from "@/schemas";
 // lib
 import { notificationSecurityOtp } from "@/lib/notifications/site";
 
+// utils
+import { withCallbackUrl } from "@/utils/callback-url";
+
 // prisma data
 import {
   MAX_OTP_ATTEMPTS,
@@ -27,7 +30,11 @@ import {
 import { getUserByPhone } from "@/data/user";
 import { CheckIsBlocked } from "@/data/blocked";
 
-export const forgetpassowrd = async (data: z.infer<typeof PhoneSchema>) => {
+export const forgetpassowrd = async (
+  data: z.infer<typeof PhoneSchema>,
+  // carried to the reset page and then the login (allow-listed only)
+  callbackUrl?: string,
+) => {
   // reset fields { newpassword, confirmphone, phone}
   const validatedFields = PhoneSchema.safeParse(data);
 
@@ -65,13 +72,15 @@ export const forgetpassowrd = async (data: z.infer<typeof PhoneSchema>) => {
   );
 
   // redirect to otp verify page
-  redirect(`/reset-password?token=${verificationToken?.token}`);
+  redirect(withCallbackUrl(`/reset-password?token=${verificationToken?.token}`, callbackUrl));
 };
 
 // after submiting the otp and checking all condations of the verification token with checkToken function
 export const verifyReset = async (
   data: z.infer<typeof ResetSchema>,
   token: string,
+  // carried to the login (allow-listed only)
+  callbackUrl?: string,
 ) => {
   // reset fields { newpassword, confirmphone, phone}
   const validatedFields = ResetSchema.safeParse(data);
@@ -133,5 +142,5 @@ export const verifyReset = async (
   });
 
   // redirect to login page
-  redirect("/login");
+  redirect(withCallbackUrl("/login", callbackUrl));
 };

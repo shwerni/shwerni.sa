@@ -20,7 +20,8 @@ import { forgetpassowrd } from "@/actions/auth";
 import { toast } from "../shared/toast";
 import { phoneNumber } from "@/utils";
 
-export function ForgetPasswordForm() {
+// callbackUrl: carried to the reset page and the login (the server checks it again)
+export function ForgetPasswordForm({ callbackUrl }: { callbackUrl?: string }) {
   // form
   const form = useForm<z.infer<typeof PhoneSchema>>({
     resolver: zodResolver(PhoneSchema),
@@ -38,7 +39,7 @@ export function ForgetPasswordForm() {
     data.phone = phoneNumber(data.phone);
 
     // reset password
-    const response = await forgetpassowrd(data);
+    const response = await forgetpassowrd(data, callbackUrl);
 
     // taost error
     if (response.state === false) toast.error({ message: response.message });

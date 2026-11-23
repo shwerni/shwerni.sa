@@ -19,10 +19,10 @@ import PayBtn from "@/components/legacy/layout/orderCard/payButton";
 import OrderReason from "@/components/legacy/layout/orderCard/chat";
 
 // prisma types
-import { PaymentState, UserRole } from "@/lib/generated/prisma/enums";
+import { PaymentState } from "@/lib/generated/prisma/enums";
 
 // utils
-import { meetingUrl } from "@/utils";
+import { consultantMeetingUrl } from "@/utils";
 import { withTax } from "@/utils/tax";
 import { riyadhDateString, timeToArabic } from "@/utils/date";
 
@@ -62,14 +62,12 @@ export default function OrderCard({ order, owner, time }: Props) {
   // message
   const firstMessage = order.orderMessages?.[0]?.content || null;
 
-  // participant
-  const participant =
-    meeting?.[0].participants.find(
-      (i) => i.role === (owner ? UserRole.OWNER : UserRole.USER),
-    )?.participant || "";
+  // the card is the consultant's (dashboard orders): his meeting and chat links carry no token,
+  // the pages know him by his login (the order data has no participant tokens)
+  const mid = meeting?.[0].mid || "";
 
   // meeting url
-  const url = meetingUrl(meeting?.[0].mid || "", participant);
+  const url = consultantMeetingUrl(mid);
 
   // return
   if (payment && meeting)
@@ -134,9 +132,8 @@ export default function OrderCard({ order, owner, time }: Props) {
                   <Separator className="my-3" />
                   {/* order description */}
                   <OrderReason
-                    mid={meeting?.[0].mid || ""}
+                    mid={mid}
                     firstMessage={firstMessage}
-                    participantId={participant}
                   />
                 </>
               </CardContent>
@@ -168,9 +165,8 @@ export default function OrderCard({ order, owner, time }: Props) {
                   <div className="col-span-2 w-full">
                     {/* order description */}
                     <OrderReason
-                      mid={meeting?.[0].mid || ""}
+                      mid={mid}
                       firstMessage={firstMessage}
-                      participantId={participant}
                     />
                   </div>
                 </div>

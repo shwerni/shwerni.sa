@@ -19,8 +19,9 @@ export async function GET() {
     );
   }
 
-  // the other party's participant token is a credential and the list never uses it
+  // participant tokens are credentials and the list uses neither: its links open the chat by
+  // the login (/dashboard/chats/{mid})
   return NextResponse.json({
-    chats: chats.map((c) => ({ ...c, otherParticipantId: null })),
+    chats: chats.map((c) => ({ ...c, myParticipantId: null, otherParticipantId: null })),
   });
 }

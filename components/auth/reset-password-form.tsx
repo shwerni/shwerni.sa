@@ -38,9 +38,11 @@ interface Props {
   // masked phone, display only
   phone: string;
   token: string;
+  // where the login goes back to (the server checks it again)
+  callbackUrl?: string;
 }
 
-const ResetPasswordForm: React.FC<Props> = ({ phone, token }: Props) => {
+const ResetPasswordForm: React.FC<Props> = ({ phone, token, callbackUrl }: Props) => {
   // states
   const [timeLeft, setTimeLeft] = React.useState(60);
   const [resendActive, setResendActive] = React.useState(false);
@@ -68,7 +70,7 @@ const ResetPasswordForm: React.FC<Props> = ({ phone, token }: Props) => {
   // on sumbit
   const onSubmit = async (data: VerifyFormValues) => {
     // verify token
-    const response = await verifyReset(data, token);
+    const response = await verifyReset(data, token, callbackUrl);
 
     if (response.state) {
       // toast

@@ -26,6 +26,7 @@ import PasswordInput from "@/components/shared/password-input";
 
 // utils
 import { phoneNumber } from "@/utils";
+import { withCallbackUrl } from "@/utils/callback-url";
 
 // schemas
 import { LogInSchema } from "@/schemas";
@@ -34,7 +35,8 @@ import { LogInSchema } from "@/schemas";
 import { login } from "@/actions/auth";
 
 // consultant profile handler
-const LogInForm = () => {
+// callbackUrl: where the login goes back to (the server checks it again)
+const LogInForm = ({ callbackUrl }: { callbackUrl?: string }) => {
   // high priority for button loading effect
   const [loading, setLoading] = React.useState(false);
 
@@ -55,7 +57,7 @@ const LogInForm = () => {
     setLoading(true);
 
     // handle register fields submited data
-    const log = await login(phoneNumber(data.phone), data.password);
+    const log = await login(phoneNumber(data.phone), data.password, false, callbackUrl);
 
     // state
     if (log?.state === false) {
@@ -127,7 +129,7 @@ const LogInForm = () => {
               <Label className="text-xs text-gray-500">تذكرني</Label>
             </div>
             <Link
-              href="/forget-password"
+              href={withCallbackUrl("/forget-password", callbackUrl)}
               className="text-gray-500 text-xs hover:underline"
             >
               هل نسيت كلمة المرور؟

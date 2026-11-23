@@ -1,5 +1,6 @@
 // React & Next
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 // components
 import Meetings from "@/components/clients/meetings";
@@ -12,8 +13,12 @@ import { PaymentState } from "@/lib/generated/prisma/client";
 import { timeZone } from "@/utils/date";
 
 // utils
-import { getMeeting } from "@/data/meetings";
+import { getMeetingForPage } from "@/data/meetings";
 import { mainRoute } from "@/constants/links";
+import { withCallbackUrl } from "@/utils/callback-url";
+
+// handlers
+import { meetingViewer } from "@/handlers/meetings/meeting-access";
 
 // meta data seo
 const ogImage = {
@@ -64,14 +69,21 @@ export default async function Page({ params, searchParams }: Props) {
   // zid
   const { mid } = await params;
 
-  // session
+  // the link's token: the client's own (no login), or an old consultant link (ignored: the
+  // consultant is his login and the order, never a token)
   const { participant } = await searchParams;
 
+  // who opens the page (the standing rule, CLAUDE.md)
+  const viewer = await meetingViewer(mid, participant, "meetings-page");
+
+  // the consultant path with no session: log in, then back here (no token in the callback)
+  if (viewer === "login") redirect(withCallbackUrl("/login", `/meetings/${mid}`));
+
   // validate
-  if (!participant) return <Error404 />;
+  if (!viewer) return <Error404 />;
 
   // get consultant
-  const meeting = await getMeeting(mid);
+  const meeting = await getMeetingForPage(mid);
 
   // validate
   if (!meeting) return <Error404 />;
@@ -91,7 +103,7 @@ export default async function Page({ params, searchParams }: Props) {
       time={time}
       date={date}
       meeting={meeting}
-      participant={participant}
+      viewer={viewer}
     />
   );
 }

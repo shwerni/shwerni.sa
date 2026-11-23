@@ -12,6 +12,7 @@ import { PaymentState, Prisma, UserRole } from "@/lib/generated/prisma/client";
 // lib
 import { meetingTime, timeZone } from "@/utils/date";
 import { mainRoute } from "@/constants/links";
+import { consultantMeetingUrl } from "@/utils";
 import { createGoogleMeeting } from "@/lib/api/google";
 
 // get reservation
@@ -56,6 +57,35 @@ export const participantAttendance = async (
   }
 };
 
+/**
+ * the /meetings page's meeting: getMeeting's fields, but its participants without their tokens
+ * (role, attendance and time only). the viewer's own token comes from meetingViewer
+ * @param mid the meeting
+ */
+export const getMeetingForPage = async (mid: string) => {
+  try {
+    return await prisma.meeting.findUnique({
+      where: { mid },
+      include: {
+        participants: {
+          select: { id: true, role: true, attended: true, time: true },
+        },
+        rooms: { select: { url: true } },
+        orders: {
+          include: {
+            payment: true,
+            consultant: {
+              select: { userId: true, name: true, phone: true, image: true },
+            },
+          },
+        },
+      },
+    });
+  } catch {
+    return null;
+  }
+};
+
 export const getMeeting = async (mid: string) => {
   try {
     const meeting = await prisma.meeting.findUnique({
@@ -82,31 +112,51 @@ export const getMeeting = async (mid: string) => {
   }
 };
 
+/**
+ * the whatsapp "meeting link" button's answer (lib/api/whatsapp/logic.ts):
+ * - the order's own consultant (the sender's account is this order's consultant): the meeting
+ *   page with no token, which asks for his login (the standing rule, CLAUDE.md)
+ * - anyone else: the client's link (its USER token), as before. before, any consultant account
+ *   got the consultant's token here, even for another consultant's order
+ * @param mid the meeting, from the button we sent
+ * @param phone the sender's whatsapp number
+ */
 export const getMeetingUrl = async (mid: string, phone: string) => {
   try {
-    // check if consultant
+    // the sender's account, if any
     const user = await getUserByPhone(phone);
-
-    // role
-    const role =
-      user && user.role === UserRole.OWNER ? UserRole.OWNER : UserRole.USER;
 
     const meeting = await prisma.meeting.findUnique({
       where: {
         mid,
       },
-      include: {
-        participants: true,
+      select: {
+        mid: true,
+        orderId: true,
+        participants: { select: { participant: true, role: true } },
+        orders: { select: { consultant: { select: { userId: true } } } },
       },
     });
 
+    // validate
+    if (!meeting) return null;
+
+    // this order's consultant: no token in the link
+    const consultantUserId = meeting.orders.consultant.userId;
+    if (user && consultantUserId && user.id === consultantUserId) {
+      return {
+        orderId: meeting.orderId,
+        url: consultantMeetingUrl(meeting.mid),
+      };
+    }
+
     // get participant
-    const participant = meeting?.participants.find((i) => i.role === role);
+    const participant = meeting.participants.find((i) => i.role === UserRole.USER);
 
     // return
     return {
-      orderId: meeting?.orderId,
-      url: `${mainRoute}meetings/${meeting?.mid}?participant=${participant?.participant}`,
+      orderId: meeting.orderId,
+      url: `${mainRoute}meetings/${meeting.mid}?participant=${participant?.participant}`,
     };
   } catch {
     return null;

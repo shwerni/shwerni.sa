@@ -14,10 +14,9 @@ import { INTERNAL_SECRET_HEADER } from "@/lib/auth/internal-secret";
 import { telegramAdmin } from "@/lib/api/telegram/telegram";
 
 // utils
-import { meetingUrl } from "@/utils";
+import { consultantMeetingUrl } from "@/utils";
 
 // constants
-import { mainRoute } from "@/constants/links";
 import { INSTANT_DURATION } from "@/constants/instant";
 
 // the realtime server answers in milliseconds; a payment never waits longer than this for it
@@ -51,7 +50,8 @@ export type ConsultantBusyPayload = {
  * the busy call's body, or null when there's nothing to do: a center consultant (no user), no
  * meeting, or a meeting that has already ended (a late mark-as-paid). the meeting keeps riyadh
  * wall-clock strings, so its start is read with +03:00; busyUntil = start + duration. meetingUrl
- * is the consultant's own link (the owner participant), the one the whatsapp button sends
+ * is the consultant's meeting page with no token (it needs his login; the app opens its own
+ * meeting from meetingId)
  */
 export function consultantBusyPayload(
   order: BusyOrder,
@@ -67,15 +67,12 @@ export function consultantBusyPayload(
   const busyUntil = startsAt + duration * 60_000;
   if (busyUntil <= now) return null;
 
-  const owner = meeting.participants?.find((p) => p.role === UserRole.OWNER);
-
   return {
     consultantId: userId,
     orderId: order.oid,
     meetingId: meeting.mid,
-    meetingUrl: owner
-      ? meetingUrl(meeting.mid, owner.participant)
-      : `${mainRoute}meetings/${meeting.mid}`,
+    // no token: the meeting page knows the consultant by his login
+    meetingUrl: consultantMeetingUrl(meeting.mid),
     startsAt: new Date(startsAt).toISOString(),
     duration,
     busyUntil,

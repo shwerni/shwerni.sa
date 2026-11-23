@@ -43,6 +43,7 @@ import { markChatRead as markChatReadData } from "@/data/chat-read";
 
 // handlers
 import { pickNextSession } from "@/handlers/clients/package-session";
+import { chatSide } from "@/handlers/meetings/meeting-access";
 
 // lib
 import { checkHuman } from "@/lib/bot-protection";
@@ -243,11 +244,16 @@ export async function createNewProgram(
 
 // ---------- chats ----------
 
-// participants only (checked inside by participantId). the sender role always comes from
-// that participant record, so a client can't post as the consultant
+// participants only: a client by their own token (no login); the consultant's token only with
+// his login on this order (chatSide). the sender role always comes from that participant record,
+// so a client can't post as the consultant
 export async function createMeetingMessage(
   ...[payload]: Parameters<typeof createMeetingMessageData>
 ) {
+  if (!(await chatSide(payload?.mid, payload?.participantId, "createMeetingMessage"))) {
+    return { error: "Meeting not found" };
+  }
+
   // nonce is the app's (its routes check it); the website never sends one
   return createMeetingMessageData({ ...payload, sender: undefined, nonce: undefined });
 }
@@ -266,19 +272,18 @@ export async function markMeetingChatRead(
   const untilDate = new Date(until);
   if (!Number.isFinite(untilDate.getTime())) return null;
 
-  const access = await getMeetingAccess(mid);
-  const participant = access?.participants.find((p) => p.participant === participantId);
-  if (!participant) return null;
+  // the client's token alone, or the consultant's with his login (chatSide)
+  const reader = await chatSide(mid, participantId, "markMeetingChatRead");
+  if (!reader) return null;
 
-  const reader = participant.role === UserRole.OWNER ? UserRole.OWNER : UserRole.USER;
   const readAt = await markChatReadData(mid, reader, untilDate);
   return readAt ? readAt.toISOString() : null;
 }
 
-// the meeting's consultant only: either logged in as that consultant, or holding the
-// consultant's participant token. participantId is an optional extra argument
-// (the data function's third argument, the log actor, comes from the session here and is
-// not part of what the client can send)
+// the meeting's consultant only, by his login on this order. a consultant with no account (a
+// center consultant) keeps his token (chatSide, logged). participantId is an optional extra
+// argument; it never stands in for the login (the data function's third argument, the log actor,
+// comes from the session here and is not part of what the client can send)
 export async function toggleUserBlock(
   ...[mid, shouldBlock, participantId]: [
     mid: string,
@@ -292,17 +297,16 @@ export async function toggleUserBlock(
   const user = await sessionUser();
   const isMeetingConsultant =
     !!user && access.orders.consultant.userId === user.id;
-  const isOwnerParticipant =
+  const isAccountlessOwner =
+    !access.orders.consultant.userId &&
     !!participantId &&
-    access.participants.some(
-      (p) => p.participant === participantId && p.role === UserRole.OWNER,
-    );
+    (await chatSide(mid, participantId, "toggleUserBlock")) === UserRole.OWNER;
 
   // another meeting looks exactly like a missing one
-  if (!isMeetingConsultant && !isOwnerParticipant)
+  if (!isMeetingConsultant && !isAccountlessOwner)
     return { error: "Meeting not found" };
 
-  // the meeting log's actor is the session consultant (none when only the token matched)
+  // the meeting log's actor is the session consultant (none for an accountless consultant)
   const actor = isMeetingConsultant
     ? { id: user.id, name: user.name, role: user.role }
     : null;

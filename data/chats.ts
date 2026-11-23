@@ -146,6 +146,8 @@ export async function getChatMeeting(mid: string) {
             consultant: {
               select: {
                 cid: true,
+                // the consultant's account (null for a center consultant): server-side only
+                userId: true,
                 name: true,
                 title: true,
                 image: true,

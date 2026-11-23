@@ -8,6 +8,9 @@ import ResetPasswordForm from "@/components/auth/reset-password-form";
 // handlers
 import { checkToken } from "@/handlers/auth/verify";
 
+// utils
+import { safeCallbackUrl } from "@/utils/callback-url";
+
 // meta data seo
 export const metadata: Metadata = {
   title: "شاورني - كود التحقق",
@@ -16,13 +19,16 @@ export const metadata: Metadata = {
 
 // props
 interface Props {
-  searchParams: Promise<{ token: string }>;
+  searchParams: Promise<{ token: string; callbackUrl?: string }>;
 }
 
 // verify otp page
 const Page = async ({ searchParams }: Props) => {
   // token
-  const { token } = await searchParams;
+  const { token, callbackUrl: rawCallback } = await searchParams;
+
+  // carried to the login (only an allow-listed path is kept)
+  const callbackUrl = safeCallbackUrl(rawCallback) ?? undefined;
 
   // validate
   if (!token) return <Error404 />;
@@ -37,7 +43,7 @@ const Page = async ({ searchParams }: Props) => {
   if (!data.phone) return <Error404 />;
 
   // the form sends the token back; the otp never reaches the browser
-  return <ResetPasswordForm phone={data.phone} token={token} />;
+  return <ResetPasswordForm phone={data.phone} token={token} callbackUrl={callbackUrl} />;
 };
 
 export default Page;

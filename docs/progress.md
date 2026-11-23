@@ -6204,3 +6204,128 @@ where m.session > 1 and m.duration <> first.duration;
     - favorites (`data/favorites.ts`) and "my orders / sessions" (`/orders`, the `(user)` layout) need an account; there is no guest version;
     - nothing ties a guest's orders together.
   - **Target:** an httpOnly server-signed guest cookie, one shared `actor()` helper returning the user or the guest, guest data merged into the account on sign-up or login, and opening a signed link (#26) attaching that order to the current guest.
+
+
+## Consultant-token leak fix (High) (2026-11-23)
+
+Plan approved by Ziad, with additions (login readiness, deployment notes). Under the standing rule (CLAUDE.md), the consultant's OWNER participant token is never in a URL again and is never accepted without his login. Client links are unchanged and need no login.
+
+**Before:**
+- the OWNER token worked as a full consultant credential with no login, at `/meetings` (it set the consultant's attendance), `/chats`, `/dashboard/chats` (any signed-in user), the three chat actions, `GET /api/meetings/[mid]/chat` and the chat upload;
+- it travelled in the WhatsApp chat notice, the WhatsApp "meeting link" button reply (to **any** OWNER account, even for another consultant's order), the instant `meetingUrl`, the Telegram template and the dashboard order cards;
+- **reverse leak:** the consultant's dashboard orders and dues sent the **client's** token to his browser, which let him write as the client.
+
+**Access: `handlers/meetings/meeting-access.ts` (new)**
+- `meetingViewer(mid, token?, where)`:
+  - the client's USER token → the client, without looking at the session;
+  - an OWNER token (old links) or no token → the consultant path:
+    - no session → `"login"`;
+    - the session user is `orders.consultant.userId` → the consultant, with his token **read from the database** (`ensureMeetingParticipant(mid, OWNER)`);
+    - anyone else → refused;
+  - an unknown token → refused.
+- `chatSide(mid, token, where)`: a USER token → USER; an OWNER token → OWNER **only with his session on this order**; otherwise null.
+- **Accountless consultants (center consultants, `userId` null), decided by Ziad:** they can't log in, so their token keeps working alone, as before. Every use is logged: `[meeting-access] accountless consultant token used mid=… via=…`.
+
+**Pages**
+- **`/meetings/[mid]`:**
+  - uses `meetingViewer`: the consultant path with no session → `/login?callbackUrl=/meetings/{mid}`; refused → the 404 component;
+  - reads `getMeetingForPage` (`data/meetings.ts`), whose participants have no tokens (`id, role, attended, time`);
+  - `components/clients/meetings/index.tsx` gets `viewer`: the role, attendance on the viewer's own row, and a "you attended" filter by role. The room fallback carries the client's token only. Same markup.
+- **`/chats/[mid]`:**
+  - the client's token → as before, with no login;
+  - an OWNER token or no token → `/dashboard/chats/{mid}`;
+  - logged in as someone else with the consultant's token, or an unknown token → 404;
+  - accountless → as before.
+- **`/dashboard/chats/[mid]`:**
+  - the session user must be the order's consultant, otherwise 404;
+  - the participant comes from the database and `?participant=` is ignored (before, a consultant passing the client's token there acted as the client);
+  - `back` accepts only a path on this site;
+  - it now uses `getChatMeeting` instead of its own prisma query.
+
+**Actions and routes**
+- `createMeetingMessage` and `markMeetingChatRead` go through `chatSide`.
+- `toggleUserBlock` needs the consultant's login (the token branch is gone, except for accountless consultants).
+- `GET /api/meetings/[mid]/chat` and the `chatAttachment` upload go through `chatSide`.
+- `GET /api/meetings/chats` no longer returns `myParticipantId` (the list links by login).
+
+**Links (no consultant token)**
+- `utils/index.ts` has a new `consultantMeetingUrl(mid)` (`/meetings/{mid}`), used by:
+  - the instant `meetingUrl` (`lib/api/realtime/consultant-busy.ts`);
+  - the Telegram consultant line (it keeps the token for an accountless consultant);
+  - the WhatsApp "meeting link" button (`data/meetings.ts` `getMeetingUrl`): only **this order's** consultant gets the consultant link. Any other sender gets the client link, as before for clients; a consultant who booked as a client now gets his client link.
+- The chat notice (`sendChatWhatsapp`): to the consultant the suffix is `{mid}` (template `session_chat_notify`, base `/chats/`, so no Meta change). The client's link is unchanged; an accountless consultant keeps his token.
+- The dashboard order card and its chat link: `/meetings/{mid}` and `/dashboard/chats/{mid}`. The chat list: `/dashboard/chats/{mid}`.
+
+**The reverse leak**
+- `utils/index.ts` has a new `withoutParticipantTokens(orders)` (each token becomes `""`; rows keep role, attendance and time).
+- Applied to the consultant dashboard's orders (`getAllPaidOwnersOrdersByAuthor`, `getPaidOwnersOrdersByAuthorAndMonth`) and dues (`getAllDuesOwner`, `getDuesOwnenByMonth`).
+
+**Login return**
+- New `utils/callback-url.ts`: `safeCallbackUrl` allows only `/meetings/` and `/dashboard/chats/`, never `//`, `\`, control characters or other sites.
+- The flow:
+  - `proxy.ts` adds `callbackUrl` on its protected redirect (dropped when not allowed, so other pages are unchanged);
+  - the login page → `login(..., callbackUrl)` → `signIn` `redirectTo` (otherwise the role redirect, as before);
+  - the forgot-password link → `/forget-password` → `forgetpassowrd` → `/reset-password` → `verifyReset` → `/login`, each hop re-checked.
+- **Not carried:** the login path for an unverified phone (`/verify-otp`, shared with registration) lands on the role default.
+
+**What a consultant notices**
+- The WhatsApp chat notice opens his **dashboard chat** (dashboard layout with a back button), after a login if he's logged out.
+- The meeting-link button, old meeting links and the Telegram link open the same meeting page, after a login.
+- The website instant notice and the dashboard links work as before (he's already logged in).
+- Another consultant's order, or opening his link while logged in as a client or admin → "not found".
+
+**App:** no change needed.
+- Its owner routes already use login (`requireApprovedOwner` / `requireMobileUser`, participant from the server).
+- Chat tickets are minted only by authenticated routes.
+- **Contract note for the app repo:** `instant-booked.meetingUrl` is now token-free (same shape). The app should open its in-app meeting from `meetingId` (`GET /api/mobile/room/{mid}`, logged in); opening `meetingUrl` in a browser asks for the website login.
+
+**Old tokens:** not rotated (recommended). After this step an OWNER token alone grants nothing anywhere except to an accountless consultant, so rotating would mean a database write for no gain.
+
+**Login readiness (Ziad's additions)**
+- **Forgot password is visible** on the login page ("هل نسيت كلمة المرور؟" → `/forget-password`). It works for a consultant by phone OTP over WhatsApp, and the reset also marks the phone verified.
+- **Website session lifetime:** `auth.ts` sets `session: { strategy: "jwt" }` with no `maxAge`, so it's the NextAuth default: 30 days, re-issued when the session is read. Not changed.
+- **Read-only SQL: approved consultants with no website password:**
+```sql
+select count(*)                                                    as approved_without_password,
+       count(*) filter (where u.phone is null)                     as of_which_no_phone,
+       count(*) filter (where u.phone_verified is null)            as of_which_phone_unverified,
+       count(*) filter (where exists (select 1 from mobile_accounts a
+                         where a.user_id = u.id and a.provider_id = 'credential'
+                           and coalesce(a.password, '') <> ''))    as of_which_have_app_password
+from consultants c
+join users u on u.id = c."userId"
+where u.role = 'OWNER' and c.approved = 'APPROVED'
+  and coalesce(u.password, '') = '';
+```
+
+**Deployment notes (Ziad)**
+- Deploy at low traffic, around 3am Riyadh.
+- Before that, Ziad sends consultants a WhatsApp notice that session links now require login (forgot password works by phone OTP).
+
+**Verified**
+- `npx tsc --noEmit`; eslint on the changed files (only findings that were already there: `reset-password-form.tsx` set-state-in-effect, unused imports in `list.tsx` and `data/meetings.ts`).
+- `npm run build` (the auth-field guard first); the manifest check prints only `data/event.ts` and `lib/api/google.ts`.
+- Throwaway vitest: 762 of 762. Three old expectations updated: the consultant notice link is now `m1`, and the consultant's read mark needs his login.
+- New (36 tests):
+  - the client link gets only the client's token, with no login;
+  - a logged-out consultant → login and back (`/meetings`, `/dashboard/chats`, the proxy);
+  - another consultant, a client account or an admin → refused;
+  - the three actions, the GET route and the upload refuse the OWNER token alone, and work with his login;
+  - the client chat works with no login;
+  - accountless consultants keep working, logged;
+  - the dashboard chat ignores `?participant=`; `back` is sanitized;
+  - no consultant token in the instant `meetingUrl`, Telegram or the meeting-link button;
+  - the dashboard orders and dues carry no tokens;
+  - `safeCallbackUrl`, the login `redirectTo` and the forgot-password redirect;
+  - the meeting component marks attendance on the viewer's own row.
+
+**Backlog**
+- **#29 (Medium): a login path for accountless (center) consultants.** Either their center user acts for them, or they get accounts. Until then their OWNER token works alone (logged).
+- The `/verify-otp` login path doesn't keep `callbackUrl`.
+- `/reschedule` still serves the client's token by `mid` alone (#26 / #27).
+
+**Open questions:** none blocking. The app follow-up (open from `meetingId`) is for the app repo.
+
+### High: consultant tokens reachable from a link without a consultant login (status)
+- `/meetings`, the WhatsApp chat notice, `/chats`, the three actions, `/dashboard/chats`, consultant-busy, Telegram: **fixed in this step** (accountless center consultants excepted, logged, backlog #29).
+- Also fixed: the WhatsApp meeting-link button, the dashboard order cards and chat list, and the client tokens in the consultant's orders and dues.

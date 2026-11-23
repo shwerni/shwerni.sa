@@ -9,6 +9,9 @@ import { AuthError } from "next-auth";
 // utils
 import { phoneNumber } from "@/utils";
 
+// utils
+import { safeCallbackUrl } from "@/utils/callback-url";
+
 // prisma data
 import { getUserLogin } from "@/data/user";
 import { generateVerificationToken } from "@/data/verificationTokens";
@@ -21,6 +24,9 @@ export const login = async (
   phone: string,
   password: string,
   administrator: boolean = false,
+  // where to go back after the login (the consultant's meeting or chat); only an allow-listed
+  // path on this site is used, anything else keeps the role redirect
+  callbackUrl?: string,
 ) => {
   // validate
   if (!phone || !password)
@@ -62,13 +68,14 @@ export const login = async (
       phone,
       password,
       redirectTo:
-        userExist?.role === UserRole.ADMIN
+        safeCallbackUrl(callbackUrl) ??
+        (userExist?.role === UserRole.ADMIN
           ? "/zadmin"
           : userExist?.role === UserRole.OWNER
             ? "/dashboard"
             : userExist?.role === UserRole.CENTER
               ? "/center"
-              : "/",
+              : "/"),
       // redirectTo: LogInRedirect,
     });
   } catch (error) {

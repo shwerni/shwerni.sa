@@ -8,16 +8,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import CopyButton from "@/components/shared/copy-button";
 
 // prisma data
-import { participantAttendance } from "@/data/meetings";
+import { getMeetingForPage, participantAttendance } from "@/data/meetings";
+
+// handlers
+import type { MeetingViewer } from "@/handlers/meetings/meeting-access";
 
 // utils
 import { attendanceTime, meetingFullLabel, meetingTime, timeLabel } from "@/utils/date";
 
 // types
-import { MeetingWithOrder, Reservation } from "@/types/admin";
+import { Reservation } from "@/types/admin";
 
 // prisma types
-import { Meeting, Participant, UserRole } from "@/lib/generated/prisma/client";
+import { UserRole } from "@/lib/generated/prisma/client";
 
 // icons
 import {
@@ -36,9 +39,11 @@ interface Props {
   mid: string;
   date: string;
   time: string;
-  meeting: MeetingWithOrder;
+  // the participants carry no tokens (getMeetingForPage)
+  meeting: NonNullable<Awaited<ReturnType<typeof getMeetingForPage>>>;
   order: Reservation;
-  participant: string;
+  // who opens the page, with their own token only (meetingViewer)
+  viewer: MeetingViewer;
 }
 
 export default async function Meetings({
@@ -47,10 +52,15 @@ export default async function Meetings({
   date,
   order,
   meeting,
-  participant,
+  viewer,
 }: Props) {
-  // url
-  const url = meeting.rooms?.url || `/rooms/${mid}?participant=${participant}`;
+  // the viewer's own token, never anyone else's
+  const participant = viewer.participant;
+
+  // url (the fallback carries the client's own token only, never the consultant's)
+  const url =
+    meeting.rooms?.url ||
+    (viewer.side === "client" ? `/rooms/${mid}?participant=${participant}` : `/rooms/${mid}`);
 
   // meetings status
   const mStatus = meetingTime(time, date, meeting.time, meeting.date);
@@ -71,7 +81,7 @@ export default async function Meetings({
   const participants = meeting.participants;
 
   // participant role
-  const role = participants.find((p) => p.participant === participant)?.role;
+  const role = viewer.role;
 
   // return
   return (
@@ -249,7 +259,7 @@ export default async function Meetings({
 
         {/* attendance */}
         {participants.some(
-          (p) => p.attended || (p.participant === participant && mStatus),
+          (p) => p.attended || (p.role === role && mStatus),
         ) && (
           <div className="w-10/12 max-w-md mx-auto pt-4">
             <div className="flex items-center gap-1.5 mb-3">
@@ -260,8 +270,7 @@ export default async function Meetings({
             <ul className="space-y-2">
               {participants
                 .filter(
-                  (p) =>
-                    p.attended || (p.participant === participant && mStatus),
+                  (p) => p.attended || (p.role === role && mStatus),
                 )
                 .map((p) => (
                   <li

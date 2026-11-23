@@ -7,6 +7,7 @@ import {
   apiAuthPrefix,
   DynamicpublicRoutes,
 } from "@/routes";
+import { withCallbackUrl } from "@/utils/callback-url";
 
 // query values that mean "no value" (old redirects built ?collaboration=undefined)
 const EMPTY_PARAM = new Set(["", "undefined", "null"]);
@@ -70,8 +71,12 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // protected route — not logged in
-  if (!isLoggedIn) return NextResponse.redirect(new URL("/login", nextUrl));
+  // protected route — not logged in. the login comes back only to an allow-listed page
+  // (safeCallbackUrl: the consultant's chat); anything else is dropped and the login redirects by role
+  if (!isLoggedIn) {
+    const login = withCallbackUrl("/login", `${pathname}${nextUrl.search}`);
+    return NextResponse.redirect(new URL(login, nextUrl));
+  }
 
   return NextResponse.next();
 }

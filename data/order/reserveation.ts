@@ -28,7 +28,7 @@ import {
 } from "@/handlers/admin/order/payment";
 
 // utils
-import { orderInfoLabel } from "@/utils";
+import { orderInfoLabel, withoutParticipantTokens } from "@/utils";
 import { dateToString } from "@/utils/date";
 import { paidSplit } from "@/utils/order-split";
 import { dateTimeToString } from "@/utils/time";
@@ -583,8 +583,8 @@ export const getAllPaidOwnersOrdersByAuthor = async (author: string) => {
     // if not exist
     if (!orders) return null;
 
-    // return orders
-    return orders;
+    // return orders (to the consultant's browser: no participant tokens)
+    return withoutParticipantTokens(orders);
   } catch {
     return null;
   }
@@ -725,8 +725,8 @@ export const getPaidOwnersOrdersByAuthorAndMonth = async (
       },
     });
 
-    // Return orders
-    return orders;
+    // Return orders (to the consultant's browser: no participant tokens)
+    return withoutParticipantTokens(orders);
   } catch {
     return null;
   }

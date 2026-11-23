@@ -8,6 +8,9 @@ import prisma from "@/lib/database/db";
 import { PaymentState } from "@/lib/generated/prisma/enums";
 import { endOfMonth, parse, startOfMonth } from "date-fns";
 
+// utils
+import { withoutParticipantTokens } from "@/utils";
+
 // get all dues
 export const getAllDuesOwner = async (cid: number) => {
   try {
@@ -43,7 +46,8 @@ export const getAllDuesOwner = async (cid: number) => {
     });
 
     // return
-    return dues;
+    // (to the consultant's browser: no participant tokens)
+    return withoutParticipantTokens(dues);
   } catch {
     // return
     return null;
@@ -96,7 +100,8 @@ export const getDuesOwnenByMonth = async (range: string, cid: number) => {
     });
 
     // return
-    return dues;
+    // (to the consultant's browser: no participant tokens)
+    return withoutParticipantTokens(dues);
   } catch {
     return null;
   }

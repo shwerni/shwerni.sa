@@ -102,7 +102,8 @@ function ChatRow({ chat, role }: { chat: ChatPreview; role: UserRole }) {
   const displayName = isOwner ? chat.clientName : chat.consultant.name;
   const preview = lastMessagePreview(chat.lastMessage, role);
   const ago = chat.lastMessage ? timeAgo(chat.lastMessage.createdAt) : "";
-  const href = `/dashboard/chats/${chat.mid}?participant=${chat.myParticipantId ?? ""}`;
+  // the dashboard chat finds the consultant's side from his login, never from a token in the url
+  const href = `/dashboard/chats/${chat.mid}`;
 
   return (
     <Link href={href} className="group block">

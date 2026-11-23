@@ -2,7 +2,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // prisma data
-import { getMeetingAccess, getMeetingData } from "@/data/chats";
+import { getMeetingData } from "@/data/chats";
+
+// handlers
+import { chatSide } from "@/handlers/meetings/meeting-access";
 
 interface Params {
   params: Promise<{ mid: string }>;
@@ -11,15 +14,13 @@ interface Params {
 export async function GET(req: NextRequest, { params }: Params) {
   const { mid } = await params;
 
-  // same rule as the /chats/[mid] page: the caller must hold a participant token of this meeting
+  // the client by their own token (no login); the consultant's token only with his login on
+  // this order (chatSide)
   const participant = req.nextUrl.searchParams.get("participant") ?? "";
-  const access = await getMeetingAccess(mid);
-  const isParticipant =
-    !!participant &&
-    !!access?.participants.some((p) => p.participant === participant);
+  const side = await chatSide(mid, participant, "chat-route");
 
   // another meeting looks exactly like a missing one
-  if (!isParticipant)
+  if (!side)
     return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
 
   // get meeting data

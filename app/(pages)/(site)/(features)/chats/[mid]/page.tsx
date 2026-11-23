@@ -1,11 +1,14 @@
 // React & Next
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 // componenets
 import ChatClient from "@/components/clients/chats/chat";
 
 // prisma data
 import { getChatMeeting } from "@/data/chats";
+
+// handlers
+import { meetingViewer } from "@/handlers/meetings/meeting-access";
 
 // prisma types
 import { PaymentState } from "@/lib/generated/prisma/enums";
@@ -33,16 +36,21 @@ export default async function MeetingChatPage({ params, searchParams }: Props) {
   // validate
   if (meeting.orders.payment?.payment !== PaymentState.PAID) notFound();
 
-  // current participant
-  const currentParticipant = meeting.participants.find(
-    (p) => p.participant === participantId,
-  );
+  // who opens the chat: a client by their own token (no login); the consultant only by his
+  // login, on his dashboard chat (an old link with his token, or none, goes there)
+  const viewer = await meetingViewer(mid, participantId || undefined, "chats-page");
 
   // validate
-  if (!currentParticipant) notFound();
+  if (!viewer) notFound();
 
   // consultant
   const consultant = meeting.orders.consultant;
+
+  // the consultant's side lives on the dashboard (the proxy asks for the login and comes back).
+  // a consultant with no account can't log in: his token keeps this page (logged in meetingViewer)
+  if (viewer === "login" || (viewer.side === "consultant" && consultant.userId)) {
+    redirect(`/dashboard/chats/${mid}`);
+  }
 
   return (
     <UploadThingWrapper>
@@ -60,8 +68,8 @@ export default async function MeetingChatPage({ params, searchParams }: Props) {
           gender: consultant.gender,
           centerSlug: consultant.center?.slug ?? null,
         }}
-        participantId={participantId}
-        senderRole={currentParticipant.role}
+        participantId={viewer.participant}
+        senderRole={viewer.role}
       />
     </UploadThingWrapper>
   );

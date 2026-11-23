@@ -151,11 +151,33 @@ export const orderInfoLabel = (
   )} by (${user ? user.name + " - " + user?.role : "new"})`;
 };
 
-// meeting url
+// meeting url (the client's: their participant token is the access)
 export const meetingUrl = (mid: string, participant: string) => {
   // return
   return `${mainRoute}meetings/${mid}?participant=${participant}`;
 };
+
+// the consultant's meeting url: no token, the page knows him by his login (CLAUDE.md)
+export const consultantMeetingUrl = (mid: string) => `${mainRoute}meetings/${mid}`;
+
+// orders sent to a browser without their participant tokens (credentials: the client's token is
+// the client's chat access). the rows keep their shape, role, attendance and time; the token is ""
+// (no token matches "", every check refuses an empty one)
+export const withoutParticipantTokens = <
+  O extends { meeting?: { participants?: { participant: string }[] }[] | null },
+>(
+  orders: O[],
+): O[] =>
+  orders.map(
+    (order) =>
+      ({
+        ...order,
+        meeting: order.meeting?.map((meeting) => ({
+          ...meeting,
+          participants: meeting.participants?.map((p) => ({ ...p, participant: "" })),
+        })),
+      }) as O,
+  );
 
 // get participant by role
 export const findParticipant = (

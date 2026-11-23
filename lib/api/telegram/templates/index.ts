@@ -1,5 +1,5 @@
 // utils
-import { meetingUrl } from "@/utils";
+import { consultantMeetingUrl, meetingUrl } from "@/utils";
 import { meetingSentence, riyadhDateString } from "@/utils/date";
 
 // prisma types
@@ -115,10 +115,13 @@ export const serviceTelegramNewOrder = (data: Reservation) => {
 
   // 3. Add meeting links individually if the meeting ID and respective tokens exist
   if (meeting?.[0]?.mid) {
+    // the consultant's link carries no token (the page needs his login); a consultant with no
+    // account (a center consultant) can't log in and keeps his token
     if (owner) {
-      meetingDetails.push(
-        `• <a href="${meetingUrl(meeting[0].mid, owner)}">🔗 رابط الاجتماع للمستشار</a>`,
-      );
+      const ownerUrl = consultant?.userId
+        ? consultantMeetingUrl(meeting[0].mid)
+        : meetingUrl(meeting[0].mid, owner);
+      meetingDetails.push(`• <a href="${ownerUrl}">🔗 رابط الاجتماع للمستشار</a>`);
     }
     if (user) {
       meetingDetails.push(

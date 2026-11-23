@@ -57,21 +57,25 @@ const riyadhDayStart = (now: number) => {
 };
 
 /**
- * the website's whatsapp notice to the receiver (template session_chat_notify, a link with the
- * receiver's participant token), unchanged
+ * the website's whatsapp notice to the receiver (template session_chat_notify, its link is
+ * /chats/{suffix}):
+ * - to the client: their own participant token (the link is their access), unchanged
+ * - to the consultant: no token (/chats/{mid} sends him to his dashboard chat, behind his login).
+ *   a consultant with no account (a center consultant) can't log in and keeps his token
  * @param notice the saved message and its meeting
  */
 const sendChatWhatsapp = async ({ sender, meeting }: ChatMessageNotice) => {
   const order = meeting.orders;
   const toClient = sender === UserRole.OWNER;
   const receiverToken = meeting.participants.find((p) => p.role !== sender)?.participant;
+  const tokenInLink = toClient || !order.consultant.userId;
 
   await notificationNewChatMessage(
     toClient ? order.phone : order.consultant.phone,
     toClient ? order.name : order.consultant.name,
     meeting.orderId,
     meeting.session,
-    `${meeting.mid}?participant=${receiverToken || ""}`,
+    tokenInLink ? `${meeting.mid}?participant=${receiverToken || ""}` : meeting.mid,
   );
 };
 
