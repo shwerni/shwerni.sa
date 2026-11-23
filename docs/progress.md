@@ -5985,3 +5985,27 @@ Plan: session durations and minimum prices move from code to DB settings (approv
 **Open:**
 - Next.js 16.4.3 has moderate advisories fixed in 16.4.6 (several about `use cache`: GHSA-mfr8-8qww-v76h, GHSA-vc7v-qv4w-wrv8, GHSA-rhh4-g77r-r9qj, GHSA-vvgp-ww4w-46vf; plus GHSA-7qx7-33qx-rqx2, GHSA-f3mh-rxg3-f5g2, GHSA-pc58-hwjq-p385). Not upgraded (Ziad decides).
 - `getPricingSettings` takes no arguments and no root params, so the cache-leak advisories about root params and binary arguments don't apply to it.
+
+## Security: Next.js 16.4.3 → 16.4.6, React 19.2.7 → 19.2.9 (2026-11-23)
+
+Asked by Ziad, pinned with npm (not `next upgrade --agent=security`).
+
+- `package.json` (exact versions): `next` 16.4.6, `eslint-config-next` 16.4.6, `react` 19.2.9, `react-dom` 19.2.9 (19.2.9 is the newest 19.2.x, published 2026-10-14; Next 16.4.6 accepts react ^19). `@types/react` / `@types/react-dom` unchanged.
+- `package-lock.json`: only `next`, `@next/env`, `@next/eslint-plugin-next`, the `@next/swc-*` binaries, `eslint-config-next`, `react` and `react-dom` moved; nothing else.
+- `npm audit`: `next`, `react` and `react-dom` are no longer listed, so the seven Next advisories (GHSA-mfr8-8qww-v76h, GHSA-vc7v-qv4w-wrv8, GHSA-7qx7-33qx-rqx2, GHSA-f3mh-rxg3-f5g2, GHSA-pc58-hwjq-p385, GHSA-rhh4-g77r-r9qj, GHSA-vvgp-ww4w-46vf) are gone. Still open (unchanged, website backlog #23): 49 items, 4 critical (`next-auth` / `@auth/core` / `@auth/prisma-adapter`, `better-auth`), 20 high (e.g. `uploadthing`, `prisma` / `@prisma/config`, `zod`, `nanoid`, `puppeteer-core`, `postcss`, `vite`), 22 moderate, 3 low.
+
+**Verified:**
+- `npx tsc --noEmit` (clean);
+- `npx eslint .`: 40 errors, the same 40 as before the upgrade (react-hooks rules in files no task touched; `eslint-plugin-react-hooks` 7.1.1, unchanged);
+- the throwaway vitest suite: 644 of 644;
+- `npm run build` (Next.js 16.4.6, no security notice);
+- manifest check (only `data/event.ts`, `lib/api/google.ts`);
+- `"use cache"` paths, on the production build run locally (`next start`, with a throwaway `DASHBOARD_SECRET` set on the command line, never read from the env file):
+  - home 200 with the cached consultants carousel;
+  - `/consultants/168` 200, with its booking prices streamed (`cost` 30 / 45 / 60) and the campaign badge read;
+  - `/event`, `/scales`, `/articles` 200;
+  - `POST /api/revalidate`: 401 without or with a wrong secret, 400 for a bad body, and `{ ok: true }` for the `consultants`, `event-campaigns`, `pricing-settings` and `consultant:168` tags;
+  - the pages answer 200 after the purges;
+  - no errors in the server log.
+
+**Open:** the build's notice about `cacheComponents` without a `partialPrefetching` option (unchanged from 16.4.3; Ziad decides).
