@@ -6016,3 +6016,21 @@ Docs only.
 
 - `docs/pricing-settings-plan.md`: "Requirement before step 4" (how slots are built and checked today, what breaks for 20 / 45 / 90 minutes, what must change before a new catalog duration is offered). Step 2 adds a guard: the settings parser drops any catalog entry over 60 minutes (that entry alone, with the reason logged) until the real-overlap booking work ships; tested. `docs/pricing-settings-contract.md` says the same.
 - **Website backlog #25 (High):** package next-session selection (`data/sessions.ts`) has no conflict check, so it can double-book today. Its own step after the auth upgrades, before pricing step 2.
+
+## Security: next-auth 5.0.0-beta.32, @auth/prisma-adapter 2.11.3 (2026-11-23)
+
+Fix step 1 of the audit report (approved by Ziad). Both pinned exactly, together (the adapter pins `@auth/core` exactly).
+
+- `package.json`: `next-auth` `^5.0.0-beta.30` (locked beta.31) → `5.0.0-beta.32`; `@auth/prisma-adapter` `^2.11.1` (locked 2.11.2) → `2.11.3`.
+- `package-lock.json`: `@auth/core` 0.41.2 → **0.41.3** (one copy, shared by both); its own `oauth4webapi` 3.8.6 → 3.8.9 and `@panva/hkdf` 1.2.1 hoisted (same version). Nothing else moved.
+- `npm audit`: `next-auth`, `@auth/core` and `@auth/prisma-adapter` are no longer listed, so GHSA-8fpg-xm3f-6cx3, GHSA-7rqj-j65f-68wh, GHSA-xmf8-cvqr-rfgj and GHSA-x445-f3h2-j279 are gone. Criticals 4 → 1 (better-auth, fix step 2). Totals 46: 1 critical, 20 high, 22 moderate, 3 low.
+- No code change; the dashboard was already on beta.32.
+
+**Verified:** `npx tsc --noEmit`, eslint on the auth files (`auth.ts`, `auth.config.ts`, `proxy.ts`, `lib/auth/server.ts`, `lib/auth/guards.ts`, `lib/safe-action.ts`), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 667 of 667; new (23):
+- **website login through the real auth.js handlers** (csrf → `callback/credentials` → `session`): the right password gives a session with the id, phone and role; a wrong password, an unknown phone, a bot, an unverified phone, a deleted account and a missing csrf token give no session;
+- **the middleware's real `getToken`**: six malformed `Authorization` headers (`Bearer`, `Bearer `, a non-jwt, `%%%`, `Basic`, a 5000-character token) on `/dashboard` redirect to `/login` without a crash; a real session opens the protected route and sends `/login` home; a forged cookie → login;
+- **a role-protected server action** (`saveCenterProfile`, `auth: [CENTER]`, the real `createAction` and session helpers): a center member saves for their own center; no session → unauthorized; USER / OWNER / ADMIN → forbidden; a deleted account with a valid jwt → unauthorized; no membership → forbidden; an auth object holding only an error (the GHSA-8fpg shape) → unauthorized; bad input → invalid_input.
+
+The existing regression tests ran in the same suite: the session checks and deleted-account refusal (`deletion-session`, `deletion-web`), the Pay snapshot baseline, and the app quote / create routes (`booking3`, `booking5`, `booking6`).
+
+**Next:** fix step 2 (better-auth 1.7.27), then the package session conflict check (backlog #25), then pricing step 2.
