@@ -48,6 +48,9 @@ model User {
   mobileSessions      MobileSession[]
   mobileAccounts      MobileAccount[]
   mobileEmailVerified Boolean            @default(false) @map("mobile_email_verified")
+  // better-auth's phoneNumberVerified (the app's phone-number plugin). kept equal to
+  // phoneVerified != null: the website's writes set both, the app's hook stamps phoneVerified
+  mobilePhoneVerified Boolean            @default(false) @map("mobile_phone_verified")
   notifications       Notification[]
   pushTokens          PushToken[]
   // customer service shifts

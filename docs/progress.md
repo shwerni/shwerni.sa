@@ -6066,3 +6066,30 @@ Also in the same suite: the Pay baseline, the app quote and create routes, and t
 **Noticed, not changed:** our config maps the plugin's `phoneNumberVerified` to a `mobilePhoneVerified` field (`lib/auth/mobile-auth.ts`), which isn't in the Prisma User model. The same in 1.6 and 1.7; worth checking in production separately.
 
 **Next:** the package session conflict check (backlog #25), then pricing step 2.
+
+## Fix: the app's auth writes to User failed Prisma validation; mobilePhoneVerified added, website phoneVerified kept in sync (2026-11-23)
+
+Approved by Ziad (option c). Found while checking the `mobilePhoneVerified` mapping: better-auth's user table mapped `createdAt` / `updatedAt` to columns the User model doesn't have (`created_at` / `updated_at`), and `phoneNumberVerified` to a missing `mobilePhoneVerified`. Prisma refuses unknown fields before sending ("Unknown argument"), so **every better-auth write to User failed**: app OTP sign-up, OTP login of an existing account and phone change (a 500 from `/api/mobile/auth/phone-number/verify`), in 1.6.23 as in 1.7.27. Password login and legacy password login didn't write to User and worked. The memory-adapter tests couldn't see it.
+
+- `prisma/models/user.prisma`: `mobilePhoneVerified Boolean @default(false) @map("mobile_phone_verified")`. `prisma validate` and `generate` run. **Ziad runs `prisma db push`.**
+- `lib/auth/mobile-auth.ts`:
+  - `user.fields`: `emailVerified` → `mobileEmailVerified`, `createdAt` → `created_at`, `updatedAt` → `updated_at`. (`phoneNumberVerified` → `mobilePhoneVerified` stays in the phoneNumber plugin's schema option, where better-auth takes plugin field mappings; `user.fields` only accepts the core fields.)
+  - `additionalFields.phoneVerified` (date, `input: false`).
+  - `databaseHooks.user.create.before` / `update.before`: when `phoneNumberVerified` becomes true, `phoneVerified` = now for a sign-up or a phone change (the phone is in the write), and = now only while empty for an existing account verifying its own phone (looked up by the endpoint body's phone). The role guard is unchanged.
+- Website → app sync (every write of `User.phoneVerified` in this repo):
+  - set to now, and `mobilePhoneVerified: true` added: `handlers/auth/verify.ts` (website OTP verification), `handlers/auth/reset.ts` (website password reset), `app/api/mobile/auth/set-password/route.ts`, `scripts/seed-test-center.ts` (git-ignored, local only);
+  - cleared, and `mobilePhoneVerified: false` added: `handlers/auth/userInfo.ts` (website phone change before verification), `app/api/mobile/account/profile/phone/route.ts`, `data/account-deletion.ts`;
+  - `data/user.ts` only filters on it (no write).
+- **Permanent guard:** `docs/tests/check-better-auth-fields.ts` (`npx tsx docs/tests/check-better-auth-fields.ts`, no database). Every field better-auth maps on user, session, account and verification must exist in the generated client's scalar field enums; it exits 1 and lists each bad mapping. Run on the old config it reports `createdAt` and `updatedAt`; on the new one it passes.
+
+**Verified:** `npx tsc --noEmit`, eslint on the changed files (no errors; 5 earlier unused-variable warnings in `handlers/auth/userInfo.ts` / `verify.ts`), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`), the guard script. Throwaway vitest 699 of 699; new (14):
+- **against the real generated prisma client** (our real config and better-auth's real prisma adapter; an unreachable address, so writes are validated by prisma for real and nothing is sent): sign-up on OTP, OTP verify of an existing account, phone change and `updateUser({ name })` all pass validation and carry `created_at` / `updated_at` / `mobilePhoneVerified`; `phoneVerified` stamped on sign-up, on an existing account with an empty flag, never moved when already set, always moved on a phone change; `role` still refused;
+- website OTP verification and password reset set both flags, the website phone change clears both, a wrong code writes nothing (each write validated by the real client);
+- the guard on the real config, and failing on a bad user mapping, a bad session mapping and a missing model.
+
+The harness timeout went from 5 s to 30 s (the in-memory postgres and better-auth start slowly when all 54 files run together).
+
+**For Ziad:**
+1. `prisma db push` (adds `users.mobile_phone_verified`).
+2. Backfill: `UPDATE users SET mobile_phone_verified = (phone_verified IS NOT NULL);`
+3. The dashboard schema needs the new column (`mobilePhoneVerified`) in its own session.

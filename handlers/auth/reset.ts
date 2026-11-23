@@ -125,6 +125,8 @@ export const verifyReset = async (
     where: { id: userExist?.id },
     data: {
       phoneVerified: new Date(),
+      // the app's flag (better-auth's phoneNumberVerified) follows the website's
+      mobilePhoneVerified: true,
       phone: phone,
       password: hashedPassword,
     },

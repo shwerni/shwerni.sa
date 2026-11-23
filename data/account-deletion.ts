@@ -218,6 +218,7 @@ export async function anonymizeAccount(userId: string): Promise<void> {
         image: null,
         password: null,
         phoneVerified: null,
+        mobilePhoneVerified: false,
         emailVerified: null,
         deletedAt: new Date(),
       },

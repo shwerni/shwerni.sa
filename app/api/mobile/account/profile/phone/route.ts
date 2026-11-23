@@ -51,7 +51,8 @@ export const POST = createPostRoute(async (request) => {
           { phoneChangedAt: { lte: cooldownThreshold() } },
         ],
       },
-      data: { phone, phoneVerified: null, phoneChangedAt: new Date() },
+      // the new phone isn't verified yet, for the website or the app
+      data: { phone, phoneVerified: null, mobilePhoneVerified: false, phoneChangedAt: new Date() },
     });
 
     if (count === 0) {

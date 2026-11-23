@@ -91,6 +91,8 @@ export const verifyToken = async (token: string, otp: string) => {
       where: { id: userExist?.id },
       data: {
         phoneVerified: new Date(),
+        // the app's flag (better-auth's phoneNumberVerified) follows the website's
+        mobilePhoneVerified: true,
         phone,
       },
     });

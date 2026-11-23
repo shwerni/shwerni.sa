@@ -68,6 +68,8 @@ export const unauthorizedPhoneChangeByToken = async (
       data: {
         phone: phone.trim(),
         phoneVerified: null,
+        // the new phone isn't verified yet, for the app either
+        mobilePhoneVerified: false,
         updated_at: new Date(),
       },
     });

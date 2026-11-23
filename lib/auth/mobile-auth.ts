@@ -21,6 +21,41 @@ const isPhoneChange = (ctx: { path?: string; body?: unknown }) =>
   (ctx.body as { updatePhoneNumber?: boolean } | undefined)
     ?.updatePhoneNumber === true;
 
+// the website's "phone verified" (User.phoneVerified, a date) follows better-auth's own
+// phoneNumberVerified (User.mobilePhoneVerified), so a phone verified in the app counts on the
+// website too (next-auth's signIn, the user pages, the legacy password login). the hooks get
+// better-auth's logical field names (phoneNumber = User.phone)
+type UserWrite = Record<string, unknown>;
+type HookContext = { body?: unknown } | null | undefined;
+
+/**
+ * the phoneVerified stamp for a user write, or null for none: when phoneNumberVerified becomes
+ * true, a new phone (sign-up, or a phone change) is verified now; an existing phone verified again
+ * (an OTP login) is stamped only while the website's flag is empty, never moved
+ * @param data the write, as better-auth hands it to the hook
+ * @param ctx the endpoint context (its body names the phone being verified)
+ */
+const phoneVerifiedStamp = async (
+  data: UserWrite,
+  ctx: HookContext,
+): Promise<{ phoneVerified: Date } | null> => {
+  if (data.phoneNumberVerified !== true) return null;
+
+  // a sign-up or a phone change: the phone in this write is the one just verified
+  if (typeof data.phoneNumber === "string" && data.phoneNumber) {
+    return { phoneVerified: new Date() };
+  }
+
+  // an existing account verifying its own phone: only fill an empty flag
+  const phone = (ctx?.body as { phoneNumber?: unknown } | undefined)?.phoneNumber;
+  if (typeof phone !== "string" || !phone) return null;
+  const user = await prisma.user.findUnique({
+    where: { phone },
+    select: { phoneVerified: true },
+  });
+  return user && !user.phoneVerified ? { phoneVerified: new Date() } : null;
+};
+
 /**
  * isolated better auth instance for the mobile app
  * shares user identity (phone/email) with the web next-auth flow,
@@ -35,7 +70,7 @@ export const mobileAuth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        before: async (user) => {
+        before: async (user, ctx) => {
           const allowedRoles = ["USER", "OWNER"];
           const role = allowedRoles.includes(
             (user as { role?: string }).role ?? "",
@@ -43,17 +78,24 @@ export const mobileAuth = betterAuth({
             ? (user as { role?: string }).role
             : "USER";
 
-          return { data: { ...user, role } };
+          // sign-up on otp verification: the website's flag too
+          const stamp = await phoneVerifiedStamp(user as UserWrite, ctx);
+
+          return { data: { ...user, role, ...stamp } };
         },
       },
       update: {
         // role is an input field only so sign-up can pick USER or OWNER;
         // no client update (e.g. /update-user) may change it afterwards
-        before: async (data) => {
+        before: async (data, ctx) => {
           if ("role" in data)
             throw new APIError("BAD_REQUEST", {
               message: "role is not allowed to be set",
             });
+
+          // an otp login or a phone change: the website's flag too
+          const stamp = await phoneVerifiedStamp(data as UserWrite, ctx);
+          if (stamp) return { data: { ...data, ...stamp } };
         },
       },
     },
@@ -64,8 +106,12 @@ export const mobileAuth = betterAuth({
 
   user: {
     modelName: "User",
+    // better-auth's user fields → our User columns (Prisma refuses any name the model lacks).
+    // phoneNumberVerified → mobilePhoneVerified is mapped in the phoneNumber plugin's schema below
     fields: {
       emailVerified: "mobileEmailVerified",
+      createdAt: "created_at",
+      updatedAt: "updated_at",
     },
     additionalFields: {
       role: {
@@ -73,6 +119,12 @@ export const mobileAuth = betterAuth({
         required: false,
         defaultValue: "USER",
         input: true,
+      },
+      // the website's "phone verified" date, written only by the hooks above (never from input)
+      phoneVerified: {
+        type: "date",
+        required: false,
+        input: false,
       },
     },
   },
