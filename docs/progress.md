@@ -5950,3 +5950,38 @@ Reported on meeting `ZJnrk9d0PL`: `POST /api/mobile/owner/chats/{mid}/messages` 
 **Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 604 of 604; new (8), `ensureMeetingParticipant` on pglite (its advisory lock included): an existing token reused, a missing OWNER made (one, only that side, reused next time), no participants at all; the routes: the consultant sends in a meeting without an OWNER participant (was the 500), the client without a USER one, and nothing is made for another consultant's meeting, an unapproved owner, another client's meeting, a closed chat or a bad body.
 
 **Open (Ziad):** the counts of meetings without participants (query in the reply); such meetings may also have no meeting room / link (the same failure), which this fix doesn't touch.
+
+## Pricing settings, step 1: settings and pure helpers (2026-11-22)
+
+Plan: session durations and minimum prices move from code to DB settings (approved by Ziad with changes; plan in `C:\Users\ABO ELMAGD\.claude\plans\stateless-sleeping-mountain.md`). Step 1 only: no behavior change (nothing calls the new code yet).
+
+- `constants/pricing.ts`:
+  - `PricingSettings` / `DurationCatalogEntry` types;
+  - the settings category and keys (`pricing`: `durationCatalog`, `defaultDurations`, `maxPackageDiscountPercent`);
+  - the defaults, today's values (catalog 30/120, 45/155, 60/175; default set [30, 60]; package discount cap 40) with `defaultPricingSettings()` (a fresh copy each call);
+  - `PACKAGE_SESSION_MINUTES = 45`, `REQUIRED_CATALOG_MINUTES` (instant 30, packages 45), `LEGACY_COST_COLUMNS`;
+  - the cache tags `PRICING_SETTINGS_TAG = "pricing-settings"` and `consultantPricingTag(cid) = "consultant:<cid>"`.
+- `utils/pricing.ts` (pure, client-safe):
+  - `parsePricingSettings`: each key parsed with zod on its own; a missing or invalid key falls back alone, with the reason; the catalog must hold 30 and 45; the default set must be inside the catalog;
+  - `effectiveDurations` (an override kept to the catalog, else the default set);
+  - `minimumFor`, `catalogEntryFor`;
+  - `createCostsSchema(settings, durations)` (one required price per effective length, its minimum and optional maximum, the website's message);
+  - `readCosts`: **during the transition the legacy cost30 / cost45 / cost60 columns win over the costs json; the json is the source only for lengths without a column**;
+  - `toLegacyColumns` (the dual-write).
+- `data/admin/settings/pricing.ts` `getPricingSettings()`: a `"use cache"` read (`cacheTag("pricing-settings")`, `cacheLife("days")`) of the `pricing` rows, parsed. A database error throws out of the cached part (never cached) and the exported getter answers the defaults.
+
+**Verified:** `npx tsc --noEmit`, eslint (clean), `npm run build` (the first run stopped on Next's security notice about 16.4.3 after compiling; the retry passed), manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 644 of 644; new (40):
+- the defaults equal today's values, and are copies;
+- no rows → the defaults; valid rows used and sorted;
+- an invalid key falls back alone (catalog: duplicates, no 30, no 45, max ≤ min, minutes out of range, unknown field, not an array, empty; default set: empty, duplicates, non-integers, string, outside the catalog; cap: out of range, non-integer, string);
+- effective sets (none / override / override outside the catalog);
+- the cost schema (120 accepted, 119 refused with the message, coercion, a maximum, unknown lengths dropped);
+- **the precedence test: json 30=200, column 250 → 250**;
+- the json for other lengths, junk json ignored, the dual-write columns;
+- the getter's tag and lifetime, its query, invalid rows logged, and a database error → the defaults, with the next call querying again.
+
+**Blocker, step 4 (booking enforcement):** it does not ship until Ziad has set per-consultant overrides in the database for every consultant who sells 45 or any other non-default duration, center consultants included. Before coding step 4: list every flow through `quoteBooking` and confirm instant (30), pleading (60) and reconciliation (60) are exempt or always pass, with a test each.
+
+**Open:**
+- Next.js 16.4.3 has moderate advisories fixed in 16.4.6 (several about `use cache`: GHSA-mfr8-8qww-v76h, GHSA-vc7v-qv4w-wrv8, GHSA-rhh4-g77r-r9qj, GHSA-vvgp-ww4w-46vf; plus GHSA-7qx7-33qx-rqx2, GHSA-f3mh-rxg3-f5g2, GHSA-pc58-hwjq-p385). Not upgraded (Ziad decides).
+- `getPricingSettings` takes no arguments and no root params, so the cache-leak advisories about root params and binary arguments don't apply to it.
