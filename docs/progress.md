@@ -6034,3 +6034,35 @@ Fix step 1 of the audit report (approved by Ziad). Both pinned exactly, together
 The existing regression tests ran in the same suite: the session checks and deleted-account refusal (`deletion-session`, `deletion-web`), the Pay snapshot baseline, and the app quote / create routes (`booking3`, `booking5`, `booking6`).
 
 **Next:** fix step 2 (better-auth 1.7.27), then the package session conflict check (backlog #25), then pricing step 2.
+
+## Security: better-auth 1.7.27 (2026-11-23)
+
+Fix step 2 of the audit report (approved by Ziad). Pinned exactly. **No code change and no database change needed.**
+
+**Release notes checked (1.6.23 → 1.7.27, GitHub releases and the published packages compared side by side):**
+- **Database:** the core tables 1.7.27 reads and writes (user, session, account, verification) have exactly the same fields as in 1.6.23. The 1.7.0 notes say accounts need `Account.issuer`, but that column existed only in 1.7.0–1.7.2: 1.7.27 never writes it, and its own schema check warns about it as a leftover. `MobileSession`, `MobileAccount` and `MobileVerification` (our renamed models) are unchanged.
+- **phoneNumber plugin** (`lib/auth/mobile-auth.ts`): the same options (`otpLength`, `expiresIn`, `sendOTP`, `sendPasswordResetOTP`, `signUpOnVerification.getTempEmail`, `schema.user.fields`) and the same endpoints and responses (`/phone-number/send-otp`, `/phone-number/verify`, `/sign-in/phone-number`, the password reset pair). New in 1.7: the plugin refuses a user created or updated with an unverified phone; our flows only set a phone after verifying it, so nothing changes for us.
+- **databaseHooks**, **`createAuthMiddleware` / `getSessionFromCtx`** (the phone-change cooldown hooks): the same exports and signatures.
+- **`legacyPasswordLogin`** (`lib/auth/legacy-password-login.ts`): `createAuthEndpoint`, `setSessionCookie`, `internalAdapter.createSession`, `ctx.context.password.hash` and `ctx.error` keep their signatures; the zod 3 body schema still validates.
+- **Other breaking changes in 1.7** (OAuth / SSO / MCP / SCIM / device flow / Electron / generic OAuth / captcha paths / dynamic `baseURL`) touch nothing we use. Custom-scheme `trustedOrigins` (`shwerni://`, `exp://`) carry no host, so they match as before. The session cookie name is unchanged.
+
+**Packages:**
+- `package.json`: `better-auth` `^1.6.23` → `1.7.27`.
+- `package-lock.json`: better-auth and its own packages (`@better-auth/core`, the adapters, `better-call` 1.3.7 → 1.4.6, its bundled `zod` 4.4.3 → 4.6.7), plus `@better-auth/utils` 0.5.1, `@better-fetch/fetch` 1.3.3, `@noble/hashes` 2.4.0, `kysely` 0.29.9, `nanostores` 1.5.5, `rou3` 0.9.2, `set-cookie-parser` 3.2.3; `@cloudflare/workers-types` dropped. Nothing else.
+- `npm audit`: `better-auth` and its drizzle / kysely adapters are no longer listed (GHSA-965c-763c-88jm, GHSA-r4xp-prcw-77qf, GHSA-q84f-53jg-9ppm, GHSA-44jh-23m7-hpcf gone). **Criticals 0.** Totals 43: 20 high, 22 moderate, 1 low. zod is still listed only for our own zod 3.25.76 (its fix is zod 4, a separate project).
+
+**Verified:** `npx tsc --noEmit`, eslint on the auth files, `npm run build`, manifest check (only `data/event.ts`, `lib/api/google.ts`). Throwaway vitest 685 of 685. New (18) run **our real `mobileAuth` config on better-auth 1.7.27**; only the storage is better-auth's own memory adapter, sharing a store with a small fake prisma for the code that reads prisma directly:
+- OTP send (our whatsapp template, the user's name when the account exists) and verify (a wrong code refused);
+- sign-up on verification (a USER account, the phone in `User.phone`, the temp email);
+- the session through `x-session-token` (`requireMobileUser`: valid, missing, forged); logout ends it; a deleted account → 401;
+- the owner guards (USER → 403, an OWNER, an approved owner's consultant, not approved / no consultant → 403); `role` through `/update-user` refused;
+- the legacy password plugin (a session and the mobile credential once; the second time 400; wrong password, unverified phone, no password and a malformed body refused);
+- the phone-change cooldown (changed and stamped; recent change → 403 with the message; a wrong code doesn't start the cooldown).
+
+Also in the same suite: the Pay baseline, the app quote and create routes, and the website auth regression from fix step 1.
+
+**For the app session:** the app uses `better-auth` and `@better-auth/expo` 1.6.23 as clients (`lib/auth/auth-client.ts`). They keep working against the 1.7.27 server: the same endpoint paths, response shapes and cookie name. A client bump is optional. When it's done, `@better-auth/expo` 1.7 makes `getCookie()` return a promise, and custom storage needs both the synchronous and asynchronous SecureStore methods.
+
+**Noticed, not changed:** our config maps the plugin's `phoneNumberVerified` to a `mobilePhoneVerified` field (`lib/auth/mobile-auth.ts`), which isn't in the Prisma User model. The same in 1.6 and 1.7; worth checking in production separately.
+
+**Next:** the package session conflict check (backlog #25), then pricing step 2.
