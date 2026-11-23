@@ -6329,3 +6329,31 @@ where u.role = 'OWNER' and c.approved = 'APPROVED'
 ### High: consultant tokens reachable from a link without a consultant login (status)
 - `/meetings`, the WhatsApp chat notice, `/chats`, the three actions, `/dashboard/chats`, consultant-busy, Telegram: **fixed in this step** (accountless center consultants excepted, logged, backlog #29).
 - Also fixed: the WhatsApp meeting-link button, the dashboard order cards and chat list, and the client tokens in the consultant's orders and dues.
+
+## Website session lifetime: 90 days (2026-11-23)
+
+Asked by Ziad.
+- `auth.ts`: `session: { strategy: "jwt", maxAge: SESSION_MAX_AGE_SECONDS }`.
+- The value lives in the new `constants/session.ts` (`SESSION_MAX_AGE_SECONDS = 90 * 24 * 60 * 60`).
+- `jwt.maxAge` isn't set anywhere, so the token's `exp` follows `session.maxAge` (`@auth/core` `lib/init.js:83`).
+- Nothing else changed. The app's Better Auth sessions are separate.
+
+**Who gets 90 days: only from their next login.** Both the cookie's `Expires` and the token's `exp` claim are set when the token is signed, and decoding checks `exp`. Existing sessions end 30 days after their last login, as before.
+
+**Sliding: no, in our setup** (not changed):
+- `auth()` with no arguments (server components, actions, routes; `lib/auth/server.ts` `userServer`) re-signs the token but never writes the cookie (`next-auth/lib/index.js:106`, `getSession(...).then(parseSessionResponse)`);
+- `proxy.ts` uses `getToken`, which only reads;
+- the website has no `useSession` or `SessionProvider` (only `signOut` from `next-auth/react`), so nothing calls `/api/auth/session` (`app/api/auth/[...nextauth]/route.ts`), the one path that would re-issue the cookie.
+- A session therefore lasts exactly 90 days from the login.
+
+**Verified**
+- tsc; eslint on `auth.ts` and `constants/session.ts`.
+- Throwaway vitest 764 of 764, with 2 new tests:
+  - the config handed to NextAuth is `{ strategy: "jwt", maxAge: 7776000 }` with no `jwt.maxAge`;
+  - the real `@auth/core` session action with that config re-signs a 30-day token with `exp` and cookie `Expires` 90 days out.
+- The website login tests pass.
+- `npm run build` (auth-field guard first); the manifest check prints only `data/event.ts` and `lib/api/google.ts`.
+
+**Open (Ziad):**
+- A longer session means a stolen cookie lasts longer. The `jwt` callback doesn't compare the token's `iat` with `passwordChangedAt` / `phoneChangedAt`, so a password reset doesn't sign out other devices.
+- A deleted account is already refused (`userServer` → `isAccountDeleted`).

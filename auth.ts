@@ -14,6 +14,9 @@ import { UserRole } from "@/lib/generated/prisma/enums";
 // prisma  data
 import { getUserById, getUserByPhone } from "@/data/user";
 
+// constants
+import { SESSION_MAX_AGE_SECONDS } from "@/constants/session";
+
 export const {
   handlers: { GET, POST },
   auth,
@@ -76,6 +79,7 @@ export const {
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   adapter: PrismaAdapter(prisma) as any,
-  session: { strategy: "jwt" },
+  // 90 days from the login (the token and the cookie); see constants/session.ts
+  session: { strategy: "jwt", maxAge: SESSION_MAX_AGE_SECONDS },
   ...authConfig,
 });
