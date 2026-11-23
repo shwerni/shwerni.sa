@@ -7,7 +7,7 @@ import { z } from "zod";
 import { ensureMeetingParticipant } from "@/data/rooms";
 import { isBookableSlot } from "@/data/booking/slots";
 import { checkMeetingTimeConflict } from "@/data/order/reserveation";
-import { createPickedSession, getOrderForNextSession } from "@/data/sessions";
+import { bookPickedMeeting, finishPickedSession, getOrderForNextSession } from "@/data/sessions";
 
 // prisma types
 import { PaymentState, SessionType, UserRole } from "@/lib/generated/prisma/enums";
@@ -68,7 +68,11 @@ export async function pickNextSession(
   }
 
   try {
-    const mid = await createPickedSession(order, session, date, time, first.duration);
+    // the same checks again under the consultant's booking lock, with the create (one transaction)
+    const meeting = await bookPickedMeeting(order, session, date, time, first.duration);
+    if (!meeting) return { ok: false, error: "slot_taken", message: SLOT_TAKEN };
+
+    const mid = await finishPickedSession(order, meeting);
     const participant = await ensureMeetingParticipant(mid, UserRole.USER);
     return { ok: true, mid, participant };
   } catch (err) {

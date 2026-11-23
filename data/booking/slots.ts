@@ -12,6 +12,9 @@ import { add25Minutes, dateToWeekDay, getDatesAhead } from "@/utils/date";
 // constants
 import { BOOKING_WINDOW_DAYS } from "@/constants/booking";
 
+// types
+import type { DbTx } from "@/lib/database/tx";
+
 /**
  * is this a free slot the client can book now? the slot lists' own rule (one of the consultant's
  * weekly timings, freeSlotWhere) in the same window (BOOKING_WINDOW_DAYS from riyadh now + 25
@@ -21,19 +24,21 @@ import { BOOKING_WINDOW_DAYS } from "@/constants/booking";
  * @param date yyyy-MM-dd (riyadh)
  * @param time HH:mm
  * @param exceptOrders the client's own unpaid orders at this slot (ownUnpaidAtSlot)
+ * @param db the booking's transaction when called under lockConsultantBookings
  */
 export async function isBookableSlot(
   cid: number,
   date: string,
   time: string,
   exceptOrders: number[] = [],
+  db: Pick<DbTx, "$queryRaw"> = prisma,
 ): Promise<boolean> {
   const lead = add25Minutes();
   if (!getDatesAhead(BOOKING_WINDOW_DAYS, lead.iso).includes(date)) return false;
   // the weekday of that calendar day, independent of the server's time zone
   const weekday = dateToWeekDay(new Date(`${date}T12:00:00Z`));
   const after = date === lead.date ? lead.time : null;
-  const [row] = await prisma.$queryRaw<{ free: boolean }[]>`
+  const [row] = await db.$queryRaw<{ free: boolean }[]>`
     SELECT EXISTS (
       SELECT 1
       FROM "consultant_timings" ct

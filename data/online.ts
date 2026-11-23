@@ -13,6 +13,7 @@ import {
 import { Prisma } from "@/lib/generated/prisma/client";
 import { InstantFormType, instantSchema } from "@/schemas";
 import { logBookedMeeting } from "./meeting-log";
+import { lockConsultantBookings } from "./booking/lock";
 // the instant session starts "now + a few minutes" on the server clock, in riyadh time
 import { addNMinutes, dateTimeToString } from "@/utils/date";
 import { orderInfoLabel } from "@/utils";
@@ -26,7 +27,6 @@ import {
 import { getRealtimeOnlineIds } from "@/lib/api/realtime/internal";
 import {
   INSTANT_DURATION,
-  INSTANT_LOCK_NS,
   INSTANT_PAYMENT_WINDOW_MS,
   INSTANT_WINDOW_PASSED_NOTE,
 } from "@/constants/instant";
@@ -124,7 +124,7 @@ export const reserveInstant = async (
 
     const booked = await prisma.$transaction(async (tx) => {
       // one booking (or payment check) for this consultant at a time
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${INSTANT_LOCK_NS}::int, ${data.cid}::int)`;
+      await lockConsultantBookings(tx, data.cid);
 
       // listable and online right now
       const [owner] = await tx.$queryRaw<

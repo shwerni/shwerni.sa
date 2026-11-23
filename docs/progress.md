@@ -6413,3 +6413,48 @@ Asked by Ziad.
   - forgot password end to end with `callbackUrl` (bcrypt check, a second tap goes to the same login); mismatch → `invalid`; an outside callback → plain `/login`.
 - 3 hook tests: the second submit ignored; pending kept after a redirect; released after a failure.
 - `phone-flags-website` now runs the real completion functions on the real client (validation only).
+
+## Backlog #25, step 2: the per-consultant booking lock (2026-11-23)
+
+**`data/booking/lock.ts` (new) `lockConsultantBookings(tx, cid)`:**
+- `pg_advisory_xact_lock(INSTANT_LOCK_NS, cid)`, the same key instant booking and the instant payment check already use;
+- it's held until the booking's transaction commits or rolls back;
+- other consultants never wait.
+
+**The pattern:** lock, then re-check the slot, then create, all on one `tx`.
+- `checkMeetingTimeConflict` and `isBookableSlot` take an optional `db` (the tx). On a second connection the check could deadlock the pool under load.
+- Slow work (Google Meet, notices, the meeting log) stays after the commit.
+
+**Scheduled-meeting creators:**
+
+| Creator | Callers | Change |
+|---|---|---|
+| `reserveConsultant` (`data/order/reserveation.ts`) | website `Pay` / `PayReconciliation` (`handlers/admin/order/payment.ts`), the app's `POST /api/mobile/reservations` | The first check stays as a fast fail (same message order). The check runs again under the lock with the `order.create`. If another booking won → `conflict`, same message. |
+| `pickNextSession` (`handlers/clients/package-session.ts`) | the package next-session pick | New `bookPickedMeeting` (lock, `isBookableSlot` + conflict check, `meeting.create`). After the commit, `finishPickedSession` writes the log, creates the room and sends the notice (unchanged). Taken → `slot_taken`. |
+| `reserveFreeSession` (`data/freesession.ts`) | free-session booking | Lock, check and create in one transaction. **Decided:** the check now uses the session's stored day (`riyadhDateString(data.date)`) instead of `timeZone().date`. They're the same day except around midnight, and a check on another day couldn't protect anything. |
+| `reserveProgram` (`data/order/program.ts`) | program booking | Its create runs under the lock, so a booking checking that slot at the same moment sees it. Its own slot check is still #27. |
+| `reserveInstant` (`data/online.ts`) | instant booking | Already locked; now calls the shared helper (same key). |
+
+**Not changed:**
+- `holdInstantPaymentIfTaken` (`data/instant-payment.ts`) is on the payment path. It already takes the same key.
+- `rescheduleMeeting` moves a meeting rather than creating one; its lock and check belong to #27.
+- The dashboard codebase's own meeting creation is outside this repo.
+
+**Pooler / adapter:**
+- An interactive `prisma.$transaction` keeps one server connection for the whole transaction, and an xact advisory lock ends with it. This works on Supavisor / PgBouncer transaction mode as well as direct connections. Only session-level advisory locks would break there, and we use none.
+- `reserveInstant` has used this exact pattern through the same client and adapter in production.
+- Tested on real Postgres through `PrismaPg`.
+- I didn't read the production URL (`.env` is off limits).
+
+**Verified**
+- tsc; eslint on the changed files.
+- `npm run build`; the manifest check prints only `data/event.ts` and `lib/api/google.ts`.
+- Throwaway vitest 785 of 785.
+- **New, on a real local Postgres 18** (scratchpad cluster; tables generated from the repo's Prisma schema by a throwaway script, no Prisma CLI, never the shared database), using the real `db.ts`, the real functions and real concurrency, 3 stable runs:
+  - 5 normal bookings of one slot at once → exactly 1, the others `conflict`;
+  - package vs normal → 1;
+  - next-session pick vs normal → 1 (a losing pick gets `slot_taken`);
+  - free session vs normal → 1;
+  - a scheduled booking and a real instant booking both wait for a held consultant lock (~1 s) and then succeed;
+  - another consultant's booking doesn't wait (< 800 ms).
+- `pick-next-session` was updated for the `bookPickedMeeting` / `finishPickedSession` split.

@@ -4,6 +4,7 @@ import prisma from "@/lib/database/db";
 
 // prisma data
 import { checkMeetingTimeConflict } from "./order/reserveation";
+import { lockConsultantBookings } from "./booking/lock";
 
 // lib
 import { dateTimeToString, getWeekStartSaturday, riyadhDateString, timeZone } from "@/utils/date";
@@ -94,37 +95,48 @@ export const reserveFreeSession = async (formdata: freeSessionSchemaType) => {
     //   },
     // });
 
-    const date = timeZone().date;
+    // the session's day (the booking date is the browser's "now", read in riyadh time). the slot
+    // is checked on the day it's stored (before, today's date was checked: the same day except
+    // around midnight)
+    const date = riyadhDateString(data.date);
 
-    // check conflict
-    const check = await checkMeetingTimeConflict(data.cid, data.time, date);
+    // check conflict, then create, under the consultant's booking lock (one transaction)
+    const newSession = await prisma.$transaction(async (tx) => {
+      await lockConsultantBookings(tx, data.cid);
+
+      // check conflict
+      const check = await checkMeetingTimeConflict(data.cid, data.time, date, undefined, tx);
+
+      // validate
+      if (check) return null;
+
+      // validate
+      // if (user.length)
+      //   return { message: "لقد استخدمت هذه الخدمة من قبل", state: false };
+
+      // get timings
+      return tx.freeSession.create({
+        data: {
+          author: data.user,
+          name: data.name,
+          phone: data.phone,
+          consultantId: data.cid,
+          time: data.time,
+          date,
+          duration: "30",
+          info: [
+            `new free session | modified_at: ${dateTimeToString(new Date())}`,
+          ],
+        },
+      });
+    });
 
     // validate
-    if (check)
+    if (!newSession)
       return {
         message: "هذا الموعد محجز بالفعل برجاء اختيار موعد اخر",
         state: false,
       };
-
-    // validate
-    // if (user.length)
-    //   return { message: "لقد استخدمت هذه الخدمة من قبل", state: false };
-
-    // get timings
-    const newSession = await prisma.freeSession.create({
-      data: {
-        author: data.user,
-        name: data.name,
-        phone: data.phone,
-        consultantId: data.cid,
-        time: data.time,
-        date: riyadhDateString(data.date),
-        duration: "30",
-        info: [
-          `new free session | modified_at: ${dateTimeToString(new Date())}`,
-        ],
-      },
-    });
 
     const consultant = await prisma.consultant.findUnique({
       where: { cid: data.cid },

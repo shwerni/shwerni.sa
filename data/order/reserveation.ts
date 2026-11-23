@@ -46,6 +46,10 @@ import { holdInstantPaymentIfTaken } from "@/data/instant-payment";
 // constants
 import { UNPAID_HOLD_MINUTES } from "@/constants/booking";
 
+// booking lock
+import { lockConsultantBookings } from "@/data/booking/lock";
+import type { DbTx } from "@/lib/database/tx";
+
 // lib
 import { startsNear } from "@/lib/booking/free-slot-where";
 
@@ -149,73 +153,94 @@ export const reserveConsultant = async (
       select: { id: true, status: true },
     });
 
-    // create new reservation
-    const order = await prisma.order.create({
-      data: {
-        origin,
-        author: data.user,
-        consultantId: data.cid,
-        centerId, // from the consultant, never from client input
-        name: clinetName,
-        phone: clientPhone,
-        type: data.type,
-        session: data.sessionType,
-        sessionCount: data.sessions,
-        packageId: data.package, // Pay() already validated ownership/activity
-        meeting: {
-          create: {
-            session: 1,
-            date: dateToString(data.date),
-            time: data.time,
-            duration: data.duration,
+    // create new reservation: under the consultant's booking lock, the slot is checked again and
+    // the order created in one transaction, so two bookings of one slot can't both pass the check
+    const order = await prisma.$transaction(async (tx) => {
+      await lockConsultantBookings(tx, data.cid);
+      const taken = await checkMeetingTimeConflict(
+        data.cid,
+        data.time,
+        dateToString(data.date),
+        { author: data.user, phone: data.phone },
+        tx,
+      );
+      if (taken) return null;
+
+      return tx.order.create({
+        data: {
+          origin,
+          author: data.user,
+          consultantId: data.cid,
+          centerId, // from the consultant, never from client input
+          name: clinetName,
+          phone: clientPhone,
+          type: data.type,
+          session: data.sessionType,
+          sessionCount: data.sessions,
+          packageId: data.package, // Pay() already validated ownership/activity
+          meeting: {
+            create: {
+              session: 1,
+              date: dateToString(data.date),
+              time: data.time,
+              duration: data.duration,
+            },
           },
-        },
-        payment: {
-          create: {
-            total,
-            commission: oCommission,
-            tax, // server-resolved, matches what `total` was computed with
-            payment: PaymentState.NEW,
-            ...(origin === OrderOrigin.APP && { method: data.method }),
+          payment: {
+            create: {
+              total,
+              commission: oCommission,
+              tax, // server-resolved, matches what `total` was computed with
+              payment: PaymentState.NEW,
+              ...(origin === OrderOrigin.APP && { method: data.method }),
+            },
           },
-        },
-        info: [
-          orderInfoLabel(
-            null,
-            "new",
-            PaymentState.NEW,
-            total,
-            tax,
-            oCommission,
-            name,
-            data.cid,
-          ),
-        ],
-        ...(data.hasBeneficiary
-          ? {
-              guest: {
-                create: {
-                  name: data.name,
-                  phone: data.phone,
+          info: [
+            orderInfoLabel(
+              null,
+              "new",
+              PaymentState.NEW,
+              total,
+              tax,
+              oCommission,
+              name,
+              data.cid,
+            ),
+          ],
+          ...(data.hasBeneficiary
+            ? {
+                guest: {
+                  create: {
+                    name: data.name,
+                    phone: data.phone,
+                  },
                 },
-              },
-              gift: true,
-            }
-          : {}),
-        ...(collaborator && collaborator.status
-          ? { collaboratorId: collaborator.id }
-          : {}),
-      },
-      include: {
-        payment: true,
-        meeting: {
-          include: { participants: true },
+                gift: true,
+              }
+            : {}),
+          ...(collaborator && collaborator.status
+            ? { collaboratorId: collaborator.id }
+            : {}),
         },
-        consultant: {
-          select: { userId: true, name: true, phone: true },
+        include: {
+          payment: true,
+          meeting: {
+            include: { participants: true },
+          },
+          consultant: {
+            select: { userId: true, name: true, phone: true },
+          },
         },
-      },
+      });
     });
+
+    // taken between the first check and the lock (another booking of this slot won)
+    if (!order)
+      return {
+        state: false,
+        code: "conflict",
+        message: `هذا الموعد (${dateToString(data.date)} - ${data.time}) تم حجزه بالفعل، برجاء اختيار وقت آخر`,
+      };
 
     // meeting log: the booking's first meeting (customer). it never throws
     await logBookedMeeting(order);
@@ -249,6 +274,8 @@ export const checkMeetingTimeConflict = async (
   // the booking client: their own unpaid orders don't hold the slot against them (back from the
   // payment screen and booking the same time again)
   own?: { author?: string | null; phone?: string | null },
+  // the booking's transaction when called under lockConsultantBookings (data/booking/lock.ts)
+  db: Pick<DbTx, "$queryRaw"> = prisma,
 ) => {
   try {
     // the same rule as the slot lists (lib/booking/free-slot-where.ts): another start within
@@ -265,7 +292,7 @@ export const checkMeetingTimeConflict = async (
 
     // check if order conflict: a paid order, or another client's unpaid order younger than
     // UNPAID_HOLD_MINUTES (it holds the slot while its client pays)
-    const conflict = await prisma.$queryRaw<{ exists: boolean }[]>`
+    const conflict = await db.$queryRaw<{ exists: boolean }[]>`
       SELECT EXISTS (
         SELECT 1
         FROM orders o
@@ -285,7 +312,7 @@ export const checkMeetingTimeConflict = async (
     `;
 
     // check if freesession
-    const free = await prisma.$queryRaw<{ exists: boolean }[]>`
+    const free = await db.$queryRaw<{ exists: boolean }[]>`
     SELECT EXISTS (
     SELECT 1
     FROM "free_sessions" fs

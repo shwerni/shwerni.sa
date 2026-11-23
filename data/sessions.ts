@@ -5,6 +5,9 @@ import prisma from "@/lib/database/db";
 // prisma data
 import { createNewMeeting } from "./rooms";
 import { writeMeetingLog } from "./meeting-log";
+import { lockConsultantBookings } from "./booking/lock";
+import { isBookableSlot } from "./booking/slots";
+import { checkMeetingTimeConflict } from "./order/reserveation";
 
 // lib
 import { notificationSessionConfirm } from "@/lib/notifications/site";
@@ -37,21 +40,44 @@ export const getOrderForNextSession = async (oid: number) =>
 export type NextSessionOrder = NonNullable<Awaited<ReturnType<typeof getOrderForNextSession>>>;
 
 /**
- * the picked session's meeting, as before: the meeting row, its log line, its room and
- * participants (createNewMeeting) and the client's confirmation. the caller has checked the
- * order, the session number and the slot
- * @returns the new meeting's mid
+ * the picked session's meeting row, under the consultant's booking lock: the slot is checked
+ * again (isBookableSlot and checkMeetingTimeConflict with no own-order exception, as the pick
+ * rule says) and the meeting created in one transaction. the caller has checked the order and
+ * the session number
+ * @returns the new meeting, or null when the slot is taken
  */
-export const createPickedSession = async (
+export const bookPickedMeeting = async (
   order: NextSessionOrder,
   session: number,
   date: string,
   time: string,
   duration: string,
-): Promise<string> => {
-  const newMeeting = await prisma.meeting.create({
-    data: { orderId: order.oid, duration, session, time, date },
+) =>
+  prisma.$transaction(async (tx) => {
+    await lockConsultantBookings(tx, order.consultantId);
+
+    if (
+      !(await isBookableSlot(order.consultantId, date, time, [], tx)) ||
+      (await checkMeetingTimeConflict(order.consultantId, time, date, undefined, tx))
+    ) {
+      return null;
+    }
+
+    return tx.meeting.create({
+      data: { orderId: order.oid, duration, session, time, date },
+    });
   });
+
+/**
+ * after the picked meeting is committed (outside the lock), as before: its log line, its room
+ * and participants (createNewMeeting) and the client's confirmation
+ * @returns the new meeting's mid
+ */
+export const finishPickedSession = async (
+  order: NextSessionOrder,
+  newMeeting: NonNullable<Awaited<ReturnType<typeof bookPickedMeeting>>>,
+): Promise<string> => {
+  const { session, date, time, duration } = newMeeting;
 
   // meeting log: the customer picked the next session (no actor). it never throws
   await writeMeetingLog({

@@ -4,6 +4,7 @@ import prisma from "@/lib/database/db";
 
 // prisma data
 import { logBookedMeeting } from "@/data/meeting-log";
+import { lockConsultantBookings } from "@/data/booking/lock";
 
 // prisma types
 import {
@@ -46,54 +47,59 @@ export const reserveProgram = async (
     // varies by consultant the way session commission does
     const PROGRAM_COMMISSION = 70;
 
-    const order = await prisma.order.create({
-      data: {
-        author: data.user,
-        consultantId: data.cid,
-        phone: data.phone,
-        name: data.name,
-        type: OrderType.SCHEDULED,
-        programId: data.prid,
-        session: SessionType.MULTIPLE,
-        sessionCount: data.sessions,
-        meeting: {
-          create: {
-            session: 1,
-            date: dateToString(data.date),
-            time: data.time,
-            duration: String(data.duration),
+    // created under the consultant's booking lock, so a booking checking this slot right now
+    // sees it (its own slot check is backlog #27)
+    const order = await prisma.$transaction(async (tx) => {
+      await lockConsultantBookings(tx, data.cid);
+      return tx.order.create({
+        data: {
+          author: data.user,
+          consultantId: data.cid,
+          phone: data.phone,
+          name: data.name,
+          type: OrderType.SCHEDULED,
+          programId: data.prid,
+          session: SessionType.MULTIPLE,
+          sessionCount: data.sessions,
+          meeting: {
+            create: {
+              session: 1,
+              date: dateToString(data.date),
+              time: data.time,
+              duration: String(data.duration),
+            },
+          },
+          payment: {
+            create: {
+              total: Number(total),
+              commission: PROGRAM_COMMISSION,
+              tax,
+              payment: PaymentState.PROCESSING,
+            },
+          },
+          info: [
+            orderInfoLabel(
+              null,
+              `new program #${data.prid}`,
+              PaymentState.PROCESSING,
+              total,
+              tax,
+              PROGRAM_COMMISSION,
+              data.consultant,
+              data.cid,
+            ),
+          ],
+        },
+        include: {
+          payment: true,
+          meeting: {
+            include: { participants: true },
+          },
+          consultant: {
+            select: { userId: true, name: true, phone: true },
           },
         },
-        payment: {
-          create: {
-            total: Number(total),
-            commission: PROGRAM_COMMISSION,
-            tax,
-            payment: PaymentState.PROCESSING,
-          },
-        },
-        info: [
-          orderInfoLabel(
-            null,
-            `new program #${data.prid}`,
-            PaymentState.PROCESSING,
-            total,
-            tax,
-            PROGRAM_COMMISSION,
-            data.consultant,
-            data.cid,
-          ),
-        ],
-      },
-      include: {
-        payment: true,
-        meeting: {
-          include: { participants: true },
-        },
-        consultant: {
-          select: { userId: true, name: true, phone: true },
-        },
-      },
+      });
     });
 
     // meeting log: the booking's first meeting (customer). it never throws
