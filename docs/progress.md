@@ -6093,3 +6093,18 @@ The harness timeout went from 5 s to 30 s (the in-memory postgres and better-aut
 1. `prisma db push` (adds `users.mobile_phone_verified`).
 2. Backfill: `UPDATE users SET mobile_phone_verified = (phone_verified IS NOT NULL);`
 3. The dashboard schema needs the new column (`mobilePhoneVerified`) in its own session.
+
+## Build: the better-auth field guard runs before every build (2026-11-23)
+
+- `package.json`:
+  - new script `check:auth-fields` → `tsx docs/tests/check-better-auth-fields.ts`;
+  - `prebuild` → `npm run check:auth-fields`. npm runs it before `build`, so a broken better-auth / Prisma mapping fails the Vercel build;
+  - **`tsx` 4.23.15** added as an exact dev dependency (lockfile: `tsx` and its `esbuild` binaries only).
+- **Order on Vercel** (no `buildCommand` / `installCommand` in `vercel.json`, so the defaults apply): `npm install` → `postinstall` (`prisma generate`) → `npm run build` → `prebuild` (the guard, against the freshly generated client) → `next build`. Vercel installs dev dependencies for the build, so `tsx` is local (no npx download).
+- **Verified:**
+  - `npm run check:auth-fields` passes (exit 0);
+  - `npm run build` runs `prebuild` → the guard → `next build` and passes;
+  - the old `lib/auth/mobile-auth.ts` (from before the fix, restored right after) makes `prebuild` exit 1 with the `createdAt` / `updatedAt` lines;
+  - manifest check unchanged.
+
+**For the dashboard session:** wherever the dashboard writes `User.phoneVerified`, also write `mobilePhoneVerified`: `true` when it sets `phoneVerified` to a date, `false` when it clears it. The main site does the same (`handlers/auth/verify.ts`, `reset.ts`, `userInfo.ts`, `app/api/mobile/auth/set-password/route.ts`, `app/api/mobile/account/profile/phone/route.ts`, `data/account-deletion.ts`). The dashboard's schema needs the `mobilePhoneVerified` column first.
