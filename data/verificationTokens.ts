@@ -6,6 +6,10 @@ import { timingSafeEqual } from "node:crypto";
 // prisma db
 import prisma from "@/lib/database/db";
 
+// prisma types
+import { UserRole } from "@/lib/generated/prisma/client";
+import type { DbTx } from "@/lib/database/tx";
+
 // utils
 import { generateOtp } from "@/utils/auth";
 
@@ -27,7 +31,9 @@ export const getVerificationTokenByToken = async (token: string) => {
 export const MAX_OTP_ATTEMPTS = 5;
 
 // one atomic query per verify: counts the attempt and reads the token, only while it
-// exists and hasn't expired. a date parameter (not now()) keeps the compare in utc
+// exists, hasn't expired and hasn't been used. a date parameter (not now()) keeps the compare in
+// utc. the used check matters for a second submit at the same moment: it waits on the first's
+// row lock, and postgres re-checks only this where clause after the first commits
 export const consumeVerificationAttempt = async (token: string) => {
   try {
     const rows = await prisma.$queryRaw<
@@ -35,7 +41,7 @@ export const consumeVerificationAttempt = async (token: string) => {
     >`
       UPDATE "verification_tokens"
       SET "attempts" = "attempts" + 1
-      WHERE "token" = ${token} AND "expire" > ${new Date()}
+      WHERE "token" = ${token} AND "expire" > ${new Date()} AND "otp" <> ''
       RETURNING "id", "phone", "otp", "attempts"
     `;
     return rows[0] ?? null;
@@ -48,6 +54,89 @@ export const consumeVerificationAttempt = async (token: string) => {
 export const deleteVerificationToken = async (id: string) => {
   await prisma.verificationToken.deleteMany({ where: { id } });
 };
+
+// a used token keeps its row with an empty otp and an expiry of "now" (it can never match or be
+// counted again), so a second submit of the same code can tell "already used" from "no code".
+// the row goes when the phone asks for a new code (generateVerificationToken)
+const USED_OTP = "";
+
+// claims a live token inside a transaction: only one caller wins (the others see count 0)
+const claimToken = (tx: DbTx, id: string) =>
+  tx.verificationToken.updateMany({
+    where: { id, NOT: { otp: USED_OTP } },
+    data: { otp: USED_OTP, expire: new Date() },
+  });
+
+/**
+ * a token this flow already used (a second submit, another tab), with its phone; null otherwise
+ * @param token the token from the url
+ */
+export const getUsedVerificationToken = async (token: string) => {
+  const row = await prisma.verificationToken.findUnique({
+    where: { token },
+    select: { otp: true, phone: true },
+  });
+  return row && row.otp === USED_OTP ? { phone: row.phone } : null;
+};
+
+/**
+ * sign-up / login otp: the token is claimed and the phone verified in one transaction, so a
+ * failure leaves the code usable and a second submit can't verify twice. a consultant's own
+ * record gets the phone when it exists (a new consultant has none yet; before, that threw after
+ * the phone was verified and the user saw "wrong code")
+ * @returns "ok", or "taken" when another submit claimed the token first
+ */
+export const completePhoneVerification = async (tokenId: string, phone: string) =>
+  prisma.$transaction(async (tx) => {
+    const claimed = await claimToken(tx, tokenId);
+    if (claimed.count !== 1) return "taken" as const;
+
+    const user = await tx.user.update({
+      where: { phone },
+      data: {
+        phoneVerified: new Date(),
+        // the app's flag (better-auth's phoneNumberVerified) follows the website's
+        mobilePhoneVerified: true,
+        phone,
+      },
+      select: { id: true, role: true },
+    });
+
+    // a consultant's record follows his phone (only if it exists)
+    if (user.role === UserRole.OWNER) {
+      await tx.consultant.updateMany({ where: { userId: user.id }, data: { phone } });
+    }
+
+    return "ok" as const;
+  });
+
+/**
+ * forgot-password otp: the token is claimed and the new password saved in one transaction (the
+ * phone is verified too, as before)
+ * @returns "ok", or "taken" when another submit claimed the token first
+ */
+export const completePasswordReset = async (
+  tokenId: string,
+  phone: string,
+  hashedPassword: string,
+) =>
+  prisma.$transaction(async (tx) => {
+    const claimed = await claimToken(tx, tokenId);
+    if (claimed.count !== 1) return "taken" as const;
+
+    await tx.user.update({
+      where: { phone },
+      data: {
+        phoneVerified: new Date(),
+        // the app's flag (better-auth's phoneNumberVerified) follows the website's
+        mobilePhoneVerified: true,
+        phone,
+        password: hashedPassword,
+      },
+    });
+
+    return "ok" as const;
+  });
 
 // constant-time otp compare; different lengths never match
 export const otpMatches = (expected: string, given: string) => {

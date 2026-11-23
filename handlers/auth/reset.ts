@@ -2,9 +2,6 @@ import "server-only";
 // React & Next
 import { redirect } from "next/navigation";
 
-// prisma db
-import prisma from "@/lib/database/db";
-
 // packages
 import { z } from "zod";
 import bcrypt from "bcryptjs";
@@ -18,14 +15,13 @@ import { notificationSecurityOtp } from "@/lib/notifications/site";
 // utils
 import { withCallbackUrl } from "@/utils/callback-url";
 
+// handlers
+import { otpFailure, readOtpAttempt, type OtpFailure } from "@/handlers/auth/otp";
+
 // prisma data
 import {
-  MAX_OTP_ATTEMPTS,
-  consumeVerificationAttempt,
-  deleteVerificationToken,
+  completePasswordReset,
   generateVerificationToken,
-  getVerificationTokenByToken,
-  otpMatches,
 } from "@/data/verificationTokens";
 import { getUserByPhone } from "@/data/user";
 import { CheckIsBlocked } from "@/data/blocked";
@@ -75,71 +71,47 @@ export const forgetpassowrd = async (
   redirect(withCallbackUrl(`/reset-password?token=${verificationToken?.token}`, callbackUrl));
 };
 
-// after submiting the otp and checking all condations of the verification token with checkToken function
+/**
+ * the forgot-password otp: one try of the code, then the token is claimed and the new password
+ * saved in one transaction (completePasswordReset). a second submit of a code this flow already
+ * used continues to the login when the first one finished; each failure has its own code
+ * @param data the code, the new password and its confirmation
+ * @param token the token from the url
+ * @param callbackUrl carried to the login (allow-listed only)
+ */
 export const verifyReset = async (
   data: z.infer<typeof ResetSchema>,
   token: string,
-  // carried to the login (allow-listed only)
   callbackUrl?: string,
-) => {
+): Promise<OtpFailure> => {
   // reset fields { newpassword, confirmphone, phone}
   const validatedFields = ResetSchema.safeParse(data);
 
   if (!validatedFields.success)
     // will not reach this so no need but keep fo unsuring
-    return { state: false, message: "برجاء ادخال جميع البيانات" };
+    return otpFailure("invalid", "برجاء ادخال جميع البيانات");
 
   // get data
   const { otp, newpassword, confirmpassword } = validatedFields.data;
 
   // if password doesnot match
   if (newpassword !== confirmpassword)
-    return { state: false, message: "كلمة المرور غير مطابقة" };
+    return otpFailure("invalid", "كلمة المرور غير مطابقة");
 
-  // counts this attempt and reads the token in one query (only a live, unexpired token)
-  const tokenExist = await consumeVerificationAttempt(token);
+  try {
+    const attempt = await readOtpAttempt(token, otp);
+    if (attempt.kind === "failure") return attempt.failure;
 
-  // missing or expired token: same messages as before
-  if (!tokenExist) {
-    const expired = await getVerificationTokenByToken(token);
-    return expired
-      ? { state: false, message: "انتهت صلاحية كود التحقق" }
-      : { state: false, message: "لا يوجد كود تفعيل لهذا الحساب" };
-  }
-
-  // phone of this token, never from the client
-  const phone = tokenExist.phone;
-
-  // if otp is not matched
-  if (!otpMatches(tokenExist.otp, otp)) {
-    // too many wrong tries: the user must request a new code
-    if (tokenExist.attempts >= MAX_OTP_ATTEMPTS) {
-      await deleteVerificationToken(tokenExist.id);
-      return { state: false, message: "انتهت صلاحية كود التحقق" };
+    // a code another submit already used: that one saved the password, go on to the login
+    if (attempt.kind === "valid") {
+      // bcrypt hasing
+      const hashedPassword = await bcrypt.hash(newpassword, 10);
+      await completePasswordReset(attempt.id, attempt.phone, hashedPassword);
     }
-    return { state: false, message: "رمز التحقق خطأ" };
+  } catch (error) {
+    console.error("[otp] reset failed", error);
+    return otpFailure("server_error");
   }
-
-  // single use: the token goes before anything else happens
-  await deleteVerificationToken(tokenExist.id);
-
-  // user exist
-  const userExist = await getUserByPhone(phone);
-
-  // bcrypt hasing
-  const hashedPassword = await bcrypt.hash(newpassword, 10);
-
-  // update user phone verified to true
-  await prisma.user.update({
-    where: { id: userExist?.id },
-    data: {
-      phoneVerified: new Date(),
-      // the app's flag (better-auth's phoneNumberVerified) follows the website's
-      mobilePhoneVerified: true,
-      phone: phone,
-      password: hashedPassword,
-    },
-  });
 
   // redirect to login page
   redirect(withCallbackUrl("/login", callbackUrl));

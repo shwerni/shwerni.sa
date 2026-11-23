@@ -22,6 +22,9 @@ import { toast } from "@/components/shared/toast";
 // handlers
 import { verifyToken } from "@/actions/auth";
 
+// hooks
+import { useSingleSubmit } from "@/hooks/use-single-submit";
+
 // lib
 // import { sendEmail } from "@/lib/mail";
 
@@ -46,8 +49,10 @@ const VerifyOtp: React.FC<Props> = ({ phone, token }: Props) => {
   const whatsappMessage = `مرحباً، أريد تفعيل حسابي في شاورني. رقم هاتفي هو: ${phone}`;
   const WHATSAPP_URL = `https://wa.me/966554117879?text=${encodeURIComponent(whatsappMessage)}`;
 
+  // one submission at a time (a second one sent the used code and showed "wrong code")
+  const { pending: loading, run } = useSingleSubmit();
+
   // states
-  const [loading, setLoading] = React.useState(false);
   const [timeLeft, setTimeLeft] = React.useState(60);
   const [resendActive, setResendActive] = React.useState(false);
 
@@ -73,23 +78,15 @@ const VerifyOtp: React.FC<Props> = ({ phone, token }: Props) => {
 
   // on sumbit
   const onSubmit = async (data: VerifyFormValues) => {
-    // laoding state
-    setLoading(true);
+    // verify token (success redirects to the login; ignored while one is running)
+    const response = await run(() => verifyToken(token, data.otp));
 
-    // verify token
-    const response = await verifyToken(token, data.otp);
-
-    if (response.state) {
-      // toast
-      toast.success({
+    if (response) {
+      // the form's own copy for a wrong code; every other failure says what happened
+      toast.error({
         title: "",
-        message: "تم التحقق من رقم الهاتف بنجاح",
+        message: response.code === "wrong_code" ? "الرمز غير صحيح، حاول مرة أخرى" : response.message,
       });
-    } else {
-      // laoding state
-      setLoading(false);
-      // toast
-      toast.error({ title: "", message: "الرمز غير صحيح، حاول مرة أخرى" });
     }
   };
 

@@ -24,6 +24,9 @@ import { Field, FieldError, FieldLabel } from "../ui/field";
 // handlers
 import { verifyReset } from "@/actions/auth";
 
+// hooks
+import { useSingleSubmit } from "@/hooks/use-single-submit";
+
 // schemas
 import { ResetSchema } from "@/schemas";
 
@@ -43,6 +46,10 @@ interface Props {
 }
 
 const ResetPasswordForm: React.FC<Props> = ({ phone, token, callbackUrl }: Props) => {
+  // one submission at a time, and pending until the redirect after a success (before, the button
+  // came back while the login page loaded, and a second tap showed "wrong code")
+  const { pending, run } = useSingleSubmit();
+
   // states
   const [timeLeft, setTimeLeft] = React.useState(60);
   const [resendActive, setResendActive] = React.useState(false);
@@ -51,7 +58,7 @@ const ResetPasswordForm: React.FC<Props> = ({ phone, token, callbackUrl }: Props
   const {
     handleSubmit,
     control,
-    formState: { errors, isLoading, isSubmitting },
+    formState: { errors },
   } = useForm<VerifyFormValues>({
     resolver: zodResolver(ResetSchema),
     defaultValues: { newpassword: "", confirmpassword: "", otp: "" },
@@ -69,18 +76,15 @@ const ResetPasswordForm: React.FC<Props> = ({ phone, token, callbackUrl }: Props
 
   // on sumbit
   const onSubmit = async (data: VerifyFormValues) => {
-    // verify token
-    const response = await verifyReset(data, token, callbackUrl);
+    // verify token (success redirects to the login; ignored while one is running)
+    const response = await run(() => verifyReset(data, token, callbackUrl));
 
-    if (response.state) {
-      // toast
-      toast.success({
+    if (response) {
+      // the form's own copy for a wrong code; every other failure says what happened
+      toast.error({
         title: "",
-        message: "تم التحقق من رقم الهاتف بنجاح",
+        message: response.code === "wrong_code" ? "الرمز غير صحيح، حاول مرة أخرى" : response.message,
       });
-    } else {
-      // toast
-      toast.error({ title: "", message: "الرمز غير صحيح، حاول مرة أخرى" });
     }
   };
 
@@ -205,7 +209,7 @@ const ResetPasswordForm: React.FC<Props> = ({ phone, token, callbackUrl }: Props
             type="submit"
             className="w-full"
             variant="primary"
-            loading={isSubmitting || isLoading}
+            loading={pending}
           >
             تأكيد رقم الهاتف
           </Button>

@@ -6357,3 +6357,59 @@ Asked by Ziad.
 **Open (Ziad):**
 - A longer session means a stolen cookie lasts longer. The `jwt` callback doesn't compare the token's `iat` with `passwordChangedAt` / `phoneChangedAt`, so a password reset doesn't sign out other devices.
 - A deleted account is already refused (`userServer` → `isAccountDeleted`).
+
+## OTP: "wrong code" after a successful verification (production, website) (2026-11-23)
+
+**Root causes** (all three end in the same toast):
+1. **A new consultant's sign-up, every time.** `createUser` (`data/user.ts`) creates no `consultants` row. `verifyToken` (`handlers/auth/verify.ts`):
+   - deleted the token;
+   - set `phoneVerified`;
+   - then ran `prisma.consultant.update({ where: { userId } })`, which throws "record not found".
+
+   The `catch` answered "حدث خطأ ما في الصفحة" and the page showed "الرمز غير صحيح". The phone was verified and the code already used, so every retry also said "wrong code". This is old code, not a recent commit.
+2. **A double submit.** Next runs server actions one after another. The first verifies, deletes the token and redirects; the second finds no token ("لا يوجد كود تفعيل") and the page showed "wrong code".
+   - **Reset form:** the action's redirect *rejects* its promise. react-hook-form then sets `isSubmitting: false` (`react-hook-form/dist/index.esm.mjs:2398`), so the button came back while `/login` loaded.
+   - **verify-otp:** a double tap inside the async validation, before `setLoading(true)`.
+   - **Two submits at the same moment (found on the real Postgres test):** the second `UPDATE … RETURNING` waited on the first's row lock. Postgres then re-checked only the `WHERE` and returned the claimed row, giving "wrong code".
+3. **Both forms ignored `response.message`:** expired, no code, too many tries and server errors were all shown as "wrong code".
+
+**Not caused by** `5b86e60` / `3f5cdc3` (not deployed) or `3af9dff` (it only added `mobilePhoneVerified` to the same update). **To confirm:** `users.mobile_phone_verified` must exist in production. Without it, every website OTP update fails. It now shows the server error and the code stays usable.
+
+**Fix**
+- **`data/verificationTokens.ts`:**
+  - `completePhoneVerification` / `completePasswordReset` claim the token (empty otp, expiry now, only one caller wins) and write the user **in one transaction**. A failure rolls back and leaves the code usable.
+  - The consultant step is `updateMany` (no row is fine).
+  - `consumeVerificationAttempt` skips used tokens (`"otp" <> ''`).
+  - `getUsedVerificationToken` lets a second submit tell "already used" from "no code".
+  - A used row is removed when the phone asks for a new code (`generateVerificationToken`, as before).
+- **`handlers/auth/otp.ts` (new):** `readOtpAttempt` (shared by both flows) and the failure codes:
+
+  | Code | Message |
+  |---|---|
+  | `wrong_code` | "رمز التحقق خطأ" |
+  | `expired` | "انتهت صلاحية كود التحقق" |
+  | `too_many` | "تم تجاوز عدد المحاولات، برجاء طلب رمز جديد" (new text) |
+  | `no_token` | "لا يوجد كود تفعيل لهذا الحساب" |
+  | `used` | "تم استخدام هذا الرمز بالفعل، برجاء طلب رمز جديد" (new text) |
+  | `invalid` | the form's own messages |
+  | `server_error` | "حدث خطأ ما في الصفحة" |
+
+- **`verifyToken` / `verifyReset`:** a code this flow already used **continues to the login** (with `callbackUrl` for reset) instead of an error.
+- **Client:**
+  - new `hooks/use-single-submit.ts`: one submission at a time, and still pending after a success while the redirect loads;
+  - `verify-otp.tsx` and `reset-password-form.tsx` use it and show the server's message (a wrong code keeps the form's own text "الرمز غير صحيح، حاول مرة أخرى").
+- **New `lib/database/tx.ts`:** `DbTx` is the transaction client type for our extended client.
+
+**Verified**
+- tsc; eslint on the changed files (only the timer `set-state-in-effect` errors that were already in both forms).
+- `npm run build`; the manifest check prints only `data/event.ts` and `lib/api/google.ts`.
+- Throwaway vitest 779 of 779. New tests, 12 of them on a **real local Postgres 18** (a throwaway cluster in the scratchpad, `127.0.0.1:55432`, never the shared database) through the real Prisma client and `lib/database/db.ts`:
+  - the correct code works once;
+  - a sequential double submit and a **concurrent** one both go to the login (5 runs);
+  - a new consultant with no row is verified (the root cause), and an existing consultant row gets the phone;
+  - wrong code, then the right one works;
+  - expired; no token; 5 wrong tries → `too_many` and the token gone;
+  - a failure after the claim → `server_error` and the code still usable (rollback);
+  - forgot password end to end with `callbackUrl` (bcrypt check, a second tap goes to the same login); mismatch → `invalid`; an outside callback → plain `/login`.
+- 3 hook tests: the second submit ignored; pending kept after a redirect; released after a failure.
+- `phone-flags-website` now runs the real completion functions on the real client (validation only).
