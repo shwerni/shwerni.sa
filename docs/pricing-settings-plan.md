@@ -152,6 +152,7 @@ model Consultant {
    - tests: defaults when rows are missing, an invalid key falls back alone, a database error isn't cached, effective sets, schema minimums.
 2. **✋ Schema:** `Consultant.costs` and `Consultant.durations`. Run `prisma validate` and `generate`, then stop; Ziad runs `db push`.
    - In the same step, the settings parser learns the optional `daftraProductId` on catalog entries and the `daftraDefaultProductId` key (parsed only, unused until step 6).
+   - **Guard for durations over 60 minutes:** until the real-overlap booking work ships (see "Requirement before step 4"), the parser rejects any catalog entry over 60 minutes. That entry alone is dropped, the reason is logged (`[pricing-settings] durationCatalog: <minutes> min is over 60 …`), and the rest of the catalog is kept. Test: a catalog with a 90-minute entry keeps its 30/45/60 entries and drops the 90 with the reason. The guard is removed in the same commit as the overlap work.
    - **Tolerance:** catalog entries, and any pricing setting that is an object, ignore unknown fields (zod's default strip, no `.strict()`) while the known fields are still validated. A field the dashboard adds later can never reset the catalog to the defaults. Test: a catalog entry with an extra unknown field still parses with its real values (and the field is dropped).
 3. **Read path:**
    - `getConsultantCost` → `{ costs, durations }`, reading the settings through the cached getter, with no extra query;
@@ -161,6 +162,7 @@ model Consultant {
    - the reservation-info route and owner-discounts use the effective durations;
    - the reels and discover displays show only effective durations (add `durations` to `data/reels.ts`).
 4. **✋ Booking enforcement (payment).**
+   - **Requirement:** the time-slot section below ("Requirement before step 4") applies before any duration over 60 minutes is offered.
    - **BLOCKER:** this step does not ship until Ziad has set per-consultant overrides in the database for every consultant who sells 45 or any other non-default duration, center consultants included.
    - **Before coding it:** list every flow that goes through `quoteBooking`. Confirm that instant (30), pleading (60) and reconciliation (60) are exempt from the effective-durations check, or always pass it, with a test for each.
    - **Changes:**
@@ -200,6 +202,40 @@ model Consultant {
    - Ziad removes `DAFTRA_PRODUCT_ID_30`, `DAFTRA_PRODUCT_ID_45`, `DAFTRA_PRODUCT_ID_60` from Vercel (Production and Preview) and from his local `.env`, which I don't read;
    - `scripts/daftra-fix-products.ts` (the one-off product fix) still reads them: delete the script or point it at the settings;
    - the dashboard doesn't read them.
+
+## Requirement before step 4: time slots for new durations (checked 2026-11-23)
+
+### How slots are built today
+- **Weekly timings:** consultants pick start times on a fixed 30-minute grid (`"00:00"`, `"00:30"`, …, from the time table in `constants/index.ts`), stored per weekday in `consultant_timings` (`data/timings.ts`, `data/mobile/owner-timings.ts`).
+- **Slot lists:** one rule, `freeSlotWhere` (`lib/booking/free-slot-where.ts`). A weekly time is free on a date when no PAID meeting, no fresh unpaid meeting and no free session **starts at that exact time**. Durations are not considered.
+  - website booking: `components/clients/consultants/reservation/steps/date-time.tsx` → `getConsultantAvailableTimes` (`actions/consultant.ts` → `data/consultant.ts`);
+  - center booking: `components/clients/centers/booking/booking-panel.tsx`, the same call;
+  - app: `GET /api/mobile/consultants/[cid]/times` and `GET /api/mobile/consultants/next-slots` (`data/mobile/next-slots.ts`);
+  - the app's create route re-checks with `isBookableSlot` (`data/mobile/booking.ts`);
+  - programs, free sessions, marriage awareness and the shared picker use the same lists.
+- **At reservation:** `checkMeetingTimeConflict` (`data/order/reserveation.ts`, also `data/freesession.ts`) refuses when a meeting or free session starts at the same time **or 30 minutes before or after** (`aboveAndLowerTime`). This is again independent of the durations of either session.
+- **Instant only:** `consultantBusyBetween` (`data/online-busy.ts`) is the one check that uses the real duration (start + `Meeting.duration`).
+- **Package sessions:** a package's next session is picked through `data/sessions.ts`, which creates the meeting with **no conflict check at all** (an existing gap).
+
+### What happens for other durations
+| duration | lists | reservation check | result |
+|---|---|---|---|
+| 30 | exact start only | ±30 min | safe, but over-blocks: a 30-minute booking at 10:00 also blocks a 10:30 booking that wouldn't overlap (today's behaviour) |
+| 45 | exact start only: 10:30 is listed after a 45 at 10:00 | ±30 refuses 10:30 | no double booking, but the client can pick a slot that is then refused |
+| 60 | as 45 | as 45 | as 45 (today's behaviour) |
+| 20 | grid is 30 min, so no 10:20 start | ±30 | no overlap, but over-blocks and wastes 10 minutes per slot |
+| 90 | 11:00 is listed after a 90 at 10:00 | ±30 does **not** cover 11:00 | **double booking**: overlaps are missed for anything over 60 minutes |
+
+The ±30 window is exactly right only for durations of 60 minutes or less on the 30-minute grid. Free sessions get the same treatment.
+
+### Must change before a new catalog duration is offered
+1. **Interval overlap at reservation:** replace the ±30 rule in `checkMeetingTimeConflict` with a real overlap test, [start, start + duration) against every PAID or fresh unpaid meeting and every free session, using each meeting's own `duration` (the way `consultantBusyBetween` already does). This removes both the 90-minute double booking and the 30-minute over-blocking.
+2. **Interval overlap in the lists:** `freeSlotWhere` takes the requested duration and hides a start time whose [start, start + duration) overlaps any booking or free session (and runs past the consultant's last available block, if that's wanted). Every caller passes the duration: the website and center date steps re-fetch times when the duration changes, and the app's `times` and `next-slots` routes take a `duration` query (default 30).
+3. **The grid:** a duration that isn't a multiple of 30 (e.g. 20 or 45) either keeps 30-minute starts (accepting the gap) or the catalog limits durations to multiples of the grid. Decide this per duration before adding it, and add a rule to the catalog parser if it's the latter.
+4. **Package sessions:** `data/sessions.ts` gets the same overlap check before creating a meeting.
+5. **Tests on real SQL** (pglite, as in step 4 of booking): 20, 30, 45, 60, 90 against existing 30/60/90 meetings and free sessions, adjacent and overlapping, in both the lists and at reservation.
+
+Until these ship, the catalog must not offer durations over 60 minutes. Durations of 60 or less (including 45 for overrides) are safe from double booking with today's rules; the only cost is the listed-then-refused slot in the table above.
 
 ## Notes
 - **Daftra:** product IDs per duration move from env vars to the pricing settings in step 6. The env vars are removed in step 9. They are read in `lib/daftra/config.ts` and `scripts/daftra-fix-products.ts`, and set in Vercel and the local `.env`.

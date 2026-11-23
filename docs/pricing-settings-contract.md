@@ -28,6 +28,7 @@ Table `settings` (`Setting`: `category`, `subKey`, `value` Json, unique on the p
 
 ### Validation (main site, `parsePricingSettings` in `utils/pricing.ts`)
 - **Each key on its own:** each key is parsed separately. A missing or invalid key falls back to its default alone, and the reason is logged as `[pricing-settings] …`. The other keys are still used.
+- **No durations over 60 minutes yet** (from step 2): the slot and conflict checks are only correct up to 60 minutes, so a catalog entry with `minutes` over 60 is dropped (that entry alone, with the reason logged) and the rest of the catalog is kept. The limit is lifted when the real-overlap booking work ships; this file will say so.
 - **Unknown fields are ignored** (from step 2): a catalog entry, or any pricing setting that is an object, keeps its known fields and drops the rest. Adding a field never resets a setting to its default; only an invalid known field does.
 - **Catalog:** at least one entry, `minutes` unique, and it must contain **30** (instant sessions) and **45** (package sessions). Entries are sorted by `minutes`.
 - **`defaultDurations`:** a non-empty set of unique ints, all present in the catalog in use. If any value isn't in the catalog, the default `[30, 60]` is used, limited to the catalog (and if nothing is left, every catalog duration).

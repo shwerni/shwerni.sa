@@ -6009,3 +6009,10 @@ Asked by Ziad, pinned with npm (not `next upgrade --agent=security`).
   - no errors in the server log.
 
 **Open:** the build's notice about `cacheComponents` without a `partialPrefetching` option (unchanged from 16.4.3; Ziad decides).
+
+## Slot findings, the over-60 guard, the package conflict gap (2026-11-23)
+
+Docs only.
+
+- `docs/pricing-settings-plan.md`: "Requirement before step 4" (how slots are built and checked today, what breaks for 20 / 45 / 90 minutes, what must change before a new catalog duration is offered). Step 2 adds a guard: the settings parser drops any catalog entry over 60 minutes (that entry alone, with the reason logged) until the real-overlap booking work ships; tested. `docs/pricing-settings-contract.md` says the same.
+- **Website backlog #25 (High):** package next-session selection (`data/sessions.ts`) has no conflict check, so it can double-book today. Its own step after the auth upgrades, before pricing step 2.
