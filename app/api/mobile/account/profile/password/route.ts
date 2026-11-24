@@ -1,11 +1,11 @@
 // packages
-import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 // utils
 import { HttpError } from "@/lib/api/http-error";
 import { createPostRoute } from "@/lib/api/routes/route-factory";
 import { requireMobileSession } from "@/lib/auth/require-mobile-user";
+import { hashWebsitePassword } from "@/lib/auth/password";
 import prisma from "@/lib/database/db";
 import { cooldownDays, cooldownMessage } from "@/utils/user";
 
@@ -18,7 +18,8 @@ import { baseActionErrors } from "@/utils/action-errors";
 
 const schema = z.object({
   currentPassword: z.string().min(1),
-  newPassword: z.string().min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل"),
+  // saved trimmed (utils/password.ts): the length counts without the spaces
+  newPassword: z.string().trim().min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل"),
 });
 
 // update password, allowed once every 10 days, requires the current password
@@ -48,7 +49,7 @@ export const POST = createPostRoute(async (request) => {
 
   // the new password and its stamp; the other app sessions end (this one is kept) and website
   // logins from before are refused
-  await savePasswordChange(id, await bcrypt.hash(newPassword, 10), session.id);
+  await savePasswordChange(id, await hashWebsitePassword(newPassword), session.id);
 
   return { ok: true };
 });

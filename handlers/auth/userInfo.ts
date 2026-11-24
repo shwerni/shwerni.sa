@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 
 // packages
 import { z } from "zod";
-import bcrypt from "bcryptjs";
 
 // prisma db
 import prisma from "@/lib/database/db";
@@ -22,6 +21,7 @@ import { baseActionErrors } from "@/utils/action-errors";
 
 // lib
 import { signIn } from "@/auth";
+import { hashWebsitePassword } from "@/lib/auth/password";
 import { userServer } from "@/lib/auth/server";
 
 // schema
@@ -213,8 +213,8 @@ export const userPasswrodChange = async (
   if (current !== "ok")
     return { state: false, message: "كلمة المرور الحالية غير صحيحة" };
 
-  // bcrypt hasing
-  const hashedPassword = await bcrypt.hash(password, 10);
+  // bcrypt hasing (saved trimmed; the re-login below trims as the login does)
+  const hashedPassword = await hashWebsitePassword(password);
 
   try {
     // the new password, stamped: every other login (other browsers, the app) is signed out

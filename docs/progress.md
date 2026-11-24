@@ -6716,3 +6716,53 @@ Forgot password (reset by OTP), on the website and the app, is unchanged.
 **Open (Ziad):**
 - Review the label "كلمة المرور الحالية".
 - Already there and not changed: both password inputs on this form show the text, as the new-password field always did (no `type="password"`). Masking them is a one-word change if you want it.
+
+## Consistent password trimming (2026-11-24)
+
+**Before:**
+- The website login trimmed what was typed (`schemas.password` has `.trim()`), but several saves hashed the password untrimmed:
+  - website settings change;
+  - app set-password;
+  - app change password;
+  - the app reset hook;
+  - better-auth's own app credential.
+- So a password saved with spaces at its ends couldn't log in on the website.
+
+**The rule** (`utils/password.ts`):
+- `normalizePassword`: saved **trimmed**, everywhere.
+- `passwordCandidates`: a login tries the **trimmed** form, then, only if different, **exactly as typed**, each once. A password saved with its spaces before this change still works when typed with them.
+
+**Website (bcrypt, `users.password`):** `lib/auth/password.ts` has `hashWebsitePassword` (trims) and `matchesWebsitePassword` (the candidates).
+- **Saves:**
+  - register;
+  - website forgot password;
+  - settings change (its automatic re-login now also works for a password typed with spaces);
+  - app set-password, app change password, the app reset hook.
+- **Checks:**
+  - NextAuth `authorize`: it reads the raw `credentials.password`, because the schema has already trimmed `password`;
+  - the current-password check (website settings and app);
+  - the app legacy login.
+
+**App (better-auth's own credential, `mobile_accounts`, scrypt):**
+- `mobile-auth.ts` has `emailAndPassword.password.{hash, verify}`: better-auth's own `hashPassword` / `verifyPassword` from `better-auth/crypto`, only wrapped (hash trims, verify tries the candidates). Existing hashes keep working.
+- better-auth takes these from `emailAndPassword.password` even with email sign-in disabled (`create-context.mjs:183`).
+- They cover the phone+password sign-in, set-password (`api.setPassword`), the reset, and the legacy login's copy.
+- This is the one change to the better-auth config, needed for "trim on the app's login" as asked.
+- **Lengths count without the spaces:**
+  - set-password: 6, as before, now after trimming;
+  - app change password: `.trim().min(8)`.
+  - better-auth's own minimum on the app reset still counts the raw input (its check runs before the hash).
+
+**Verified**
+- tsc; eslint on the changed files (0 errors; the 3 warnings already there in `userInfo.ts`); `npm run build`; the manifest check prints only `data/event.ts` and `lib/api/google.ts`.
+- `password-sessions-real` (real local Postgres; real NextAuth credentials login and real better-auth sign-in). 9 new tests:
+  - the rules;
+  - each save with spaces then logs in **without them on both stores**: settings change (and its re-login), register, app set-password (with the trimmed-length check), app reset, app change password;
+  - existing **website** hashes saved with spaces still log in when typed with them, on the website, the current-password check and the app legacy login (whose app copy is saved trimmed);
+  - an existing **app** credential saved with spaces still signs in.
+- **Mutations:** without the as-typed fallback, 4 tests fail; without trimming on save, 6 fail.
+- Full suite 841 of 841.
+
+**Found, not fixed (Ziad):**
+- 🟠 **The app's change password doesn't reach the app's own login.** `/api/mobile/account/profile/password` updates only `users.password` (the website). better-auth's credential is never updated, so the app's phone+password sign-in **rejects the new password (401) and still accepts the old one (200)**; observed on the real stack. The fix updates the credential too (`ctx.context.internalAdapter.updatePassword` or `mobileAuth.api`). It touches better-auth's store, so I'm waiting for your decision.
+- **The 10-day cooldown after a reset** (from "Sign out other sessions"): an app user who just reset can't use the app's change password for 10 days (429).

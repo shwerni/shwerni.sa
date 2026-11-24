@@ -1,10 +1,8 @@
 import "server-only";
 
-// packages
-import bcrypt from "bcryptjs";
-
 // lib
 import { rateLimit, type RateLimitConfig } from "@/lib/rate-limit";
+import { matchesWebsitePassword } from "@/lib/auth/password";
 
 // prisma data
 import { getPasswordHash } from "@/data/password-change";
@@ -31,5 +29,6 @@ export async function checkCurrentPassword(
   const hash = await getPasswordHash(userId);
   if (!hash) return "wrong";
 
-  return (await bcrypt.compare(currentPassword, hash)) ? "ok" : "wrong";
+  // trimmed, then as typed (a password saved with its spaces)
+  return (await matchesWebsitePassword(currentPassword, hash)) ? "ok" : "wrong";
 }

@@ -2,9 +2,6 @@ import "server-only";
 // React & Next
 import { redirect } from "next/navigation";
 
-// packages
-import bcrypt from "bcryptjs";
-
 // prisma tyeps
 import { UserRole } from "@/lib/generated/prisma/enums";
 
@@ -13,6 +10,9 @@ import { createUser, getUserByPhone } from "@/data/user";
 import { generateVerificationToken } from "@/data/verificationTokens";
 import { CheckIsBlocked } from "@/data/blocked";
 
+// lib
+import { hashWebsitePassword } from "@/lib/auth/password";
+
 export const register = async (
   role: UserRole,
   username: string,
@@ -20,8 +20,8 @@ export const register = async (
   phone: string,
   password: string,
 ) => {
-  // bcrypt hasing
-  const hashedPassword = await bcrypt.hash(password, 10);
+  // bcrypt hasing (saved trimmed)
+  const hashedPassword = await hashWebsitePassword(password);
 
   // prisma if phone exist
   const phoneExist = await getUserByPhone(phone);

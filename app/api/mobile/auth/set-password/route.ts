@@ -1,5 +1,4 @@
 // packages
-import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 
 // utils
@@ -7,6 +6,8 @@ import prisma from "@/lib/database/db";
 
 // lib
 import { mobileAuth } from "@/lib/auth/mobile-auth";
+import { hashWebsitePassword } from "@/lib/auth/password";
+import { normalizePassword } from "@/utils/password";
 
 // prisma data
 import { endOtherAppSessions } from "@/data/password-change";
@@ -23,7 +24,10 @@ export async function POST(req: Request) {
   if (!session)
     return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
 
-  const { password } = await req.json();
+  const { password: typed } = await req.json();
+
+  // saved trimmed, on both stores (utils/password.ts); the length counts without the spaces
+  const password = typeof typed === "string" ? normalizePassword(typed) : typed;
 
   if (typeof password !== "string" || password.length < 6)
     return NextResponse.json(
@@ -46,7 +50,7 @@ export async function POST(req: Request) {
   });
 
   // keeps next-auth on web working with the exact same password
-  const bcryptHash = await bcrypt.hash(password, 10);
+  const bcryptHash = await hashWebsitePassword(password);
 
   await prisma.user.update({
     where: { id: session.user.id },

@@ -1,6 +1,3 @@
-// packages
-import bcrypt from "bcryptjs";
-
 // next auth
 import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
@@ -13,6 +10,7 @@ import { getUserByPhone } from "@/data/user";
 
 // lib
 import { checkHuman } from "@/lib/bot-protection";
+import { matchesWebsitePassword } from "@/lib/auth/password";
 
 export default {
   providers: [
@@ -32,7 +30,11 @@ export default {
 
         if (!user || !user.password || !user.phone) return null;
 
-        const passwordMatch = await bcrypt.compare(password, user.password);
+        // the trimmed password, then (for one saved with its spaces) exactly as typed: the schema
+        // already trimmed `password`, so the typed one comes from the raw credentials
+        const typed =
+          typeof credentials?.password === "string" ? credentials.password : password;
+        const passwordMatch = await matchesWebsitePassword(typed, user.password);
 
         if (!passwordMatch) return null;
 

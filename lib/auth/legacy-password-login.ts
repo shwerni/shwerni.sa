@@ -3,10 +3,11 @@ import { createAuthEndpoint } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { z } from "zod";
 import type { BetterAuthPlugin } from "better-auth";
-import bcrypt from "bcryptjs";
 
 // utils
 import prisma from "../database/db";
+import { matchesWebsitePassword } from "./password";
+import { normalizePassword } from "@/utils/password";
 
 /**
  * one-time bridge for existing web accounts logging into mobile for the
@@ -36,7 +37,8 @@ export const legacyPasswordLogin = () => {
             throw ctx.error("UNAUTHORIZED", { message: "بيانات الدخول غير صحيحة" });
           }
 
-          const passwordMatch = await bcrypt.compare(password, user.password);
+          // trimmed, then as typed (a website password saved with its spaces)
+          const passwordMatch = await matchesWebsitePassword(password, user.password);
           if (!passwordMatch) {
             throw ctx.error("UNAUTHORIZED", { message: "بيانات الدخول غير صحيحة" });
           }
@@ -64,7 +66,8 @@ export const legacyPasswordLogin = () => {
 
           await setSessionCookie(ctx, { session, user: sessionUser });
 
-          const hashedPassword = await ctx.context.password.hash(password);
+          // the app's own copy, saved trimmed (mobile-auth.ts password.hash trims too)
+          const hashedPassword = await ctx.context.password.hash(normalizePassword(password));
           await prisma.mobileAccount.create({
             data: {
               userId: user.id,

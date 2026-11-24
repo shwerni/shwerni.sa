@@ -4,13 +4,13 @@ import { redirect } from "next/navigation";
 
 // packages
 import { z } from "zod";
-import bcrypt from "bcryptjs";
 
 // schemas
 import { PhoneSchema, ResetSchema } from "@/schemas";
 
 // lib
 import { notificationSecurityOtp } from "@/lib/notifications/site";
+import { hashWebsitePassword } from "@/lib/auth/password";
 
 // utils
 import { withCallbackUrl } from "@/utils/callback-url";
@@ -104,8 +104,8 @@ export const verifyReset = async (
 
     // a code another submit already used: that one saved the password, go on to the login
     if (attempt.kind === "valid") {
-      // bcrypt hasing
-      const hashedPassword = await bcrypt.hash(newpassword, 10);
+      // bcrypt hasing (saved trimmed)
+      const hashedPassword = await hashWebsitePassword(newpassword);
       await completePasswordReset(attempt.id, attempt.phone, hashedPassword);
     }
   } catch (error) {
