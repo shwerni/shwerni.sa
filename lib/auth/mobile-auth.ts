@@ -1,10 +1,6 @@
 // packages
 import { betterAuth } from "better-auth";
 import { phoneNumber } from "better-auth/plugins";
-import {
-  hashPassword as hashBetterAuthPassword,
-  verifyPassword as verifyBetterAuthPassword,
-} from "better-auth/crypto";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import {
   APIError,
@@ -17,8 +13,7 @@ import prisma from "../database/db";
 import { notificationSecurityOtp } from "../notifications/site";
 import { legacyPasswordLogin } from "./legacy-password-login";
 import { cooldownDays, cooldownMessage } from "@/utils/user";
-import { normalizePassword, passwordCandidates } from "@/utils/password";
-import { hashWebsitePassword } from "./password";
+import { hashAppPassword, hashWebsitePassword, verifyAppPassword } from "./password";
 
 // prisma data
 import { savePasswordChange } from "@/data/password-change";
@@ -118,16 +113,9 @@ export const mobileAuth = betterAuth({
     enabled: false,
     // the app's own password store (MobileAccount, scrypt) follows the website's rule: saved
     // trimmed; a login tries the trimmed form, then (for one saved with its spaces) as typed.
-    // better-auth's own scrypt functions, only wrapped (existing hashes keep working)
-    password: {
-      hash: (password) => hashBetterAuthPassword(normalizePassword(password)),
-      verify: async ({ hash, password }) => {
-        for (const candidate of passwordCandidates(password)) {
-          if (await verifyBetterAuthPassword({ hash, password: candidate })) return true;
-        }
-        return false;
-      },
-    },
+    // better-auth's own scrypt functions, only wrapped (existing hashes keep working). the same
+    // hash saves the app password on a website or app change (lib/auth/password.ts)
+    password: { hash: hashAppPassword, verify: verifyAppPassword },
   },
 
   user: {

@@ -6766,3 +6766,36 @@ Forgot password (reset by OTP), on the website and the app, is unchanged.
 **Found, not fixed (Ziad):**
 - 🟠 **The app's change password doesn't reach the app's own login.** `/api/mobile/account/profile/password` updates only `users.password` (the website). better-auth's credential is never updated, so the app's phone+password sign-in **rejects the new password (401) and still accepts the old one (200)**; observed on the real stack. The fix updates the credential too (`ctx.context.internalAdapter.updatePassword` or `mobileAuth.api`). It touches better-auth's store, so I'm waiting for your decision.
 - **The 10-day cooldown after a reset** (from "Sign out other sessions"): an app user who just reset can't use the app's change password for 10 days (429).
+
+## App password change updates the app login too (2026-11-24)
+
+**The bug** (found in the trimming step, approved):
+- `/api/mobile/account/profile/password` updated only the website hash (`users.password`). better-auth's own credential (`mobile_accounts`, provider `credential`) kept the old password.
+- So after a change, the app's phone+password sign-in **refused the new password (401) and accepted the old one (200)**.
+- **The same gap in two website paths, fixed here too (noted, not asked):** account settings change and website forgot password. After either one, the app's sign-in would still accept the old password, which also defeats "sign out other sessions on password change".
+
+**Fix**
+- `lib/auth/password.ts`:
+  - `hashAppPassword` / `verifyAppPassword`: better-auth's own scrypt from `better-auth/crypto`, saved trimmed, checked trimmed then as typed.
+  - `mobile-auth.ts` now hands these same functions to better-auth (`emailAndPassword.password`), so app hashes have one definition.
+- `data/password-change.ts`:
+  - `updateAppPassword(userId, appHash, tx)` updates an **existing** credential row only. An account without one keeps using the legacy login, which copies the new website password on first use.
+  - `savePasswordChange` takes an optional `appHash` and writes it in the same transaction as the website hash, the stamp and the session sign-out (c5920ad behavior unchanged).
+- `completePasswordReset` (website forgot password) does the same in its transaction.
+- **Callers that pass the app hash:**
+  - app change password;
+  - website settings change;
+  - website forgot password.
+
+  better-auth's own app reset already saves the credential, so its hook passes none.
+
+**Verified**
+- tsc; eslint on the changed files (0 errors; the 3 warnings already there in `userInfo.ts`); `npm run build`; the manifest check prints only `data/event.ts` and `lib/api/google.ts`.
+- `password-sessions-real` (real local Postgres, real better-auth sign-in and real NextAuth login). 5 new tests:
+  - **app change password:** the app sign-in takes the new password (200) and refuses the old (401); the website takes the new and refuses the old; the current app session is kept, the other ended, and the stamp set;
+  - website settings change: the app sign-in follows;
+  - website forgot password: the app sign-in follows;
+  - an account with no app credential: none is created, and the legacy login then works only with the new password;
+  - another account's app password is untouched.
+- **Mutation:** without the `updateAppPassword` call, the app-change and settings tests fail.
+- `otp-real`'s hand-made schema gained `mobile_accounts`. Full suite 846 of 846.

@@ -37,22 +37,45 @@ export const endOtherAppSessions = (
   });
 
 /**
- * saves a changed password (the website's bcrypt hash) and stamps passwordChangedAt, in one
- * transaction with the end of the other app sessions. website logins from before the stamp are
- * refused by the session checks (data/account-state.ts)
+ * the app's own login password (better-auth's MobileAccount credential) follows a change made
+ * outside better-auth, so the old password stops working in the app too. only an existing
+ * credential is updated: an account without one signs in to the app by the legacy login, which
+ * copies the (new) website password on first use
  * @param userId the account
- * @param hashedPassword the new bcrypt hash
+ * @param appHash better-auth's hash of the new password (lib/auth/password.ts hashAppPassword)
+ * @param db the transaction, when inside one
+ */
+export const updateAppPassword = (
+  userId: string,
+  appHash: string,
+  db: DbTx | typeof prisma = prisma,
+) =>
+  db.mobileAccount.updateMany({
+    where: { userId, providerId: "credential" },
+    data: { password: appHash },
+  });
+
+/**
+ * saves a changed password and stamps passwordChangedAt, in one transaction with the end of the
+ * other app sessions. website logins from before the stamp are refused by the session checks
+ * (data/account-state.ts)
+ * @param userId the account
+ * @param hashedPassword the new website hash (bcrypt, users.password)
  * @param keepSessionId the current app session to keep, when the change came from the app
+ * @param appHash the new app hash, when the app's login must follow too (better-auth's own reset
+ *   already saved it, so it passes none)
  */
 export const savePasswordChange = (
   userId: string,
   hashedPassword: string,
   keepSessionId?: string,
+  appHash?: string,
 ) =>
   prisma.$transaction(async (tx) => {
     await tx.user.update({
       where: { id: userId },
       data: { password: hashedPassword, passwordChangedAt: new Date() },
     });
+    if (appHash) await updateAppPassword(userId, appHash, tx);
     await endOtherAppSessions(userId, keepSessionId, tx);
   });

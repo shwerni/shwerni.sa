@@ -15,7 +15,7 @@ import { generateOtp } from "@/utils/auth";
 
 // prisma data
 import { notificationSecurityOtp } from "@/lib/notifications/site";
-import { endOtherAppSessions } from "@/data/password-change";
+import { endOtherAppSessions, updateAppPassword } from "@/data/password-change";
 
 export const getVerificationTokenByToken = async (token: string) => {
   try {
@@ -120,6 +120,8 @@ export const completePasswordReset = async (
   tokenId: string,
   phone: string,
   hashedPassword: string,
+  // the app's login password follows (better-auth's hash; data/password-change.ts)
+  appHash?: string,
 ) =>
   prisma.$transaction(async (tx) => {
     const claimed = await claimToken(tx, tokenId);
@@ -138,6 +140,9 @@ export const completePasswordReset = async (
       },
       select: { id: true },
     });
+
+    // the app's own login takes the new password too (the old one stops working there)
+    if (appHash) await updateAppPassword(user.id, appHash, tx);
 
     // and every app session: this device is logged out (forgot password), it logs in after
     await endOtherAppSessions(user.id, undefined, tx);

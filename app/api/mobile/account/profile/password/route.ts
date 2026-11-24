@@ -5,7 +5,7 @@ import { z } from "zod";
 import { HttpError } from "@/lib/api/http-error";
 import { createPostRoute } from "@/lib/api/routes/route-factory";
 import { requireMobileSession } from "@/lib/auth/require-mobile-user";
-import { hashWebsitePassword } from "@/lib/auth/password";
+import { hashAppPassword, hashWebsitePassword } from "@/lib/auth/password";
 import prisma from "@/lib/database/db";
 import { cooldownDays, cooldownMessage } from "@/utils/user";
 
@@ -47,9 +47,15 @@ export const POST = createPostRoute(async (request) => {
   if (current === "rate_limited") throw new HttpError(baseActionErrors.rate_limited, 429);
   if (current !== "ok") throw new HttpError("كلمة المرور الحالية غير صحيحة", 401);
 
-  // the new password and its stamp; the other app sessions end (this one is kept) and website
-  // logins from before are refused
-  await savePasswordChange(id, await hashWebsitePassword(newPassword), session.id);
+  // the new password on both logins (the website's hash and the app's own, so the app's
+  // phone+password login takes the new one and refuses the old), and its stamp; the other app
+  // sessions end (this one is kept) and website logins from before are refused
+  await savePasswordChange(
+    id,
+    await hashWebsitePassword(newPassword),
+    session.id,
+    await hashAppPassword(newPassword),
+  );
 
   return { ok: true };
 });

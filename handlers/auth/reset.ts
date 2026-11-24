@@ -10,7 +10,7 @@ import { PhoneSchema, ResetSchema } from "@/schemas";
 
 // lib
 import { notificationSecurityOtp } from "@/lib/notifications/site";
-import { hashWebsitePassword } from "@/lib/auth/password";
+import { hashAppPassword, hashWebsitePassword } from "@/lib/auth/password";
 
 // utils
 import { withCallbackUrl } from "@/utils/callback-url";
@@ -106,7 +106,9 @@ export const verifyReset = async (
     if (attempt.kind === "valid") {
       // bcrypt hasing (saved trimmed)
       const hashedPassword = await hashWebsitePassword(newpassword);
-      await completePasswordReset(attempt.id, attempt.phone, hashedPassword);
+      // the app's login follows (an existing app password only)
+      const appHash = await hashAppPassword(newpassword);
+      await completePasswordReset(attempt.id, attempt.phone, hashedPassword, appHash);
     }
   } catch (error) {
     console.error("[otp] reset failed", error);

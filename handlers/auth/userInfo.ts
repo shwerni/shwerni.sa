@@ -21,7 +21,7 @@ import { baseActionErrors } from "@/utils/action-errors";
 
 // lib
 import { signIn } from "@/auth";
-import { hashWebsitePassword } from "@/lib/auth/password";
+import { hashAppPassword, hashWebsitePassword } from "@/lib/auth/password";
 import { userServer } from "@/lib/auth/server";
 
 // schema
@@ -218,7 +218,8 @@ export const userPasswrodChange = async (
 
   try {
     // the new password, stamped: every other login (other browsers, the app) is signed out
-    await savePasswordChange(id, hashedPassword);
+    // (the app's login follows: its own copy of the password is replaced too)
+    await savePasswordChange(id, hashedPassword, undefined, await hashAppPassword(password));
   } catch {
     return {
       state: false,

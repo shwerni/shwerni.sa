@@ -2,9 +2,33 @@ import "server-only";
 
 // packages
 import bcrypt from "bcryptjs";
+import {
+  hashPassword as hashBetterAuthPassword,
+  verifyPassword as verifyBetterAuthPassword,
+} from "better-auth/crypto";
 
 // utils
 import { normalizePassword, passwordCandidates } from "@/utils/password";
+
+/**
+ * the app's password hash (better-auth's own scrypt, MobileAccount credential), saved trimmed.
+ * mobile-auth.ts hands this to better-auth as its password.hash, so every app save uses it too
+ * @param password what was typed
+ */
+export const hashAppPassword = (password: string) =>
+  hashBetterAuthPassword(normalizePassword(password));
+
+/**
+ * better-auth's password.verify (mobile-auth.ts): the trimmed form, then as typed
+ * @param hash the credential's hash
+ * @param password what was typed
+ */
+export async function verifyAppPassword({ hash, password }: { hash: string; password: string }) {
+  for (const candidate of passwordCandidates(password)) {
+    if (await verifyBetterAuthPassword({ hash, password: candidate })) return true;
+  }
+  return false;
+}
 
 /**
  * the website password hash (bcrypt, users.password) of a password, saved trimmed
