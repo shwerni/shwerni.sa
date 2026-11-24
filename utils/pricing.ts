@@ -3,6 +3,7 @@ import { z } from "zod";
 
 // constants
 import {
+  CATALOG_GUARD_MAX_MINUTES,
   CATALOG_MINUTES_MAX,
   CATALOG_MINUTES_MIN,
   LEGACY_COST_COLUMNS,
@@ -21,13 +22,18 @@ import {
 // the settings rows
 // ---------------------------------------------------------------
 
+// a daftra product id (pricing step 6 reads it)
+const daftraProductIdSchema = z.number().int().positive();
+
+// one entry. unknown fields are dropped, not refused (zod's default strip, no .strict()): a field
+// the dashboard adds later can never reset the catalog to the defaults; the known ones are checked
 const catalogEntrySchema = z
   .object({
     minutes: z.number().int().min(CATALOG_MINUTES_MIN).max(CATALOG_MINUTES_MAX),
     min: z.number().positive().finite(),
     max: z.number().positive().finite().optional(),
+    daftraProductId: daftraProductIdSchema.optional(),
   })
-  .strict()
   .refine((entry) => entry.max === undefined || entry.max > entry.min, {
     message: "max must be greater than min",
   });
@@ -58,12 +64,36 @@ export const defaultDurationsSchema = z
 
 export const maxPackageDiscountPercentSchema = z.number().int().min(0).max(100);
 
+export const daftraDefaultProductIdSchema = daftraProductIdSchema;
+
+/**
+ * the >60-minute guard (CATALOG_GUARD_MAX_MINUTES): entries longer than an hour are dropped one by
+ * one, each with its reason; the rest of the catalog is kept and validated as usual
+ * @param value the durationCatalog row's value
+ */
+function dropLongCatalogEntries(value: unknown, issues: string[]): unknown {
+  if (!Array.isArray(value)) return value;
+  return value.filter((entry) => {
+    const minutes = (entry as { minutes?: unknown } | null)?.minutes;
+    if (typeof minutes === "number" && minutes > CATALOG_GUARD_MAX_MINUTES) {
+      issues.push(
+        `${PRICING_SETTING_KEYS.catalog}: ${minutes} min is over ${CATALOG_GUARD_MAX_MINUTES} (dropped until the overlap booking work ships)`,
+      );
+      return false;
+    }
+    return true;
+  });
+}
+
 /**
  * the pricing settings from the settings rows' values (category "pricing", by sub key). each key
  * is parsed on its own: a missing or invalid one falls back to its default alone, with the reason
  * in issues. the default lengths must all be in the catalog in use (else they fall back too; and
  * when the defaults don't fit that catalog either, only its lengths among them are kept)
- * @param values the rows' values by sub key (durationCatalog, defaultDurations, maxPackageDiscountPercent)
+ * catalog entries longer than CATALOG_GUARD_MAX_MINUTES are dropped alone (the guard), and unknown
+ * fields of an entry are ignored
+ * @param values the rows' values by sub key (durationCatalog, defaultDurations,
+ * maxPackageDiscountPercent, daftraDefaultProductId)
  */
 export function parsePricingSettings(values: Partial<Record<string, unknown>>): {
   settings: PricingSettings;
@@ -73,7 +103,8 @@ export function parsePricingSettings(values: Partial<Record<string, unknown>>): 
   const issues: string[] = [];
 
   const read = <T>(key: string, schema: z.ZodType<T>, fallback: T): T => {
-    const value = values[key];
+    const value =
+      key === PRICING_SETTING_KEYS.catalog ? dropLongCatalogEntries(values[key], issues) : values[key];
     if (value === undefined || value === null) return fallback;
     const parsed = schema.safeParse(value);
     if (parsed.success) return parsed.data;
@@ -105,11 +136,18 @@ export function parsePricingSettings(values: Partial<Record<string, unknown>>): 
     defaults.maxPackageDiscountPercent,
   );
 
+  const daftraDefaultProductId = read<number | null>(
+    PRICING_SETTING_KEYS.daftraDefaultProductId,
+    daftraDefaultProductIdSchema,
+    defaults.daftraDefaultProductId,
+  );
+
   return {
     settings: {
       catalog,
       defaultDurations: [...defaultDurations].sort((a, b) => a - b),
       maxPackageDiscountPercent,
+      daftraDefaultProductId,
     },
     issues,
   };

@@ -6458,3 +6458,37 @@ Asked by Ziad.
   - a scheduled booking and a real instant booking both wait for a held consultant lock (~1 s) and then succeed;
   - another consultant's booking doesn't wait (< 800 ms).
 - `pick-next-session` was updated for the `bookPickedMeeting` / `finishPickedSession` split.
+
+## Pricing step 2: consultant costs / durations columns, tolerant settings parser (2026-11-24)
+
+Plan: `docs/pricing-settings-plan.md`, step 2. **Nothing reads the new columns yet; no behavior change.**
+
+**✋ Schema** (`prisma/models/consultant.prisma`, model `Consultant`, table `consultants`):
+- `costs Json @default("{}")`: prices by length;
+- `durations Int[] @default([])`: the consultant's own lengths; empty means the platform default.
+- `npx prisma validate` and `npx prisma generate` only. **Ziad runs `db push`, and it must happen BEFORE this commit is deployed.** The generated client reads these columns whenever it loads a full consultant row, so deploying first would break every such query.
+- Expected `db push` effect: two columns added to `consultants`, nothing else:
+  - `costs jsonb NOT NULL DEFAULT '{}'`
+  - `durations integer[] NOT NULL DEFAULT '{}'` (Postgres's empty-array default; `ARRAY[]::integer[]` is the same value)
+- Optional backfill (Ziad, later): `UPDATE consultants SET costs = jsonb_build_object('30',cost30,'45',cost45,'60',cost60) WHERE costs = '{}'::jsonb;`
+
+**Settings parser** (`utils/pricing.ts`, `constants/pricing.ts`):
+- **Tolerant:** catalog entries ignore unknown fields (zod strip, the `.strict()` is gone); the known fields are still validated.
+- **Daftra fields:** an optional `daftraProductId` (positive int) on catalog entries, and the new key `daftraDefaultProductId` (positive int; missing or invalid → `null`, alone). They're parsed only; step 6 uses them.
+- **Guard for durations over 60 minutes** (`CATALOG_GUARD_MAX_MINUTES = 60`):
+  - each catalog entry over 60 minutes is dropped alone, logged through `getPricingSettings` as `[pricing-settings] durationCatalog: 90 min is over 60 (dropped until the overlap booking work ships)`, and the rest of the catalog is kept and validated as before;
+  - a default set naming a dropped length falls back as before;
+  - remove the guard in the same commit as the overlap booking work.
+
+**Verified**
+- `prisma validate` / `generate`; tsc; eslint on the changed files.
+- `npm run build` (auth-field guard first); the manifest check prints only `data/event.ts` and `lib/api/google.ts`.
+- Throwaway vitest 793 of 793. Step-1 fixtures updated: `daftraDefaultProductId: null` in the defaults; the old "unknown field" and "600 minutes" fallback cases now follow the step-2 rules.
+- New (9 tests):
+  - an entry with unknown fields keeps its real values (fields dropped, no issue);
+  - an unknown field doesn't hide a bad `min`;
+  - `daftraProductId` parsed, and a bad one fails the catalog;
+  - `daftraDefaultProductId` missing / valid / invalid (alone);
+  - 90 dropped with the exact reason, keeping 30/45/60; 61 and 120 dropped, exactly 60 kept, and a default set with 90 falls back;
+  - dropping a long entry can't hide a missing 45;
+  - **on a real local Postgres** with the real client: an existing row reads `costs {}` / `durations []` (column defaults) and a full-row read works; writes of both columns validate and round-trip.

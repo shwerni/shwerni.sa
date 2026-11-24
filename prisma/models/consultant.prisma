@@ -58,6 +58,11 @@ model Consultant {
   cost30        Float
   cost45        Float
   cost60        Float
+  // pricing step 2 (docs/pricing-settings-plan.md): prices by length { "<minutes>": price }, the
+  // source of truth once the reads move over; cost30/45/60 win for those lengths meanwhile
+  costs         Json             @default("{}")
+  // the consultant's own single-session lengths; empty = the platform default (pricing settings)
+  durations     Int[]            @default([])
   category      Categories
   image         String?
   pendingImage  String?
