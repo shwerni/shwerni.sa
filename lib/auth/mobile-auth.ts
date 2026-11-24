@@ -21,6 +21,12 @@ const isPhoneChange = (ctx: { path?: string; body?: unknown }) =>
   (ctx.body as { updatePhoneNumber?: boolean } | undefined)
     ?.updatePhoneNumber === true;
 
+// /phone-number/reset-password answers { status: true } only after the otp was checked and the
+// app's password saved; anything else (an APIError) is a failed reset
+export const isSuccessfulReset = (returned: unknown) =>
+  !(returned instanceof APIError) &&
+  (returned as { status?: unknown } | null | undefined)?.status === true;
+
 // the website's "phone verified" (User.phoneVerified, a date) follows better-auth's own
 // phoneNumberVerified (User.mobilePhoneVerified), so a phone verified in the app counts on the
 // website too (next-auth's signIn, the user pages, the legacy password login). the hooks get
@@ -185,6 +191,10 @@ export const mobileAuth = betterAuth({
       }
 
       if (ctx.path !== "/phone-number/reset-password") return;
+
+      // after hooks run on failures too (a wrong, expired or missing otp returns its APIError
+      // here): the website password follows only a reset that succeeded
+      if (!isSuccessfulReset(ctx.context.returned)) return;
 
       const { phoneNumber, newPassword } = ctx.body as {
         phoneNumber: string;

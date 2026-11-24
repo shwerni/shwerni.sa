@@ -6492,3 +6492,30 @@ Plan: `docs/pricing-settings-plan.md`, step 2. **Nothing reads the new columns y
   - 90 dropped with the exact reason, keeping 30/45/60; 61 and 120 dropped, exactly 60 kept, and a default set with 90 falls back;
   - dropping a long entry can't hide a missing 45;
   - **on a real local Postgres** with the real client: an existing row reads `costs {}` / `durations []` (column defaults) and a full-row read works; writes of both columns validate and round-trip.
+
+## 🔴 Mobile reset-password hook wrote the website password on a FAILED reset (Critical) (2026-11-24)
+
+Found while working on "sign out other sessions on password change".
+
+**The bug** (`lib/auth/mobile-auth.ts`, `hooks.after`, path `/phone-number/reset-password`):
+- better-auth 1.7.27 runs `after` hooks even when the endpoint fails. `api/dispatch.mjs` catches the APIError, puts it in `ctx.context.returned` and still calls the after hooks; the phone-change branch already checks this for the same reason.
+- The reset branch didn't check. On every call it wrote `bcrypt(newPassword)` into `User.password`, the website password, which the legacy app login also reads.
+- **Impact:** `POST /api/mobile/auth/phone-number/reset-password` with a victim's phone number, any OTP (even with no reset requested) and a new password replaced the victim's website password. The request only needs the `x-app-secret` header, which ships inside the app. That is an account takeover on the website, and through `/sign-in/legacy-password` on the app too, when the account has no app credential yet.
+
+**Fix:**
+- `isSuccessfulReset(ctx.context.returned)`: the website password is written only when better-auth answered `{ status: true }`. That answer comes only after the OTP was checked and the app's own password saved; an APIError or anything else is a failed reset.
+- No other behavior changes; a successful reset works as before.
+
+**Verified**
+- Throwaway vitest `mobile-reset-guard` (5 tests): the real `mobileAuth` config and better-auth's real endpoints, on the memory-adapter harness:
+  - no reset requested;
+  - a wrong code, then the right code still works;
+  - an expired code;
+  - a too-short password;
+  - the helper itself.
+- **Against the old hook** (guard removed temporarily), the four attack cases fail: the website password was replaced each time.
+- Full suite 798 of 798; tsc; eslint on the file; `npm run build`; the manifest check prints only `data/event.ts` and `lib/api/google.ts`.
+
+**Open (Ziad):**
+- Deploy this one on its own, ahead of the rest if possible.
+- In production logs or the database, look for unexpected `users.password` changes with no matching successful reset; the hook left no log line of its own. Accounts whose website password was changed this way can be found by comparing `users.updated_at` with `mobile_verifications` reset rows. That's read-only, and I can write the SQL.
