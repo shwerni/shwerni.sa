@@ -161,7 +161,8 @@ export type ReserveResult<T> =
   | { state: true; order: T }
   | {
       state: false;
-      code: "info" | "error";
+      // conflict: the slot was taken (reserveConsultant's and reserveProgram's answer)
+      code: "info" | "error" | "conflict";
       message: string;
     };
 

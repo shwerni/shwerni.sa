@@ -5,6 +5,7 @@ import prisma from "@/lib/database/db";
 // prisma data
 import { logBookedMeeting } from "@/data/meeting-log";
 import { lockConsultantBookings } from "@/data/booking/lock";
+import { checkMeetingTimeConflict } from "@/data/order/reserveation";
 
 // prisma types
 import {
@@ -47,10 +48,20 @@ export const reserveProgram = async (
     // varies by consultant the way session commission does
     const PROGRAM_COMMISSION = 70;
 
-    // created under the consultant's booking lock, so a booking checking this slot right now
-    // sees it (its own slot check is backlog #27)
+    // under the consultant's booking lock, the first meeting's slot is checked (the same check as
+    // reserveConsultant) and the order created in one transaction, so two bookings of one slot
+    // can't both pass the check
     const order = await prisma.$transaction(async (tx) => {
       await lockConsultantBookings(tx, data.cid);
+      const taken = await checkMeetingTimeConflict(
+        data.cid,
+        data.time,
+        dateToString(data.date),
+        { author: data.user, phone: data.phone },
+        tx,
+      );
+      if (taken) return null;
+
       return tx.order.create({
         data: {
           author: data.user,
@@ -101,6 +112,14 @@ export const reserveProgram = async (
         },
       });
     });
+
+    // the slot was taken (the same answer as reserveConsultant's)
+    if (!order)
+      return {
+        state: false,
+        code: "conflict",
+        message: `هذا الموعد (${dateToString(data.date)} - ${data.time}) تم حجزه بالفعل، برجاء اختيار وقت آخر`,
+      } satisfies ReserveResult<never>;
 
     // meeting log: the booking's first meeting (customer). it never throws
     await logBookedMeeting(order);

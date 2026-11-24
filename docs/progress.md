@@ -6964,3 +6964,20 @@ and at **both** callers (the two «rescheduleUrl» menu items):
 3. Commit 2 (`reserveProgram`) can deploy with it.
 
 **Open (Ziad):** review the Arabic text above; #30 (the webhook signature) is the next High item.
+
+## #27, part 2: reserveProgram conflict check under the lock (2026-11-24)
+
+**Before:** `reserveProgram` (`data/order/program.ts`) created its order under `lockConsultantBookings` (#25 step 2) but checked no slot. A program could be booked on a slot already taken.
+
+**Fix:**
+- Inside the same locked transaction, before `order.create`: `checkMeetingTimeConflict(cid, time, date, { author, phone }, tx)`, the same check and arguments as `reserveConsultant`.
+- When taken, it creates nothing and returns `{ state: false, code: "conflict", message }` with `reserveConsultant`'s exact message («هذا الموعد (… - …) تم حجزه بالفعل، برجاء اختيار وقت آخر»). `Pay()` passes it on as before (`step: "conflict"`), so it's the same as for a normal booking.
+- `ReserveResult` (`types/admin.d.ts`) gains `"conflict"` in its code union (type only).
+
+**Verified**
+- tsc; eslint on the changed files (clean); `npm run build`; the manifest check prints only `data/event.ts` and `lib/api/google.ts`.
+- `reschedule-real` (real local Postgres), 2 new tests:
+  - an occupied slot → `conflict` with the exact message and no order, while a free slot → created;
+  - three programs for one slot at once → exactly one order.
+- **Mutation:** without the check, both fail.
+- Full suite 869 of 869.
