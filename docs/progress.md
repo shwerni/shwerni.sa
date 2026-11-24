@@ -6649,3 +6649,34 @@ Closes the open item from "Website session lifetime: 90 days": a password reset 
 - Docs only: tsc, the build and the manifest are unchanged since c5920ad (not re-run).
 
 **Open (Ziad):** run the four queries and the log search, and send me the results. For Q4, put the candidate phones from Q1–Q3 in its list.
+
+## Never send the password hash (or passwordChangedAt) to the browser (2026-11-24)
+
+**Correction to the earlier note:** the consultant profile page did **not** send the hash. `getUserById` already had `omit: { password: true }`. It did send the rest of the `User` row to the client form `UserSettings`: `passwordChangedAt`, `phoneChangedAt`, `deletedAt`, `emailVerified`, the app's flags and the timestamps.
+
+**Fix**
+- `data/user.ts`:
+  - **`getProfileUser(id)`** (new): selects only `id`, `name`, `email`, `phone` and `updated_at`, the fields `UserSettings` reads (checked: `user.id/name/email/phone/updated_at` only). `dashboard/profile/page.tsx` uses it.
+  - **`getUserById`**: an explicit `select` (`id`, `name`, `email`, `phone`, `role`, `phoneVerified`, `updated_at`) in place of the `omit`. Its callers use only these: the dashboard and `(user)` layouts (`phoneVerified`, `phone`), the jwt callback (`phone`, `role`), `userInfoChange` / `userPasswrodChange` (`email`, `phone`).
+  - **`getUsersByRole`**: returned full rows, hash included. Nothing calls it (one unused import in `data/preconsultation.ts`), but it now selects `id`, `name`, `phone` and `role`.
+- `UserSettings` prop type: `Pick<User, "id" | "name" | "email" | "phone" | "updated_at">`. No markup change.
+
+**The repo search** (every `prisma.user.*` call, every `include` or `select` of a `user` relation (all 15 relations to `User` are named `user`), raw SQL on `users`, and every client component typed with the prisma `User`):
+- **Reached the browser:** only the profile page above. Fixed.
+- **Full rows, server-only, never returned or rendered** (left as they are; they need the hash):
+  - `getUserByPhone`: NextAuth `authorize` and `signIn`, register, forgot password, verify, `getMeetingUrl`;
+  - `getUserLogin`: the login handler;
+  - `lib/auth/legacy-password-login.ts`: it answers with a reshaped user, no hash.
+- **`app/api/cron/mobile/notifications/dispatch/route.ts`:** `include: { user: { include: { pushTokens: true } } }` loads full user rows, server-side only (the route returns counts). Cron routes are on the propose-only list, so the proposal is `include: { user: { select: { pushTokens: true } } }`.
+- Every other `prisma.user` read already had a `select`. The app routes return picked fields (`/account/profile` turns `passwordChangedAt` into `passwordLockDays`).
+- **Better-auth's answers to the app** (OTP verify, `get-session`, legacy login) carry no hash and no `passwordChangedAt`; tested.
+- Not a `User` row, but checked: `/orders` loads `include: { consultant: true }` (the consultant's private phone, commission, admin note). It renders in a server component (`components/clients/user/table.tsx`, no `"use client"`) and shows only `consultant.name`, so nothing goes to the browser. Worth a `select` when that page is next touched.
+
+**Verified**
+- tsc; eslint on the changed files (clean); `npm run build`; the manifest check prints only `data/event.ts` and `lib/api/google.ts`.
+- Throwaway `no-hash-to-browser` (5 tests) on a **real local Postgres**, the account with every sensitive column set:
+  - the **real profile page** is rendered and the props it hands to `UserSettings` are found in the element tree: exactly `email`, `id`, `name`, `phone`, `updated_at`, with no `password`, no `passwordChangedAt` and no `$2a$` anywhere;
+  - `getUserById`, `getProfileUser` and `getUsersByRole`: exact key sets, no secret fields;
+  - better-auth OTP verify, `get-session` and legacy login: no hash, no `passwordChangedAt`.
+- **Mutation:** with the page back on a full-row read, the profile test fails.
+- Full suite 827 of 827.

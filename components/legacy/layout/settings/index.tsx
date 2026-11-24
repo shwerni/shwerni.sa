@@ -46,7 +46,8 @@ export default function UserSettings({
   time,
   date,
 }: {
-  user: Omit<User, "password"> | null;
+  // only these fields (data/user.ts getProfileUser): this is the browser
+  user: Pick<User, "id" | "name" | "email" | "phone" | "updated_at"> | null;
   time: string;
   date: string;
 }) {

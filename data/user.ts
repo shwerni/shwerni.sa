@@ -44,13 +44,24 @@ export const getUserByPhone = async (phone: string) => {
   }
 };
 
+// the user fields the website reads by id (session, layouts, settings handlers). an explicit select:
+// never the password hash, passwordChangedAt, the other account dates or tokens
+const accountSelect = {
+  id: true,
+  name: true,
+  email: true,
+  phone: true,
+  role: true,
+  phoneVerified: true,
+  updated_at: true,
+} as const;
+
 // get unique user by Id
 export const getUserById = async (id: string) => {
   try {
-    // dashboard pages pass this row to client components, so the hash never leaves here
     const exist = await prisma.user.findUnique({
       where: { id },
-      omit: { password: true },
+      select: accountSelect,
     });
     // if not exist
     if (!exist) return null;
@@ -61,10 +72,29 @@ export const getUserById = async (id: string) => {
   }
 };
 
+/**
+ * the account settings page's user: only what its client form shows and sends (it goes to the
+ * browser). never the password hash, passwordChangedAt or tokens
+ * @param id the session user
+ */
+export const getProfileUser = async (id: string) => {
+  try {
+    return await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, name: true, email: true, phone: true, updated_at: true },
+    });
+  } catch {
+    return null;
+  }
+};
+
 // get unique user by Id
 export const getUsersByRole = async (role: UserRole) => {
   try {
-    const exist = await prisma.user.findMany({ where: { role } });
+    const exist = await prisma.user.findMany({
+      where: { role },
+      select: { id: true, name: true, phone: true, role: true },
+    });
     // if not exist
     if (!exist) return null;
     return exist;

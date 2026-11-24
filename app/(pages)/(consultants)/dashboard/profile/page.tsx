@@ -8,14 +8,14 @@ import { timeZone } from "@/utils/date";
 import { userServer } from "@/lib/auth/server";
 
 // prisma data
-import { getUserById } from "@/data/user";
+import { getProfileUser } from "@/data/user";
 
 export default async function Page() {
   // userId
   const userId = await userServer();
 
-  // user
-  const user = await getUserById(String(userId?.id));
+  // user (only the fields the settings form uses: it goes to the browser)
+  const user = await getProfileUser(String(userId?.id));
 
   // time
   const { time, date } = await timeZone();
