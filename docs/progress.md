@@ -6598,3 +6598,54 @@ Closes the open item from "Website session lifetime: 90 days": a password reset 
   - the settings "change password" asks for no current password;
   - it hashes the untrimmed password while the login trims it, so a password with spaces at its ends can't log in, and the re-login above fails for it too;
   - the consultant profile page passes the full `User` row, password hash included, to a client component (`dashboard/profile/page.tsx` → `components/legacy/layout/settings`).
+
+## Reset-password exploit check: read-only SQL (2026-11-24)
+
+`docs/sql/2026-11-24-reset-password-exploit-check.sql`, for Ziad to run in the Supabase SQL editor. It's wrapped in `BEGIN TRANSACTION READ ONLY … ROLLBACK`, and no code changed.
+
+**Window:** the hook was there from the first app backend commit (`776e94c`, 2026-08-14) until 515ada1 is deployed. Production ran better-auth 1.6.23 until 7c14ebe (2026-11-23), and I checked its `dispatch.mjs`: it also runs after-hooks with the APIError, so the whole window was exploitable.
+
+**What the database can and can't show:**
+- **What the hook leaves:** `users.password` and `users.updated_at` change, with no `password_changed_at`, no app credential change and no log row.
+- **Cheapest attack** (no reset requested): nothing else at all.
+- **Real app reset:** also writes the app credential row (`mobile_accounts`), just before the `users` write.
+- **The best evidence is outside the database:** request logs for `POST /api/mobile/auth/phone-number/reset-password` with a 4xx status, as far back as they're kept.
+
+**The queries:**
+- **Q1, the candidate list:** accounts with a password whose LAST write (since 2026-08-14) has no known explanation within 2 minutes (created, phone verified, password or phone changed, an app credential written just before). Each row shows:
+  - an app session within 10 s (a weak explanation: an OTP login also writes the user);
+  - an app credential created after;
+  - the sessions in the next 72 h.
+
+  **Limits:**
+  - `updated_at` keeps only the last write, so a later write hides an earlier attack;
+  - website settings changes and admin edits leave no trace, so they show up as candidates.
+- **Q2, an app legacy login right after an unexplained write:** the attacker's way into the app. It shows the session's IP and user agent. **Limits:** a real first app login looks the same; ended sessions are deleted.
+- **Q3, reset requests that never succeeded:** the code itself is never selected, only the try count. **`password_written_on_wrong_code`** (the users write within 5 s after a wrong-code row) is the hook firing on a failed reset. **Limits:**
+  - the no-request attack leaves no row;
+  - expired or exhausted rows are deleted;
+  - a **real user's typo** shows the same way, and it did really change their website password to the one they typed.
+- **Q4, the candidates' app sessions:** first-time IP and device flags. **Limits:** ended sessions are gone, and the website has no session table.
+
+**Verified** (throwaway `exploit-sql-check`, parked as `.off` because it needs the old hook):
+- A real local Postgres was seeded through the **pre-fix hook** (a temporary copy of `515ada1^:lib/auth/mobile-auth.ts`, deleted afterwards) and better-auth's real endpoints. Scenarios:
+  - an untouched account;
+  - a real app reset;
+  - the no-request attack;
+  - the attack followed by a scripted legacy login;
+  - an attack with a wrong-code guess;
+  - a real user's typo;
+  - a real OTP login;
+  - a real set-password;
+  - an old-style website reset.
+- The seed is real: each attack really replaced the website password.
+- **Q1** lists every attack and the typo, and not the untouched account, the real reset, set-password or the website reset. The OTP login is listed with `app_session_within_10s = true`, the weak case.
+- **Q2** finds exactly the scripted legacy login, with its session.
+- **Q3** flags the wrong-code attack and the typo; the no-request attack and the real reset leave no row.
+- **Q4** flags the attacker's session as a first-time IP and device.
+- **Two SQL bugs found and fixed by this check:**
+  - an `ORDER BY` on an expression of an output alias (Postgres error);
+  - `NOT (… OR NULL …)`: `password_changed_at` / `phone_changed_at` are NULL for most accounts, so the condition became NULL and **dropped every row**. Q1 and Q2 would have come back empty, which looks like "all clear". Each check is now wrapped in `coalesce(…, false)`.
+- Docs only: tsc, the build and the manifest are unchanged since c5920ad (not re-run).
+
+**Open (Ziad):** run the four queries and the log search, and send me the results. For Q4, put the candidate phones from Q1–Q3 in its list.
