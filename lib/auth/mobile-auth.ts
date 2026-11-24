@@ -15,6 +15,9 @@ import { notificationSecurityOtp } from "../notifications/site";
 import { legacyPasswordLogin } from "./legacy-password-login";
 import { cooldownDays, cooldownMessage } from "@/utils/user";
 
+// prisma data
+import { savePasswordChange } from "@/data/password-change";
+
 // true when the request updates the phone of the signed in user
 const isPhoneChange = (ctx: { path?: string; body?: unknown }) =>
   ctx.path === "/phone-number/verify" &&
@@ -201,11 +204,19 @@ export const mobileAuth = betterAuth({
         newPassword: string;
       };
 
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-      await prisma.user.update({
+      const user = await prisma.user.findUnique({
         where: { phone: phoneNumber },
-        data: { password: hashedPassword },
+        select: { id: true },
       });
+      if (!user) return;
+
+      // an app that is logged in into this same account keeps its session; every other app
+      // session ends, and website logins from before the reset are refused
+      const current = await getSessionFromCtx(ctx).catch(() => null);
+      const keep = current?.user.id === user.id ? current.session.id : undefined;
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await savePasswordChange(user.id, hashedPassword, keep);
     }),
   },
   plugins: [

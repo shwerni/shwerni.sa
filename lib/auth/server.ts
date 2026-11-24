@@ -2,17 +2,17 @@
 import { auth } from "@/auth";
 
 // prisma data
-import { isAccountDeleted } from "@/data/account-state";
+import { isWebLoginRevoked } from "@/data/account-state";
 
-// server components. a deleted (anonymized) account has no session: its jwt can't be revoked,
-// so it's refused here
+// server components. a website session is a jwt that can't be revoked, so a deleted (anonymized)
+// account, or a login from before the last password change, is refused here
 export const userServer = async () => {
   // get session
   const session = await auth();
   const user = session?.user;
 
-  // a deleted account is signed out
-  if (user?.id && (await isAccountDeleted(user.id))) return undefined;
+  // a deleted account, or a login the password change ended, is signed out
+  if (user?.id && (await isWebLoginRevoked(user.id, session?.authAt))) return undefined;
 
   //   return user
   return user;
@@ -20,6 +20,6 @@ export const userServer = async () => {
 
 // server components
 export const roleServer = async () => {
-  //   return user role (none for a deleted account)
+  //   return user role (none for a deleted account or an ended login)
   return (await userServer())?.role;
 };

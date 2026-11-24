@@ -8,6 +8,8 @@ declare module "next-auth" {
       phone: string;
       role: UserRole;
     } & DefaultSession["user"];
+    // the login time (ms), checked against passwordChangedAt (lib/auth/server.ts)
+    authAt?: number;
   }
 
   interface User extends DefaultUser {
@@ -21,5 +23,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     phone: string;
     role: UserRole;
+    // the login time (ms), kept when the token is re-issued (auth.ts jwt callback)
+    authAt?: number;
   }
 }

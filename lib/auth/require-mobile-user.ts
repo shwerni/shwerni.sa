@@ -16,6 +16,14 @@ import { isAccountDeleted } from "@/data/account-state";
  * route uses this instead of trusting a client-supplied userId
  */
 export async function requireMobileUser(request: NextRequest) {
+  return (await requireMobileSession(request)).user;
+}
+
+/**
+ * requireMobileUser with the session too ({ session, user }): for a route that must know which
+ * app session made the request (a password change keeps it and ends the others)
+ */
+export async function requireMobileSession(request: NextRequest) {
   const sessionTokenHeader = request.headers.get("x-session-token");
   // console.log("[requireMobileUser] x-session-token present:", !!sessionTokenHeader);
 
@@ -36,5 +44,5 @@ export async function requireMobileUser(request: NextRequest) {
     throw new HttpError("unauthorized", 401);
   }
 
-  return session.user;
+  return session;
 }

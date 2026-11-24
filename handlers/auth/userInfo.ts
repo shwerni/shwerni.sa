@@ -12,8 +12,10 @@ import prisma from "@/lib/database/db";
 // prisma data
 import { getUserByEmail, getUserById, getUserByPhone } from "@/data/user";
 import { generateVerificationToken } from "@/data/verificationTokens";
+import { savePasswordChange } from "@/data/password-change";
 
 // lib
+import { signIn } from "@/auth";
 import { userServer } from "@/lib/auth/server";
 
 // schema
@@ -201,26 +203,30 @@ export const userPasswrodChange = async (
     const hashedPassword = await bcrypt.hash(password, 10);
 
     try {
-      // if success then push data to database
-      await prisma.user.update({
-        where: {
-          id,
-        },
-        data: {
-          password: hashedPassword,
-          updated_at: new Date(),
-        },
-      });
-      // return
-      return {
-        state: true,
-        message: "تم حفظ التغييرات",
-      };
-    } catch (error) {
+      // the new password, stamped: every other login (other browsers, the app) is signed out
+      await savePasswordChange(id, hashedPassword);
+    } catch {
       return {
         state: false,
         message: "حدث حطأ ما",
       };
     }
+
+    // this browser stays logged in: the stamp ended its token too, so it gets a fresh login with
+    // the new password (the same credentials sign-in as the login page; it sets the cookie)
+    if (exist.phone) {
+      try {
+        await signIn("credentials", { phone: exist.phone, password, redirect: false });
+      } catch (error) {
+        // the password is saved; this browser logs in again
+        console.error("[password-change] re-login failed", error);
+      }
+    }
+
+    // return
+    return {
+      state: true,
+      message: "تم حفظ التغييرات",
+    };
   }
 };

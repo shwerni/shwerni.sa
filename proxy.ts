@@ -8,9 +8,15 @@ import {
   DynamicpublicRoutes,
 } from "@/routes";
 import { withCallbackUrl } from "@/utils/callback-url";
+import { loginTime } from "@/utils/login-time";
+import { isWebLoginRevoked } from "@/data/account-state";
 
 // query values that mean "no value" (old redirects built ?collaboration=undefined)
 const EMPTY_PARAM = new Set(["", "undefined", "null"]);
+
+// a token whose login the password change ended, or of a deleted account
+const isEndedLogin = async (token: { sub?: string; authAt?: unknown; iat?: unknown }) =>
+  !!token.sub && (await isWebLoginRevoked(token.sub, loginTime(token)));
 
 export async function proxy(req: NextRequest) {
   const { nextUrl } = req;
@@ -67,7 +73,11 @@ export async function proxy(req: NextRequest) {
   const isLoggedIn = !!token;
 
   if (isAuthRoute) {
-    if (isLoggedIn) return NextResponse.redirect(new URL("/", nextUrl));
+    // a login the password change ended (or a deleted account) must reach the login page again:
+    // the token alone can't tell, so only here, with a token, the database is asked. protected
+    // pages need no such read: their userServer() refuses the token
+    if (isLoggedIn && !(await isEndedLogin(token)))
+      return NextResponse.redirect(new URL("/", nextUrl));
     return NextResponse.next();
   }
 

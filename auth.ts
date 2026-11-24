@@ -17,6 +17,9 @@ import { getUserById, getUserByPhone } from "@/data/user";
 // constants
 import { SESSION_MAX_AGE_SECONDS } from "@/constants/session";
 
+// utils
+import { loginTime } from "@/utils/login-time";
+
 export const {
   handlers: { GET, POST },
   auth,
@@ -54,11 +57,20 @@ export const {
         // role
         session.user.role = token.role as UserRole;
 
+      // the login time, for the password-change check in userServer
+      session.authAt = loginTime(token);
+
       return session;
     },
     async jwt({ token }) {
       // if not signed do nothing
       if (!token.sub) return token;
+
+      // the login time (ms). set at the login and kept as the token is re-issued (a re-issue gets
+      // a new iat), so a password change signs out every login from before it. a token from
+      // before this claim keeps its issue time
+      if (typeof token.authAt !== "number")
+        token.authAt = loginTime(token) ?? Date.now();
 
       // validate
       if (token.phone && token.role) return token;

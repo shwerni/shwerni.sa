@@ -5,9 +5,12 @@ import { z } from "zod";
 // utils
 import { HttpError } from "@/lib/api/http-error";
 import { createPostRoute } from "@/lib/api/routes/route-factory";
-import { requireMobileUser } from "@/lib/auth/require-mobile-user";
+import { requireMobileSession } from "@/lib/auth/require-mobile-user";
 import prisma from "@/lib/database/db";
 import { cooldownDays, cooldownMessage } from "@/utils/user";
+
+// prisma data
+import { savePasswordChange } from "@/data/password-change";
 
 const schema = z.object({
   currentPassword: z.string().min(1),
@@ -16,7 +19,8 @@ const schema = z.object({
 
 // update password, allowed once every 10 days, requires the current password
 export const POST = createPostRoute(async (request) => {
-  const { id } = await requireMobileUser(request);
+  const { user: sessionUser, session } = await requireMobileSession(request);
+  const id = sessionUser.id;
   if (!id) throw new HttpError("غير مصرح", 401);
 
   const parsed = schema.safeParse(await request.json());
@@ -37,13 +41,9 @@ export const POST = createPostRoute(async (request) => {
     user.password && (await bcrypt.compare(currentPassword, user.password));
   if (!matches) throw new HttpError("كلمة المرور الحالية غير صحيحة", 401);
 
-  await prisma.user.update({
-    where: { id },
-    data: {
-      password: await bcrypt.hash(newPassword, 10),
-      passwordChangedAt: new Date(),
-    },
-  });
+  // the new password and its stamp; the other app sessions end (this one is kept) and website
+  // logins from before are refused
+  await savePasswordChange(id, await bcrypt.hash(newPassword, 10), session.id);
 
   return { ok: true };
 });

@@ -15,6 +15,7 @@ import { generateOtp } from "@/utils/auth";
 
 // prisma data
 import { notificationSecurityOtp } from "@/lib/notifications/site";
+import { endOtherAppSessions } from "@/data/password-change";
 
 export const getVerificationTokenByToken = async (token: string) => {
   try {
@@ -124,7 +125,7 @@ export const completePasswordReset = async (
     const claimed = await claimToken(tx, tokenId);
     if (claimed.count !== 1) return "taken" as const;
 
-    await tx.user.update({
+    const user = await tx.user.update({
       where: { phone },
       data: {
         phoneVerified: new Date(),
@@ -132,8 +133,14 @@ export const completePasswordReset = async (
         mobilePhoneVerified: true,
         phone,
         password: hashedPassword,
+        // signs out every website login from before the reset (data/account-state.ts)
+        passwordChangedAt: new Date(),
       },
+      select: { id: true },
     });
+
+    // and every app session: this device is logged out (forgot password), it logs in after
+    await endOtherAppSessions(user.id, undefined, tx);
 
     return "ok" as const;
   });

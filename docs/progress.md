@@ -6519,3 +6519,82 @@ Found while working on "sign out other sessions on password change".
 **Open (Ziad):**
 - Deploy this one on its own, ahead of the rest if possible.
 - In production logs or the database, look for unexpected `users.password` changes with no matching successful reset; the hook left no log line of its own. Accounts whose website password was changed this way can be found by comparing `users.updated_at` with `mobile_verifications` reset rows. That's read-only, and I can write the SQL.
+
+## Sign out other sessions on a password change (2026-11-24)
+
+Closes the open item from "Website session lifetime: 90 days": a password reset or change now signs out every other website login and app session.
+
+**Schema:** none. `User.passwordChangedAt` (`password_changed_at`) already exists; the app's change-password route already stamped it for its 10-day cooldown. **No db push.**
+
+**Website (NextAuth JWT)**
+- **The login time:** the `jwt` callback (`auth.ts`) sets a claim `authAt` at the login (ms) and keeps it on every re-issue.
+  - Plain `iat` isn't enough: `GET /api/auth/session` re-encodes the cookie with a new `iat`. Anyone holding an old token could call it after the reset and get a "fresh" token.
+  - A token from before this deploy has no `authAt`; its `iat` is used (`utils/login-time.ts`).
+  - The `session` callback passes it on as `session.authAt`.
+- **The check:** `userServer()` (`lib/auth/server.ts`) uses `isWebLoginRevoked(userId, authAt)` (`data/account-state.ts`). That's the same per-request query that already refused deleted accounts, now selecting `passwordChangedAt` too.
+  - A login is refused when `authAt < passwordChangedAt`.
+  - Accounts that never changed their password, or have none, are never refused.
+  - `roleServer()` follows.
+- **`handlers/conusltant/owner/bank-account.ts`** was the only direct `auth()` caller. It now uses `userServer()`, so it also refuses deleted accounts.
+- **`proxy.ts`:**
+  - Protected pages: no change and no database read. A revoked token passes the proxy, and the page, layout or action refuses it through `userServer()` (the dashboard layout shows its "not logged in" page, as for a logged-out user).
+  - Auth pages (`/login`, `/register`, …): the proxy sent any token holder to `/`, so a signed-out browser could never reach the login page again (for up to 90 days). Now, **only on an auth page and only when a token is present**, the proxy reads the database: an ended login gets the page, a live one goes to `/` as before.
+- **The device that made the change:**
+  - **Forgot password** (`verifyReset`): the device is logged out, as today; it logs in after the reset and that new token works.
+  - **Account settings "change password"** (`userPasswrodChange`): this browser stays logged in. After saving, it signs in again with the new password (`signIn("credentials", { redirect: false })`, the same sign-in as the login page), which sets a fresh cookie.
+  - If that sign-in fails (a bot verdict, for example), the password is still saved, the answer is unchanged, and this browser logs in again.
+
+**Password paths: what each one now does**
+
+| Path | Stamp `passwordChangedAt` | App sessions ended |
+|---|---|---|
+| Website forgot password (`completePasswordReset`, same transaction) | yes | all |
+| Website account settings (`userPasswrodChange` → `savePasswordChange`) | yes | all |
+| App change password (`/api/mobile/account/profile/password`) | yes (as before) | all but the current one |
+| App set-password after an OTP login (`/api/mobile/auth/set-password`) | only if the account already had a password | others, only then |
+| App forgot password (better-auth `/phone-number/reset-password` hook, success only) | yes | all, but the current one when the app is logged into this same account |
+
+- New `data/password-change.ts` has `endOtherAppSessions(userId, keepSessionId?, tx?)` and `savePasswordChange(userId, hash, keepSessionId?)` (one transaction).
+- `requireMobileSession()` (`lib/auth/require-mobile-user.ts`) returns `{ session, user }`; `requireMobileUser()` is unchanged on top of it.
+- **Accounts with no password:**
+  - consultants without one, and new sign-ups setting their first password: no stamp, no session ended;
+  - center consultants have no account, so nothing applies to them.
+
+**Decisions (noted, not asked)**
+- **The 10-day cooldown:** the app's change-password cooldown reads `passwordChangedAt`. So after a website reset, a website settings change, or an app reset, **the app's "change password" screen is locked for 10 days**. A reset is still possible at any time. I kept the field as asked; if the lock after a reset is unwanted, the stamp needs its own column.
+- **set-password for a first password doesn't stamp** (see above). Otherwise every new app user would get the 10-day lock at sign-up with nothing to sign out.
+- **Existing stamps count from deploy:** an account that changed its password in the app before this deploy has website logins from before that change. Those are refused once this ships, which is correct.
+
+**Verified**
+- tsc; eslint on the changed files (0 errors; 3 warnings that were already there in `userInfo.ts`).
+- `npm run build`; the proxy builds with the database read. The manifest check prints only `data/event.ts` and `lib/api/google.ts`.
+- New throwaway `password-sessions-real` (24 tests) on a **real local Postgres**, with:
+  - the real client and real better-auth (real prisma adapter);
+  - the real next-auth config through `@auth/core` (CSRF, credentials callback, jwt and session callbacks);
+  - the real `userServer`, `proxy`, `verifyReset`, `userPasswrodChange` and both app routes.
+
+  It covers:
+  - a normal login (with `authAt`); a wrong password;
+  - a token from before the reset is refused, and a login after it works;
+  - a re-issued old token (new `iat`) is still refused;
+  - a website reset ends all app sessions; a wrong code changes nothing;
+  - legacy tokens without `authAt` (their `iat` decides);
+  - settings change password: this browser stays logged in with a fresh cookie, while its old cookie, the other browser and the app are signed out; a failed re-login; no session;
+  - app change password: the current session survives, the others and the website are signed out; a wrong current password and the cooldown touch nothing;
+  - set-password with a previous password (change) and without one (unaffected);
+  - app reset logged out (all sessions end), logged in (that session kept), logged into another account (never kept), and a wrong code (nothing);
+  - one account's change never touches another;
+  - proxy: `/login` with a live token goes home, and with an ended one or a legacy token the page opens; protected pages: the token passes the proxy and `userServer` refuses it.
+- **Mutation checks:**
+  - with the `passwordChangedAt` comparison off, 11 tests fail;
+  - with `authAt` taken from each re-issue's `iat`, 4 fail.
+- The OTP and login suites still pass (`otp-real` also checks the reset's stamp).
+- Older harnesses updated: a `mobile_sessions` table in `otp-real`, the new select in `deletion-session`, the proxy's database mock in `auth-regression`, and `$transaction` / `mobileSession` in the `mobile-reset-guard` fake.
+- Full suite 822 of 822.
+
+**Open (Ziad):**
+- The 10-day app lock after a reset (above): keep it, or give the stamp its own column (a schema change).
+- Already there and not changed:
+  - the settings "change password" asks for no current password;
+  - it hashes the untrimmed password while the login trims it, so a password with spaces at its ends can't log in, and the re-login above fails for it too;
+  - the consultant profile page passes the full `User` row, password hash included, to a client component (`dashboard/profile/page.tsx` → `components/legacy/layout/settings`).

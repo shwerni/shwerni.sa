@@ -6,15 +6,15 @@ import { z } from "zod";
 import { BankAccountSchema } from "@/schemas/consultant/iban";
 
 // lib
-import { auth } from "@/auth";
+import { userServer } from "@/lib/auth/server";
 import prisma from "@/lib/database/db";
 import { checkSaudiIban } from "@/lib/api/gatewaies/iban";
 
 // save or update the current consultant's bank account
 export const saveBankAccount = async (data: z.infer<typeof BankAccountSchema>) => {
   // user is always derived from the session, never from client input
-  const session = await auth();
-  const userId = session?.user?.id;
+  // (userServer: a deleted account or a login the password change ended is refused)
+  const userId = (await userServer())?.id;
   if (!userId) return { state: false, message: "يرجى تسجيل الدخول" };
 
   // validate
