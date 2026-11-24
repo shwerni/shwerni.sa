@@ -6,13 +6,17 @@ import { Eye, EyeOff } from "lucide-react";
 function PasswordInput({
   className,
   type,
+  wrapperClassName,
   ...props
-}: React.ComponentProps<"input">) {
+}: React.ComponentProps<"input"> & {
+  // the wrapper's classes (e.g. "max-w-none" where the field was full width)
+  wrapperClassName?: string;
+}) {
   // show password state
   const [show, setShow] = React.useState<boolean>(false);
 
   return (
-    <div className="relative flex gap-2 items-center max-w-sm">
+    <div className={cn("relative flex gap-2 items-center max-w-sm", wrapperClassName)}>
       <input
         type={show ? "text" : "password"}
         className={cn(

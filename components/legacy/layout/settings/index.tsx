@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import PasswordInput from "@/components/shared/password-input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ZToast } from "@/components/legacy/layout/toasts";
@@ -287,10 +288,11 @@ export default function UserSettings({
                   <FormItem>
                     <FormLabel>كلمة المرور الحالية</FormLabel>
                     <FormControl>
-                      <Input
+                      <PasswordInput
                         placeholder="كلمة المرور الحالية"
                         {...field}
                         disabled={isSending || updateAble}
+                        wrapperClassName="max-w-none"
                       />
                     </FormControl>
                     <FormMessage />
@@ -306,10 +308,11 @@ export default function UserSettings({
                     {/* email */}
                     <FormLabel>كلمة مرور جديدة</FormLabel>
                     <FormControl>
-                      <Input
+                      <PasswordInput
                         placeholder="كلمة مرور جديدة"
                         {...field}
                         disabled={isSending || updateAble}
+                        wrapperClassName="max-w-none"
                       />
                     </FormControl>
                     <FormMessage />

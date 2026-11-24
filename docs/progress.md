@@ -6799,3 +6799,27 @@ Forgot password (reset by OTP), on the website and the app, is unchanged.
   - another account's app password is untouched.
 - **Mutation:** without the `updateAppPassword` call, the app-change and settings tests fail.
 - `otp-real`'s hand-made schema gained `mobile_accounts`. Full suite 846 of 846.
+
+## Mask password fields with a show/hide toggle (2026-11-24)
+
+**UI change asked for by this task.** Every website password input that showed the text now uses the existing shared `PasswordInput` (`components/shared/password-input.tsx`): `type="password"` with the Eye / EyeOff (lucide) toggle that login and register already use.
+
+**The inputs** (a search of every `.tsx` under `app/` and `components/`):
+- account settings (`components/legacy/layout/settings`): current password and new password;
+- reset password (`components/auth/reset-password-form.tsx`): new password and confirm password.
+
+Login and register already used `PasswordInput`, and the management login reuses the login form. Nothing else on the website takes a password.
+
+**Width kept:** `PasswordInput`'s wrapper capped the width at `max-w-sm`, and these four fields were full width. A new optional prop `wrapperClassName` (merged with `cn` / tailwind-merge) gets `max-w-none` at these four places only. Login and register render exactly as before. Labels, placeholders, `disabled` and the error display are unchanged.
+
+**Verified**
+- tsc; `npm run build`; the manifest check prints only `data/event.ts` and `lib/api/google.ts`.
+- eslint on the changed files: 1 error and 1 warning, both already there. The error is `react-hooks/set-state-in-effect` in the reset form's OTP countdown, noted in the OTP step; the warning is the unused `type` in `PasswordInput`.
+- Throwaway `password-mask` (5 tests) renders the **real forms** to HTML:
+  - `PasswordInput` is masked, with the eye, and the default wrapper still `max-w-sm`;
+  - `max-w-none` replaces the cap;
+  - the reset form's new and confirm fields are masked, full width, with the eye;
+  - the settings form's current and new password fields are the same;
+  - the settings form's other inputs (name, email, phone) aren't masked.
+- **Against the previous forms**, the two form tests fail.
+- Full suite 851 of 851.

@@ -15,7 +15,7 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import Logo from "@/components/shared/logo";
-import { Input } from "../ui/input";
+import PasswordInput from "@/components/shared/password-input";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/shared/toast";
@@ -138,10 +138,11 @@ const ResetPasswordForm: React.FC<Props> = ({ phone, token, callbackUrl }: Props
                   <span className="text-red-700 font-medium">* </span>كلمة
                   المرور الجديدة
                 </FieldLabel>
-                <Input
+                <PasswordInput
                   {...field}
                   id={field.name}
                   aria-invalid={fieldState.invalid}
+                  wrapperClassName="max-w-none"
                 />
                 {fieldState.invalid && (
                   <FieldError errors={[fieldState.error]} />
@@ -159,10 +160,11 @@ const ResetPasswordForm: React.FC<Props> = ({ phone, token, callbackUrl }: Props
                   <span className="text-red-700 font-medium">* </span>تأكيد كلمة
                   المرور
                 </FieldLabel>
-                <Input
+                <PasswordInput
                   {...field}
                   id={field.name}
                   aria-invalid={fieldState.invalid}
+                  wrapperClassName="max-w-none"
                 />
                 {fieldState.invalid && (
                   <FieldError errors={[fieldState.error]} />
