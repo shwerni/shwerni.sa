@@ -48,6 +48,18 @@ export const phoneNumber = (number: string) => {
   return number.replace(/\D/g, "");
 };
 
+/**
+ * the same phone? compares digits only, an international "00" prefix dropped (whatsapp's
+ * "966…" sender against an order's "+966…" phone). an empty side never matches
+ * @param a a phone in any format
+ * @param b a phone in any format
+ */
+export const samePhone = (a: string | null | undefined, b: string | null | undefined) => {
+  const digits = (p: string | null | undefined) => phoneNumber(p ?? "").replace(/^00/, "");
+  const x = digits(a);
+  return x.length > 0 && x === digits(b);
+};
+
 // payment statuses
 export const findPayment = (status: PaymentState) => {
   return paymentStatuses.find((s) => s.state === status);

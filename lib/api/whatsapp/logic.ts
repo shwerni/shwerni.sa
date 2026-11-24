@@ -1,10 +1,12 @@
 import { handleBotResponse } from "@/lib/api/ai/bot";
 import { sendWhatsappText } from "@/lib/api/whatsapp";
-import { meetingDone } from "@/data/reschedule";
 import { checkBotLimit } from "@/data/admin/bot";
 import { acceptWhatsappReview } from "@/data/review";
-import { getMeetingUrl, isMeetingNeedsReschedule } from "@/data/meetings";
-import { mainRoute } from "@/constants/links";
+import { getMeetingUrl } from "@/data/meetings";
+import {
+  markDoneFromWhatsapp,
+  rescheduleLinkForWhatsapp,
+} from "@/handlers/meetings/reschedule";
 
 export interface WebhookMessage {
   from: string;
@@ -91,19 +93,21 @@ async function handleButtonReply(from: string, action: string, data: string) {
     return;
   }
 
+  // the reschedule link carries the client's own token (their access), sent only to the order's
+  // own number (handlers/meetings/reschedule.ts)
   if (action === "rescheduling" && data) {
-    const meeting = await isMeetingNeedsReschedule(data);
-    if (!meeting) return;
-    const url = `${mainRoute}reschedule/${data}`;
+    const link = await rescheduleLinkForWhatsapp(data, from);
+    if (!link) return;
     await sendWhatsappText(
       from,
-      `تفضل رابط اعادة الجدولة #${meeting.orderId} \n لاختيار موعد اخر برجاء استخدام الرابط التالي🌸.\n${url}`,
+      `تفضل رابط اعادة الجدولة #${link.orderId} \n لاختيار موعد اخر برجاء استخدام الرابط التالي🌸.\n${link.url}`,
     );
     return;
   }
 
+  // only from the order's own number, a paid session whose time came
   if (action === "meeting-done" && data) {
-    await meetingDone(data);
+    await markDoneFromWhatsapp(data, from);
     return;
   }
 }

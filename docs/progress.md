@@ -6177,9 +6177,10 @@ where m.session > 1 and m.duration <> first.duration;
    - consultant chat and meeting links (the WhatsApp chat notice, consultant-busy, the Telegram template, `/dashboard/chats`) require the consultant's login and ownership of the order;
    - client links stay login-free.
 2. **#25 step 2:** the per-consultant booking lock (`pg_advisory_xact_lock(INSTANT_LOCK_NS, cid)`, shared with instant) around `reserveConsultant`, free sessions and `pickNextSession`.
-3. **#27, High part:** the reschedule access split.
-4. **#26:** signed links.
-5. **#25 step 3 (✋ payments, when scheduled):** re-check scheduled orders at PAID time (the late-payment race).
+3. **#27, High part:** the reschedule access split (done 2026-11-24).
+4. **#30 (High):** verify the WhatsApp webhook's signature (plan only, needs the Meta app secret env var).
+5. **#26:** signed links.
+6. **#25 step 3 (✋ payments, when scheduled):** re-check scheduled orders at PAID time (the late-payment race).
 
 ### High: consultant tokens reachable from a link without a consultant login (listed; fixed in the step above)
 - `data/sessions.ts` `selectSession` returned every participant token (**fixed in this step**).
@@ -6196,6 +6197,12 @@ where m.session > 1 and m.duration <> first.duration;
 - **#27: `rescheduleMeeting`** (`data/reschedule.ts`, public action in `actions/site.ts`).
   - The client side works through a signed link (no login); the consultant side needs the consultant's login and must own the order. **The access split is its own High item, done right after #25 step 2.**
   - The conflict checks for reschedule and `reserveProgram` (`data/order/program.ts`) stay in #27.
+  - **Done 2026-11-24** (see "#27: reschedule and meeting-done…" below): the client's link token until #26, the consultant's login + ownership, the booking's slot rules under the lock; `reserveProgram`'s conflict check in its own commit.
+- **#30 (High): verify the WhatsApp webhook's signature** (plan only).
+  - **Problem:** `POST /api/whatsapp` (`app/api/whatsapp/route.ts`) doesn't check Meta's `X-Hub-Signature-256`, so anyone can post a forged message or button reply. #27 checks the sender's number for the meeting buttons (`meeting-done`, `rescheduling`, `meeting-url`), but a forgery that spoofs the client's own number can still mark a passed, paid session done. Forged text messages also reach the bot and its history.
+  - **Fix:** HMAC-SHA256 of the **raw** request body with the Meta app secret, compared in constant time with the `X-Hub-Signature-256` header (`sha256=<hex>`), before any parsing; a missing or wrong signature → 401 and nothing processed. The GET verification (`hub.verify_token`) is unchanged.
+  - **Needs:** a new server-only env var for the Meta app secret (Ziad adds it; no `NEXT_PUBLIC_` prefix). It's a webhook `route.ts`: propose the diff, apply after approval.
+  - **Tests:** a valid signature is processed; a missing, wrong, or other-body signature → 401 with nothing written; the GET handshake still works.
 - **#28 (Medium): guest identity, "session.user ?? guest"** (plan only).
   - **Today:**
     - guest bookings and orders store `author = "temp"` (the forms and `actions/booking.ts`; coupons count "temp" in `data/coupon.ts`);
@@ -6823,3 +6830,137 @@ Login and register already used `PasswordInput`, and the management login reuses
   - the settings form's other inputs (name, email, phone) aren't masked.
 - **Against the previous forms**, the two form tests fail.
 - Full suite 851 of 851.
+
+## #27: reschedule and meeting-done need the client's link token or the consultant's login (High) (2026-11-24)
+
+**Before:**
+- The public actions `rescheduleMeeting(mid, date, time, reason)` and `meetingDone(mid)` (`actions/site.ts`) acted on a bare `mid`, with **no check on the server**:
+  - anyone who knew a mid (the order's consultant included, logged out) could move the meeting to **any** date and time (past, occupied, outside the consultant's timings, unpaid or done meetings, unlimited times, reason `MANAGEMENT`), or mark it done;
+  - `/reschedule/<mid>` handed the **client's USER token** to whoever opened it.
+- The page's rules ran only in the browser:
+  - reschedulable after the start (on the browser's clock);
+  - not done;
+  - reschedules < `limit`, a digit-substitution value anyone can edit;
+  - `MANAGEMENT` when `reason=true` was in the URL.
+- The confirmation WhatsApp sent the **old** date and time (the meeting was read before the update).
+
+**Access** (`handlers/meetings/reschedule.ts`, reusing `meetingViewer`):
+- **Client:** the link must carry their own USER token for this meeting: `/reschedule/<mid>?participant=<token>`. That's the strongest thing available until #26 (a random per-meeting token only the client holds since the leak fix). No login.
+- **Consultant:** no token, or an OWNER token with his session; his website login + ownership of the order. An accountless (center) consultant's OWNER token keeps working, logged, as on the meeting pages.
+- **Refused:** a bare `mid`, another meeting's token, an OWNER token without the session, another consultant, a client account. The page shows the **friendly expired page** (below), never a login. The actions answer `link_invalid`.
+- The actions take `(mid, token, …)` and resolve the side on the server. They call `checkHuman` first (public actions, the page is under BotID's `/*`). Results are `{ ok: true }` or `{ ok: false, code, message }`: **no tokens, no meeting rows**.
+
+**Rules, now on the server** (the existing rules unless listed as changed):
+- order PAID; meeting not done; **the start has passed, in Riyadh time** (changed: before, the browser's clock; the page now gets `isMeetingAhead` from the server);
+- **allowance from the database (changed: the URL's `limit` and `reason` are ignored):**
+  - the first reschedule is free;
+  - each dashboard "copy reschedule link" (its `RESCHEDULE_LINK_ISSUED` meeting log) newer than the last reschedule grants one more, which is what `limit = count + 1` meant;
+  - such a grant presets `MANAGEMENT`, and `MANAGEMENT` is accepted only with one (`getRescheduleAllowance`);
+- **the new slot has the booking's rules (changed: before, any date and time):**
+  1. inside `prisma.$transaction`, `lockConsultantBookings`;
+  2. paid, done and the allowance read again under the lock;
+  3. `isBookableSlot` (the 7-day window, one of the consultant's weekly timings, free);
+  4. `checkMeetingTimeConflict`, both with the new optional `exceptMeeting` (the moved meeting never blocks itself; a package's other sessions still do);
+  5. the reschedule row and `date` / `time` / `checked = false` in the same transaction.
+
+  The duration is untouched. The meeting log (`RESCHEDULED`; the consultant as actor when it's him) and the notice run after the commit.
+- **The confirmation now carries the new date and time** (bug fix; changed).
+- `meetingDone`: the same access + PAID + the start has passed. A second "done" is a no-op: the review reminder and the program next-session step run only the first time.
+
+**WhatsApp buttons** (`lib/api/whatsapp/logic.ts`; the webhook isn't signed yet, see #30):
+- `rescheduling`: the reply link is `/reschedule/<mid>?participant=<USER token>`, sent **only when the sender is the order's own number** (`samePhone`: digits only, an "00" prefix dropped).
+- `meeting-done`: only from the order's own number, a paid session whose start has passed.
+- `meeting-url` (`getMeetingUrl`): the client link only to the order's own number. The consultant's token-free link is unchanged. Before, any non-consultant sender got the client link, and with a forged webhook that leaked the client's token.
+
+**New Arabic text (review):**
+- the expired page: «انتهت صلاحية هذا الرابط، اضغط زر إعادة الجدولة في رسالة واتساب مرة أخرى للحصول على رابط جديد» (as given), with the button «تواصل مع خدمة العملاء» to the support WhatsApp (`contactUs` in `constants/data.ts`, `wa.me/966554117879`);
+- `not_started`: «موعد الجلسة لم يحن بعد» (the page's existing wording);
+- `not_allowed`: «لا يمكن إعادة جدولة هذه الجلسة»;
+- `slot_taken`: «هذا الموعد لم يعد متاحاً، برجاء اختيار موعد آخر»;
+- `invalid_input`: «برجاء اختيار موعد صحيح»;
+- `done_not_allowed`: «لا يمكن تعليم هذه الجلسة كمنتهية»;
+- `bot_detected` / `server_error`: the existing base messages.
+
+**UI:** no markup change on the reschedule page. A refusal now shows its message as an error toast; before, every refusal showed "success". The expired page uses the page's own state-screen design (icon circle, title, text, a `primary` button).
+
+**Files:**
+- New: `handlers/meetings/reschedule.ts`, `components/clients/sub-pages/reschedule/expired-link.tsx`.
+- Changed:
+  - `data/reschedule.ts`: `getMeetingGate`, `rescheduleAllowance` / `getRescheduleAllowance`, `rescheduleMeetingLocked`, `afterReschedule`, `meetingDone(mid, actor?)`; `isRescheduled` removed;
+  - `lib/booking/free-slot-where.ts`, `data/booking/slots.ts`, `data/order/reserveation.ts`: the optional `exceptMeeting`, added to the SQL only when given, so every booking's query is unchanged;
+  - `actions/site.ts`;
+  - `data/meetings.ts`;
+  - `lib/api/whatsapp/logic.ts`;
+  - `utils/index.ts` (`samePhone`);
+  - the page and `reschedule.tsx`.
+
+**Verified**
+- tsc; eslint on the changed files: 0 errors and 1 warning, already there (`createGoogleMeeting` imported and unused in `data/meetings.ts`).
+- `npm run build`; the manifest check prints only `data/event.ts` and `lib/api/google.ts`.
+- Throwaway `reschedule-real` (16 tests) on a **real local Postgres**: the real page, actions, handlers, bot functions, slot rules, lock and `reserveConsultant`.
+  - **The client's link with no login:** the page (own token, own meeting link, no OWNER token in its props); the reschedule (new date and time, `checked` reset, duration kept, one row, the log, **the notice with the new time**); mark-done, with a second one a no-op.
+  - **Refused:** a raw mid, another meeting's token, an OWNER token alone, a made-up token, an unknown mid. The actions answer `link_invalid`, the page shows the expired page, nothing is written. A bot verdict → `bot_detected`.
+  - **Consultant:**
+    - logged out, another consultant or a client account → refused;
+    - the order's consultant with no token → the page without the client's token, the reschedule logged with him as actor.
+  - **Rules:**
+    - not paid, done or not started → their codes;
+    - `MANAGEMENT` without a grant and bad input → refused;
+    - a second reschedule → refused.
+  - **The dashboard link flow:** the reset plus a `RESCHEDULE_LINK_ISSUED` log grants exactly one more, with `MANAGEMENT` preset; the next is refused.
+  - **Slots:**
+    - an occupied slot, ±15 minutes of one, a time outside the timings, a day outside the window → `slot_taken`;
+    - `exceptMeeting` frees the meeting's own slot, while a package's other session still blocks;
+    - **a reschedule and a booking for one slot at once → exactly one wins.**
+  - **WhatsApp:**
+    - the reschedule link carries the client's token and goes only to the order's number;
+    - meeting-done and meeting-url refuse a stranger's number;
+    - a future session isn't marked done.
+- **Mutations:**
+  - letting a refused viewer through → 2 failures;
+  - skipping the bookable-slot check → 1;
+  - dropping `exceptMeeting` from the slot filter → 1.
+- Older tests updated: `token-leak` (the meeting-link button now answers only the order's number). Full suite 867 of 867.
+
+### Dashboard patch (shwerni.aws, for the dashboard session)
+
+`src/components/meetings/list.tsx`: the copied reschedule link must carry the client's own token. The main site ignores `limit` and `reason` now but still accepts them, so they stay for the transition.
+
+```diff
+-  const handleCopyReschedule = async (mid: string) => {
++  // the client's own token: the main site's reschedule page refuses a link without it (#27)
++  const handleCopyReschedule = async (mid: string, clientToken?: string) => {
+     const toastId = toast.loading(
+       t.generatingLink,
+     );
+
+     try {
++      // checked before the reset, so a failed copy changes nothing
++      if (!clientToken) throw new Error("no client token");
+       const currentCount = await issueRescheduleLink(mid);
+       const limit = currentCount + 1;
+-      const url = `${mainRoute}reschedule/${mid}?limit=${zencryption(limit)}&reason=true`;
++      const url = `${mainRoute}reschedule/${mid}?participant=${encodeURIComponent(clientToken)}&limit=${zencryption(limit)}&reason=true`;
+       await navigator.clipboard.writeText(url);
+```
+
+and at **both** callers (the two «rescheduleUrl» menu items):
+
+```diff
+-                      onClick={() => handleCopyReschedule(m.mid)}
++                      onClick={() =>
++                        handleCopyReschedule(
++                          m.mid,
++                          m.participants.find((i) => i.role === UserRole.USER)?.participant,
++                        )
++                      }
+```
+
+`issueRescheduleLink` (the reset of done and attendance, and its `RESCHEDULE_LINK_ISSUED` log) is unchanged.
+
+### Deploy steps
+1. **The dashboard patch first.** It's harmless on today's main site, which ignores the extra `participant` parameter.
+2. **Then this main-site commit.** Links copied before the dashboard patch, and WhatsApp reschedule links sent before this deploy (bare `/reschedule/<mid>`), **stop working**. They show the expired page; the client taps the WhatsApp button again, or staff copy a new link.
+3. Commit 2 (`reserveProgram`) can deploy with it.
+
+**Open (Ziad):** review the Arabic text above; #30 (the webhook signature) is the next High item.

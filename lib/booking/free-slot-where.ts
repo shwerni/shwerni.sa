@@ -50,15 +50,19 @@ export const startsNear = (
  * undefined/null for no cutoff
  * @param exceptOrders orders that don't hold the slot (the app's booking: the client's own unpaid
  * order, cancelled when the new one is created); none for every list
+ * @param exceptMeeting one meeting that doesn't hold the slot (a reschedule: the meeting being
+ * moved); a package's other sessions still do
  */
 export const freeSlotWhere = ({
   date,
   after,
   exceptOrders,
+  exceptMeeting,
 }: {
   date: string | Prisma.Sql;
   after: string | Prisma.Sql | null | undefined;
   exceptOrders?: number[];
+  exceptMeeting?: string;
 }) => Prisma.sql`
           AND (
             ${after}::time IS NULL
@@ -77,6 +81,11 @@ export const freeSlotWhere = ({
                 exceptOrders?.length
                   ? Prisma.sql`
               AND o.oid <> ALL(${exceptOrders}::int[])`
+                  : Prisma.empty
+              }${
+                exceptMeeting
+                  ? Prisma.sql`
+              AND m."mid" <> ${exceptMeeting}`
                   : Prisma.empty
               }
               AND (

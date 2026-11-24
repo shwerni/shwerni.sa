@@ -12,7 +12,7 @@ import { PaymentState, Prisma, UserRole } from "@/lib/generated/prisma/client";
 // lib
 import { meetingTime, timeZone } from "@/utils/date";
 import { mainRoute } from "@/constants/links";
-import { consultantMeetingUrl } from "@/utils";
+import { consultantMeetingUrl, samePhone } from "@/utils";
 import { createGoogleMeeting } from "@/lib/api/google";
 
 // get reservation
@@ -134,7 +134,7 @@ export const getMeetingUrl = async (mid: string, phone: string) => {
         mid: true,
         orderId: true,
         participants: { select: { participant: true, role: true } },
-        orders: { select: { consultant: { select: { userId: true } } } },
+        orders: { select: { phone: true, consultant: { select: { userId: true } } } },
       },
     });
 
@@ -150,6 +150,13 @@ export const getMeetingUrl = async (mid: string, phone: string) => {
       };
     }
 
+    // the client link (their token) goes only to the order's own number: the webhook isn't
+    // signed yet, so a forged button reply from another number gets nothing
+    if (!samePhone(phone, meeting.orders.phone)) {
+      console.warn(`[whatsapp] meeting-url for mid=${mid} from a number that isn't the order's`);
+      return null;
+    }
+
     // get participant
     const participant = meeting.participants.find((i) => i.role === UserRole.USER);
 
@@ -163,14 +170,22 @@ export const getMeetingUrl = async (mid: string, phone: string) => {
   }
 };
 
-// is meeting needs reschedule
+// is meeting needs reschedule: not done, and its session time is over. with the order's phone
+// (the whatsapp reply goes only there) and the client's token (the reschedule link's access)
 export const isMeetingNeedsReschedule = async (mid: string) => {
   // meeting
   const meeting = await prisma.meeting.findUnique({
     where: {
       mid,
     },
-    select: { orderId: true, date: true, time: true, done: true },
+    select: {
+      orderId: true,
+      date: true,
+      time: true,
+      done: true,
+      orders: { select: { phone: true } },
+      participants: { where: { role: UserRole.USER }, select: { participant: true } },
+    },
   });
 
   // validate

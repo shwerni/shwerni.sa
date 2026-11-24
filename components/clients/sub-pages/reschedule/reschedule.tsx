@@ -48,8 +48,12 @@ const REASON_OPTIONS: { value: RescheduleReason; label: string }[] = [
 // props: only the fields this screen reads, picked by the page
 interface Props {
   meeting: { mid: string; date: string; time: string; done: boolean };
-  // the client's participant value, used in the meeting page link
-  participant?: string;
+  // the client's own link token (their access to the actions); null for the logged-in consultant
+  token: string | null;
+  // the viewer's own link to the meeting page (built by the page)
+  meetingHref: string;
+  // riyadh time, decided by the server (not the browser's clock)
+  isMeetingAhead: boolean;
   order: OrderTableOrder & { consultantId: number };
   rescheduled: boolean;
   ireason?: boolean;
@@ -57,7 +61,9 @@ interface Props {
 
 const ReschedulePick = ({
   meeting,
-  participant,
+  token,
+  meetingHref,
+  isMeetingAhead,
   order,
   rescheduled,
   ireason,
@@ -78,19 +84,15 @@ const ReschedulePick = ({
     ireason ? RescheduleReason.MANAGEMENT : undefined,
   );
 
-  // derive whether meeting time is still ahead (not yet started)
-  const isMeetingAhead = React.useMemo(() => {
-    const [hours, minutes] = meeting.time.split(":").map(Number);
-    const meetingStart = new Date(meeting.date);
-    meetingStart.setHours(hours, minutes, 0, 0);
-    return new Date() < meetingStart;
-  }, [meeting.date, meeting.time]);
-
   // mark meeting as done manually
   async function onMarkDone() {
     setMarkingDone(true);
     try {
-      await meetingDone(meeting.mid);
+      const result = await meetingDone(meeting.mid, token);
+      if (!result?.ok) {
+        toast.error({ message: result?.message ?? "حدث خطأ أثناء تحديث الجلسة" });
+        return;
+      }
       setMarkedDone(true);
       // redirect after 1 second
       setTimeout(() => router.push("/"), 1000);
@@ -107,16 +109,23 @@ const ReschedulePick = ({
     try {
       if (time && date && reason) {
         try {
-          await rescheduleMeeting(
+          const result = await rescheduleMeeting(
             meeting.mid,
+            token,
             calendarDayToString(date),
             time,
             reason,
           );
+          // a refusal used to show "success": now its own message
+          if (!result?.ok) {
+            toast.error({ message: result?.message ?? "حدث خطأ ما" });
+            return null;
+          }
           toast.success({ message: "تم تأكيد إعادة الجدولة بنجاح" });
-          router.push(`/meetings/${meeting.mid}?participant=${participant}`);
+          router.push(meetingHref);
           return true;
         } catch {
+          toast.error({ message: "حدث خطأ ما" });
           return null;
         }
       }
@@ -208,7 +217,7 @@ const ReschedulePick = ({
             variant="primary"
             size="sm"
             onClick={() =>
-              router.push(`/meetings/${meeting.mid}?participant=${participant}`)
+              router.push(meetingHref)
             }
             className="mt-2"
           >
@@ -249,7 +258,7 @@ const ReschedulePick = ({
             variant="primary"
             size="sm"
             onClick={() =>
-              router.push(`/meetings/${meeting.mid}?participant=${participant}`)
+              router.push(meetingHref)
             }
           >
             الذهاب إلى صفحة الجلسة

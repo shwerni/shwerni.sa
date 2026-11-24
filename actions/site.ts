@@ -20,10 +20,6 @@ import {
   getAvailableTimesForDate as getAvailableTimesForDateData,
   getConsultantsAvailableAt as getConsultantsAvailableAtData,
 } from "@/data/reels";
-import {
-  meetingDone as meetingDoneData,
-  rescheduleMeeting as rescheduleMeetingData,
-} from "@/data/reschedule";
 import { submitScaleResult as submitScaleResultData } from "@/data/scales";
 import {
   acceptNewreview as acceptNewreviewData,
@@ -44,6 +40,7 @@ import { markChatRead as markChatReadData } from "@/data/chat-read";
 // handlers
 import { pickNextSession } from "@/handlers/clients/package-session";
 import { chatSide } from "@/handlers/meetings/meeting-access";
+import { markDoneViaLink, rescheduleViaLink } from "@/handlers/meetings/reschedule";
 
 // lib
 import { checkHuman } from "@/lib/bot-protection";
@@ -53,7 +50,7 @@ import { ONLINE_LIST_TTL_MS } from "@/lib/api/realtime/online-list-timing";
 import { sharedTtl } from "@/lib/shared-ttl";
 
 // prisma types
-import { UserRole } from "@/lib/generated/prisma/enums";
+import { RescheduleReason, UserRole } from "@/lib/generated/prisma/enums";
 
 // ---------- articles ----------
 
@@ -165,18 +162,21 @@ export async function getConsultantsAvailableAt(
 
 // ---------- guest links (public by decision, see docs/progress.md) ----------
 
-// public: /reschedule/[mid]
-export async function meetingDone(
-  ...args: Parameters<typeof meetingDoneData>
-) {
-  return meetingDoneData(...args);
+// public: /reschedule/[mid]. the client's own link token (no login), or the consultant's login and
+// ownership; a raw mid is refused (handlers/meetings/reschedule.ts)
+export async function meetingDone(mid: string, token: string | null) {
+  return markDoneViaLink(mid, token);
 }
 
-// public: /reschedule/[mid]
+// public: /reschedule/[mid]. the same access; the booking's slot rules under the consultant's lock
 export async function rescheduleMeeting(
-  ...args: Parameters<typeof rescheduleMeetingData>
+  mid: string,
+  token: string | null,
+  date: string,
+  time: string,
+  reason: RescheduleReason,
 ) {
-  return rescheduleMeetingData(...args);
+  return rescheduleViaLink(mid, token, date, time, reason);
 }
 
 // public: /scales/orders/[zid]

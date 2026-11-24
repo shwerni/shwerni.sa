@@ -276,6 +276,9 @@ export const checkMeetingTimeConflict = async (
   own?: { author?: string | null; phone?: string | null },
   // the booking's transaction when called under lockConsultantBookings (data/booking/lock.ts)
   db: Pick<DbTx, "$queryRaw"> = prisma,
+  // a reschedule's own meeting: it doesn't conflict with its new slot (a package's other
+  // sessions still do)
+  exceptMeeting?: string,
 ) => {
   try {
     // the same rule as the slot lists (lib/booking/free-slot-where.ts): another start within
@@ -300,6 +303,7 @@ export const checkMeetingTimeConflict = async (
         JOIN payments p ON p."orderId" = o.oid
         WHERE o."consultantId" = ${cid}
           AND ${near({ date: Prisma.sql`m.date`, time: Prisma.sql`m.time` })}
+          ${exceptMeeting ? Prisma.sql`AND m.mid <> ${exceptMeeting}` : Prisma.empty}
           AND (
             p.payment = 'PAID'
             OR (

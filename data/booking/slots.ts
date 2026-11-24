@@ -25,6 +25,7 @@ import type { DbTx } from "@/lib/database/tx";
  * @param time HH:mm
  * @param exceptOrders the client's own unpaid orders at this slot (ownUnpaidAtSlot)
  * @param db the booking's transaction when called under lockConsultantBookings
+ * @param exceptMeeting a reschedule's own meeting (it doesn't block its new slot)
  */
 export async function isBookableSlot(
   cid: number,
@@ -32,6 +33,7 @@ export async function isBookableSlot(
   time: string,
   exceptOrders: number[] = [],
   db: Pick<DbTx, "$queryRaw"> = prisma,
+  exceptMeeting?: string,
 ): Promise<boolean> {
   const lead = add25Minutes();
   if (!getDatesAhead(BOOKING_WINDOW_DAYS, lead.iso).includes(date)) return false;
@@ -45,7 +47,7 @@ export async function isBookableSlot(
       WHERE
         ct."consultantId" = ${cid}
         AND ct."day" = ${weekday}::"Weekday"
-        AND ct."time" = ${time}${freeSlotWhere({ date, after, exceptOrders })}
+        AND ct."time" = ${time}${freeSlotWhere({ date, after, exceptOrders, exceptMeeting })}
     ) AS free
   `;
   return row?.free === true;
