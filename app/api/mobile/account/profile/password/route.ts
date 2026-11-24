@@ -12,6 +12,10 @@ import { cooldownDays, cooldownMessage } from "@/utils/user";
 // prisma data
 import { savePasswordChange } from "@/data/password-change";
 
+// handlers
+import { checkCurrentPassword } from "@/handlers/auth/current-password";
+import { baseActionErrors } from "@/utils/action-errors";
+
 const schema = z.object({
   currentPassword: z.string().min(1),
   newPassword: z.string().min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل"),
@@ -29,17 +33,18 @@ export const POST = createPostRoute(async (request) => {
 
   const user = await prisma.user.findUnique({
     where: { id },
-    select: { password: true, passwordChangedAt: true },
+    select: { passwordChangedAt: true },
   });
   if (!user) throw new HttpError("المستخدم غير موجود", 404);
 
   const days = cooldownDays(user.passwordChangedAt);
   if (days > 0) throw new HttpError(cooldownMessage("كلمة المرور", days), 429);
 
-  // legacy/mobile accounts might not have a password set yet
-  const matches =
-    user.password && (await bcrypt.compare(currentPassword, user.password));
-  if (!matches) throw new HttpError("كلمة المرور الحالية غير صحيحة", 401);
+  // the current password (the same check and try limit as the website's settings). legacy/mobile
+  // accounts might not have a password set yet: refused, as before
+  const current = await checkCurrentPassword(id, currentPassword);
+  if (current === "rate_limited") throw new HttpError(baseActionErrors.rate_limited, 429);
+  if (current !== "ok") throw new HttpError("كلمة المرور الحالية غير صحيحة", 401);
 
   // the new password and its stamp; the other app sessions end (this one is kept) and website
   // logins from before are refused

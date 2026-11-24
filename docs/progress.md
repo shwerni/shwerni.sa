@@ -6680,3 +6680,39 @@ Closes the open item from "Website session lifetime: 90 days": a password reset 
   - better-auth OTP verify, `get-session` and legacy login: no hash, no `passwordChangedAt`.
 - **Mutation:** with the page back on a full-row read, the profile test fails.
 - Full suite 827 of 827.
+
+## Change password requires the current password (2026-11-24)
+
+Forgot password (reset by OTP), on the website and the app, is unchanged.
+
+**Website, account settings** (`userPasswrodChange`, `handlers/auth/userInfo.ts`):
+- `PasswordSchema` has `currentPassword` (required; message "برجاء ادخال كلمة المرور الحالية"). It's used only by this form and handler.
+- The handler now really validates: `.success`. Before, the check was on the `safeParse` result object, which is always truthy. It answers with the first issue's message.
+- Then `checkCurrentPassword` runs. A wrong password gets "كلمة المرور الحالية غير صحيحة" (the app's message); nothing is written, no stamp, no session ends.
+- An account with no password can't confirm one, so it's refused; it uses forgot password.
+- **UI (asked for by this task):** one field, "كلمة المرور الحالية", above the new-password field in `components/legacy/layout/settings`. It copies that field's markup exactly (the same `Input`, label and placeholder pattern, the same `disabled`). No other markup changed.
+
+**App** (`/api/mobile/account/profile/password`): it already required `currentPassword`. It now uses the same `checkCurrentPassword`, so the same try limit applies. The 10-day cooldown check still runs first, and the messages and status codes are unchanged (401 wrong, 429 cooldown).
+
+**New `handlers/auth/current-password.ts`:**
+- `checkCurrentPassword(userId, current)` returns `"ok" | "wrong" | "rate_limited"`.
+- **Try limit:** 5 tries per 15 minutes per account, shared by the website and the app (`lib/rate-limit.ts`, key `password-change:<userId>`). So a stolen session can't guess its way to a password change.
+  - Website answer: `baseActionErrors.rate_limited`;
+  - App answer: 429 with the same text.
+  - It fails open like every other limit.
+- The hash comes from `getPasswordHash` (`data/password-change.ts`, server only).
+
+**Verified**
+- tsc; eslint on the changed files (0 errors; the 3 warnings already there in `userInfo.ts`); `npm run build`; the manifest check prints only `data/event.ts` and `lib/api/google.ts`.
+- `password-sessions-real` (real local Postgres, the real handler and route): the earlier settings tests now send the current password. 5 new tests:
+  - no current password → the form's message, nothing written;
+  - a wrong current password → refused, with no stamp, this browser and the app still logged in, the old password still working and the new one not;
+  - an account without a password → refused;
+  - 3 wrong tries on the website plus 2 on the app → the 6th is refused on both, even with the right password; after the window, the change works;
+  - another account's tries don't count.
+- **Mutation:** with the website ignoring the check result, 3 of the new tests fail.
+- Full suite 832 of 832.
+
+**Open (Ziad):**
+- Review the label "كلمة المرور الحالية".
+- Already there and not changed: both password inputs on this form show the text, as the new-password field always did (no `type="password"`). Masking them is a one-word change if you want it.

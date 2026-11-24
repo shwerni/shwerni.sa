@@ -14,6 +14,12 @@ import { getUserByEmail, getUserById, getUserByPhone } from "@/data/user";
 import { generateVerificationToken } from "@/data/verificationTokens";
 import { savePasswordChange } from "@/data/password-change";
 
+// handlers
+import { checkCurrentPassword } from "@/handlers/auth/current-password";
+
+// utils
+import { baseActionErrors } from "@/utils/action-errors";
+
 // lib
 import { signIn } from "@/auth";
 import { userServer } from "@/lib/auth/server";
@@ -167,7 +173,7 @@ export const userInfoChange = async (
   }
 };
 
-// change user name and email
+// change password (account settings): the current password is required
 // the account always comes from the session; the id argument is kept for callers but ignored
 export const userPasswrodChange = async (
   data: z.infer<typeof PasswordSchema>,
@@ -179,54 +185,61 @@ export const userPasswrodChange = async (
   // no session
   if (!id) return { state: false, message: "لا يوجد حساب بهذه المعلومات" };
 
-  // register fields data { phone}
-  const validatePhone = PasswordSchema.safeParse(data);
+  // fields { currentPassword, password }
+  const validated = PasswordSchema.safeParse(data);
 
-  if (!validatePhone) {
-    // will not reach this so no need but keep fo unsuring
-    return { state: false, message: "something went wrong" };
-  }
-
-  if (validatePhone) {
-    // get data
-    const { password } = data;
-
-    // prisma if phone exist
-    const exist = await getUserById(id);
-
-    // phone exist
-    if (!exist) {
-      return { state: false, message: "لا يوجد حساب بهذه المعلومات" };
-    }
-
-    // bcrypt hasing
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    try {
-      // the new password, stamped: every other login (other browsers, the app) is signed out
-      await savePasswordChange(id, hashedPassword);
-    } catch {
-      return {
-        state: false,
-        message: "حدث حطأ ما",
-      };
-    }
-
-    // this browser stays logged in: the stamp ended its token too, so it gets a fresh login with
-    // the new password (the same credentials sign-in as the login page; it sets the cookie)
-    if (exist.phone) {
-      try {
-        await signIn("credentials", { phone: exist.phone, password, redirect: false });
-      } catch (error) {
-        // the password is saved; this browser logs in again
-        console.error("[password-change] re-login failed", error);
-      }
-    }
-
-    // return
+  if (!validated.success) {
     return {
-      state: true,
-      message: "تم حفظ التغييرات",
+      state: false,
+      message: validated.error.issues[0]?.message ?? "برجاء ادخال جميع البيانات",
     };
   }
+
+  // get data
+  const { password, currentPassword } = data;
+
+  // prisma if phone exist
+  const exist = await getUserById(id);
+
+  // phone exist
+  if (!exist) {
+    return { state: false, message: "لا يوجد حساب بهذه المعلومات" };
+  }
+
+  // the current password first (a reset by otp is the way without it)
+  const current = await checkCurrentPassword(id, currentPassword);
+  if (current === "rate_limited")
+    return { state: false, message: baseActionErrors.rate_limited };
+  if (current !== "ok")
+    return { state: false, message: "كلمة المرور الحالية غير صحيحة" };
+
+  // bcrypt hasing
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  try {
+    // the new password, stamped: every other login (other browsers, the app) is signed out
+    await savePasswordChange(id, hashedPassword);
+  } catch {
+    return {
+      state: false,
+      message: "حدث حطأ ما",
+    };
+  }
+
+  // this browser stays logged in: the stamp ended its token too, so it gets a fresh login with
+  // the new password (the same credentials sign-in as the login page; it sets the cookie)
+  if (exist.phone) {
+    try {
+      await signIn("credentials", { phone: exist.phone, password, redirect: false });
+    } catch (error) {
+      // the password is saved; this browser logs in again
+      console.error("[password-change] re-login failed", error);
+    }
+  }
+
+  // return
+  return {
+    state: true,
+    message: "تم حفظ التغييرات",
+  };
 };

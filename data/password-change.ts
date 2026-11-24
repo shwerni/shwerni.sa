@@ -7,6 +7,20 @@ import prisma from "@/lib/database/db";
 import type { DbTx } from "@/lib/database/tx";
 
 /**
+ * the account's website password hash (bcrypt), for checking the current password. server only:
+ * it never leaves the handler that compares it
+ * @param userId the account
+ * @returns the hash, or null when the account has none
+ */
+export const getPasswordHash = async (userId: string) =>
+  (
+    await prisma.user.findUnique({
+      where: { id: userId },
+      select: { password: true },
+    })
+  )?.password ?? null;
+
+/**
  * ends the user's app sessions after a password change: every MobileSession row but the one of the
  * device that made the change (none for a website change or a logged-out reset)
  * @param userId the account

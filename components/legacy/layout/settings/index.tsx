@@ -77,6 +77,7 @@ export default function UserSettings({
   const security = useForm<z.infer<typeof PasswordSchema>>({
     resolver: zodResolver(PasswordSchema),
     defaultValues: {
+      currentPassword: "",
       password: "",
     },
   });
@@ -278,6 +279,24 @@ export default function UserSettings({
               onSubmit={security.handleSubmit(updateSecurity)}
               className="w-2/3 space-y-6"
             >
+              {/* current password */}
+              <FormField
+                control={security.control}
+                name="currentPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>كلمة المرور الحالية</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="كلمة المرور الحالية"
+                        {...field}
+                        disabled={isSending || updateAble}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               {/* password */}
               <FormField
                 control={security.control}

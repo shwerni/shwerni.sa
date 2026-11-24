@@ -130,8 +130,12 @@ export const UserSchema = z.object({
     .optional(),
 });
 
-// just password
+// change password (account settings): the current one, then the new one
 export const PasswordSchema = z.object({
+  // current password (checked against the account on the server)
+  currentPassword: z.string().min(1, {
+    message: "برجاء ادخال كلمة المرور الحالية",
+  }),
   // new password
   password: schemas.password,
 });
