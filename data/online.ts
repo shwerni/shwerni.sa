@@ -16,7 +16,7 @@ import { logBookedMeeting } from "./meeting-log";
 import { lockConsultantBookings } from "./booking/lock";
 // the instant session starts "now + a few minutes" on the server clock, in riyadh time
 import { addNMinutes, dateTimeToString } from "@/utils/date";
-import { orderInfoLabel } from "@/utils";
+import { orderInfoLabel, orderPriceLabel } from "@/utils";
 import { ConsultantCard } from "@/types/layout";
 import { ReserveResult } from "@/types/admin";
 import {
@@ -85,6 +85,7 @@ export const reserveInstant = async (
   tax: number, // server-resolved
   commissionRate: number, // server-resolved
   origin: OrderOrigin = OrderOrigin.PLATFORM,
+  originalTotal?: number, // server-resolved price before the coupon (pre-tax) → Payment.originalTotal
 ) => {
   try {
     const parsed = instantSchema.safeParse(formdata);
@@ -210,6 +211,7 @@ export const reserveInstant = async (
           payment: {
             create: {
               total,
+              originalTotal,
               commission: oCommission,
               tax,
               payment: PaymentState.NEW,
@@ -228,6 +230,9 @@ export const reserveInstant = async (
               owner.name,
               data.cid,
             ),
+            ...(originalTotal !== undefined
+              ? [orderPriceLabel("new", originalTotal, total)]
+              : []),
           ],
         },
         include: {

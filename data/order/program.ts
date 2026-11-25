@@ -15,7 +15,7 @@ import {
 } from "@/lib/generated/prisma/enums";
 
 // utils
-import { orderInfoLabel } from "@/utils";
+import { orderInfoLabel, orderPriceLabel } from "@/utils";
 import { dateToString } from "@/utils/time";
 
 // schema
@@ -30,6 +30,7 @@ export const reserveProgram = async (
   formdata: ProgramReservationFormType,
   total: number,
   tax: number, // server-resolved — do not read from formdata.finance
+  originalTotal?: number, // server-resolved price before the coupon (pre-tax) → Payment.originalTotal
 ) => {
   try {
     const parsed = programReservationSchema.safeParse(formdata);
@@ -83,6 +84,7 @@ export const reserveProgram = async (
           payment: {
             create: {
               total: Number(total),
+              originalTotal,
               commission: PROGRAM_COMMISSION,
               tax,
               payment: PaymentState.PROCESSING,
@@ -99,6 +101,9 @@ export const reserveProgram = async (
               data.consultant,
               data.cid,
             ),
+            ...(originalTotal !== undefined
+              ? [orderPriceLabel(`new program #${data.prid}`, originalTotal, Number(total))]
+              : []),
           ],
         },
         include: {

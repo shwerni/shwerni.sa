@@ -61,6 +61,7 @@ export const getOwnerDues = async (cid: number): Promise<OwnerDueRow[]> => {
       payment: {
         select: {
           total: true,
+          originalTotal: true,
           commission: true,
           usedCoupon: { select: { type: true, discount: true } },
         },
@@ -84,6 +85,8 @@ export const getOwnerDues = async (cid: number): Promise<OwnerDueRow[]> => {
       total: payment.total,
       commission: payment.commission,
       coupon: coupon ?? undefined,
+      createdAt: order.created_at,
+      originalTotal: payment.originalTotal,
     });
 
     // the website's badge: done, or every participant attended

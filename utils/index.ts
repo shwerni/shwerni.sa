@@ -163,6 +163,17 @@ export const orderInfoLabel = (
   )} by (${user ? user.name + " - " + user?.role : "new"})`;
 };
 
+// the order's price at checkout, next to its first info line: the price before the coupon
+// (Payment.originalTotal) and after it (Payment.total), both before vat
+export const orderPriceLabel = (
+  oid: number | string,
+  originalTotal: number,
+  total: number,
+) =>
+  `#${oid}'s price | base price (before coupon): ${originalTotal} | after coupon: ${total} | modified_at: ${dateTimeToString(
+    timeZone().iso,
+  )}`;
+
 // meeting url (the client's: their participant token is the access)
 export const meetingUrl = (mid: string, participant: string) => {
   // return

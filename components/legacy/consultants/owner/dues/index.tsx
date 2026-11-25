@@ -219,6 +219,8 @@ export default function DuesOwner({
                     total: payment.total,
                     commission: payment.commission,
                     coupon,
+                    createdAt: i.created_at,
+                    originalTotal: payment.originalTotal,
                   });
 
                   return (
@@ -292,6 +294,8 @@ export default function DuesOwner({
                         total: c.payment.total,
                         commission: c.payment.commission,
                         coupon,
+                        createdAt: c.created_at,
+                        originalTotal: c.payment.originalTotal,
                       });
 
                       return a + dues.consultantEarning;

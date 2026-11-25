@@ -107,6 +107,8 @@ export default function DuesDialog({ children, order, commission }: Props) {
                   total: payment.total,
                   commission: commission,
                   coupon: payment.usedCoupon ?? undefined,
+                  createdAt: order.created_at,
+                  originalTotal: payment.originalTotal,
                 });
 
                 return (

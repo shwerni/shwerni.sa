@@ -314,6 +314,7 @@ export async function PayPleading(data: PleadingCheckoutInput) {
     finance.commission,
     OrderOrigin.PLATFORM,
     commission,
+    pleading.price, // no coupon: the quote is the price before and after
   );
 
   if (result.state === false) {
@@ -499,6 +500,7 @@ export async function PayReconciliation(
     finance.commission,
     OrderOrigin.PLATFORM,
     config.commission,
+    config.price, // no coupon: the configured price is the price before and after
   );
 
   if (result.state === false) {
@@ -574,7 +576,8 @@ export async function Pay(
   const quote = await quoteBooking(data);
   if (!quote.state) return quote;
 
-  const { finance, discountPercent, cost, total } = quote;
+  // base: the price before the coupon (pre-tax) → Payment.originalTotal; cost: after it → Payment.total
+  const { finance, discountPercent, base, cost, total } = quote;
 
   // ---------------------------------------------------------------
   // 4. create the order — tax + commission passed in, never re-read
@@ -592,6 +595,9 @@ export async function Pay(
       cost,
       TAX_PERCENT,
       finance.commission,
+      OrderOrigin.PLATFORM,
+      undefined,
+      base,
     );
 
   if (data.order === "program")
@@ -599,6 +605,7 @@ export async function Pay(
       data as ProgramReservationFormType,
       cost,
       TAX_PERCENT,
+      base,
     );
 
   if (data.order === "instant")
@@ -607,6 +614,8 @@ export async function Pay(
       cost,
       TAX_PERCENT,
       finance.commission,
+      OrderOrigin.PLATFORM,
+      base,
     );
 
   if (!result) {

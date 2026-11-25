@@ -62,7 +62,8 @@ model Payment {
   id            String         @id @default(cuid())
   pid           String?        @unique
   commission    Int // the provider's %: the consultant's %, or the center's % (100 - Center.platformRate)
-  total         Float
+  total         Float // the amount paid before vat (after the coupon)
+  originalTotal Float? // the price before the coupon, before vat, written at checkout. null on orders before it existed
   tax           Float
   payment       PaymentState
   method        PaymentMethod?

@@ -28,7 +28,11 @@ import {
 } from "@/handlers/admin/order/payment";
 
 // utils
-import { orderInfoLabel, withoutParticipantTokens } from "@/utils";
+import {
+  orderInfoLabel,
+  orderPriceLabel,
+  withoutParticipantTokens,
+} from "@/utils";
 import { dateToString } from "@/utils/date";
 import { paidSplit } from "@/utils/order-split";
 import { dateTimeToString } from "@/utils/time";
@@ -63,6 +67,7 @@ export const reserveConsultant = async (
   commissionRate: number, // server-resolved platform default commission
   origin: OrderOrigin = OrderOrigin.PLATFORM,
   commissionOverride?: number, // pleading orders: the server-resolved pleading share wins
+  originalTotal?: number, // server-resolved price before the coupon (pre-tax) → Payment.originalTotal
 ) => {
   try {
     // parse
@@ -189,6 +194,7 @@ export const reserveConsultant = async (
           payment: {
             create: {
               total,
+              originalTotal,
               commission: oCommission,
               tax, // server-resolved, matches what `total` was computed with
               payment: PaymentState.NEW,
@@ -206,6 +212,9 @@ export const reserveConsultant = async (
               name,
               data.cid,
             ),
+            ...(originalTotal !== undefined
+              ? [orderPriceLabel("new", originalTotal, total)]
+              : []),
           ],
           ...(data.hasBeneficiary
             ? {

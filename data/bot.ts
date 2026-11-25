@@ -158,6 +158,8 @@ export async function BotConsultantDues(cid: number, date: string) {
           total: c.payment.total,
           commission: c.payment.commission,
           coupon,
+          createdAt: c.created_at,
+          originalTotal: c.payment.originalTotal,
         });
 
         return a + dues.consultantEarning;

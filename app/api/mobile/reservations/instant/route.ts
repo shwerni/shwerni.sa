@@ -130,6 +130,7 @@ export const POST = createPostRoute<BookingCreated>(
       TAX_PERCENT,
       quote.finance.commission,
       OrderOrigin.APP,
+      quote.base, // the price before the coupon → Payment.originalTotal
     );
     if (result.state === false) {
       // not online / listable, busy, or another client paying → 409 with reserveInstant's message
