@@ -6178,7 +6178,7 @@ where m.session > 1 and m.duration <> first.duration;
    - client links stay login-free.
 2. **#25 step 2:** the per-consultant booking lock (`pg_advisory_xact_lock(INSTANT_LOCK_NS, cid)`, shared with instant) around `reserveConsultant`, free sessions and `pickNextSession`.
 3. **#27, High part:** the reschedule access split (done 2026-11-24).
-4. **#30 (High):** verify the WhatsApp webhook's signature (plan only, needs the Meta app secret env var).
+4. **#30 (High):** verify the WhatsApp webhook's signature (done 2026-11-25, log mode; enforce after a day of clean logs).
 5. **#26:** signed links.
 6. **#25 step 3 (✋ payments, when scheduled):** re-check scheduled orders at PAID time (the late-payment race).
 
@@ -6198,7 +6198,7 @@ where m.session > 1 and m.duration <> first.duration;
   - The client side works through a signed link (no login); the consultant side needs the consultant's login and must own the order. **The access split is its own High item, done right after #25 step 2.**
   - The conflict checks for reschedule and `reserveProgram` (`data/order/program.ts`) stay in #27.
   - **Done 2026-11-24** (see "#27: reschedule and meeting-done…" below): the client's link token until #26, the consultant's login + ownership, the booking's slot rules under the lock; `reserveProgram`'s conflict check in its own commit.
-- **#30 (High): verify the WhatsApp webhook's signature** (plan only).
+- **#30 (High): verify the WhatsApp webhook's signature** (done 2026-11-25 in log mode, see "#30: WhatsApp webhook signature" below; switch to enforce after a day of clean logs).
   - **Problem:** `POST /api/whatsapp` (`app/api/whatsapp/route.ts`) doesn't check Meta's `X-Hub-Signature-256`, so anyone can post a forged message or button reply. #27 checks the sender's number for the meeting buttons (`meeting-done`, `rescheduling`, `meeting-url`), but a forgery that spoofs the client's own number can still mark a passed, paid session done. Forged text messages also reach the bot and its history.
   - **Fix:** HMAC-SHA256 of the **raw** request body with the Meta app secret, compared in constant time with the `X-Hub-Signature-256` header (`sha256=<hex>`), before any parsing; a missing or wrong signature → 401 and nothing processed. The GET verification (`hub.verify_token`) is unchanged.
   - **Needs:** a new server-only env var for the Meta app secret (Ziad adds it; no `NEXT_PUBLIC_` prefix). It's a webhook `route.ts`: propose the diff, apply after approval.
@@ -6981,3 +6981,55 @@ and at **both** callers (the two «rescheduleUrl» menu items):
   - three programs for one slot at once → exactly one order.
 - **Mutation:** without the check, both fail.
 - Full suite 869 of 869.
+
+## #30: WhatsApp webhook signature, X-Hub-Signature-256 (High) (2026-11-25)
+
+**Before:** `POST /api/whatsapp` (`app/api/whatsapp/route.ts`) processed any request. A forged message or button reply (`meeting-done`, `rescheduling`, `meeting-url`) reached the bot; #27's sender checks limited the damage, but a forgery that spoofs the client's own number could still mark a passed, paid session done.
+
+**Change:**
+- **The raw body first:** the route reads the body as bytes (`arrayBuffer`) **before** any JSON parsing.
+- **The check** (`lib/api/whatsapp/signature.ts`): `checkWhatsappSignature` computes the HMAC-SHA256 of those bytes keyed with the new server-only **`META_APP_SECRET`**, and compares it in constant time (`timingSafeEqual`) with `X-Hub-Signature-256` (`sha256=<64 hex>`).
+  - **Results:** `valid`, `missing`, `malformed`, `mismatch`, or `secret_missing`.
+  - Our own `APP_SECRET` (the mobile API's) isn't used or touched.
+- **Rollout:** `WHATSAPP_SIGNATURE_MODE` in `constants/whatsapp.ts` (a constant, not env) **starts at `"log"`**.
+  - `"log"`: every request is verified and logged, then processed exactly as before.
+    - Logs: `[whatsapp-signature] valid mode=log`, or `invalid reason=<missing|malformed|mismatch> mode=log (processed)`.
+    - A missing secret logs `secret missing mode=log (processed)` on each request.
+  - `"enforce"`: anything not valid gets **401** and isn't processed. A missing secret refuses everything and logs loudly (`console.error`, "META_APP_SECRET missing: every webhook request is refused").
+  - The logs never hold the secret, the signature or any body content.
+- **Unchanged:**
+  - valid requests: the same processing and the same answers (200; 404 "No messages"; 500 on invalid JSON);
+  - the GET handshake (`hub.challenge` with `WHATSAPP_PASS`).
+
+**Meta apps, numbers and endpoints (checked):**
+- This codebase uses **one** WhatsApp sender: `WHATSAPP_URL` (one phone-number id) + `WHATSAPP_TOKEN`. That's one Meta app, so **one app secret** covers it.
+- **The dashboard codebase (`shwerni.aws`) has its own `src/app/api/whatsapp/route.ts`**, with a GET handshake on the same `WHATSAPP_PASS`. Meta sends a WhatsApp app's webhooks to one callback URL, so only one of the two routes is live.
+  - Check which URL is set in the Meta app's WhatsApp → Configuration.
+  - If it's the dashboard's, that route needs the same change, with the same `META_APP_SECRET`, since it's the same app.
+  - Nothing was changed there.
+
+**Deploy:**
+1. Add `META_APP_SECRET` (the Meta app's App Secret: App settings → Basic) in Vercel, server-only, no `NEXT_PUBLIC_`.
+2. Deploy this commit (mode `"log"`, nothing refused).
+3. **After a day of clean logs**, switch `WHATSAPP_SIGNATURE_MODE` to `"enforce"` in its own small commit and deploy. Clean means every `[whatsapp-signature]` line is `valid`, with no `invalid` and no `secret missing`.
+4. If an `invalid` line shows up, look at its reason before enforcing:
+   - `missing`: something posts without Meta's header;
+   - `mismatch`: usually the wrong secret, or another app's webhooks.
+
+**Verified**
+- tsc; eslint on the changed files (clean); `npm run build`; the manifest check prints only `data/event.ts` and `lib/api/google.ts`.
+- Throwaway `whatsapp-signature` (26 tests): the real route and verifier, with only the bot, chat history and debounce mocked.
+  - the shipped mode is `"log"`;
+  - **a valid signature**, in both modes: processed as today (the message saved and queued, 200), logged valid; an uppercase-hex signature is accepted;
+  - the other answers unchanged: no `object` → 200, no messages → 404, a button → 200 and routed, invalid JSON → 500;
+  - **wrong** (another secret, another body), **missing**, **malformed** (no prefix, `sha1=`, short, non-hex):
+    - `"log"`: flagged with its reason and processed;
+    - `"enforce"`: 401 with nothing processed (a forged `meeting-done` button never reaches the bot);
+  - **the raw body is what's signed:** a signature over the re-serialized JSON → 401;
+  - **a missing secret:** in `"log"`, logged once and processed; in `"enforce"`, refused with the loud log;
+  - the logs never contain the secret, the signature or the message text;
+  - **GET unchanged:** the right token → the challenge (200), a wrong one → 403, missing → 400, no signature needed.
+- **Mutations:**
+  - the verifier always saying valid → 16 failures;
+  - HMAC over the re-serialized body → 5.
+- Full suite 895 of 895.

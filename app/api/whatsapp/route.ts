@@ -5,6 +5,8 @@ import { shouldSkipBotReply } from "@/lib/api/whatsapp/skip-bot";
 import { handleSpecialReply } from "@/lib/api/whatsapp/special-replies";
 import { routeNonText, WebhookMessage } from "@/lib/api/whatsapp/logic";
 import { upsertWhatsappChat } from "@/data/whatsapp";
+import { acceptWhatsappWebhook, checkWhatsappSignature } from "@/lib/api/whatsapp/signature";
+import { WHATSAPP_SIGNATURE_MODE } from "@/constants/whatsapp";
 
 const DEBOUNCE_MS = 5000;
 
@@ -23,8 +25,19 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // meta signs the exact bytes it sent: read them before any parsing, then verify
+  // (X-Hub-Signature-256 with META_APP_SECRET; WHATSAPP_SIGNATURE_MODE decides log or enforce)
+  const raw = Buffer.from(await request.arrayBuffer());
+  const check = checkWhatsappSignature(
+    raw,
+    request.headers.get("x-hub-signature-256"),
+    process.env.META_APP_SECRET,
+  );
+  if (!acceptWhatsappWebhook(check, WHATSAPP_SIGNATURE_MODE))
+    return new Response(null, { status: 401 });
+
   try {
-    const body = await request.json();
+    const body = JSON.parse(raw.toString("utf8"));
     if (!body.object) return NextResponse.json({}, { status: 200 });
 
     const value = body.entry?.[0]?.changes?.[0]?.value;
