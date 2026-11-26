@@ -107,6 +107,9 @@ export default function InstantReservationForm({ user, finance }: Props) {
     // validate phones
     data.phone = phoneNumber(data.phone);
 
+    // only an applied coupon goes to Pay (with the percent the invoice showed, which Pay checks)
+    if (!data.couponPercent) data.couponCode = undefined;
+
     // pay
     const result = await Pay(data);
 

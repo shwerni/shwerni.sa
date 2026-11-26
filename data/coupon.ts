@@ -3,7 +3,7 @@ import "server-only";
 import prisma, { prismaAll } from "@/lib/database/db";
 
 // packages
-import { parseISO, isBefore, isAfter, startOfDay } from "date-fns";
+import { parseISO, startOfDay } from "date-fns";
 
 // prisma types
 import {
@@ -15,115 +15,86 @@ import {
   PaymentState,
 } from "@/lib/generated/prisma/client";
 
-// lib
+// utils
 import { timeZone } from "@/utils/date";
+import {
+  bookingCouponRule,
+  couponRefused,
+  couponVerdict,
+  normalizeCouponCode,
+  type CouponBooking,
+  type CouponVerdict,
+} from "@/utils/coupon";
 
-// constants
-import { UNPAID_HOLD_MINUTES } from "@/constants/booking";
+// types
 import { CouponConsultant } from "@/types/layout";
 
-// get certian coupon
-export const applyCoupon = async (user: string, code: string, cid: number) => {
+// this user's uses of a coupon: PAID orders only. the limit is per user, so only the user's own
+// orders count, and their own unfinished checkouts (NEW, PROCESSING, failed, canceled) don't hold
+// it: a retry after a failed card or going back gets the coupon at once (coupon.users gets every
+// checkout that was started, so it isn't counted). the user is the order's author; uses before the
+// coupon row existed (a re-created code) don't count
+const couponUsage = async (
+  coupon: { code: string; created_at: Date },
+  user: string,
+) => {
+  const paid = await prisma.usedCoupon.count({
+    where: {
+      code: coupon.code,
+      usedAt: { gte: coupon.created_at },
+      payment: {
+        payment: PaymentState.PAID,
+        order: { is: { author: user } },
+      },
+    },
+  });
+  return { paid };
+};
+
+// a coupon against a booking: the one check behind the coupon form's preview and Pay (through
+// quoteBooking), so they can't disagree. the rules are couponVerdict (utils/coupon.ts)
+export const validateCoupon = async (
+  user: string,
+  rawCode: string,
+  booking: CouponBooking,
+): Promise<CouponVerdict> => {
+  // the booking's own rule first (no database needed)
+  const rule = bookingCouponRule(booking);
+  if (rule) return couponRefused(rule);
+
   try {
-    // get a couon by code
-    const coupon = await prisma.coupon.findUnique({
-      where: { status: CouponState.PUBLISHED, code },
-    });
+    const code = normalizeCouponCode(rawCode);
+    const coupon = code
+      ? await prisma.coupon.findUnique({
+          where: { status: CouponState.PUBLISHED, code },
+        })
+      : null;
+    if (!coupon) return couponRefused("not_found");
 
-    // if not exist
-    if (!coupon)
-      return { state: false, message: "عذراً، الكود الذي أدخلته غير صحيح." };
-
-    // check if coupon belong to this consultant
-    if (coupon.consultantId !== cid && coupon.type === CouponType.CONSULTANT)
-      return { state: false, message: "هذا الكود مخصص لمستشار آخر." };
-
-    // centers spec §8: a coupon applies only when coupon.centerId === the consultant's centerId
-    // (null matches null), so platform coupons never reach center consultants and vice versa.
-    // a CENTER coupon can narrow to one of its center's consultants through consultantId
+    // the consultant's center (unfiltered: center consultants too)
     const owner = await prismaAll.consultant.findUnique({
-      where: { cid },
+      where: { cid: booking.cid },
       select: { centerId: true },
     });
-    if ((coupon.centerId ?? null) !== (owner?.centerId ?? null))
-      return { state: false, message: "هذا الكود مخصص لمستشار آخر." };
-    if (
-      coupon.type === CouponType.CENTER &&
-      coupon.consultantId !== null &&
-      coupon.consultantId !== cid
-    )
-      return { state: false, message: "هذا الكود مخصص لمستشار آخر." };
 
-    // if user not sign
-    if (user === "temp" && coupon.limits !== null)
-      return {
-        state: false,
-        message: "يجب تسجيل الدخول أو إنشاء حساب لاستخدام هذا الكوبون.",
-      };
+    // uses count only for a limited coupon and a signed-in user (guests are refused a limited one)
+    const usage =
+      coupon.limits !== null && user !== "temp"
+        ? await couponUsage(coupon, user)
+        : { paid: 0 };
 
-    // check dates start_at and expire_at
-    if (coupon.starts_at || coupon.expires_at) {
-      //  time zone
-      const { date, time } = timeZone();
+    // riyadh wall time, as the coupon's dates are compared since the start
+    const { date, time } = timeZone();
 
-      // now
-      const now = parseISO(`${date}T${time}`);
-
-      // start at
-      if (coupon.starts_at && isBefore(now, coupon.starts_at))
-        return { state: false, message: "الكوبون لم يبدأ بعد" };
-
-      // end at
-      if (coupon.expires_at && isAfter(now, coupon.expires_at))
-        return { state: false, message: "انتهت صلاحية الكوبون" };
-    }
-
-    // user limits // later vip
-    // PAID orders count, and checkouts still running: NEW or PROCESSING orders younger than
-    // UNPAID_HOLD_MINUTES (the window that holds a booking slot), so two checkouts started together
-    // can't both use a one-use coupon. an abandoned, failed or canceled checkout frees it (coupon.users
-    // gets every checkout that was started, so it isn't counted). the user is the order's author;
-    // uses before the coupon row existed (a re-created code) don't count
-    const runningSince = new Date(Date.now() - UNPAID_HOLD_MINUTES * 60_000);
-    const userUsageCount =
-      coupon.limits === null
-        ? 0
-        : await prisma.usedCoupon.count({
-            where: {
-              code: coupon.code,
-              usedAt: { gte: coupon.created_at },
-              payment: {
-                order: { is: { author: user } },
-                OR: [
-                  { payment: PaymentState.PAID },
-                  {
-                    payment: {
-                      in: [PaymentState.NEW, PaymentState.PROCESSING],
-                    },
-                    order: { is: { created_at: { gt: runningSince } } },
-                  },
-                ],
-              },
-            },
-          });
-
-    // if limits exceeded
-    if (coupon.limits !== null && userUsageCount >= coupon.limits)
-      return {
-        state: false,
-        message: "لقد استخدمت  الحد المسموح به من هذا الكوبون.",
-      };
-
-    // return
-    return {
-      state: true,
-      discount: coupon.discount,
-      code: coupon.code,
-      message: "تم تطبيق الخصم",
-    };
+    return couponVerdict(booking, {
+      coupon,
+      ownerCenterId: owner?.centerId ?? null,
+      user,
+      now: parseISO(`${date}T${time}`),
+      usage,
+    });
   } catch {
-    // return
-    return { state: false, message: "الكود غير صالح" };
+    return couponRefused("error");
   }
 };
 

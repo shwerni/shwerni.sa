@@ -4,7 +4,7 @@ import "server-only";
 import prisma from "@/lib/database/db";
 
 // prisma data
-import { applyCoupon } from "@/data/coupon";
+import { validateCoupon } from "@/data/coupon";
 import { CheckIsBlocked } from "@/data/blocked";
 import { resolveConsultantPricing } from "@/data/event";
 import { getFinanceConfig } from "@/data/admin/settings/finance";
@@ -12,6 +12,7 @@ import { getFinanceConfig } from "@/data/admin/settings/finance";
 // utils
 import { TAX_PERCENT, withTax } from "@/utils/tax";
 import { calculatePayment } from "@/utils/admin/payments";
+import { COUPON_MESSAGES, type CouponReason } from "@/utils/coupon";
 
 // constants
 import { INSTANT_DURATION } from "@/constants/instant";
@@ -26,7 +27,16 @@ export interface BookingQuoteInput {
   duration?: number | string | null;
   package?: string | null;
   couponCode?: string | null;
+  // the percent the client's preview showed (the website's forms); Pay refuses a different one
+  couponPercent?: number | null;
   prid?: number;
+}
+
+export interface BookingQuoteOptions {
+  // Pay and the app's create routes: a coupon that doesn't apply (or no longer gives the previewed
+  // percent) stops the booking with its message, never a full-price charge. the previews (the coupon
+  // form, the app's quote) keep the quote and read couponError instead
+  strictCoupon?: boolean;
 }
 
 export interface BookingQuoteFailure {
@@ -44,24 +54,25 @@ export interface BookingQuote {
   discountPercent: number;
   coupon: { code: string; percent: number } | null;
   couponError: string | null;
+  couponReason: CouponReason | null;
   // sar before tax after the coupon (Payment.total), and the tax-inclusive charge
   cost: number;
   total: number;
 }
 
-// a coupon sent where the website's rule doesn't allow one (the app's quote shows why; Pay ignores it)
-const COUPON_NOT_ALLOWED = "لا يمكن استخدام الكوبون مع هذا الحجز";
-
 /**
- * the price of a booking, all on the server: Pay's steps 0-3, moved here unchanged so the
- * website's Pay, the app's quote and the app's create routes can't differ. block check (with a
+ * the price of a booking, all on the server: the website's Pay, its coupon preview, the app's
+ * quote and the app's create routes all call it, so they can't differ. block check (with a
  * phone), finance config, the base price (a package's flat cost; else resolveConsultantPricing,
- * the campaign applied, a coupon only on a duration it doesn't discount; instant at
- * INSTANT_DURATION; a published program's price), calculatePayment and withTax. nothing created
+ * the campaign applied; instant at INSTANT_DURATION; a published program's price), the coupon
+ * (validateCoupon: single and instant sessions only, never on a campaign price), calculatePayment
+ * and withTax. nothing created
  * @param data the booking's choices
+ * @param options strictCoupon: a coupon that doesn't apply is a failure (Pay, the app's create)
  */
 export async function quoteBooking(
   data: BookingQuoteInput,
+  options: BookingQuoteOptions = {},
 ): Promise<BookingQuote | BookingQuoteFailure> {
   // ---------------------------------------------------------------
   // 0. block check
@@ -91,7 +102,8 @@ export async function quoteBooking(
   let baseCost: number;
   let discountPercent = 0;
   let campaign: BookingQuote["campaign"] = null;
-  let couponError: string | null = null;
+  // the booked duration has a campaign price (no coupon on top of it)
+  let durationDiscounted = false;
 
   if (data.order === "consultant" && data.cid !== undefined) {
     if (data.package) {
@@ -110,7 +122,6 @@ export async function quoteBooking(
       }
 
       baseCost = pkg.cost;
-      if (data.couponCode) couponError = COUPON_NOT_ALLOWED;
     } else {
       const pricing = await resolveConsultantPricing(data.cid);
       if (!pricing) {
@@ -123,21 +134,10 @@ export async function quoteBooking(
 
       baseCost = pricing.cost[Number(data.duration) as 30 | 45 | 60];
 
-      // coupon allowed only if this duration isn't already discounted
-      const durationDiscounted =
+      durationDiscounted =
         pricing.discount?.durations.includes(Number(data.duration)) ?? false;
       if (durationDiscounted && pricing.discount) {
         campaign = { did: pricing.discount.did, label: pricing.discount.label };
-      }
-
-      if (!durationDiscounted && data.couponCode) {
-        const coupon = await applyCoupon(data.user ?? "temp", data.couponCode, data.cid);
-        // invalid/tampered coupon → ignore silently, charge full price
-        if (coupon.state && typeof coupon.discount === "number")
-          discountPercent = coupon.discount;
-        else couponError = coupon.message ?? COUPON_NOT_ALLOWED;
-      } else if (data.couponCode) {
-        couponError = COUPON_NOT_ALLOWED;
       }
     }
   } else if (data.order === "instant" && data.cid !== undefined) {
@@ -152,10 +152,11 @@ export async function quoteBooking(
 
     // instant sessions are INSTANT_DURATION long whatever the form sends (reserveInstant too)
     baseCost = pricing.cost[INSTANT_DURATION];
-    if (pricing.discount?.durations.includes(INSTANT_DURATION)) {
+    durationDiscounted =
+      pricing.discount?.durations.includes(INSTANT_DURATION) ?? false;
+    if (durationDiscounted && pricing.discount) {
       campaign = { did: pricing.discount.did, label: pricing.discount.label };
     }
-    if (data.couponCode) couponError = COUPON_NOT_ALLOWED;
   } else if (data.order === "program" && data.prid !== undefined) {
     const program = await prisma.program.findUnique({
       where: { prid: data.prid },
@@ -171,13 +172,53 @@ export async function quoteBooking(
     }
 
     baseCost = program.price;
-    if (data.couponCode) couponError = COUPON_NOT_ALLOWED;
   } else {
     return {
       state: false,
       step: "order_type",
       message: "نوع الطلب غير صالح",
     };
+  }
+
+  // ---------------------------------------------------------------
+  // 2b. the coupon: validateCoupon, the same verdict the coupon form's preview gets
+  // ---------------------------------------------------------------
+  let coupon: BookingQuote["coupon"] = null;
+  let couponError: string | null = null;
+  let couponReason: CouponReason | null = null;
+
+  if (data.couponCode?.trim()) {
+    const verdict = await validateCoupon(data.user ?? "temp", data.couponCode, {
+      order: data.order,
+      cid: data.cid ?? 0,
+      package: data.package,
+      durationDiscounted,
+      couponsEnabled: finance.couponEnabled,
+    });
+
+    if (verdict.ok) {
+      discountPercent = verdict.percent;
+      if (verdict.percent > 0)
+        coupon = { code: verdict.code, percent: verdict.percent };
+    } else {
+      couponError = verdict.message;
+      couponReason = verdict.reason;
+    }
+
+    // Pay: never a full-price charge for a coupon the client saw applied
+    if (options.strictCoupon) {
+      if (!verdict.ok)
+        return { state: false, step: "coupon", message: verdict.message };
+      if (
+        typeof data.couponPercent === "number" &&
+        data.couponPercent !== verdict.percent
+      )
+        return {
+          state: false,
+          step: "coupon",
+          message: COUPON_MESSAGES.changed,
+        };
+    }
   }
 
   // ---------------------------------------------------------------
@@ -208,11 +249,9 @@ export async function quoteBooking(
     base: baseCost,
     campaign,
     discountPercent,
-    coupon:
-      discountPercent > 0 && data.couponCode
-        ? { code: data.couponCode, percent: discountPercent }
-        : null,
+    coupon,
     couponError,
+    couponReason,
     cost,
     total,
   };

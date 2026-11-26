@@ -168,6 +168,9 @@ export default function ReservationForm({
     data.beneficiaryPhone =
       data.beneficiaryPhone && phoneNumber(data.beneficiaryPhone);
 
+    // only an applied coupon goes to Pay (with the percent the invoice showed, which Pay checks)
+    if (!data.couponPercent) data.couponCode = undefined;
+
     // pay
     const result = await Pay(data);
 

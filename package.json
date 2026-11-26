@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "check:auth-fields": "tsx docs/tests/check-better-auth-fields.ts"
+    "check:auth-fields": "tsx docs/tests/check-better-auth-fields.ts",
+    "test": "node --require ./tests/support/setup.cjs --import tsx --test \"tests/**/*.test.ts\""
   },
   "dependencies": {
     "@auth/prisma-adapter": "2.11.3",

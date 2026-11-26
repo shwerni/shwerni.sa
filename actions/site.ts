@@ -9,7 +9,6 @@ import {
   toggleArticleLike as toggleArticleLikeData,
 } from "@/data/article";
 import {
-  applyCoupon as applyCouponData,
   createConsultantsCoupon as createConsultantsCouponData,
   deleteConsultantsCoupon as deleteConsultantsCouponData,
   getCouponByCode,
@@ -38,6 +37,7 @@ import {
 import { markChatRead as markChatReadData } from "@/data/chat-read";
 
 // handlers
+import { quoteBooking } from "@/handlers/admin/order/booking-quote";
 import { pickNextSession } from "@/handlers/clients/package-session";
 import { chatSide } from "@/handlers/meetings/meeting-access";
 import { markDoneViaLink, rescheduleViaLink } from "@/handlers/meetings/reschedule";
@@ -51,6 +51,9 @@ import { sharedTtl } from "@/lib/shared-ttl";
 
 // prisma types
 import { RescheduleReason, UserRole } from "@/lib/generated/prisma/enums";
+
+// utils
+import { COUPON_MESSAGES } from "@/utils/coupon";
 
 // ---------- articles ----------
 
@@ -76,14 +79,46 @@ export async function addArticleComment(
 
 // ---------- coupons ----------
 
-// public; the user argument comes from the session, guests are "temp"
+// the booking the coupon form previews against (the client's choices; Pay checks them again)
+export type CouponPreviewBooking = {
+  order: "consultant" | "instant";
+  cid: number;
+  duration?: number | string | null;
+  package?: string | null;
+};
+
+export type CouponPreviewResult =
+  | { state: true; discount: number; code: string; message: string }
+  | { state: false; message: string };
+
+// public; the user comes from the session, guests are "temp". the preview runs Pay's own pricing
+// (quoteBooking, not strict) with the coupon, so the form shows exactly what Pay will charge
 export async function applyCoupon(
-  ...[, code, cid]: Parameters<typeof applyCouponData>
-): ReturnType<typeof applyCouponData> {
+  code: string,
+  booking: CouponPreviewBooking,
+): Promise<CouponPreviewResult> {
   // a bot gets the failure result this action already returns
-  if (!(await checkHuman("applyCoupon"))) return { state: false, message: "عذراً، الكود الذي أدخلته غير صحيح." };
+  if (!(await checkHuman("applyCoupon"))) return { state: false, message: COUPON_MESSAGES.not_found };
   const user = await sessionUser();
-  return applyCouponData(user?.id ?? "temp", code, cid);
+
+  const quote = await quoteBooking({
+    order: booking.order,
+    cid: booking.cid,
+    duration: booking.duration,
+    package: booking.package,
+    couponCode: code,
+    user: user?.id ?? "temp",
+  });
+  if (!quote.state) return { state: false, message: quote.message };
+  if (!quote.coupon)
+    return { state: false, message: quote.couponError ?? COUPON_MESSAGES.not_found };
+
+  return {
+    state: true,
+    discount: quote.coupon.percent,
+    code: quote.coupon.code,
+    message: "تم تطبيق الخصم",
+  };
 }
 
 // own consultant only; the consultantId argument is ignored

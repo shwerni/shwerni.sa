@@ -193,7 +193,7 @@ export function BookingPanel({
     if (!code) return;
     setCheckingCoupon(true);
     try {
-      const res = await applyCoupon(user?.id ?? "temp", code, cid);
+      const res = await applyCoupon(code, { order: "consultant", cid, duration });
       if (res.state && typeof res.discount === "number" && res.code) {
         setCoupon({ code: res.code, percent: res.discount });
         toast.success({ message: res.message });

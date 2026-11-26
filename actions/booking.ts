@@ -6,6 +6,7 @@
 
 // prisma data
 import { Pay as PayHandler } from "@/handlers/admin/order/payment";
+import { quoteBooking } from "@/handlers/admin/order/booking-quote";
 import { confirmFreeSession as confirmFreeSessionHandler } from "@/handlers/admin/freesession";
 import { instantOrderAllowed } from "@/data/instant-limits";
 
@@ -32,6 +33,18 @@ export async function Pay(...[data]: Parameters<typeof PayHandler>) {
   // guests: the forms send "temp" (discover sends "")
   const guest = data.user === "" ? "" : "temp";
   return PayHandler({ ...data, user: user?.id ?? guest });
+}
+
+// public: the instant session's price as Pay charges it (quoteBooking: INSTANT_DURATION, the campaign
+// applied) and whether it's a campaign price (no coupon then). null when the price can't be resolved
+export async function getInstantPrice(
+  cid: number,
+): Promise<{ cost: number; discounted: boolean } | null> {
+  if (!(await checkHuman("getInstantPrice"))) return null;
+  if (!Number.isInteger(cid) || cid <= 0) return null;
+  const quote = await quoteBooking({ order: "instant", cid });
+  if (!quote.state) return null;
+  return { cost: quote.base, discounted: quote.campaign !== null };
 }
 
 // public: free session booking

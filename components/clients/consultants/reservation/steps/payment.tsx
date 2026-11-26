@@ -1,4 +1,5 @@
 // React & Next
+import React from "react";
 import Image from "next/image";
 
 // packages
@@ -54,6 +55,22 @@ export default function StepPayment({
   const duration = form.watch("duration");
   const isDurationDiscounted =
     discountDurations?.includes(Number(duration)) ?? false;
+
+  // a coupon only on a single session at a non-campaign price (Pay's rule): never with a package
+  const selectedPackage = form.watch("package");
+  const couponAllowed =
+    finance.couponEnabled && !isDurationDiscounted && !selectedPackage;
+
+  // a coupon applied before the booking stopped allowing one (a package picked, a campaign
+  // duration chosen) is removed, so the invoice never shows a discount Pay won't give
+  React.useEffect(() => {
+    if (couponAllowed) return;
+    if (form.getValues("couponPercent") || form.getValues("couponCode")) {
+      form.setValue("couponPercent", undefined);
+      form.setValue("couponCode", undefined);
+      form.setValue("hasCoupon", false);
+    }
+  }, [couponAllowed, form]);
 
   // initial cost
   const initialCost = cost[duration as keyof Cost];
@@ -160,9 +177,7 @@ export default function StepPayment({
             {/* methods */}
             <MethodForm form={form} />
             {/* coupon */}
-            {finance.couponEnabled &&
-            payment.total > 0 &&
-            !isDurationDiscounted ? (
+            {couponAllowed && payment.total > 0 ? (
               <CouponForm form={form} />
             ) : null}
             {/* terms */}

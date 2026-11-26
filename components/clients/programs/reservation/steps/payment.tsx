@@ -7,7 +7,6 @@ import { UseFormReturn } from "react-hook-form";
 // components
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import CouponForm from "@/components/clients/programs/reservation/forms/coupons";
 import MethodForm from "@/components/clients/programs/reservation/forms/method";
 import TermsForm from "@/components/clients/programs/reservation/forms/terms";
 
@@ -133,11 +132,7 @@ export default function StepPayment({ form, onBack }: Props) {
             <h4 className="text-sm text-gray-700">خيارات الدفع المتاحة</h4>
             {/* methods */}
             <MethodForm form={form} />
-            {/* coupon */}
-            {finance.couponEnabled && payment.total > 0 ? (
-              <CouponForm form={form} />
-            ) : null}
-            {/* terms */}
+            {/* terms (no coupon on programs: Pay's rule) */}
             <TermsForm form={form} />
           </div>
           {/* payment summary */}

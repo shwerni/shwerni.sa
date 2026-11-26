@@ -35,9 +35,6 @@ const CouponForm = ({ form }: Props) => {
   // cid
   const cid = form.getValues("cid");
 
-  // user
-  const user = form.getValues("user");
-
   // loading
   const [loading, setLoading] = React.useState<boolean>(false);
 
@@ -62,17 +59,22 @@ const CouponForm = ({ form }: Props) => {
 
   // on submit
   async function handleCoupon() {
-    // loading
-    setLoading(true);
-
     // validate
     if (!couponCode || couponCode?.trim()?.length !== 6) {
       // return
       return;
     }
 
-    // get coupons
-    const response = await applyCoupon(user, couponCode.toUpperCase(), cid);
+    // loading
+    setLoading(true);
+
+    // the server checks it against this booking (duration, package), as Pay will
+    const response = await applyCoupon(couponCode.toUpperCase(), {
+      order: "consultant",
+      cid,
+      duration: form.getValues("duration"),
+      package: form.getValues("package"),
+    });
 
     // if not exist
     if (response.state && response.discount) {
@@ -140,6 +142,12 @@ const CouponForm = ({ form }: Props) => {
                       placeholder="save10"
                       className="uppercase w-40 border-l-0 rounded text-sm"
                       {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        // a changed code isn't applied any more: it must be applied again
+                        if (form.getValues("couponPercent"))
+                          form.setValue("couponPercent", undefined);
+                      }}
                       maxLength={6}
                     />
                     {/* discount button */}

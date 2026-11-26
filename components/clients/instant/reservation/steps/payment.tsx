@@ -1,8 +1,12 @@
 // React & Next
+import React from "react";
 import Image from "next/image";
 
 // packages
 import { UseFormReturn } from "react-hook-form";
+
+// actions
+import { getInstantPrice } from "@/actions/booking";
 
 // components
 import { Button } from "@/components/ui/button";
@@ -66,12 +70,39 @@ export default function StepPayment({ form, onBack }: Props) {
     },
   ];
 
+  // the instant price as Pay charges it (a campaign applied) and whether it's a campaign price
+  const [discounted, setDiscounted] = React.useState(false);
+  React.useEffect(() => {
+    let cancelled = false;
+    getInstantPrice(form.getValues("cid")).then((price) => {
+      if (cancelled || !price) return;
+      form.setValue("cost", price.cost);
+      setDiscounted(price.discounted);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [form]);
+
+  // a coupon only at a non-campaign price (Pay's rule)
+  const couponAllowed = finance.couponEnabled && !discounted;
+
+  // a coupon applied before the price turned out to be a campaign one is removed
+  React.useEffect(() => {
+    if (couponAllowed) return;
+    if (form.getValues("couponPercent") || form.getValues("couponCode")) {
+      form.setValue("couponPercent", undefined);
+      form.setValue("couponCode", undefined);
+      form.setValue("hasCoupon", false);
+    }
+  }, [couponAllowed, form]);
+
   // coupons
-  const { couponCode, couponPercent } = form.watch();
+  const { couponCode, couponPercent, cost: shownCost } = form.watch();
 
   // payment calculation hook
   const payment = usePaymentCalculation({
-    baseCost: cost,
+    baseCost: shownCost ?? cost,
     tax: finance.tax,
     initialDiscount: couponPercent,
     wallet: null, // pass wallet // later when ready
@@ -81,7 +112,7 @@ export default function StepPayment({ form, onBack }: Props) {
   const paymentSummary = [
     {
       label: "الاجمالي غير شامل الضريبة",
-      value: cost,
+      value: shownCost ?? cost,
     },
     {
       label: "الاجمالي شامل الضريبة",
@@ -142,7 +173,7 @@ export default function StepPayment({ form, onBack }: Props) {
             {/* methods */}
             <MethodForm form={form} />
             {/* coupon */}
-            {finance.couponEnabled && payment.total > 0 ? (
+            {couponAllowed && payment.total > 0 ? (
               <CouponForm form={form} />
             ) : null}
             {/* terms */}

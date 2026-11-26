@@ -57,6 +57,7 @@ const ScheduledSchema = z
 // quoteBooking's and reserveConsultant's failures as the app's errors
 const failureStatus: Record<string, number> = {
   blocked: 403,
+  coupon: 409,
   package: 404,
   pricing: 404,
   owner_missing: 404,
@@ -89,15 +90,19 @@ export const POST = createPostRoute<BookingCreated>(
       throw new HttpError("عدد كبير من المحاولات، حاول لاحقاً", 429);
     }
 
-    const quote = await quoteBooking({
-      order: "consultant",
-      phone: input.phone,
-      user: user.id,
-      cid: input.cid,
-      duration: input.duration,
-      package: input.package,
-      couponCode: input.couponCode,
-    });
+    // strict: a coupon that doesn't apply is a 409 with its message, never a full-price charge
+    const quote = await quoteBooking(
+      {
+        order: "consultant",
+        phone: input.phone,
+        user: user.id,
+        cid: input.cid,
+        duration: input.duration,
+        package: input.package,
+        couponCode: input.couponCode,
+      },
+      { strictCoupon: true },
+    );
     if (!quote.state) throw new HttpError(quote.message, failureStatus[quote.step] ?? 500);
 
     // the website's package booking: its session count, 45 minutes each

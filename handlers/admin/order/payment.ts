@@ -573,11 +573,13 @@ export async function Pay(
   // 0-3. block check, finance config, base cost + coupon and totals: the shared price
   //      (handlers/admin/order/booking-quote.ts), the same for the app's quote and booking
   // ---------------------------------------------------------------
-  const quote = await quoteBooking(data);
+  // strict: a coupon that doesn't apply (or no longer gives the previewed percent) stops here with
+  // its message; it is never dropped for a full-price charge
+  const quote = await quoteBooking(data, { strictCoupon: true });
   if (!quote.state) return quote;
 
   // base: the price before the coupon (pre-tax) → Payment.originalTotal; cost: after it → Payment.total
-  const { finance, discountPercent, base, cost, total } = quote;
+  const { finance, base, cost, total } = quote;
 
   // ---------------------------------------------------------------
   // 4. create the order — tax + commission passed in, never re-read
@@ -643,10 +645,10 @@ export async function Pay(
     });
 
   // ---------------------------------------------------------------
-  // 5. record coupon usage with the SERVER-verified percent
+  // 5. record coupon usage with the SERVER-verified percent and the stored code
   // ---------------------------------------------------------------
-  if (discountPercent > 0 && data.couponCode) {
-    await saveACoupon(data.user ?? "temp", data.couponCode, order.payment.id);
+  if (quote.coupon) {
+    await saveACoupon(data.user ?? "temp", quote.coupon.code, order.payment.id);
   }
 
   // ---------------------------------------------------------------

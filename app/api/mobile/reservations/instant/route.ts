@@ -19,6 +19,7 @@ import {
 
 // prisma data
 import { CheckIsBlocked } from "@/data/blocked";
+import { saveACoupon } from "@/data/coupon";
 import { reserveInstant } from "@/data/online";
 import { INSTANT_BUSY, INSTANT_UNAVAILABLE } from "@/data/mobile/instant-availability";
 import {
@@ -37,8 +38,8 @@ import { INSTANT_DURATION } from "@/constants/instant";
 // prisma types
 import { OrderOrigin } from "@/lib/generated/prisma/enums";
 
-// the client's choices only: no date, time, duration, price, coupon or user (the server's clock,
-// INSTANT_DURATION and the price)
+// the client's choices only: no date, time, duration, price or user (the server's clock,
+// INSTANT_DURATION and the price). the coupon code is optional, checked like a single session's
 const InstantSchema = z.object({
   cid: z.number().int().positive(),
   name: schemas.name,
@@ -46,11 +47,13 @@ const InstantSchema = z.object({
   notes: z.string().max(200).optional(),
   method: z.enum(["visaMoyasar", "tabby"]),
   wallet: z.boolean().optional(),
+  couponCode: z.string().trim().min(1).max(32).optional(),
 });
 
 // quoteBooking's failures as the app's errors
 const failureStatus: Record<string, number> = {
   blocked: 403,
+  coupon: 409,
   pricing: 404,
   order_type: 400,
 };
@@ -59,7 +62,7 @@ const CREATE_FAILED = "حدث خطأ أثناء إنشاء الطلب، برجا
 const RATE_LIMITED = "عدد كبير من المحاولات، حاول لاحقاً";
 
 // an instant booking from the app: Pay's instant rules with the session's user and origin APP.
-// the price is quoteBooking (INSTANT_DURATION, no coupon); reserveInstant, under its lock, decides
+// the price is quoteBooking (INSTANT_DURATION, the coupon if any); reserveInstant, under its lock, decides
 // whether the consultant is bookable now (online, listable, not busy, no other client paying)
 export const POST = createPostRoute<BookingCreated>(
   async (request: NextRequest) => {
@@ -82,12 +85,17 @@ export const POST = createPostRoute<BookingCreated>(
       throw new HttpError(RATE_LIMITED, 429);
     }
 
-    const quote = await quoteBooking({
-      order: "instant",
-      phone: input.phone,
-      user: user.id,
-      cid: input.cid,
-    });
+    // strict: a coupon that doesn't apply is a 409 with its message, never a full-price charge
+    const quote = await quoteBooking(
+      {
+        order: "instant",
+        phone: input.phone,
+        user: user.id,
+        cid: input.cid,
+        couponCode: input.couponCode,
+      },
+      { strictCoupon: true },
+    );
     if (!quote.state) throw new HttpError(quote.message, failureStatus[quote.step] ?? 500);
 
     // before the order exists: tabby with the wallet or a method the config doesn't allow → 400
@@ -139,6 +147,9 @@ export const POST = createPostRoute<BookingCreated>(
     }
     const payment = result.order?.payment;
     if (!result.order || !payment) throw new HttpError(CREATE_FAILED, 500);
+
+    // the coupon's use, with the server-verified percent (as the scheduled route)
+    if (quote.coupon) await saveACoupon(user.id, quote.coupon.code, payment.id);
 
     return finishAppBooking({ oid: result.order.oid, payment }, plan, input.method, quote.total);
   },

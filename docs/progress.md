@@ -7033,3 +7033,76 @@ and at **both** callers (the two «rescheduleUrl» menu items):
   - the verifier always saying valid → 16 failures;
   - HMAC over the re-serialized body → 5.
 - Full suite 895 of 895.
+
+## Coupons: one validation for the preview and Pay; never charge full price silently (2026-11-26)
+
+**Bug (production):** the coupon form showed a coupon as applied, but Moyasar/Tabby charged the full price. Pay's pricing (`quoteBooking`) refused the coupon and dropped it silently, and the preview never saw Pay's booking rules. Five ways, four reproduced against production data, read-only:
+1. **Instant** (consultant 529, `MELKAH` 10%): the invoice showed 124, the gateway got 138. Instant lost coupon support on 2026-09-14 (`6499aa5`, server pricing).
+2. **Program** #10: discounted on screen, full 460 at the gateway (same commit).
+3. **Package:** the coupon form stayed visible after picking a package; full 575 at the gateway.
+4. **Code edited after applying:** the invoice kept the old percent; Pay validated the edited code and dropped it.
+5. **Retry** with a one-use coupon after a failed card or going back: the first checkout already counted against the limit, so the retry was charged in full.
+
+**Fix**
+- **One verdict:** `utils/coupon.ts` (the rules plus one Arabic message per reason) and `validateCoupon` in `data/coupon.ts` (replaces `applyCoupon`).
+  - Coupons apply to single sessions and instant sessions only; never to a program, a package or a campaign price.
+  - Then the coupon's own checks: consultant, center, guest, dates, per-user limit.
+  - "Coupons switched off" (`finance.couponEnabled`) is now enforced by the server too.
+- **Preview = Pay:** the coupon form's action (`actions/site.ts` `applyCoupon`) runs `quoteBooking` itself with the booking (duration, package, instant), so the two can't disagree.
+- **Pay is strict** (`quoteBooking(…, { strictCoupon: true })`): a coupon that doesn't apply returns `{ state: false, step: "coupon", message }`, and so does a percent that changed since the preview. Pay never charges full price silently. The coupon is recorded under its stored code.
+- **Instant takes coupons** like single sessions; Moyasar and Tabby get the discounted total. Its 5-minute window and other checks are unchanged.
+- **Retry:** the limit counts only the client's own PAID uses, so their unfinished checkouts no longer hold the coupon.
+  - The limit is per client (`SAVE10`, limit 1, was paid by 191 different clients; 27 published one-use coupons have several paying clients), so another client's checkout never counted either. The "held by a checkout in progress" refusal is gone.
+  - Trade-off: a client who deliberately completes two gateway payments at once can use a one-use coupon twice. The webhook's PAID claim accepts a canceled order, so canceling the first checkout wouldn't prevent it.
+- **Client:**
+  - The coupon form is hidden for packages, programs and campaign prices. A coupon applied before the booking stopped allowing one is cleared.
+  - Editing the code clears the applied discount. Only an applied coupon is sent to Pay.
+  - The instant step shows the price Pay charges (new public action `getInstantPrice`), so a campaign price shows, and hides the coupon on it.
+  - The program coupon form is deleted.
+- **App routes:** both create routes are strict (409 with the reason). `POST reservations/instant` accepts an optional `couponCode` and records it.
+
+**Files:** `utils/coupon.ts` (new), `data/coupon.ts`, `handlers/admin/order/booking-quote.ts`, `handlers/admin/order/payment.ts`, `actions/site.ts`, `actions/booking.ts`, `app/api/mobile/reservations/route.ts`, `app/api/mobile/reservations/instant/route.ts`, the consultant/instant/program reservation forms and payment steps, `components/clients/centers/booking/booking-panel.tsx`, `package.json` (`npm test`), `tests/` (new).
+
+**Verified**
+- tsc; eslint on the changed files (no errors; 4 old warnings in untouched lines); `npm run build`; the manifest check prints only `data/event.ts` and `lib/api/google.ts`.
+- `npm test` (new, Node's test runner through tsx, no new dependency), 34 of 34. The real Pay, quoteBooking, validation and preview action; the database, pricing, order creation and gateways are recorders:
+  - single and instant, through Moyasar and Tabby: the gateway gets the invoice's discounted total;
+  - instant on a campaign price → "already discounted" in the preview and at Pay, no order, no checkout; the same for a campaign duration, a package, an unknown, expired or other consultant's code, and a reached limit;
+  - limit reached or percent changed between the preview and Pay → Pay stops with the message; without the coupon the client can pay full price;
+  - **retry:** the same client right after an unpaid checkout gets the coupon, discounted at the gateway (single and instant); another client in that window has their own use; a client who already paid with it is refused; once the retry is paid the coupon counts once and a third checkout is refused.
+- **Mutations:**
+  - Pay not strict (the old silent drop) → 10 failures;
+  - own unpaid checkouts counted → 3.
+
+**For the app session**
+- **Show the coupon error:** `POST reservations` and `POST reservations/instant` now answer **409** with the reason's Arabic message when the coupon doesn't apply (instead of charging full price). Show it, and let the client remove the coupon and pay.
+- **Instant can send `couponCode`:** `POST reservations/instant` accepts an optional `couponCode`, checked like a scheduled session's.
+  - `POST reservations/quote` with `order: "instant"` and a `couponCode` already returns the discounted quote, or `couponError` (for example "already discounted" on a campaign price).
+  - Today's app sends no coupon on instant, so nothing changes until it adds the field.
+
+**Open for Ziad: 12 overpaid clients (case 5, before this fix)**
+- 12 paid orders where a one-use coupon was saved on an unpaid checkout and the same phone, with the same consultant, paid full price within 24 hours. Overpaid **286 SAR before VAT** in total, 2026-03-06 to 2026-10-29; 7 of them retried within 15 minutes. Examples: #19532 paid 130 after #19531 (`DISC25`, refused); #22669 paid 167 after #22649 (`SAVE10`, canceled).
+- Cases 1–4 left nothing on the order (no coupon row, nothing in the log), so they can't be counted. Exposure since 2026-09-14: 60 instant, 2 program and 62 package paid orders.
+- Query (read-only):
+
+```sql
+SELECT a.oid AS attempt_oid, a.created_at AS attempt_at, ap.payment AS attempt_status,
+       uc.code, c.limits, uc.type, uc.discount, ap.total AS attempt_total,
+       p.oid AS paid_oid, p.created_at AS paid_at, pp.total AS paid_total,
+       pp.total - ap.total AS overpaid_before_vat, p.phone, p."consultantId"
+FROM orders a
+JOIN payments ap      ON ap."orderId" = a.oid AND ap.payment <> 'PAID'
+JOIN used_coupons uc  ON uc."paymentId" = ap.id
+LEFT JOIN coupons c   ON c.code = uc.code
+JOIN orders p         ON p.phone = a.phone AND p."consultantId" = a."consultantId"
+                     AND p.created_at > a.created_at AND p.created_at < a.created_at + interval '24 hours'
+JOIN payments pp      ON pp."orderId" = p.oid AND pp.payment = 'PAID'
+LEFT JOIN used_coupons puc ON puc."paymentId" = pp.id
+WHERE puc.id IS NULL
+  AND a.created_at >= '2026-02-20 12:00:00+00'
+  AND abs(pp.total - ap.total / (1 - uc.discount / 100.0)) <= 1
+ORDER BY p.created_at DESC;
+```
+
+- The count above kept the first paid order per attempt; the query can list an order more than once.
+- Open: refund (wallet credit or gateway) and/or notify them. Nothing was changed for them.
