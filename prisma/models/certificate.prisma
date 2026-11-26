@@ -1,0 +1,32 @@
+// experience certificates (شهادة خبرة) issued from the dashboard (/zadmin/experience-certificates).
+// every printed field is a snapshot: reprints show exactly what was issued, whatever the
+// consultant record says later
+model ExperienceCertificate {
+  id   String @id @default(cuid())
+  ecid Int    @unique @default(autoincrement()) // the reference number, printed zero-padded: «رقم الشهادة: 0001»
+
+  // consultant (fixed once issued; editing never moves a certificate to another consultant)
+  consultantId Int
+  consultant   Consultant @relation(fields: [consultantId], references: [cid])
+
+  // printed snapshot
+  titlePrefix String? // "د." / "أ." before the name, optional
+  name        String
+  nationalId  String? // optional: the ID line is left off the certificate when empty
+  jobTitle    String
+  gender      Gender
+  startDate   DateTime @db.Date
+  issueDate   DateTime @db.Date
+
+  // who issued it (plain values so history survives user changes)
+  author     String // the admin's user id
+  authorName String
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @default(now()) @updatedAt
+  deleted_at DateTime? // soft delete: hidden from the table and from the national-ID prefill
+
+  @@index([consultantId])
+  @@index([created_at])
+  @@map("experience_certificates")
+}

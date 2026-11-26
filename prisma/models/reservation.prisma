@@ -27,51 +27,51 @@ enum RescheduleReason {
 }
 
 model Order {
-  id             String      @id @default(cuid())
-  oid            Int         @unique @default(autoincrement())
-  author         String
-  type           OrderType   @default(SCHEDULED)
-  name           String
-  phone          String
-  gender         Gender?
-  consultantId   Int
-  programId      Int?
-  collaboratorId String?
-  gift           Boolean     @default(false)
-  session        SessionType @default(ONCE)
-  sessionCount   Int         @default(1)
-  due_at         DateTime    @default(now())
-  created_at     DateTime    @default(now())
-  scaleId        String?
-  info           String[]
-  packageId      String?
-  origin         OrderOrigin @default(PLATFORM)
-  centerId       Int? // set at creation from consultant.centerId, never from client input
+  id               String      @id @default(cuid())
+  oid              Int         @unique @default(autoincrement())
+  author           String
+  type             OrderType   @default(SCHEDULED)
+  name             String
+  phone            String
+  gender           Gender?
+  consultantId     Int
+  programId        Int?
+  collaboratorId   String?
+  gift             Boolean     @default(false)
+  session          SessionType @default(ONCE)
+  sessionCount     Int         @default(1)
+  due_at           DateTime    @default(now())
+  created_at       DateTime    @default(now())
+  scaleId          String?
+  info             String[]
+  packageId        String?
+  origin           OrderOrigin @default(PLATFORM)
+  centerId         Int? // set at creation from consultant.centerId, never from client input
   // daftra: "never send to daftra", set or cleared from the dashboard. the automatic sends
   // (payment, nightly retry) skip it; only an explicit dashboard override creates the invoice
-  daftraSkip       Boolean   @default(false)
+  daftraSkip       Boolean     @default(false)
   daftraSkipById   String?
   daftraSkipByName String?
   daftraSkipAt     DateTime?
 
   // @relations
-  center         Center?         @relation(fields: [centerId], references: [ceid], onDelete: Restrict)
-  guest          Guest?
-  payment        Payment?
-  meeting        Meeting[]
-  program        Program?        @relation(fields: [programId], references: [prid])
-  consultant     Consultant      @relation(fields: [consultantId], references: [cid])
-  collaboration  Collaboration?  @relation(fields: [collaboratorId], references: [id])
-  reconciliation Reconciliation?
-  scaleResult    ScaleResult?
-  scale          Scale?          @relation(fields: [scaleId], references: [id])
-  scaleResponses ScaleResponse[]
-  package        Package?        @relation(fields: [packageId], references: [id])
-  orderMessages  OrderMessage[]
-  reschedules    Reschedule[]
-  refundRequests RefundRequest[]
-  refunds        Refund[]
-  transactions WalletTransaction[] 
+  center              Center?              @relation(fields: [centerId], references: [ceid], onDelete: Restrict)
+  guest               Guest?
+  payment             Payment?
+  meeting             Meeting[]
+  program             Program?             @relation(fields: [programId], references: [prid])
+  consultant          Consultant           @relation(fields: [consultantId], references: [cid])
+  collaboration       Collaboration?       @relation(fields: [collaboratorId], references: [id])
+  reconciliation      Reconciliation?
+  scaleResult         ScaleResult?
+  scale               Scale?               @relation(fields: [scaleId], references: [id])
+  scaleResponses      ScaleResponse[]
+  package             Package?             @relation(fields: [packageId], references: [id])
+  orderMessages       OrderMessage[]
+  reschedules         Reschedule[]
+  refundRequests      RefundRequest[]
+  refunds             Refund[]
+  transactions        WalletTransaction[]
   bankTransferRequest BankTransferRequest?
   financeEntries      FinanceEntry[]
   pleading            Pleading?
@@ -82,14 +82,14 @@ model Order {
 }
 
 model Meeting {
-  id         String    @id @unique @default(cuid())
-  mid        String    @unique @default(nanoid(10))
+  id         String     @id @unique @default(cuid())
+  mid        String     @unique @default(nanoid(10))
   time       String
-  done       Boolean   @default(false)
+  done       Boolean    @default(false)
   date       String
   duration   String
   session    Int
-  checked    Boolean   @default(false)
+  checked    Boolean    @default(false)
   ringedAt   DateTime?
   recalledAt DateTime?
   mode       TimingType @default(ONLINE) // per meeting, packages can mix

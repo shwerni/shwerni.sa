@@ -39,51 +39,51 @@ enum ProgramEnrollState {
 }
 
 model Consultant {
-  id            String           @id @default(cuid())
-  userId        String?          @unique
-  type          OwnerType        @default(INDEPENDENT)
-  cid           Int              @unique @default(autoincrement())
-  status        Boolean
-  statusA       ConsultantState  @default(HIDDEN)
-  approved      ApprovalState    @default(PENDING)
-  gender        Gender           @default(MALE)
-  phone         String
-  name          String
-  title         String
-  neducation    String[]
-  nexperiences  String[]
-  nabout        String           @default("")
-  preference    GenderPreference @default(BOTH)
-  seniority     DateTime         @default(now())
-  cost30        Float
-  cost45        Float
-  cost60        Float
+  id              String           @id @default(cuid())
+  userId          String?          @unique
+  type            OwnerType        @default(INDEPENDENT)
+  cid             Int              @unique @default(autoincrement())
+  status          Boolean
+  statusA         ConsultantState  @default(HIDDEN)
+  approved        ApprovalState    @default(PENDING)
+  gender          Gender           @default(MALE)
+  phone           String
+  name            String
+  title           String
+  neducation      String[]
+  nexperiences    String[]
+  nabout          String           @default("")
+  preference      GenderPreference @default(BOTH)
+  seniority       DateTime         @default(now())
+  cost30          Float
+  cost45          Float
+  cost60          Float
   // pricing step 2 (docs/pricing-settings-plan.md): prices by length { "<minutes>": price }, the
   // source of truth once the reads move over; cost30/45/60 win for those lengths meanwhile
-  costs         Json             @default("{}")
+  costs           Json             @default("{}")
   // the consultant's own single-session lengths; empty = the platform default (pricing settings)
-  durations     Int[]            @default([])
-  category      Categories
-  image         String?
-  pendingImage  String?
-  cv            String?
-  edu           String?
-  cert          String?
-  commission    Float?
-  rate          Float            @default(0)
-  adminNote     String?
-  info          String?
-  created_at    DateTime         @default(now())
-  updated_at    DateTime         @default(now()) @updatedAt
-  online_at     DateTime?
-  online_status OnlineStatus     @default(OFFLINE)
-  sort_key      Float            @default(0)
-  pleadingEnabled Boolean        @default(false) // opt-in to pleading requests, only effective for category LAW
+  durations       Int[]            @default([])
+  category        Categories
+  image           String?
+  pendingImage    String?
+  cv              String?
+  edu             String?
+  cert            String?
+  commission      Float?
+  rate            Float            @default(0)
+  adminNote       String?
+  info            String?
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @default(now()) @updatedAt
+  online_at       DateTime?
+  online_status   OnlineStatus     @default(OFFLINE)
+  sort_key        Float            @default(0)
+  pleadingEnabled Boolean          @default(false) // opt-in to pleading requests, only effective for category LAW
 
   // @relations
-  user                     User?                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                     User?                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   centerId                 Int?
-  center                   Center?               @relation(fields: [centerId], references: [ceid], onDelete: Restrict)
+  center                   Center?                 @relation(fields: [centerId], references: [ceid], onDelete: Restrict)
   orders                   Order[]
   articles                 Article[]
   Coupon                   Coupon[]
@@ -100,8 +100,9 @@ model Consultant {
   packages                 Package[]
   questions                Question[]
   bankAccount              BankAccount?
-    bankTransferRequests BankTransferRequest[]
+  bankTransferRequests     BankTransferRequest[]
   pleadings                Pleading[]
+  experienceCertificates   ExperienceCertificate[]
 
   @@index([sort_key])
   @@index([status, statusA, approved, sort_key])
@@ -213,7 +214,7 @@ model BankAccount {
   iban         String
   bankCode     String
   holderName   String?
-    created_at   DateTime @default(now())
+  created_at   DateTime @default(now())
   updated_at   DateTime @default(now()) @updatedAt
 
   // @relations

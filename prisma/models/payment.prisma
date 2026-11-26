@@ -51,11 +51,11 @@ enum DiscountState {
 }
 
 enum WalletTransactionType {
-  REFUND            // credit: order amount refunded into the wallet
-  PAYMENT           // debit: order paid in full using the wallet
-  PARTIAL_PAYMENT   // debit: order paid partially using the wallet
+  REFUND // credit: order amount refunded into the wallet
+  PAYMENT // debit: order paid in full using the wallet
+  PARTIAL_PAYMENT // debit: order paid partially using the wallet
   ADJUSTMENT_CREDIT // manual credit added by an admin
-  ADJUSTMENT_DEBIT  // manual debit removed by an admin
+  ADJUSTMENT_DEBIT // manual debit removed by an admin
 }
 
 model Payment {
@@ -79,8 +79,8 @@ model Payment {
   orderId    Int?        @unique
   order      Order?      @relation(fields: [orderId], references: [oid])
   usedCoupon UsedCoupon?
-  refunds Refund[]
-  
+  refunds    Refund[]
+
   @@map("payments")
 }
 
@@ -99,16 +99,16 @@ model UsedCoupon {
 }
 
 model Wallet {
-  id           String   @id @default(cuid())
-  status       Boolean  @default(true)
+  id         String   @id @default(cuid())
+  status     Boolean  @default(true)
   credit     Float    @default(0)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
   // @relations
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions WalletTransaction[] 
+  userId       String              @unique
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
 
   @@map("wallets")
 }

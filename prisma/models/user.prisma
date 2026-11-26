@@ -16,17 +16,17 @@ enum UserRole {
 
 // auth
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  phone         String?   @unique
-  email         String?   @unique
-  emailVerified DateTime? @map("email_verified")
-  phoneVerified DateTime? @map("phone_verified")
-  image         String?
-  password      String?
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
-  role          UserRole  @default(USER)
+  id                String    @id @default(cuid())
+  name              String?
+  phone             String?   @unique
+  email             String?   @unique
+  emailVerified     DateTime? @map("email_verified")
+  phoneVerified     DateTime? @map("phone_verified")
+  image             String?
+  password          String?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  role              UserRole  @default(USER)
   phoneChangedAt    DateTime? @map("phone_changed_at")
   passwordChangedAt DateTime? @map("password_changed_at")
   // account deletion (anonymization): set when the client deletes their account; the row and its
@@ -79,13 +79,13 @@ model Account {
 }
 
 model VerificationToken {
-  id     String   @id @default(cuid())
-  phone  String
-  token  String   @unique
-  otp    String
-  expire DateTime
+  id       String   @id @default(cuid())
+  phone    String
+  token    String   @unique
+  otp      String
+  expire   DateTime
   // wrong otp tries; the token is deleted at 5 (column added by the migration-owning codebase)
-  attempts Int @default(0)
+  attempts Int      @default(0)
 
   @@unique([phone, token])
   @@map("verification_tokens")

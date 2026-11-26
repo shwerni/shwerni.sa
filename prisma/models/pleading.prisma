@@ -25,9 +25,9 @@ model Pleading {
 
   // @relations
   consultantId Int
-  consultant   Consultant     @relation(fields: [consultantId], references: [cid])
-  orderId      Int?           @unique // the current checkout order, replaced on a new checkout
-  order        Order?         @relation(fields: [orderId], references: [oid])
+  consultant   Consultant         @relation(fields: [consultantId], references: [cid])
+  orderId      Int?               @unique // the current checkout order, replaced on a new checkout
+  order        Order?             @relation(fields: [orderId], references: [oid])
   messages     OrderMessage[]
   documents    PleadingDocument[]
 
