@@ -12,10 +12,14 @@ import {
   CouponState,
   CouponType,
   CouponVisibility,
+  PaymentState,
 } from "@/lib/generated/prisma/client";
 
 // lib
 import { timeZone } from "@/utils/date";
+
+// constants
+import { UNPAID_HOLD_MINUTES } from "@/constants/booking";
 import { CouponConsultant } from "@/types/layout";
 
 // get certian coupon
@@ -75,7 +79,33 @@ export const applyCoupon = async (user: string, code: string, cid: number) => {
     }
 
     // user limits // later vip
-    const userUsageCount = coupon.users.filter((u) => u === user).length;
+    // PAID orders count, and checkouts still running: NEW or PROCESSING orders younger than
+    // UNPAID_HOLD_MINUTES (the window that holds a booking slot), so two checkouts started together
+    // can't both use a one-use coupon. an abandoned, failed or canceled checkout frees it (coupon.users
+    // gets every checkout that was started, so it isn't counted). the user is the order's author;
+    // uses before the coupon row existed (a re-created code) don't count
+    const runningSince = new Date(Date.now() - UNPAID_HOLD_MINUTES * 60_000);
+    const userUsageCount =
+      coupon.limits === null
+        ? 0
+        : await prisma.usedCoupon.count({
+            where: {
+              code: coupon.code,
+              usedAt: { gte: coupon.created_at },
+              payment: {
+                order: { is: { author: user } },
+                OR: [
+                  { payment: PaymentState.PAID },
+                  {
+                    payment: {
+                      in: [PaymentState.NEW, PaymentState.PROCESSING],
+                    },
+                    order: { is: { created_at: { gt: runningSince } } },
+                  },
+                ],
+              },
+            },
+          });
 
     // if limits exceeded
     if (coupon.limits !== null && userUsageCount >= coupon.limits)
