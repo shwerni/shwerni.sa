@@ -7106,3 +7106,14 @@ ORDER BY p.created_at DESC;
 
 - The count above kept the first paid order per attempt; the query can list an order more than once.
 - Open: refund (wallet credit or gateway) and/or notify them. Nothing was changed for them.
+
+## #30, part 2: WhatsApp webhook signature enforced (2026-11-27)
+
+- `constants/whatsapp.ts`: `WHATSAPP_SIGNATURE_MODE` is now `"enforce"`. The "log" period showed only valid requests (Ziad). Any POST without a valid `X-Hub-Signature-256` gets **401** and isn't processed; a missing `META_APP_SECRET` refuses everything.
+- `tests/whatsapp/signature.test.ts` (new; the earlier throwaway tests weren't kept): the real route and verifier, with the chat store, special replies and bot queue as recorders.
+  - shipped mode is enforce;
+  - a valid signature is processed as before (saved, queued, 200); uppercase hex is accepted;
+  - missing, malformed, sha1, another secret, another body → 401, nothing saved or queued;
+  - a signature over re-serialized JSON → 401; a missing secret → 401.
+- **Verified:** tsc; eslint on the changed files; `npm test` 44 of 44; `npm run build`; the manifest check prints only `data/event.ts` and `lib/api/google.ts`.
+- **Still open from part 1:** the dashboard (`shwerni.aws`) has its own `/api/whatsapp` route. If Meta's callback URL points there, that route needs the same check.
