@@ -60,6 +60,7 @@ const ScheduledSchema = z
 // quoteBooking's and reserveConsultant's failures as the app's errors
 const failureStatus: Record<string, number> = {
   duration: 400,
+  packages_disabled: 400,
   blocked: 403,
   coupon: 409,
   package: 404,

@@ -10,6 +10,8 @@ import {
   firstPriceError,
   minimumFor,
   minimumLabel,
+  packageBelowFloorWarning,
+  packageFloorLabel,
 } from "@/utils/pricing";
 
 // constants
@@ -18,6 +20,7 @@ import { PACKAGE_SESSION_MINUTES, type PricingSettings } from "@/constants/prici
 // prisma data
 import {
   updateConsultantBaseCosts,
+  setPackagesDisabled,
   upsertConsultantPackage,
 } from "@/actions/consultant";
 
@@ -119,11 +122,14 @@ export function PackageForm({
   sessionCount,
   initialCost,
   initialActive,
+  floor,
 }: {
   consultantId: number;
   sessionCount: number;
   initialCost: number;
   initialActive: boolean;
+  // the lowest price this package may be saved at (his 45 price × sessions, less the max discount)
+  floor: number;
 }) {
   const [cost, setCost] = React.useState(initialCost);
   const [isActive, setIsActive] = React.useState(initialActive);
@@ -142,10 +148,16 @@ export function PackageForm({
     setIsActive(initialActive);
   }
 
+  // the server's rule: a new package, a changed price or an activation must reach the floor;
+  // deactivating or saving it unchanged is always allowed
+  const isNew = initialCost <= 0;
+  const edited = isNew || cost !== initialCost || (isActive && !initialActive);
+  // a saved, active package below its floor: it keeps selling, he's asked to update it
+  const belowFloor = !isNew && initialActive && initialCost < floor && !edited;
+
   const handleSave = async () => {
-    // Validation: Block saving if active and cost is less than 100
-    if (cost < 100) {
-      setError("السعر يجب أن يكون 100 أو أكثر");
+    if (edited && cost < floor) {
+      setError(packageFloorLabel(floor));
       return;
     }
 
@@ -161,7 +173,7 @@ export function PackageForm({
 
     // revalidatePath will refresh the page — server state is source of truth
     if (!result.success) {
-      // optionally show a toast error here
+      setError(result.message ?? "حدث خطأ ما برجاء المحاولة مرة اخري");
     }
   };
 
@@ -191,13 +203,14 @@ export function PackageForm({
             <label className="text-sm text-gray-600">السعر:</label>
             <input
               type="number"
-              min={100}
+              min={floor}
               value={cost}
               onChange={(e) => setCost(Number(e.target.value))}
               className="w-24 p-1.5 border rounded text-center outline-none focus:border-theme-700"
               disabled={!isActive}
             />
           </div>
+          <p className="text-xs text-gray-500">{packageFloorLabel(floor)}</p>
           <button
             onClick={handleSave}
             disabled={loading}
@@ -208,12 +221,58 @@ export function PackageForm({
         </div>
       </div>
       
+      {/* below the floor, still selling */}
+      {belowFloor && (
+        <p className="text-amber-600 text-xs mt-2 w-full rtl:text-right">
+          {packageBelowFloorWarning(floor)}
+        </p>
+      )}
+
       {/* Error Message Display */}
       {error && (
         <p className="text-red-500 text-sm font-medium mt-2 text-left w-full rtl:text-right">
           {error}
         </p>
       )}
+    </div>
+  );
+}
+
+/**
+ * his "disable all packages" switch: while on, his packages are hidden from clients and can't be
+ * booked; they're kept unchanged and come back when it's off. sold packages keep their sessions
+ */
+export function PackagesSwitch({ initialDisabled }: { initialDisabled: boolean }) {
+  const [disabled, setDisabled] = React.useState(initialDisabled);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
+
+  const toggle = async (next: boolean) => {
+    setError("");
+    setLoading(true);
+    const result = await setPackagesDisabled(next);
+    setLoading(false);
+    if (result.success) setDisabled(next);
+    else setError("حدث خطأ ما برجاء المحاولة مرة اخري");
+  };
+
+  return (
+    <div className="flex flex-col gap-2 p-4 border rounded-lg bg-gray-50">
+      <label className="inline-flex items-center cursor-pointer gap-3">
+        <input
+          type="checkbox"
+          checked={disabled}
+          disabled={loading}
+          onChange={(e) => toggle(e.target.checked)}
+          className="sr-only peer"
+        />
+        <div className="relative w-11 h-6 bg-gray-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:inset-s-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-theme-700"></div>
+        <span className="text-sm font-semibold text-gray-800">تعطيل جميع الباقات</span>
+      </label>
+      {disabled && (
+        <p className="text-xs text-amber-600">باقاتك مخفية عن العملاء ولا يمكن حجزها</p>
+      )}
+      {error && <p className="text-red-500 text-xs">{error}</p>}
     </div>
   );
 }

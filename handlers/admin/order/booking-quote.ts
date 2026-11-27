@@ -42,6 +42,9 @@ export interface BookingQuoteOptions {
 // a single-session length outside the consultant's effective set (failure step "duration")
 export const DURATION_NOT_OFFERED = "مدة الجلسة غير متاحة لهذا المستشار";
 
+// a package booking while the consultant's "disable all packages" switch is on (step "packages_disabled")
+export const PACKAGES_DISABLED = "الباقات غير متاحة لدى هذا المستشار حالياً";
+
 export interface BookingQuoteFailure {
   state: false;
   step: string;
@@ -114,7 +117,12 @@ export async function quoteBooking(
       // package price wins: flat, no event discount, no coupon
       const pkg = await prisma.package.findUnique({
         where: { id: data.package },
-        select: { cost: true, consultantId: true, isActive: true },
+        select: {
+          cost: true,
+          consultantId: true,
+          isActive: true,
+          consultant: { select: { packagesDisabled: true } },
+        },
       });
 
       if (!pkg || !pkg.isActive || pkg.consultantId !== data.cid) {
@@ -123,6 +131,11 @@ export async function quoteBooking(
           step: "package",
           message: "الباقة غير متاحة حالياً",
         };
+      }
+
+      // his "disable all packages" switch: no new package booking (sold ones keep their sessions)
+      if (pkg.consultant?.packagesDisabled) {
+        return { state: false, step: "packages_disabled", message: PACKAGES_DISABLED };
       }
 
       baseCost = pkg.cost;

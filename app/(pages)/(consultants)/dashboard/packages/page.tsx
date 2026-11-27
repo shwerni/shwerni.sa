@@ -5,11 +5,12 @@ import { notFound } from "next/navigation";
 import {
   BaseCostsForm,
   PackageForm,
+  PackagesSwitch,
 } from "@/components/consultant/packages/packages";
 
 // prisma data
 import { getOwnerbyAuthor } from "@/data/consultant";
-import { basePriceFields, getConsultantsPackages } from "@/data/packages";
+import { basePriceFields, getConsultantsPackages, packageFloors } from "@/data/packages";
 import { getPricingSettings } from "@/data/admin/settings/pricing";
 
 // utils
@@ -21,6 +22,7 @@ import { Clock } from "lucide-react";
 
 // constants
 import { PACKAGE_SESSION_COUNTS } from "@/constants/packages";
+import { PACKAGE_SESSION_MINUTES } from "@/constants/pricing";
 
 // Packages you want to enforce/allow
 const STANDARD_PACKAGES = PACKAGE_SESSION_COUNTS;
@@ -50,6 +52,12 @@ export default async function ConsultantPricingDashboard() {
   const fields = basePriceFields(
     durations,
     packages.some((pkg) => pkg.isActive),
+  );
+
+  // each package's floor: his 45 price × sessions, less the settings' max package discount
+  const floors = packageFloors(
+    readCosts(consultant)[String(PACKAGE_SESSION_MINUTES)],
+    settings.maxPackageDiscountPercent,
   );
 
   return (
@@ -90,6 +98,10 @@ export default async function ConsultantPricingDashboard() {
             <Clock className="text-gray-600 w-4" />
           </div>
         </div>
+        {/* his "disable all packages" switch */}
+        <div className="mb-4">
+          <PackagesSwitch initialDisabled={consultant.packagesDisabled} />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {STANDARD_PACKAGES.map((sessionCount) => {
             const existingPkg = packagesMap.get(sessionCount);
@@ -100,6 +112,7 @@ export default async function ConsultantPricingDashboard() {
                 sessionCount={sessionCount}
                 initialCost={existingPkg?.cost || 0}
                 initialActive={existingPkg?.isActive || false}
+                floor={floors[sessionCount]}
               />
             );
           })}

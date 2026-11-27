@@ -363,3 +363,26 @@ export const firstPriceError = (errors: Record<string, string>) => {
   const [key, message] = Object.entries(errors).sort(([a], [b]) => Number(a) - Number(b))[0];
   return `${durationLabel(Number(key))}: ${message}`;
 };
+
+// ---------------------------------------------------------------
+// packages: the maximum discount
+// ---------------------------------------------------------------
+
+/**
+ * the lowest price a package may be saved at: his 45-minute package session price × its sessions,
+ * less the largest package discount (pricing settings, maxPackageDiscountPercent). rounded up to a
+ * whole riyal, since a package's price is
+ * @param sessionPrice his 45-minute price (readCosts(row)["45"])
+ * @param count the package's sessions
+ * @param maxDiscountPercent the settings' maxPackageDiscountPercent (0–100)
+ */
+export const packageFloor = (sessionPrice: number, count: number, maxDiscountPercent: number) =>
+  Math.ceil(Number(((sessionPrice * count * (100 - maxDiscountPercent)) / 100).toFixed(6)));
+
+// the line under a package's price: "أقل سعر مسموح لهذه الباقة ٢٧٩ ر.س"
+export const packageFloorLabel = (floor: number) =>
+  `أقل سعر مسموح لهذه الباقة ${arabicDigits(floor)} ر.س`;
+
+// the warning on a saved package below its floor (it keeps selling until he edits it)
+export const packageBelowFloorWarning = (floor: number) =>
+  `سعر هذه الباقة أقل من الحد المسموح (${arabicDigits(floor)} ر.س)، برجاء تحديثه`;

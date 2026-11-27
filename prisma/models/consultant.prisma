@@ -79,6 +79,7 @@ model Consultant {
   online_status   OnlineStatus     @default(OFFLINE)
   sort_key        Float            @default(0)
   pleadingEnabled Boolean          @default(false) // opt-in to pleading requests, only effective for category LAW
+  packagesDisabled Boolean         @default(false) // the consultant's "disable all packages" switch: his packages are kept but hidden and not bookable
 
   // @relations
   user                     User?                   @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -14,6 +14,7 @@ import { saveBankAccount as saveBankAccountHandler } from "@/handlers/conusltant
 import {
   updateConsultantBaseCosts as updateConsultantBaseCostsData,
   upsertConsultantPackage as upsertConsultantPackageData,
+  setConsultantPackagesDisabled as setConsultantPackagesDisabledData,
 } from "@/data/packages";
 import { updateConsultantSpecialties as updateConsultantSpecialtiesData } from "@/data/specialties";
 import {
@@ -97,6 +98,13 @@ export async function upsertConsultantPackage(
   const cid = await ownConsultantCid();
   if (!cid) return { success: false };
   return upsertConsultantPackageData(cid, count, cost, isActive);
+}
+
+// own consultant only: his "disable all packages" switch (his packages are kept unchanged)
+export async function setPackagesDisabled(disabled: boolean) {
+  const cid = await ownConsultantCid();
+  if (!cid || typeof disabled !== "boolean") return { success: false };
+  return setConsultantPackagesDisabledData(cid, disabled);
 }
 
 // own consultant only; the cid argument is ignored

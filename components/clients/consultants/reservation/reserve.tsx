@@ -12,7 +12,7 @@ import { getFinanceConfig } from "@/data/admin/settings/finance";
 
 // lib
 import { userServer } from "@/lib/auth/server";
-import { getConsultantsPackages } from "@/data/packages";
+import { getClientPackages } from "@/data/packages";
 
 // icons
 import { getCampaignFor, resolveConsultantPricing } from "@/data/event";
@@ -40,7 +40,7 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
       getConsultantInfoForBooking(cid),
       getUnavailableWeekdays(cid),
       getFinanceConfig(),
-      getConsultantsPackages(cid, true),
+      getClientPackages(cid, true),
       // the offered lengths, plus the fixed products the page shows (packages compare with 30, sell 45)
       resolveConsultantPricing(cid, [INSTANT_DURATION, PACKAGE_SESSION_MINUTES]),
       getCampaignFor("CONSULTANT_BADGE"),

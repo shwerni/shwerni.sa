@@ -7336,3 +7336,68 @@ FROM consultants c GROUP BY 1, 2 ORDER BY 1, 2;
 - `GET owner/profile` → `meta.pricing` (catalog with labels, `durations`, `packageMinutes`, `costs`). `meta.minCosts` now comes from the settings.
 - POST/PATCH accept `costs` ("30" → price) or the legacy fields. A new price below the minimum is 400 with "<length>: يجب أن تكون التكلفة X على الأقل".
 - Build the price fields from `meta.pricing.durations`.
+
+## Packages: the "disable all packages" switch and the maximum package discount (2026-11-27)
+
+**✋ Schema:** `Consultant.packagesDisabled Boolean @default(false)` (`prisma/models/consultant.prisma`).
+- `prisma validate` and `generate` are done; **Ziad runs `db push`, then deploy.** Every query that reads a full consultant row asks for the column. It's additive with a default, so old code keeps working with it present.
+- `npm run build` passed against production before the push: no build-time query needs it.
+
+**Data (read-only):** 320 active packages; **87 are below the 40% floor**, across 48 consultants (76 of them on published consultants).
+- The worst are #583 and #647: 3 sessions for 100 against a floor of 279.
+- They keep selling unchanged and show a warning on his packages page until he edits them.
+
+```sql
+SELECT c.cid, c.name, c.approved, c."statusA", p.count AS sessions, p.cost AS price, c.cost45 AS his_45_price,
+       CEIL(c.cost45 * p.count * 0.6) AS floor, CEIL(c.cost45 * p.count * 0.6) - p.cost AS short_by
+FROM packages p JOIN consultants c ON c.cid = p."consultantId"
+WHERE p."isActive" AND p.cost < c.cost45 * p.count * 0.6
+ORDER BY c.cid, p.count;
+```
+
+**1. The switch** (his packages are never touched; they come back unchanged)
+- **Set by:**
+  - website: the `setPackagesDisabled` action and a "تعطيل جميع الباقات" switch on the packages page (with the note "باقاتك مخفية عن العملاء ولا يمكن حجزها");
+  - app: new `PATCH /api/mobile/owner/packages` `{ disabled }`; GET adds `packagesDisabled`.
+  - Each change purges `consultant:{cid}`, `consultants` and the center tag, plus `/packages`.
+- **Hidden from clients:**
+  - new `getClientPackages` for his page (`reserve.tsx`) and the app's `consultants/consultant/packages`;
+  - the `/packages` listing SQL has `c."packagesDisabled" = false`;
+  - his own pages keep `getConsultantsPackages`, so he still sees and edits them.
+- **Refused:** `quoteBooking`'s package branch returns step `packages_disabled`, "الباقات غير متاحة لدى هذا المستشار حالياً". Website Pay shows it in a toast; the app quote and create routes answer 400.
+- **Unchanged:** next-session picks of sold packages (`pickNextSession` reads the order, never the switch).
+
+**2. The maximum package discount**
+- **The floor** (`utils/pricing.ts`): `packageFloor` = his 45 price × sessions × (1 − maxPackageDiscountPercent/100), from the cached settings (default 40). It's rounded up to whole riyals, with exact decimal arithmetic: 155 × 3 at 40% = 279, 604.8 → 605. Also new: `packageFloorLabel` ("أقل سعر مسموح لهذه الباقة ٢٧٩ ر.س") and `packageBelowFloorWarning`.
+- **Enforced in `upsertConsultantPackage`** (the website action and the app PUT):
+  - a new package, a changed price or an activation must reach the floor;
+  - deactivating, or saving an existing package unchanged, is always allowed;
+  - the app answers 400 with the message.
+  - The old flat minimum of 100 is gone: the website's browser check and the app's `PACKAGE_MIN_COST`.
+- **Not at checkout:** a below-floor package keeps selling, and a later drop in his 45 price invalidates nothing.
+- **Website `PackageForm`:** the floor line shows live, the same rule runs before saving, the server's message is shown, and the warning appears on a saved active package below its floor.
+- **App GET** adds `floors`, `maxDiscountPercent`, `packageSessionPrice`, per-package `floor` / `belowFloor`, and `packagesDisabled`. `minCost` is kept as the smallest floor.
+
+**Verified**
+- `prisma validate` / `generate`; tsc.
+- eslint on the changed files: no errors. The old `_args` warning in `actions/consultant.ts` remains.
+- `npm test` 110 of 110. New `tests/pricing/package-rules.test.ts` (12), on the real data functions, actions, Pay, quoteBooking, app routes, next-session pick and PackageForm:
+  - the switch hides his packages from his page, the app route and the `/packages` SQL, while his own list still shows them;
+  - with it on, new package bookings are refused on website Pay (message) and the app quote and create (400); a sold package's next-session pick still works (45);
+  - off again, the same packages return untouched, the caches are purged, and the package sells;
+  - the app PATCH and GET;
+  - the floor values and the label;
+  - website and app: below the floor refused (400 on the app), at the floor accepted;
+  - an existing below-floor package still sells, can be deactivated or re-saved unchanged, re-activating counts as an edit, and the app flags it;
+  - a lower 45 price later invalidates nothing; the floor follows the settings' percent;
+  - PackageForm rendered with the floor line and the warning.
+- **Mutations:**
+  - the SQL filter removed → 1 failure;
+  - the checkout refusal off → 1;
+  - the floor check off → 3.
+- `npm run build`; the manifest check prints the 3 listed entries.
+
+**For the app session:**
+- `PATCH owner/packages { disabled }`. GET carries `packagesDisabled`, `floors`, `maxDiscountPercent`, `packageSessionPrice`, and per package `floor` / `belowFloor`.
+- PUT below the floor → 400 with the floor message.
+- A package booking while the switch is on → 400 "الباقات غير متاحة لدى هذا المستشار حالياً".

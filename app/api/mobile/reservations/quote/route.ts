@@ -54,6 +54,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 // quoteBooking's failures as the app's errors
 const failureStatus: Record<string, number> = {
   duration: 400,
+  packages_disabled: 400,
   package: 404,
   pricing: 404,
   program: 404,

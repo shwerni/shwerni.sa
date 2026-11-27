@@ -24,7 +24,14 @@ import {
   escapeLike,
   normalizeArabic,
 } from "@/utils/arabic";
-import { checkPrices, effectiveDurations, firstPriceError, readCosts } from "@/utils/pricing";
+import {
+  checkPrices,
+  effectiveDurations,
+  firstPriceError,
+  packageFloor,
+  packageFloorLabel,
+  readCosts,
+} from "@/utils/pricing";
 
 // pricing
 import { getPricingSettings } from "@/data/admin/settings/pricing";
@@ -46,6 +53,55 @@ export async function getConsultantsPackages(
     },
   });
 }
+
+/**
+ * a consultant's packages as clients see them (his page, the app): getConsultantsPackages' where,
+ * plus his "disable all packages" switch off. his own pages keep getConsultantsPackages, so he
+ * still sees and edits them while they're hidden
+ * @param consultantId the consultant
+ * @param status isActive filter (undefined: both)
+ */
+export async function getClientPackages(consultantId: number, status?: boolean) {
+  return await prisma.package.findMany({
+    where: {
+      consultantId,
+      isActive: status,
+      consultant: { is: { centerId: null, packagesDisabled: false } },
+    },
+  });
+}
+
+/**
+ * the "disable all packages" switch: hides and stops selling every package of his, without
+ * touching them (they come back unchanged). packages already sold keep their next-session picks
+ * @param cid the own consultant (from the action / route session)
+ * @param disabled the switch
+ */
+export async function setConsultantPackagesDisabled(cid: number, disabled: boolean) {
+  try {
+    const updated = await prisma.consultant.update({
+      where: { cid },
+      data: { packagesDisabled: disabled },
+      select: { centerId: true },
+    });
+    purgeConsultantPricing(cid, updated.centerId);
+    revalidatePath("/packages");
+    return { success: true };
+  } catch {
+    return { success: false };
+  }
+}
+
+/**
+ * a consultant's package floors: for each session count, the lowest price a package may be saved
+ * at (packageFloor: his 45 price × sessions, less the settings' maxPackageDiscountPercent)
+ * @param sessionPrice his 45-minute package session price
+ * @param maxDiscountPercent the cached settings' maxPackageDiscountPercent
+ */
+export const packageFloors = (sessionPrice: number, maxDiscountPercent: number) =>
+  Object.fromEntries(
+    PACKAGE_SESSION_COUNTS.map((count) => [count, packageFloor(sessionPrice, count, maxDiscountPercent)]),
+  ) as Record<number, number>;
 
 // the packages page's price fields: the consultant's own single-session lengths, plus the package
 // session length (45) while he has an active package, even when it isn't one of his lengths
@@ -105,14 +161,44 @@ export async function updateConsultantBaseCosts(
   }
 }
 
-// create or update a specific package (Upsert)
+/**
+ * create or update a specific package (Upsert). the maximum discount is checked here, so the website
+ * and the app both get it: a new package, a changed price or an activation must be at least its
+ * floor (packageFloor, from his 45 price now and the cached settings). deactivating, or saving an
+ * existing package unchanged, is always allowed: an existing package below the floor keeps selling
+ * until he edits it
+ */
 export async function upsertConsultantPackage(
   consultantId: number,
   count: number,
   cost: number,
   isActive: boolean,
-) {
+): Promise<{ success: boolean; message?: string }> {
   try {
+    const [consultant, existing, settings] = await Promise.all([
+      prisma.consultant.findUnique({
+        where: { cid: consultantId },
+        select: { cost30: true, cost45: true, cost60: true, costs: true },
+      }),
+      prisma.package.findUnique({
+        where: { consultantId_count: { consultantId, count } },
+        select: { cost: true, isActive: true },
+      }),
+      getPricingSettings(),
+    ]);
+    if (!consultant) return { success: false };
+
+    const edited =
+      !existing || existing.cost !== cost || (isActive && !existing.isActive);
+    const floor = packageFloor(
+      readCosts(consultant)[String(PACKAGE_SESSION_MINUTES)],
+      count,
+      settings.maxPackageDiscountPercent,
+    );
+    if (edited && cost < floor) {
+      return { success: false, message: packageFloorLabel(floor) };
+    }
+
     // the upsert and the "max 3 active" switch-off in one transaction, so the list never
     // ends with more than 3 active packages
     await prisma.$transaction(async (tx) => {
@@ -222,6 +308,7 @@ function publicPackagesWhere(f: PublicPackagesFilters) {
       AND c."statusA" = 'PUBLISHED'
       AND c."approved" = 'APPROVED'
       AND c."centerId" IS NULL
+      AND c."packagesDisabled" = false
       ${searchWhere}
       ${categoryWhere}
       ${genderWhere}
