@@ -22,6 +22,10 @@ import { ConsultantCard, OwnerPreview } from "@/types/layout";
 // booking
 import { freeSlotWhere } from "@/lib/booking/free-slot-where";
 
+// pricing
+import { getPricingSettings } from "@/data/admin/settings/pricing";
+import { effectiveDurations, readCosts } from "@/utils/pricing";
+
 // custom prisma data
 export type ConsultantItem = {
   id: string;
@@ -552,23 +556,36 @@ export const getUnavailableWeekdays = async (
 
 // get consultant cost
 // unfiltered: the base price behind resolveConsultantPricing → Pay, for center consultants too
-export const getConsultantCost = async (cid: number) => {
+// prices by length (readCosts: the cost30/45/60 columns win during the transition) and the effective
+// single-session lengths (the override, else the platform default). one consultant query; the
+// settings come from the cached getPricingSettings
+export const getConsultantCost = async (
+  cid: number,
+): Promise<{ costs: Record<string, number>; durations: number[] } | null> => {
   try {
-    const cost = await prismaAll.consultant.findUnique({
-      where: {
-        cid,
-      },
-      select: {
-        cost30: true,
-        cost45: true,
-        cost60: true,
-      },
-    });
+    const [row, settings] = await Promise.all([
+      prismaAll.consultant.findUnique({
+        where: {
+          cid,
+        },
+        select: {
+          cost30: true,
+          cost45: true,
+          cost60: true,
+          costs: true,
+          durations: true,
+        },
+      }),
+      getPricingSettings(),
+    ]);
 
     // validate
-    if (!cost) return null;
+    if (!row) return null;
 
-    return { 30: cost.cost30, 45: cost.cost45, 60: cost.cost60 };
+    return {
+      costs: readCosts(row),
+      durations: effectiveDurations(settings, row.durations),
+    };
   } catch {
     return null;
   }

@@ -43,11 +43,19 @@ import { SessionType } from "@/lib/generated/prisma/enums";
 interface Props {
   form: UseFormReturn<ReservationFormType>;
   original?: Cost;
+  // the consultant's effective single-session lengths: the duration options
+  durations: number[];
   onNext: () => void;
   onBack: () => void;
 }
 
-export default function StepDetails({ form, original, onNext, onBack }: Props) {
+export default function StepDetails({
+  form,
+  original,
+  durations,
+  onNext,
+  onBack,
+}: Props) {
   // form contorl
   const { control } = form;
 
@@ -178,8 +186,11 @@ export default function StepDetails({ form, original, onNext, onBack }: Props) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        <SelectItem value="30">30 دقيقة</SelectItem>
-                        <SelectItem value="60">60 دقيقة</SelectItem>
+                        {durations.map((minutes) => (
+                          <SelectItem key={minutes} value={String(minutes)}>
+                            {minutes} دقيقة
+                          </SelectItem>
+                        ))}
                       </SelectGroup>
                     </SelectContent>
                   </Select>

@@ -9,8 +9,12 @@ import {
   Weekday,
 } from "@/lib/generated/prisma/enums";
 import { dateToWeekDay } from "@/utils/date";
+import { effectiveDurations } from "@/utils/pricing";
+import { getPricingSettings } from "@/data/admin/settings/pricing";
 
-type ReelConsultant = {
+// a consultant row as the reels query reads it (durations: the override, empty = the default)
+type ReelConsultantRow = {
+  durations: number[];
   cid: number;
   name: string;
   title: string;
@@ -71,10 +75,10 @@ export async function getConsultantsAvailableAt(
 ) {
   const weekday = dateToWeekDay(new Date(date));
 
-  const rows = await prisma.$queryRaw<ReelConsultant[]>`
+  const rows = await prisma.$queryRaw<ReelConsultantRow[]>`
     SELECT 
       c.cid, c.name, c.title, c.nabout, c.gender, c.category, c.image, c.rate,
-      c.cost30, c.cost45, c.cost60, c.seniority,
+      c.cost30, c.cost45, c.cost60, c.durations, c.seniority,
       (
         SELECT COUNT(*)::int 
         FROM reviews r 
@@ -113,6 +117,9 @@ export async function getConsultantsAvailableAt(
 
   const hasMore = rows.length > take;
 
+  // the lengths each consultant offers (the override, else the default), shown on the cards
+  const settings = await getPricingSettings();
+
   return {
     hasMore,
     consultants: rows.slice(0, take).map((c) => ({
@@ -127,6 +134,7 @@ export async function getConsultantsAvailableAt(
       cost30: c.cost30,
       cost45: c.cost45,
       cost60: c.cost60,
+      durations: effectiveDurations(settings, c.durations),
       years: calcYears(c.seniority),
       review_count: c.review_count,
     })),

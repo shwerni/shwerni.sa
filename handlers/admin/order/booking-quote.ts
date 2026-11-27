@@ -123,7 +123,13 @@ export async function quoteBooking(
 
       baseCost = pkg.cost;
     } else {
-      const pricing = await resolveConsultantPricing(data.cid);
+      // the requested length is priced even outside the effective set (no refusal before
+      // pricing step 4), from the same prices as before
+      const minutes = Number(data.duration);
+      const pricing = await resolveConsultantPricing(
+        data.cid,
+        Number.isInteger(minutes) ? [minutes] : [],
+      );
       if (!pricing) {
         return {
           state: false,
@@ -132,7 +138,7 @@ export async function quoteBooking(
         };
       }
 
-      baseCost = pricing.cost[Number(data.duration) as 30 | 45 | 60];
+      baseCost = pricing.cost[String(minutes)];
 
       durationDiscounted =
         pricing.discount?.durations.includes(Number(data.duration)) ?? false;
@@ -141,7 +147,8 @@ export async function quoteBooking(
       }
     }
   } else if (data.order === "instant" && data.cid !== undefined) {
-    const pricing = await resolveConsultantPricing(data.cid);
+    // instant is a fixed product: priced at INSTANT_DURATION whatever the consultant's lengths
+    const pricing = await resolveConsultantPricing(data.cid, [INSTANT_DURATION]);
     if (!pricing) {
       return {
         state: false,
@@ -151,7 +158,7 @@ export async function quoteBooking(
     }
 
     // instant sessions are INSTANT_DURATION long whatever the form sends (reserveInstant too)
-    baseCost = pricing.cost[INSTANT_DURATION];
+    baseCost = pricing.cost[String(INSTANT_DURATION)];
     durationDiscounted =
       pricing.discount?.durations.includes(INSTANT_DURATION) ?? false;
     if (durationDiscounted && pricing.discount) {

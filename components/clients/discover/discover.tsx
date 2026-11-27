@@ -18,6 +18,8 @@ import StepDetails from "@/components/clients/forms/details";
 
 // lib
 import { addNMinutes, getDatesAhead, timeZone } from "@/utils/date";
+import { defaultBookingDuration } from "@/utils/pricing";
+import { DEFAULT_DURATIONS } from "@/constants/pricing";
 
 // utils
 
@@ -58,6 +60,8 @@ type ReelConsultant = {
   cost30: number;
   cost45: number;
   cost60: number;
+  // the lengths the consultant offers (data/reels.ts)
+  durations: number[];
   years: number;
   review_count: number;
 };
@@ -80,6 +84,8 @@ export default function Discover({ user, finance }: Props) {
   const [selectedCategory, setSelectedCategory] =
     React.useState<Categories | null>(null);
   const [flatTimes, setFlatTimes] = React.useState<string[]>([]);
+  // the selected consultant's offered lengths (the duration options)
+  const [durations, setDurations] = React.useState<number[]>([...DEFAULT_DURATIONS]);
   const [loadingTimes, setLoadingTimes] = React.useState(false);
 
   // Form initialization
@@ -238,6 +244,13 @@ export default function Discover({ user, finance }: Props) {
                 form.setValue("cid", selectedConsultant.cid);
                 form.setValue("consultant", selectedConsultant.name);
 
+                // the consultant's offered lengths; 30 when offered, else the first
+                setDurations(selectedConsultant.durations);
+                form.setValue(
+                  "duration",
+                  defaultBookingDuration(selectedConsultant.durations),
+                );
+
                 setStep("info");
               }}
             />
@@ -250,6 +263,7 @@ export default function Discover({ user, finance }: Props) {
             {selectedDate && selectedTime && (
               <StepDetails
                 form={form}
+                durations={durations}
                 onNext={async () => {
                   const isStepValid = await form.trigger([
                     "name",

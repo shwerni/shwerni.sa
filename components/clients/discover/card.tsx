@@ -29,6 +29,8 @@ type ReelConsultant = {
   cost30: number;
   cost45: number;
   cost60: number;
+  // the lengths the consultant offers (data/reels.ts)
+  durations: number[];
   years: number;
   review_count: number;
 };
@@ -165,10 +167,14 @@ export default function ConsultantCard({
         <div className="flex flex-wrap gap-2 justify-center mt-auto">
           {(
             [
-              { label: "30 دقيقة", value: consultant.cost30 },
-              { label: "60 دقيقة", value: consultant.cost60 },
+              { minutes: 30, label: "30 دقيقة", value: consultant.cost30 },
+              { minutes: 45, label: "45 دقيقة", value: consultant.cost45 },
+              { minutes: 60, label: "60 دقيقة", value: consultant.cost60 },
             ] as const
-          ).map(({ label, value }) =>
+          )
+            // only the lengths the consultant offers
+            .filter(({ minutes }) => consultant.durations.includes(minutes))
+            .map(({ label, value }) =>
             value > 0 ? (
               <div
                 key={label}

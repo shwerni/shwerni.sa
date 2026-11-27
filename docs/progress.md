@@ -7117,3 +7117,90 @@ ORDER BY p.created_at DESC;
   - a signature over re-serialized JSON → 401; a missing secret → 401.
 - **Verified:** tsc; eslint on the changed files; `npm test` 44 of 44; `npm run build`; the manifest check prints only `data/event.ts` and `lib/api/google.ts`.
 - **Still open from part 1:** the dashboard (`shwerni.aws`) has its own `/api/whatsapp` route. If Meta's callback URL points there, that route needs the same check.
+
+## Pricing step 3: read path uses effective durations (2026-11-27)
+
+Plan: `docs/pricing-settings-plan.md`, step 3. **No booking refusals yet (step 4); the prices for 30 and 60 are unchanged.** Ziad's data check: no paid 45-minute single session in 6 months, so the default [30, 60] fits everyone; 45 stays for packages only.
+
+**Read path**
+- `getConsultantCost(cid)` → `{ costs, durations }`:
+  - the same single consultant query, plus `costs` and `durations` in the select;
+  - `costs = readCosts(row)`, so the columns still win for 30/45/60;
+  - `durations = effectiveDurations(getPricingSettings(), row.durations)`, through the cached getter.
+- `resolveConsultantPricing(cid, also = [])` → `{ durations, cost, original, discount }`:
+  - `durations` is the effective set;
+  - the priced lengths are effective ∪ `also`, each only when it has a price;
+  - the campaign applies on `rule.durations ∩ priced`; `discount` is null when that's empty.
+- **`also` keeps step 3 refusal-free:**
+  - `quoteBooking` single session: the requested length, so a 45 single is still priced from `cost45` as before;
+  - `quoteBooking` instant: `[INSTANT_DURATION]`, priced even under an override without 30;
+  - `reserve.tsx`: `[30, 45]`, so the package section keeps `costs[30]` and the 45 price.
+- `Cost` = `Record<string, number>`. `reservationSchema.cost` is now a map; the fixed `{30,45,60}` object would refuse a consultant priced for [30, 60] only. The duration refine stays `["30","45","60"]` until step 4.
+- **Duration options come from the data:**
+  - the website booking Select and discover's details form map `durations`;
+  - the center panel maps them (its local `DURATIONS` is gone);
+  - the reels and discover chips filter by `durations`. Both reels sources gained it: `app/(pages)/(site)/(sub-pages)/reels/actions.ts` (the reels page) and `data/reels.ts` (discover);
+  - the discount badge uses the first campaign length the consultant offers.
+- **Default duration:** today's default was **30** everywhere (website form, cancelling a package, center panel, discover). New `defaultBookingDuration(durations)`: 30 when offered, else the first offered length.
+- **App routes:**
+  - `reservation-info` returns `cost` for the effective lengths plus `durations`. Today that's `{"30","60"}` for everyone, which is what the app reads;
+  - owner-discounts lists the effective lengths.
+
+**Packages:** every session is `PACKAGE_SESSION_MINUTES` (45).
+- `reserveConsultant` stores 45 for any package order, whatever the form sent.
+- The app route uses the constant.
+- The next session uses `nextSessionDuration`: 45 for a package; the first session's length for a program.
+- The package UI already showed a fixed "45 دقيقة".
+
+**Never an empty duration:**
+- `isMeetingDuration` (a positive whole number of minutes);
+- `reserveProgram` refuses a 0 or fractional duration;
+- the next-session pick refuses an invalid one;
+- `bookPickedMeeting` throws before creating anything.
+
+**Empty-duration rows (read-only check; left untouched as old finished orders)**
+- There are 23,429 meetings; 3 have `duration = ""`. All are manual admin orders ("#new's info … by (az aboalmjd - ADMIN)", PAID, `transaction`). None is a reconciliation or pleading order.
+- Right values:
+  - #20635 (consultant 77, 120) = **30**: 30 was 120, 60 was 175 that month;
+  - #8661 (consultant 153, 160) = **60**: their 60-minute sessions were 160 that month;
+  - #8578 (consultant 36, 135) = **30, likely**: 30 was 133, 60 was 230.
+- List them:
+
+```sql
+SELECT m.mid, m.session, m.duration, m.date, m.time, o.oid, o.created_at, o.origin, o.type,
+       o.session AS kind, o."packageId" IS NOT NULL AS package, o."programId", o."consultantId",
+       p.payment, p.method, p.total, c.cost30, c.cost45, c.cost60, o.info[1] AS first_info
+FROM meetings m
+JOIN orders o           ON o.oid = m."orderId"
+LEFT JOIN payments p    ON p."orderId" = o.oid
+LEFT JOIN consultants c ON c.cid = o."consultantId"
+WHERE m.duration IS NULL OR m.duration !~ '^[1-9][0-9]*$'
+ORDER BY o.created_at;
+```
+
+**For the dashboard session (`shwerni.aws/shwerni.sa`): where the empty duration comes from**
+- `src/components/orders/form.tsx:185` and `employee-form.tsx:160` default a new order's `duration` to `""`.
+- `src/schemas/admin/index.ts:25` is `duration: z.string({ required_error })`, which accepts `""`. An order saved without picking a duration stores `""`.
+- Fix:
+  - `duration: z.enum(["30", "45", "60"])` (later: the catalog's lengths);
+  - default `"30"`;
+  - the same check in the create/update actions on the server.
+
+**For the app session:** `GET consultants/{cid}/reservation-info` now also returns `durations` (the consultant's effective lengths), and `cost` holds only those. Offer `durations` instead of the fixed 30/60.
+
+**Verified**
+- tsc.
+- eslint on the changed files: 1 error, in `components/clients/discover/reels.tsx` (setState in an effect). It's already at HEAD, and my change there is one type field. The warnings are old.
+- `npm test` 62 of 62. New `tests/pricing/read-path.test.ts` (18), with the real code and the database, settings and side effects as recorders:
+  - `getConsultantCost`: columns win; effective sets; one consultant query plus the cached settings;
+  - `resolveConsultantPricing`: effective only; `also`; campaign ∩ priced;
+  - `quoteBooking`: 30/60 totals unchanged; a 45 single still priced; instant at 30 under [45,60];
+  - packages for a [30,60] consultant are quoted and booked, stored 45 even when the form sent 30; every next package session is 45, whatever the first meeting holds (45, 30, "");
+  - empty, zero or invalid durations refused in `reserveConsultant`, `reserveProgram` and the program's next session, with nothing created;
+  - the center page rendered (`BookingSection` → `BookingPanel` HTML): an override [30,45,60] shows 45; no override shows only 30 and 60 at the consultant's prices with 30 preselected; [45,60] preselects 45.
+- **Mutations:**
+  - package 45 removed in `reserveConsultant` → 1 failure;
+  - next session copying the first duration → 1;
+  - program guard off → 1.
+- `npm run build`.
+- The manifest check now prints **three** `"use cache"` registrations (`$$RSC_SERVER_CACHE_0`, none a Server Action): `data/event.ts`, `lib/api/google.ts` and `data/admin/settings/pricing.ts`. The pricing getter is now reached from pages. CLAUDE.md's expected list needs this third line.

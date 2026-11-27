@@ -16,6 +16,7 @@ import {
 
 // utils
 import { orderInfoLabel, orderPriceLabel } from "@/utils";
+import { isMeetingDuration } from "@/utils/pricing";
 import { dateToString } from "@/utils/time";
 
 // schema
@@ -43,6 +44,14 @@ export const reserveProgram = async (
       } satisfies ReserveResult<never>;
 
     const data = parsed.data;
+
+    // never a meeting with an empty, zero or fractional length
+    if (!isMeetingDuration(String(data.duration)))
+      return {
+        state: false,
+        code: "info",
+        message: "بيانات النموذج غير صالحة، برجاء مراجعتها والمحاولة مرة أخرى",
+      } satisfies ReserveResult<never>;
 
     // commission for programs is a fixed platform rate — already server-side,
     // left as a literal rather than threaded through Pay since it never

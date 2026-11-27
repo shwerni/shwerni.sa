@@ -49,6 +49,7 @@ import { holdInstantPaymentIfTaken } from "@/data/instant-payment";
 
 // constants
 import { UNPAID_HOLD_MINUTES } from "@/constants/booking";
+import { PACKAGE_SESSION_MINUTES } from "@/constants/pricing";
 
 // booking lock
 import { lockConsultantBookings } from "@/data/booking/lock";
@@ -188,7 +189,8 @@ export const reserveConsultant = async (
               session: 1,
               date: dateToString(data.date),
               time: data.time,
-              duration: data.duration,
+              // a package session is always PACKAGE_SESSION_MINUTES, whatever the form sent
+              duration: data.package ? String(PACKAGE_SESSION_MINUTES) : data.duration,
             },
           },
           payment: {

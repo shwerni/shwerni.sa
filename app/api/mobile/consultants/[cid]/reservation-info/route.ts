@@ -21,14 +21,22 @@ export const GET = createGetRoute<unknown, { cid: string }>(
       return { error: "معرف الاستشاري غير صحيح" };
     }
 
-    const [info, unavailable, cost, finance] = await Promise.all([
+    const [info, unavailable, pricing, finance] = await Promise.all([
       getConsultantInfo(cid),
       getUnavailableWeekdays(cid),
       getConsultantCost(cid),
       getFinanceConfig(),
     ]);
 
-    if (!info || !cost || !finance) return { error: "الاستشاري غير متاح" };
+    if (!info || !pricing || !finance) return { error: "الاستشاري غير متاح" };
+
+    // the consultant's effective lengths and their prices ("30" → price); today {"30","60"} for
+    // everyone without an override, as the app reads
+    const cost = Object.fromEntries(
+      pricing.durations
+        .filter((minutes) => typeof pricing.costs[String(minutes)] === "number")
+        .map((minutes) => [String(minutes), pricing.costs[String(minutes)]]),
+    );
 
     // active discount check, same rule as web (discountId 3)
     // const isDiscount = info.DiscountConsultant.some(
@@ -42,6 +50,7 @@ export const GET = createGetRoute<unknown, { cid: string }>(
       category: info.category,
       image: info.image,
       cost,
+      durations: pricing.durations,
       // the app shows the rate that is charged, not the finance.tax setting
       finance: { ...finance, tax: TAX_PERCENT },
       unavailable: [...unavailable],

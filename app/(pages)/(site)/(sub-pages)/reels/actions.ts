@@ -7,6 +7,8 @@ import {
   Weekday,
 } from "@/lib/generated/prisma/enums";
 import { dateToWeekDay } from "@/utils/date";
+import { effectiveDurations } from "@/utils/pricing";
+import { getPricingSettings } from "@/data/admin/settings/pricing";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,6 +24,8 @@ export type ReelConsultant = {
   cost30: number;
   cost45: number;
   cost60: number;
+  // the lengths the consultant offers (the override, else the platform default)
+  durations: number[];
   years: number;
   review_count: number;
 };
@@ -128,6 +132,7 @@ export async function getConsultantsAvailableAt(
       cost30: true,
       cost45: true,
       cost60: true,
+      durations: true,
       seniority: true,
       _count: {
         select: { reviews: { where: { status: ReviewState.PUBLISHED } } },
@@ -135,6 +140,9 @@ export async function getConsultantsAvailableAt(
     },
     orderBy: { sort_key: "desc" },
   });
+
+  // the lengths each consultant offers, from the cached pricing settings
+  const settings = await getPricingSettings();
 
   return consultants.map((c) => ({
     cid: c.cid,
@@ -148,6 +156,7 @@ export async function getConsultantsAvailableAt(
     cost30: c.cost30,
     cost45: c.cost45,
     cost60: c.cost60,
+    durations: effectiveDurations(settings, c.durations),
     years: calcYears(c.seniority),
     review_count: c._count.reviews,
   }));

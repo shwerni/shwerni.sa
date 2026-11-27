@@ -16,8 +16,6 @@ import { timeZone } from "@/utils/date";
 import { applyRule } from "@/utils/event";
 import { calculateDues } from "@/utils/admin/dues";
 
-const DURATIONS = [30, 45, 60] as const;
-
 // GET /api/mobile/owner/discounts -> discounts[]
 export interface OwnerDiscount {
   did: number;
@@ -34,7 +32,8 @@ export interface OwnerDiscount {
 export interface OwnerDiscountDetails {
   discount: OwnerDiscount & { description: string; running: boolean; applied: boolean };
   prices: {
-    duration: (typeof DURATIONS)[number];
+    // one of the consultant's effective lengths (minutes)
+    duration: number;
     covered: boolean;
     price: number;
     final: number;
@@ -157,9 +156,10 @@ export const getOwnerDiscount = async (
       running: discount.startDate <= now && now <= discount.endDate,
       applied: pricing?.discount?.did === did,
     },
-    prices: DURATIONS.map((duration) => {
+    // the consultant's effective lengths (the ones a client can book)
+    prices: cost.durations.map((duration) => {
       const covered = discount.durations.includes(duration);
-      const price = cost[duration];
+      const price = cost.costs[String(duration)];
       const final = covered ? applyRule(price, discount) : price;
       return {
         duration,

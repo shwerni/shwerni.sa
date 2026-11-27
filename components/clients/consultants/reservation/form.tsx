@@ -16,6 +16,7 @@ import StepDateTime from "@/components/clients/consultants/reservation/steps/dat
 // utils
 import { phoneNumber } from "@/utils";
 import { calculatePayment } from "@/utils/admin/payments";
+import { defaultBookingDuration } from "@/utils/pricing";
 
 // handlers
 import { Pay } from "@/actions/booking";
@@ -41,6 +42,8 @@ interface Props {
   unavailable: Weekday[];
   cost: Cost;
   original?: Cost;
+  // the consultant's effective single-session lengths (the duration options)
+  durations: number[];
   discount?: { did: number; label: string; durations: number[] } | null;
   finance: FinanceConfig;
   user?: User;
@@ -54,6 +57,7 @@ export default function ReservationForm({
   user,
   cost,
   original,
+  durations,
   discount,
   finance,
   consultant,
@@ -84,7 +88,8 @@ export default function ReservationForm({
       name: "",
       phone: "",
       notes: "",
-      duration: "30",
+      // 30 when offered, else the first offered length
+      duration: defaultBookingDuration(durations),
       hasBeneficiary: false,
       beneficiaryName: "",
       beneficiaryPhone: "",
@@ -159,7 +164,9 @@ export default function ReservationForm({
     form.setValue("sessionType", SessionType.ONCE);
     form.setValue("sessions", 1);
     form.setValue("package", null);
-    form.setValue("duration", "30", { shouldValidate: true });
+    form.setValue("duration", defaultBookingDuration(durations), {
+      shouldValidate: true,
+    });
   };
 
   async function onSubmit(data: ReservationFormType) {
@@ -226,6 +233,7 @@ export default function ReservationForm({
                 <StepDetails
                   form={form}
                   original={original}
+                  durations={durations}
                   onNext={() => handleNext(2)}
                   onBack={() => handleNext(0)}
                 />

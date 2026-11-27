@@ -35,6 +35,8 @@ import type { ReservationFormType } from "@/schemas";
 
 // prisma types
 import { OrderOrigin, OrderType, SessionType } from "@/lib/generated/prisma/enums";
+// constants
+import { PACKAGE_SESSION_MINUTES } from "@/constants/pricing";
 
 // the client's choices only: never a price, a total, a tax, a commission, a coupon percent or a user
 const ScheduledSchema = z
@@ -147,7 +149,7 @@ export const POST = createPostRoute<BookingCreated>(
       package: input.package ?? null,
       date: new Date(`${input.date}T00:00:00Z`),
       time: input.time,
-      duration: input.package ? "45" : String(input.duration),
+      duration: input.package ? String(PACKAGE_SESSION_MINUTES) : String(input.duration),
       name: input.name,
       phone: input.phone,
       notes: input.notes ?? "",

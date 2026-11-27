@@ -23,6 +23,8 @@ type ReelConsultant = {
   cost30: number;
   cost45: number;
   cost60: number;
+  // the lengths the consultant offers (data/reels.ts)
+  durations: number[];
   years: number;
   review_count: number;
 };

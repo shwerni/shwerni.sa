@@ -1,4 +1,5 @@
-export type Cost = Record<"30" | "45" | "60", number>;
+// prices by length in minutes ("30" → price): only the lengths a consultant offers, plus fixed products
+export type Cost = Record<string, number>;
 
 // types
 export type FinanceConfig = {

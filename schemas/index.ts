@@ -236,11 +236,9 @@ export const reservationSchema = z
     consultant: z.string(),
     collaboration: z.string().optional().nullable(),
     unavailable: z.array(z.nativeEnum(Weekday)),
-    cost: z.object({
-      30: z.number().positive(),
-      45: z.number().positive(),
-      60: z.number().positive(),
-    }),
+    // prices by length ("30" → price): the consultant's offered lengths, not always all three.
+    // display only; Pay prices on the server (quoteBooking)
+    cost: z.record(z.string(), z.number().positive()),
     scale: z.string().nullish().or(z.literal("")),
     times: z
       .object({

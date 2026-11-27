@@ -46,6 +46,7 @@ import { itimes } from "@/constants";
 import { cn } from "@/utils/utils";
 import { TAX_PERCENT } from "@/utils/tax";
 import { calculatePayment } from "@/utils/admin/payments";
+import { defaultBookingDuration } from "@/utils/pricing";
 import { paymentMethodLabel, phoneNumber } from "@/utils";
 import {
   addNMinutes,
@@ -71,16 +72,18 @@ interface Props {
   consultant: string;
   cost: Cost;
   original: Cost;
+  // the consultant's effective single-session lengths (the duration options)
+  durations: number[];
   discountedDurations: number[];
   unavailable: Weekday[];
   finance: FinanceConfig;
   user: { id: string; name: string; phone: string } | null;
 }
 
-type Duration = "30" | "45" | "60";
+// a length in minutes, as the form holds it ("30")
+type Duration = string;
 type Slots = Partial<Record<"late" | "day" | "noon" | "night", string[]>>;
 
-const DURATIONS: Duration[] = ["30", "45", "60"];
 const PHASES = [
   { key: "late", label: "بعد منتصف الليل" },
   { key: "day", label: "صباحاً" },
@@ -105,11 +108,15 @@ export function BookingPanel({
   consultant,
   cost,
   original,
+  durations,
   discountedDurations,
   unavailable,
   finance,
   user,
 }: Props) {
+  // the duration options
+  const options: Duration[] = durations.map(String);
+
   // session mode (ONLINE only for now)
   const [mode] = React.useState<TimingType>(TimingType.ONLINE);
 
@@ -117,7 +124,10 @@ export function BookingPanel({
   const [step, setStep] = React.useState(0);
 
   // choices
-  const [duration, setDuration] = React.useState<Duration>("30");
+  // 30 when offered, else the first offered length
+  const [duration, setDuration] = React.useState<Duration>(() =>
+    defaultBookingDuration(durations),
+  );
   const [day, setDay] = React.useState<string | null>(null);
   const [time, setTime] = React.useState<string | null>(null);
   const [slots, setSlots] = React.useState<Slots | null>(null);
@@ -338,7 +348,7 @@ export function BookingPanel({
         {/* 1. duration */}
         {step === 0 && (
           <div className="flex flex-col gap-2">
-            {DURATIONS.map((d) => {
+            {options.map((d) => {
               const active = duration === d;
               const discounted = cost[d] < original[d];
               return (

@@ -7,7 +7,12 @@ import { z } from "zod";
 import { ensureMeetingParticipant } from "@/data/rooms";
 import { isBookableSlot } from "@/data/booking/slots";
 import { checkMeetingTimeConflict } from "@/data/order/reserveation";
-import { bookPickedMeeting, finishPickedSession, getOrderForNextSession } from "@/data/sessions";
+import {
+  bookPickedMeeting,
+  finishPickedSession,
+  getOrderForNextSession,
+  nextSessionDuration,
+} from "@/data/sessions";
 
 // prisma types
 import { PaymentState, SessionType, UserRole } from "@/lib/generated/prisma/enums";
@@ -29,7 +34,8 @@ const PickSchema = z.object({
  * the link (clients never log in, CLAUDE.md); everything else is decided here, never by the browser:
  * - the order is MULTIPLE and PAID
  * - the session number is the next one (its meetings so far + 1, at most sessionCount)
- * - the duration is the first session's (45 for packages, the program's for programs)
+ * - the duration is PACKAGE_SESSION_MINUTES (45) for every package session, the first session's for
+ *   programs (nextSessionDuration); never an empty one
  * - the slot is one the page lists (isBookableSlot: the weekly timings, the 7-day window from
  *   riyadh now + 25 minutes, free under freeSlotWhere) and conflicts with nothing
  *   (checkMeetingTimeConflict, with no own-order exception: the package's own sessions block too)
@@ -60,6 +66,10 @@ export async function pickNextSession(
   const session = order.meeting.length + 1;
   if (!first || session > order.sessionCount) return invalid;
 
+  // a package's sessions are always 45 minutes; a program's follow its first session
+  const duration = nextSessionDuration(order, first.duration);
+  if (!duration) return invalid;
+
   if (
     !(await isBookableSlot(order.consultantId, date, time)) ||
     (await checkMeetingTimeConflict(order.consultantId, time, date))
@@ -69,7 +79,7 @@ export async function pickNextSession(
 
   try {
     // the same checks again under the consultant's booking lock, with the create (one transaction)
-    const meeting = await bookPickedMeeting(order, session, date, time, first.duration);
+    const meeting = await bookPickedMeeting(order, session, date, time, duration);
     if (!meeting) return { ok: false, error: "slot_taken", message: SLOT_TAKEN };
 
     const mid = await finishPickedSession(order, meeting);

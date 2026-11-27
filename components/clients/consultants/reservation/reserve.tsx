@@ -17,6 +17,10 @@ import { getConsultantsPackages } from "@/data/packages";
 // icons
 import { getCampaignFor, resolveConsultantPricing } from "@/data/event";
 
+// constants
+import { INSTANT_DURATION } from "@/constants/instant";
+import { PACKAGE_SESSION_MINUTES } from "@/constants/pricing";
+
 // props
 interface Props {
   cid: number;
@@ -37,7 +41,8 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
       getUnavailableWeekdays(cid),
       getFinanceConfig(),
       getConsultantsPackages(cid, true),
-      resolveConsultantPricing(cid),
+      // the offered lengths, plus the fixed products the page shows (packages compare with 30, sell 45)
+      resolveConsultantPricing(cid, [INSTANT_DURATION, PACKAGE_SESSION_MINUTES]),
       getCampaignFor("CONSULTANT_BADGE"),
     ]);
 
@@ -47,15 +52,18 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
   // validate
   if (!pricing || !finance || !info) return null;
 
-  const { cost, original, discount } = pricing;
+  const { cost, original, discount, durations } = pricing;
+
+  // the badge's price: the first campaign length the consultant offers
+  const badgeMinutes = discount?.durations.find((minutes) => durations.includes(minutes));
 
   return (
     <div className="max-w-6xl mx-auto py-5 space-y-8">
-      {discount && (
+      {discount && badgeMinutes !== undefined && (
         <div className="w-fit mx-auto">
           <DiscountBadge
             campaign={campaign}
-            price={cost[discount.durations[0] as keyof typeof cost]}
+            price={cost[String(badgeMinutes)]}
           />
         </div>
       )}
@@ -64,6 +72,7 @@ const ConsultantReserve = async ({ cid, collaboration }: Props) => {
         cid={cid}
         cost={cost}
         original={original}
+        durations={durations}
         user={user}
         packages={packages}
         consultant={info?.name}

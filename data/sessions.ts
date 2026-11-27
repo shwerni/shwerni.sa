@@ -12,6 +12,12 @@ import { checkMeetingTimeConflict } from "./order/reserveation";
 // lib
 import { notificationSessionConfirm } from "@/lib/notifications/site";
 
+// utils
+import { isMeetingDuration } from "@/utils/pricing";
+
+// constants
+import { PACKAGE_SESSION_MINUTES } from "@/constants/pricing";
+
 /**
  * a package / program order whose next session is being picked: what the pick checks (type,
  * payment, its meetings so far) and what the confirmation notice uses. null when missing
@@ -25,6 +31,7 @@ export const getOrderForNextSession = async (oid: number) =>
       consultantId: true,
       session: true,
       sessionCount: true,
+      packageId: true,
       name: true,
       phone: true,
       program: { select: { title: true } },
@@ -38,6 +45,21 @@ export const getOrderForNextSession = async (oid: number) =>
   });
 
 export type NextSessionOrder = NonNullable<Awaited<ReturnType<typeof getOrderForNextSession>>>;
+
+/**
+ * the next session's length: a package's sessions are always PACKAGE_SESSION_MINUTES (whatever its
+ * first meeting holds); a program's follow its first session. null when that isn't a whole, positive
+ * number of minutes, so no meeting is created with an empty length
+ * @param order the order (its packageId)
+ * @param firstDuration the first session's stored duration
+ */
+export const nextSessionDuration = (
+  order: { packageId: string | null },
+  firstDuration: string | null | undefined,
+): string | null => {
+  if (order.packageId) return String(PACKAGE_SESSION_MINUTES);
+  return isMeetingDuration(firstDuration) ? firstDuration : null;
+};
 
 /**
  * the picked session's meeting row, under the consultant's booking lock: the slot is checked
@@ -54,6 +76,9 @@ export const bookPickedMeeting = async (
   duration: string,
 ) =>
   prisma.$transaction(async (tx) => {
+    // never a meeting with an empty or non-numeric length
+    if (!isMeetingDuration(duration)) throw new Error(`invalid meeting duration "${duration}"`);
+
     await lockConsultantBookings(tx, order.consultantId);
 
     if (

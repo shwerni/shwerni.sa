@@ -40,11 +40,13 @@ import { CircleAlert, ChevronLeft, ChevronRight } from "lucide-react";
 // props
 interface Props {
   form: UseFormReturn<ReservationFormType>;
+  // the consultant's effective single-session lengths: the duration options
+  durations: number[];
   onNext: () => void;
   onBack: () => void;
 }
 
-export default function StepDetails({ form, onNext, onBack }: Props) {
+export default function StepDetails({ form, durations, onNext, onBack }: Props) {
   // form contorl
   const { control } = form;
 
@@ -156,8 +158,11 @@ export default function StepDetails({ form, onNext, onBack }: Props) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      <SelectItem value="30">30 دقيقة</SelectItem>
-                      <SelectItem value="60">60 دقيقة</SelectItem>
+                      {durations.map((minutes) => (
+                        <SelectItem key={minutes} value={String(minutes)}>
+                          {minutes} دقيقة
+                        </SelectItem>
+                      ))}
                     </SelectGroup>
                   </SelectContent>
                 </Select>

@@ -41,6 +41,7 @@ export async function BookingSection({ cid }: Props) {
       consultant={info.name}
       cost={pricing.cost}
       original={pricing.original}
+      durations={pricing.durations}
       discountedDurations={pricing.discount?.durations ?? []}
       unavailable={[...unavailable]}
       finance={finance}

@@ -52,6 +52,9 @@ export const defaultPricingSettings = (): PricingSettings => ({
 // every package session is this long (its price is the package's, not the consultant's per-duration price)
 export const PACKAGE_SESSION_MINUTES = 45;
 
+// the booking forms' preselected length (website, center panel, discover) when the consultant offers it
+export const DEFAULT_BOOKING_MINUTES = 30;
+
 // lengths the catalog must always hold: instant sessions and package sessions are fixed products
 export const REQUIRED_CATALOG_MINUTES: readonly number[] = [INSTANT_DURATION, PACKAGE_SESSION_MINUTES];
 

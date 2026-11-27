@@ -6,6 +6,7 @@ import {
   CATALOG_GUARD_MAX_MINUTES,
   CATALOG_MINUTES_MAX,
   CATALOG_MINUTES_MIN,
+  DEFAULT_BOOKING_MINUTES,
   LEGACY_COST_COLUMNS,
   PRICING_SETTING_KEYS,
   REQUIRED_CATALOG_MINUTES,
@@ -178,6 +179,21 @@ export function effectiveDurations(
   const own = [...new Set(override ?? [])].filter((minutes) => catalogEntryFor(settings, minutes));
   return (own.length > 0 ? own : [...settings.defaultDurations]).sort((a, b) => a - b);
 }
+
+/**
+ * the length a booking form preselects: DEFAULT_BOOKING_MINUTES (30) when the consultant offers it,
+ * else their first length. a string, as the forms hold it
+ * @param durations the consultant's effective lengths (sorted)
+ */
+export function defaultBookingDuration(durations: readonly number[]): string {
+  if (durations.includes(DEFAULT_BOOKING_MINUTES) || durations.length === 0)
+    return String(DEFAULT_BOOKING_MINUTES);
+  return String(durations[0]);
+}
+
+// a meeting's stored length: a whole, positive number of minutes ("30", "45"), never "" or "0"
+export const isMeetingDuration = (value: unknown): value is string =>
+  typeof value === "string" && /^[1-9]\d*$/.test(value);
 
 /**
  * the price form's schema for these lengths: one required price per length, keyed by its minutes

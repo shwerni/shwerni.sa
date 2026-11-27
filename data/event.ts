@@ -7,34 +7,57 @@ import { cacheLife, cacheTag } from "next/cache";
 import { connection } from "next/server";
 
 // data/pricing.ts
-type Costs = Record<30 | 45 | 60, number>;
+// prices by length in minutes ("30" → price)
+type Costs = Record<string, number>;
 
 type PricingResult = {
+  // the consultant's effective single-session lengths (what the booking forms offer)
+  durations: number[];
+  // the priced lengths, the campaign applied
   cost: Costs;
+  // the priced lengths before the campaign
   original: Costs;
+  // the campaign, with only the priced lengths it covers; null when it covers none of them
   discount: { did: number; label: string; durations: number[] } | null;
 };
 
 type ResolvedPrice = PricingResult | null;
 
+/**
+ * a consultant's prices: their effective lengths, plus `also` (fixed products and the length a quote
+ * prices, so step 3 refuses nothing: instant at 30, the package's 45, a requested length), each only
+ * when it has a price. the campaign applies to the lengths it covers among those
+ * @param also lengths to price besides the effective ones (never added to `durations`)
+ */
 export const resolveConsultantPricing = async (
   cid: number,
+  also: readonly number[] = [],
 ): Promise<ResolvedPrice> => {
   const base = await getConsultantCost(cid);
   if (!base) return null;
 
-  const rule = await getActiveDiscountFor(cid);
-  if (!rule) return { cost: base, original: base, discount: null };
+  const priced = [...new Set([...base.durations, ...also])]
+    .filter((minutes) => typeof base.costs[String(minutes)] === "number")
+    .sort((a, b) => a - b);
 
-  const cost: Costs = { ...base };
-  for (const d of rule.durations as (30 | 45 | 60)[]) {
-    cost[d] = applyRule(base[d], rule);
+  const original: Costs = {};
+  for (const minutes of priced) original[String(minutes)] = base.costs[String(minutes)];
+
+  const rule = await getActiveDiscountFor(cid);
+  const covered = rule ? priced.filter((minutes) => rule.durations.includes(minutes)) : [];
+  if (!rule || covered.length === 0)
+    return { durations: base.durations, cost: { ...original }, original, discount: null };
+
+  const cost: Costs = { ...original };
+  for (const minutes of covered) {
+    cost[String(minutes)] = applyRule(original[String(minutes)], rule);
   }
 
   return {
+    durations: base.durations,
     cost,
-    original: base,
-    discount: { did: rule.did, label: rule.name, durations: rule.durations },
+    original,
+    discount: { did: rule.did, label: rule.name, durations: covered },
   };
 };
 
