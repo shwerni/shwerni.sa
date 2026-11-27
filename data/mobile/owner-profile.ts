@@ -45,6 +45,9 @@ const profileSelect = {
   cost30: true,
   cost45: true,
   cost60: true,
+  // the price map and the length override (meta.pricing; never written from the app)
+  costs: true,
+  durations: true,
   created_at: true,
   bankAccount: { select: { holderName: true, iban: true, bankCode: true } },
 } as const;

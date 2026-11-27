@@ -9,7 +9,11 @@ import {
 
 // prisma data
 import { getOwnerbyAuthor } from "@/data/consultant";
-import { getConsultantsPackages } from "@/data/packages";
+import { basePriceFields, getConsultantsPackages } from "@/data/packages";
+import { getPricingSettings } from "@/data/admin/settings/pricing";
+
+// utils
+import { effectiveDurations, readCosts } from "@/utils/pricing";
 
 // lib
 import { userServer } from "@/lib/auth/server";
@@ -39,6 +43,15 @@ export default async function ConsultantPricingDashboard() {
   // map packages
   const packagesMap = new Map(packages.map((pkg) => [pkg.count, pkg]));
 
+  // the price fields: his own lengths (override, else the default), plus the package session
+  // length while he has an active package; minimums from the cached pricing settings
+  const settings = await getPricingSettings();
+  const durations = effectiveDurations(settings, consultant.durations);
+  const fields = basePriceFields(
+    durations,
+    packages.some((pkg) => pkg.isActive),
+  );
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       <div>
@@ -55,7 +68,12 @@ export default async function ConsultantPricingDashboard() {
         <h2 className="text-lg font-semibold mb-4 text-gray-800">
           أسعار الجلسات الأساسية
         </h2>
-        <BaseCostsForm consultant={consultant} />
+        <BaseCostsForm
+          settings={settings}
+          fields={fields}
+          durations={durations}
+          current={readCosts(consultant)}
+        />
       </section>
 
       {/* Packages Section */}

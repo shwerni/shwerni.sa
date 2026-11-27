@@ -15,31 +15,32 @@ import { Input } from "@/components/ui/input";
 import { FormSection } from "./form-section";
 
 // schema
+import { ProfileFormValues, type ProfilePricing } from "@/schemas/consultant/profile";
 
 // utils
 import { withTax } from "@/utils/tax";
+import {
+  belowMinimumWarning,
+  durationLabel,
+  minimumFor,
+  minimumLabel,
+} from "@/utils/pricing";
 
 // icons
 import { Wallet } from "lucide-react";
-import { ProfileFormValues } from "@/schemas/consultant/profile";
-
-// display-only minimums; the schema remains the source of truth
-const PRICE_FIELDS = [
-  { name: "cost30", label: "30 دقيقة", min: 120 },
-  { name: "cost45", label: "45 دقيقة", min: 155 },
-  { name: "cost60", label: "60 دقيقة", min: 175 },
-] as const;
 
 // props
 interface Props {
   disabled: boolean;
+  // the pricing settings, his own lengths and his stored prices (from the server page)
+  pricing: ProfilePricing;
 }
 
-// session prices per duration
-export function PricingSection({ disabled }: Props) {
+// session prices: one field per length he sells, with its minimum from the pricing settings
+export function PricingSection({ disabled, pricing }: Props) {
   const { control } = useFormContext<ProfileFormValues>();
   // live values so the final price updates while typing
-  const prices = useWatch({ control, name: ["cost30", "cost45", "cost60"] });
+  const prices = useWatch({ control, name: "costs" });
 
   return (
     <FormSection
@@ -48,23 +49,29 @@ export function PricingSection({ disabled }: Props) {
       description="بالريال السعودي، شاملة نسبة المنصة وغير شاملة الضريبة"
     >
       <div className="grid gap-4 sm:grid-cols-3">
-        {PRICE_FIELDS.map((price, index) => {
-          const value = Number(prices[index]) || 0;
+        {pricing.durations.map((minutes) => {
+          const key = String(minutes);
+          const min = minimumFor(pricing.settings, minutes) ?? 0;
+          const value = Number(prices?.[key]) || 0;
+          const stored = pricing.current?.[key];
+          // his stored price under today's minimum, still unchanged: kept, but he's asked to update it
+          const belowKept = stored !== undefined && stored < min && value === stored;
           return (
             <FormField
-              key={price.name}
+              key={key}
               control={control}
-              name={price.name}
+              name={`costs.${key}`}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{price.label}</FormLabel>
+                  <FormLabel>{durationLabel(minutes)}</FormLabel>
                   <div className="relative">
                     <FormControl>
                       <Input
                         {...field}
+                        value={field.value ?? ""}
                         type="number"
                         inputMode="decimal"
-                        min={price.min}
+                        min={min}
                         className="pe-12"
                         disabled={disabled}
                       />
@@ -73,11 +80,15 @@ export function PricingSection({ disabled }: Props) {
                       ر.س
                     </span>
                   </div>
-                  <FormDescription className="text-xs">
-                    {value > 0
-                      ? `يدفع العميل ${withTax(value).toFixed(2)} ر.س شامل الضريبة`
-                      : `الحد الأدنى ${price.min} ر.س`}
-                  </FormDescription>
+                  <FormDescription className="text-xs">{minimumLabel(min)}</FormDescription>
+                  {value > 0 && (
+                    <FormDescription className="text-xs">
+                      {`يدفع العميل ${withTax(value).toFixed(2)} ر.س شامل الضريبة`}
+                    </FormDescription>
+                  )}
+                  {belowKept && (
+                    <p className="text-xs text-amber-600">{belowMinimumWarning(min)}</p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

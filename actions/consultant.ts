@@ -81,13 +81,13 @@ export async function saveBankAccount(
   return saveBankAccountHandler(...args);
 }
 
-// own consultant only; the cid argument is ignored
+// own consultant only; the prices are checked on the server (his lengths, the minimums)
 export async function updateConsultantBaseCosts(
-  ...[, cost30, cost45, cost60]: Parameters<typeof updateConsultantBaseCostsData>
-) {
+  costs: Record<string, number>,
+): Promise<{ success: boolean; message?: string }> {
   const cid = await ownConsultantCid();
   if (!cid) return { success: false };
-  return updateConsultantBaseCostsData(cid, cost30, cost45, cost60);
+  return updateConsultantBaseCostsData(cid, costs);
 }
 
 // own consultant only; the consultantId argument is ignored

@@ -31,20 +31,33 @@ import {
 
 // schemas
 import { isCertAlwaysRequired, yearsToDate } from "@/schemas/consultant/profile";
-import {
-  MOBILE_MIN_COSTS,
-  createMobileProfileSchema,
-} from "@/schemas/mobile/owner-profile";
+import { createMobileProfileSchema, mobileCosts } from "@/schemas/mobile/owner-profile";
+
+// pricing
+import { getPricingSettings } from "@/data/admin/settings/pricing";
+import { durationLabel, effectiveDurations, minimumFor, readCosts } from "@/utils/pricing";
+import { PACKAGE_SESSION_MINUTES } from "@/constants/pricing";
 
 // prisma types
 import { ApprovalState } from "@/lib/generated/prisma/enums";
 import type { Consultant } from "@/lib/generated/prisma/client";
 
+// the pricing rules for the form: the catalog (each length's minimum, maximum and label), the
+// consultant's own lengths (the price fields), the package session length and their stored prices
+interface OwnerPricingMeta {
+  catalog: { minutes: number; min: number; max?: number; label: string }[];
+  durations: number[];
+  packageMinutes: number;
+  costs: Record<string, number>;
+}
+
 // form rules the app needs before it can validate
 interface OwnerProfileMeta {
   certAlwaysRequired: boolean;
   taxRate: number;
-  minCosts: typeof MOBILE_MIN_COSTS;
+  // the 30 / 45 / 60 minimums (from the pricing settings), the shape the app reads today
+  minCosts: { cost30: number; cost45: number; cost60: number };
+  pricing: OwnerPricingMeta;
 }
 
 interface OwnerProfileResponse {
@@ -115,9 +128,8 @@ async function save(
       title: input.title,
       category: input.category,
       gender: input.gender,
-      cost30: input.cost30,
-      cost45: input.cost45,
-      cost60: input.cost60,
+      // costs or the legacy cost30/45/60, as one map; the handler checks his own lengths only
+      costs: mobileCosts(input),
       nabout: input.nabout,
       neducation: input.neducation,
       nexperiences: input.nexperiences,
@@ -140,14 +152,39 @@ async function save(
 export const GET = createGetRoute<OwnerProfileResponse>(
   async (request: NextRequest) => {
     const user = await requireMobileOwner(request);
-    const row = await getOwnerProfileRow(user.id);
+    const [row, settings] = await Promise.all([
+      getOwnerProfileRow(user.id),
+      getPricingSettings(),
+    ]);
+
+    const durations = effectiveDurations(settings, row?.durations);
+    const costs = row ? readCosts(row) : {};
 
     return {
       profile: row ? toOwnerProfile(row) : null,
       meta: {
         certAlwaysRequired: certRule(row),
         taxRate: TAX_PERCENT,
-        minCosts: MOBILE_MIN_COSTS,
+        minCosts: {
+          cost30: minimumFor(settings, 30) ?? 0,
+          cost45: minimumFor(settings, 45) ?? 0,
+          cost60: minimumFor(settings, 60) ?? 0,
+        },
+        pricing: {
+          catalog: settings.catalog.map((entry) => ({
+            minutes: entry.minutes,
+            min: entry.min,
+            ...(entry.max !== undefined && { max: entry.max }),
+            label: durationLabel(entry.minutes),
+          })),
+          durations,
+          packageMinutes: PACKAGE_SESSION_MINUTES,
+          costs: Object.fromEntries(
+            durations
+              .filter((minutes) => typeof costs[String(minutes)] === "number")
+              .map((minutes) => [String(minutes), costs[String(minutes)]]),
+          ),
+        },
       },
     };
   },

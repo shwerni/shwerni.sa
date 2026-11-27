@@ -10,6 +10,10 @@ import { userServer } from "@/lib/auth/server";
 
 // data
 import { getBankAccountByAuthor, getOwnerbyAuthor } from "@/data/consultant";
+import { getPricingSettings } from "@/data/admin/settings/pricing";
+
+// utils
+import { effectiveDurations, readCosts } from "@/utils/pricing";
 
 export default async function Page() {
   // user
@@ -20,6 +24,14 @@ export default async function Page() {
   const consultant = await getOwnerbyAuthor(user.id);
   // get consultant bank
   const bankAccount = await getBankAccountByAuthor(user.id);
+  // the price fields: the cached pricing settings, his own lengths (override, else the default)
+  // and his stored prices
+  const settings = await getPricingSettings();
+  const pricing = {
+    settings,
+    durations: effectiveDurations(settings, consultant?.durations),
+    current: consultant ? readCosts(consultant) : null,
+  };
 
   // return
   return (
@@ -36,6 +48,7 @@ export default async function Page() {
         owner={consultant}
         phone={user.phone}
         bankAccount={bankAccount}
+        pricing={pricing}
       />
     </Section>
   );

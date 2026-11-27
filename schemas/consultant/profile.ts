@@ -14,6 +14,10 @@ import { BankAccount, Consultant } from "@/lib/generated/prisma/client";
 
 // lib
 import { formatIban } from "@/lib/api/gatewaies/iban";
+
+// pricing
+import { checkPrices } from "@/utils/pricing";
+import type { PricingSettings } from "@/constants/pricing";
 import { BankAccountSchema } from "./iban";
 
 // consultants created after this date must upload a license regardless of category
@@ -40,8 +44,20 @@ export const isCertRequired = (
   certAlwaysRequired ||
   (!!category && CERT_REQUIRED_CATEGORIES.includes(category));
 
-// profile form schema: server schema + uploads + seniority + bank, validated in one pass
-export const createProfileFormSchema = (certAlwaysRequired: boolean) =>
+// the price fields' rules, from the server page: the cached pricing settings, the consultant's own
+// lengths (his override, else the default) and his stored prices (null before he has a profile)
+export interface ProfilePricing {
+  settings: PricingSettings;
+  durations: number[];
+  current: Record<string, number> | null;
+}
+
+// profile form schema: server schema + uploads + seniority + bank, validated in one pass. the
+// prices follow checkPrices, the same rule the server applies
+export const createProfileFormSchema = (
+  certAlwaysRequired: boolean,
+  pricing: ProfilePricing,
+) =>
   ConsultantSchema.extend({
     // bank: holderName + iban (checksum and known-bank checks live in BankAccountSchema)
     ...BankAccountSchema.shape,
@@ -61,6 +77,17 @@ export const createProfileFormSchema = (certAlwaysRequired: boolean) =>
         path: ["cert"],
         message: "يرجى رفع شهادة مزاولة المهنة",
       });
+    }
+    const prices = checkPrices(
+      pricing.settings,
+      pricing.durations,
+      values.costs,
+      pricing.current,
+    );
+    if (!prices.ok) {
+      for (const [minutes, message] of Object.entries(prices.errors)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["costs", minutes], message });
+      }
     }
   });
 
@@ -96,6 +123,7 @@ export function yearsToDate(years: number) {
 export const getProfileFormDefaults = (
   owner: Consultant | null,
   bankAccount: BankAccount | null,
+  pricing: ProfilePricing,
 ): ProfileFormValues => ({
   // bank
   holderName: bankAccount?.holderName ?? "",
@@ -111,10 +139,10 @@ export const getProfileFormDefaults = (
   years: owner?.seniority ? dateToYears(new Date(owner.seniority)) : 1,
   neducation: owner?.neducation?.length ? owner.neducation : [""],
   nexperiences: owner?.nexperiences?.length ? owner.nexperiences : [""],
-  // pricing
-  cost30: owner?.cost30 ?? 0,
-  cost45: owner?.cost45 ?? 0,
-  cost60: owner?.cost60 ?? 0,
+  // pricing: one price per length he sells (his stored price, 0 before he enters one)
+  costs: Object.fromEntries(
+    pricing.durations.map((minutes) => [String(minutes), pricing.current?.[String(minutes)] ?? 0]),
+  ),
   // documents
   image: owner?.pendingImage ?? owner?.image ?? "",
   cv: owner?.cv ?? "",

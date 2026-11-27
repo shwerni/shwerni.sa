@@ -7250,3 +7250,89 @@ Plan: `docs/pricing-settings-plan.md`, step 4 (payment path).
 - The manifest check prints `data/admin/settings/pricing.ts`, `data/event.ts`, `lib/api/google.ts` (the updated CLAUDE.md list).
 
 **For the app session:** a duration the consultant doesn't sell is refused with 400 `{ error: "مدة الجلسة غير متاحة لهذا المستشار" }` on the quote and on create. Offer only `durations` from `reservation-info` (step 3).
+
+## Pricing step 5: minimum prices enforced on every save path (2026-11-27)
+
+Plan: `docs/pricing-settings-plan.md`, step 5. Pay is unchanged; it never checked minimums.
+
+**Data check (read-only, 704 consultants)**
+- **Platform, published + approved (349):** 12 below the minimum at 30, 12 at 45, 10 at 60. **15** have at least one price below, and **6** of those have active packages with a 45 price below 155.
+- **Platform, not published/approved (353):** 6 have a price below a minimum.
+- **Center (2):** none.
+- They keep their prices and only see the warning until they change them.
+
+```sql
+SELECT (c."centerId" IS NOT NULL) AS center,
+       (c.approved = 'APPROVED' AND c."statusA" = 'PUBLISHED') AS published_approved,
+       count(*) AS consultants,
+       count(*) FILTER (WHERE c.cost30 < 120) AS below30,
+       count(*) FILTER (WHERE c.cost45 < 155) AS below45,
+       count(*) FILTER (WHERE c.cost60 < 175) AS below60,
+       count(*) FILTER (WHERE c.cost30 < 120 OR c.cost45 < 155 OR c.cost60 < 175) AS any_below,
+       count(*) FILTER (WHERE c.cost45 < 155 AND EXISTS (
+         SELECT 1 FROM packages p WHERE p."consultantId" = c.cid AND p."isActive")) AS below45_with_packages
+FROM consultants c GROUP BY 1, 2 ORDER BY 1, 2;
+```
+
+**The rule:** `checkPrices` in `utils/pricing.ts`, the same function on the server and in the forms.
+- Every field needs a price.
+- A new or changed price must meet the catalog minimum (and maximum, when set) from the cached settings. The 119-for-120 bug is gone.
+- An unchanged stored price below the minimum is kept, doesn't block the save, and is flagged so the form shows "سعرك الحالي أقل من الحد الأدنى (١٢٠ ر.س)، برجاء تحديثه".
+- Lengths outside the fields are ignored.
+- Server message: "٣٠ دقيقة: يجب أن تكون التكلفة 120 على الأقل".
+- Also new:
+  - `arabicDigits` (a fixed digit map);
+  - `durationLabel` "٣٠ دقيقة";
+  - `minimumLabel` "الحد الأدنى ١٢٠ ر.س".
+
+**Save paths**
+- **Profile** (website `saveConsultant`, and the app's POST/PATCH through `saveConsultantKeepVisibility`): `handlers/conusltant/owner/profile.ts`.
+  - The fields are his effective lengths, from his override in the database and the cached settings.
+  - `ConsultantSchema` now carries a shape-only `costs` map, and `cost30/45/60` left it.
+- **Website form:**
+  - `dashboard/page.tsx` passes `{ settings, durations, current }`;
+  - `createProfileFormSchema(cert, pricing)` runs `checkPrices`;
+  - `PricingSection` builds one field per length with the Arabic label and always shows the minimum line under it. The with-tax preview stays, and the warning shows for an unchanged low price.
+- **App route:**
+  - the body accepts `costs` or the legacy `cost30/45/60` (`mobileCosts`); lengths outside his set are ignored;
+  - `MOBILE_MIN_COSTS` is removed: `meta.minCosts` (same shape) comes from the settings;
+  - new `meta.pricing { catalog [{minutes, min, max?, label}], durations, packageMinutes, costs }`.
+- **Packages page:**
+  - `updateConsultantBaseCosts(costs)` is checked on the server, closing the browser-only 100 minimum;
+  - the fields are his lengths, plus 45 while he has an active package (`basePriceFields`);
+  - the form labels 45 "سعر جلسة الباقة (٤٥ دقيقة)" when it isn't his length, and shows the minimum and the warning;
+  - failures return a message.
+- **Every path:**
+  - dual-write via `data/consultant-prices.ts`: the `costs` JSON merged, plus the columns for the saved lengths;
+  - **never `durations`**;
+  - purge via `lib/cache/consultant-pricing.ts`: `consultant:{cid}`, `consultants`, and `center-consultants:{ceid}` for a center consultant. Each is in a try/catch.
+- **New consultant:** columns for lengths he doesn't sell get the catalog minimum (cost45 = 155), since the columns are not null.
+
+**Decisions**
+- "Packages enabled" = at least one active package; there's no separate flag.
+- Every shown field is required.
+- The app keeps `meta.minCosts` for compatibility next to `meta.pricing`.
+
+**Verified**
+- tsc.
+- eslint on the changed files: no errors. One old warning in `actions/consultant.ts` (`_args`), already at HEAD.
+- `npm test` 98 of 98. New `tests/pricing/price-saving.test.ts` (22):
+  - `checkPrices`: refused below the minimum, accepted at it, unchanged low price kept, missing required, extra length ignored, max;
+  - website save and app PATCH: below the minimum refused with the message (app 400), nothing written; the minimum accepted;
+  - an unchanged low price doesn't block saving other fields;
+  - a client `durations` is ignored (not written; 45 outside his set not written);
+  - the 45 check applies under the override [30,45,60];
+  - dual-write (JSON merged + columns) and tags, including a center consultant's;
+  - a new consultant gets 45 at the catalog minimum;
+  - the app's legacy fields and `costs` map; GET meta from the settings;
+  - packages: 45 required and checked while packages are on, ignored when off; the old 100 refused; dual-write and purge; an unchanged low price doesn't block;
+  - the profile and packages forms rendered to HTML: fields per length, Arabic labels, the minimum line, the warning, the package session price.
+- **Mutations:**
+  - no keeping of unchanged prices → 3 failures;
+  - no server check on the packages save → 1.
+- `npm run build`; the manifest check prints the 3 listed entries.
+
+**For the app session:**
+- `GET owner/profile` → `meta.pricing` (catalog with labels, `durations`, `packageMinutes`, `costs`). `meta.minCosts` now comes from the settings.
+- POST/PATCH accept `costs` ("30" → price) or the legacy fields. A new price below the minimum is 400 with "<length>: يجب أن تكون التكلفة X على الأقل".
+- Build the price fields from `meta.pricing.durations`.

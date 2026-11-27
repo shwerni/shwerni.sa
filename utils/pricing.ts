@@ -268,3 +268,98 @@ export function toLegacyColumns(
   }
   return columns;
 }
+
+// ---------------------------------------------------------------
+// price saving: labels and the save rule (the forms and every save path)
+// ---------------------------------------------------------------
+
+// western digits → arabic-indic, from a fixed map (not toLocaleString), so the server and the browser
+// render the same text
+const ARABIC_DIGITS = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+export const arabicDigits = (value: number | string) =>
+  String(value).replace(/\d/g, (d) => ARABIC_DIGITS[Number(d)]);
+
+// a length's label: "٣٠ دقيقة"
+export const durationLabel = (minutes: number) => `${arabicDigits(minutes)} دقيقة`;
+
+// the line under a price field: "الحد الأدنى ١٢٠ ر.س"
+export const minimumLabel = (min: number) => `الحد الأدنى ${arabicDigits(min)} ر.س`;
+
+// the warning under a stored price below the minimum that the consultant hasn't changed
+export const belowMinimumWarning = (min: number) =>
+  `سعرك الحالي أقل من الحد الأدنى (${arabicDigits(min)} ر.س)، برجاء تحديثه`;
+
+// a missing price for a length the form edits
+const PRICE_REQUIRED = "السعر مطلوب";
+
+export type PriceCheck =
+  | {
+      ok: true;
+      // the prices to write: one per field, nothing else
+      costs: Record<string, number>;
+      // fields whose stored price is below the minimum and was kept unchanged (the form warns)
+      kept: number[];
+    }
+  | { ok: false; errors: Record<string, string> };
+
+/**
+ * the save rule for a consultant's prices. every field needs a price; a new or changed price must
+ * meet its catalog minimum (and maximum, when set); a stored price below the minimum that wasn't
+ * changed is kept and doesn't block the save. lengths outside `fields` are ignored (never written)
+ * @param fields the lengths the form edits (the server derives them from the database)
+ * @param submitted the prices sent ("30" → price)
+ * @param current the stored prices (readCosts), null for a new consultant
+ */
+export function checkPrices(
+  settings: PricingSettings,
+  fields: readonly number[],
+  submitted: Record<string, unknown>,
+  current: Record<string, number> | null,
+): PriceCheck {
+  const costs: Record<string, number> = {};
+  const kept: number[] = [];
+  const errors: Record<string, string> = {};
+  const changed: number[] = [];
+
+  for (const minutes of fields) {
+    const key = String(minutes);
+    const raw = submitted[key];
+    const value = raw === "" || raw === null || raw === undefined ? NaN : Number(raw);
+    if (!Number.isFinite(value)) {
+      errors[key] = PRICE_REQUIRED;
+      continue;
+    }
+    costs[key] = value;
+
+    const stored = current?.[key];
+    const min = minimumFor(settings, minutes);
+    if (stored !== undefined && value === stored) {
+      // unchanged: always kept; flagged when it's under today's minimum
+      if (min !== null && value < min) kept.push(minutes);
+    } else {
+      changed.push(minutes);
+    }
+  }
+
+  // the changed or new prices against the catalog (the minimum from the settings, never hard-coded)
+  const parsed = createCostsSchema(settings, changed).safeParse(
+    Object.fromEntries(changed.map((minutes) => [String(minutes), costs[String(minutes)]])),
+  );
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      const key = String(issue.path[0]);
+      errors[key] ??= issue.message;
+    }
+  }
+
+  return Object.keys(errors).length > 0 ? { ok: false, errors } : { ok: true, costs, kept };
+}
+
+/**
+ * the first error of a failed check as one message, with its length: "٣٠ دقيقة: …"
+ * @param errors checkPrices' errors
+ */
+export const firstPriceError = (errors: Record<string, string>) => {
+  const [key, message] = Object.entries(errors).sort(([a], [b]) => Number(a) - Number(b))[0];
+  return `${durationLabel(Number(key))}: ${message}`;
+};

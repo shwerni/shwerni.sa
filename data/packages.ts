@@ -24,6 +24,13 @@ import {
   escapeLike,
   normalizeArabic,
 } from "@/utils/arabic";
+import { checkPrices, effectiveDurations, firstPriceError, readCosts } from "@/utils/pricing";
+
+// pricing
+import { getPricingSettings } from "@/data/admin/settings/pricing";
+import { consultantPriceData } from "@/data/consultant-prices";
+import { purgeConsultantPricing } from "@/lib/cache/consultant-pricing";
+import { PACKAGE_SESSION_MINUTES } from "@/constants/pricing";
 
 // get consultant packages
 export async function getConsultantsPackages(
@@ -40,24 +47,58 @@ export async function getConsultantsPackages(
   });
 }
 
+// the packages page's price fields: the consultant's own single-session lengths, plus the package
+// session length (45) while he has an active package, even when it isn't one of his lengths
+export const basePriceFields = (durations: readonly number[], packagesEnabled: boolean) =>
+  [...new Set([...durations, ...(packagesEnabled ? [PACKAGE_SESSION_MINUTES] : [])])].sort(
+    (a, b) => a - b,
+  );
+
+/**
+ * the packages page's price save, checked on the server: the fields come from the database (his
+ * override and his active packages), each price by checkPrices against the cached settings (a new
+ * or changed price meets its minimum; an unchanged low one is kept). costs json + columns, then
+ * the price caches are purged. never Consultant.durations
+ * @param cid the own consultant (from the action's session)
+ * @param submitted the prices sent ("30" → price)
+ */
 export async function updateConsultantBaseCosts(
   cid: number,
-  cost30: number,
-  cost45: number,
-  cost60: number,
-) {
+  submitted: Record<string, unknown>,
+): Promise<{ success: boolean; message?: string }> {
   try {
+    const [consultant, settings] = await Promise.all([
+      prisma.consultant.findUnique({
+        where: { cid },
+        select: {
+          cost30: true,
+          cost45: true,
+          cost60: true,
+          costs: true,
+          durations: true,
+          centerId: true,
+          packages: { where: { isActive: true }, select: { id: true }, take: 1 },
+        },
+      }),
+      getPricingSettings(),
+    ]);
+    if (!consultant) return { success: false };
+
+    const fields = basePriceFields(
+      effectiveDurations(settings, consultant.durations),
+      consultant.packages.length > 0,
+    );
+    const prices = checkPrices(settings, fields, submitted, readCosts(consultant));
+    if (!prices.ok) return { success: false, message: firstPriceError(prices.errors) };
+
     await prisma.consultant.update({
       where: { cid },
-      data: {
-        cost30,
-        cost45,
-        cost60,
-      },
+      data: consultantPriceData(consultant.costs, prices.costs),
     });
 
     // Refresh the page data
     revalidatePath("/dashboard/consultant");
+    purgeConsultantPricing(cid, consultant.centerId);
     return { success: true };
   } catch {
     return { success: false };

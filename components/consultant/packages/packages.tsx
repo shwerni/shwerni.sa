@@ -2,8 +2,18 @@
 // React & Next
 import React from "react";
 
-// prisma types
-import { Consultant } from "@/lib/generated/prisma/client";
+// utils
+import {
+  belowMinimumWarning,
+  checkPrices,
+  durationLabel,
+  firstPriceError,
+  minimumFor,
+  minimumLabel,
+} from "@/utils/pricing";
+
+// constants
+import { PACKAGE_SESSION_MINUTES, type PricingSettings } from "@/constants/pricing";
 
 // prisma data
 import {
@@ -11,33 +21,37 @@ import {
   upsertConsultantPackage,
 } from "@/actions/consultant";
 
-export function BaseCostsForm({ consultant }: { consultant: Consultant }) {
+// the packages page's price fields (from the server page): the pricing settings, the lengths shown
+// (his own lengths, plus 45 while he has an active package), his own lengths and his stored prices
+interface BaseCostsProps {
+  settings: PricingSettings;
+  fields: number[];
+  durations: number[];
+  current: Record<string, number>;
+}
+
+export function BaseCostsForm({ settings, fields, durations, current }: BaseCostsProps) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
-  const [costs, setCosts] = React.useState({
-    cost30: consultant.cost30,
-    cost45: consultant.cost45,
-    cost60: consultant.cost60,
-  });
+  const [costs, setCosts] = React.useState<Record<string, number | "">>(() =>
+    Object.fromEntries(fields.map((minutes) => [String(minutes), current[String(minutes)] ?? ""])),
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validation: Check if any cost is less than 100
-    if (costs.cost30 < 100 || costs.cost45 < 100 || costs.cost60 < 100) {
-      setError("يجب أن تكون جميع الأسعار 100 على الأقل.");
+
+    // the same rule as the server (the minimums from the pricing settings)
+    const check = checkPrices(settings, fields, costs, current);
+    if (!check.ok) {
+      setError(firstPriceError(check.errors));
       return;
     }
-    
+
     setError("");
     setLoading(true);
-    await updateConsultantBaseCosts(
-      consultant.cid,
-      costs.cost30,
-      costs.cost45,
-      costs.cost60,
-    );
+    const result = await updateConsultantBaseCosts(check.costs);
     setLoading(false);
+    if (!result.success) setError(result.message ?? "حدث خطأ ما برجاء المحاولة مرة اخري");
   };
 
   return (
@@ -46,51 +60,43 @@ export function BaseCostsForm({ consultant }: { consultant: Consultant }) {
       className="flex flex-col gap-4"
     >
       <div className="flex flex-col sm:flex-row gap-4 items-end w-full">
-        <div className="flex-1 w-full">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            30 دقيقة
-          </label>
-          <input
-            type="number"
-            min={100}
-            value={costs.cost30}
-            onChange={(e) =>
-              setCosts({ ...costs, cost30: Number(e.target.value) })
-            }
-            className="w-full p-2 border rounded-md outline-none focus:border-theme-700"
-            required
-          />
-        </div>
-        <div className="flex-1 w-full">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            45 دقيقة
-          </label>
-          <input
-            type="number"
-            min={100}
-            value={costs.cost45}
-            onChange={(e) =>
-              setCosts({ ...costs, cost45: Number(e.target.value) })
-            }
-            className="w-full p-2 border rounded-md outline-none focus:border-theme-700"
-            required
-          />
-        </div>
-        <div className="flex-1 w-full">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            60 دقيقة
-          </label>
-          <input
-            type="number"
-            min={100}
-            value={costs.cost60}
-            onChange={(e) =>
-              setCosts({ ...costs, cost60: Number(e.target.value) })
-            }
-            className="w-full p-2 border rounded-md outline-none focus:border-theme-700"
-            required
-          />
-        </div>
+        {fields.map((minutes) => {
+          const key = String(minutes);
+          const min = minimumFor(settings, minutes) ?? 0;
+          const value = costs[key];
+          const stored = current[key];
+          // his stored price under today's minimum, still unchanged: kept, but he's asked to update it
+          const belowKept = stored !== undefined && stored < min && value === stored;
+          // 45 shown only for his packages: the package session price
+          const label =
+            minutes === PACKAGE_SESSION_MINUTES && !durations.includes(minutes)
+              ? `سعر جلسة الباقة (${durationLabel(minutes)})`
+              : durationLabel(minutes);
+          return (
+            <div key={key} className="flex-1 w-full">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {label}
+              </label>
+              <input
+                type="number"
+                min={min}
+                value={value}
+                onChange={(e) =>
+                  setCosts({
+                    ...costs,
+                    [key]: e.target.value === "" ? "" : Number(e.target.value),
+                  })
+                }
+                className="w-full p-2 border rounded-md outline-none focus:border-theme-700"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">{minimumLabel(min)}</p>
+              {belowKept && (
+                <p className="text-xs text-amber-600 mt-1">{belowMinimumWarning(min)}</p>
+              )}
+            </div>
+          );
+        })}
         <button
           type="submit"
           disabled={loading}

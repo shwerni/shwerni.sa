@@ -34,18 +34,10 @@ export const ConsultantSchema = z.object({
   gender: z.nativeEnum(Gender, {
     required_error: "خلل في اختيار الفئة",
   }),
-  // cost 30
-  cost30: z.coerce.number().positive().safe().min(119, {
-    message: "يجب أن تكون التكلفة 120 على الأقل",
-  }),
-  // cost 45
-  cost45: z.coerce.number().positive().safe().min(154, {
-    message: "يجب أن تكون التكلفة 155 على الأقل",
-  }),
-  // cost 60
-  cost60: z.coerce.number().positive().safe().min(174, {
-    message: "يجب أن تكون التكلفة 175 على الأقل",
-  }),
+  // prices by length ("30" → price): the shape only. the rules (each of the consultant's own
+  // lengths, the catalog's minimum for a new or changed price) are checkPrices (utils/pricing.ts),
+  // run with the consultant's override and stored prices read from the database
+  costs: z.record(z.string(), z.coerce.number()),
 
   // new data
   nabout: z.string().max(150, "النبذة القصيرة لا تتجاوز 150 حرف").optional(),

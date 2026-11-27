@@ -19,6 +19,18 @@ import { BankAccountSchema } from "@/schemas/consultant/iban";
 import { CheckIsBlocked } from "@/data/blocked";
 import { getOwnerbyAuthor } from "@/data/consultant";
 import { getTaxCommission } from "@/data/admin/settings/finance";
+import { getPricingSettings } from "@/data/admin/settings/pricing";
+import { consultantPriceData } from "@/data/consultant-prices";
+
+// utils
+import {
+  checkPrices,
+  effectiveDurations,
+  firstPriceError,
+  minimumFor,
+  readCosts,
+} from "@/utils/pricing";
+import { purgeConsultantPricing } from "@/lib/cache/consultant-pricing";
 
 // lib
 import prisma from "@/lib/database/db";
@@ -74,6 +86,19 @@ const saveConsultantProfile = async (
     // get consultant if exist
     const consultant = await getOwnerbyAuthor(author);
 
+    // prices: the consultant's own lengths (their override from the database, never the client's)
+    // against the cached settings. a new or changed price must meet its minimum; a stored price
+    // below it that wasn't changed is kept. lengths outside the set are ignored
+    const settings = await getPricingSettings();
+    const fields = effectiveDurations(settings, consultant?.durations);
+    const prices = checkPrices(
+      settings,
+      fields,
+      profile.costs,
+      consultant ? readCosts(consultant) : null,
+    );
+    if (!prices.ok) return { state: false, message: firstPriceError(prices.errors) };
+
     // if not exist: create consultant + bank account together
     if (!consultant) {
       const newOwner = await prisma.$transaction(async (tx) => {
@@ -91,9 +116,12 @@ const saveConsultantProfile = async (
             cv,
             edu,
             cert,
-            cost30: profile.cost30,
-            cost45: profile.cost45,
-            cost60: profile.cost60,
+            // the columns are not null: a length outside his set gets its catalog minimum (not
+            // bookable, not shown); the costs json holds only his own prices
+            cost30: minimumFor(settings, 30) ?? 0,
+            cost45: minimumFor(settings, 45) ?? 0,
+            cost60: minimumFor(settings, 60) ?? 0,
+            ...consultantPriceData(null, prices.costs),
             commission: taxCommission?.commission,
             nabout,
             nexperiences,
@@ -109,6 +137,9 @@ const saveConsultantProfile = async (
 
         return created;
       });
+
+      // the cached reads that show his prices
+      purgeConsultantPricing(newOwner.cid, newOwner.centerId);
 
       // send notifications
       await sendReviewerNotification(newOwner);
@@ -157,9 +188,8 @@ const saveConsultantProfile = async (
           edu,
           cert,
           category: profile.category,
-          cost30: profile.cost30,
-          cost45: profile.cost45,
-          cost60: profile.cost60,
+          // costs json + the cost30/45/60 columns of the lengths saved (never durations)
+          ...consultantPriceData(consultant.costs, prices.costs),
           adminNote: "",
           nabout,
           nexperiences,
@@ -177,6 +207,9 @@ const saveConsultantProfile = async (
 
       return updated;
     });
+
+    // the cached reads that show his prices
+    purgeConsultantPricing(sdata.cid, sdata.centerId);
 
     // return
     return {

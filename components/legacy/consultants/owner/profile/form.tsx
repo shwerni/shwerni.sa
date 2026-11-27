@@ -32,6 +32,7 @@ import {
   isCertAlwaysRequired,
   yearsToDate,
   type DocumentField,
+  type ProfilePricing,
   type ProfileFormValues,
 } from "@/schemas/consultant/profile";
 
@@ -45,6 +46,8 @@ interface Props {
   owner: Consultant | null;
   phone: string;
   bankAccount: BankAccount | null;
+  // the price fields' rules: the pricing settings, his own lengths and stored prices
+  pricing: ProfilePricing;
 }
 
 // consultant profile form
@@ -53,6 +56,7 @@ export default function CoProfileForm({
   owner,
   phone,
   bankAccount,
+  pricing,
 }: Props) {
   // loading submit
   const [isSending, startSending] = React.useTransition();
@@ -76,14 +80,14 @@ export default function CoProfileForm({
   // schema depends on whether the license is required for this owner
   const certAlwaysRequired = isCertAlwaysRequired(owner);
   const schema = React.useMemo(
-    () => createProfileFormSchema(certAlwaysRequired),
-    [certAlwaysRequired],
+    () => createProfileFormSchema(certAlwaysRequired, pricing),
+    [certAlwaysRequired, pricing],
   );
 
   // form
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: getProfileFormDefaults(owner, bankAccount),
+    defaultValues: getProfileFormDefaults(owner, bankAccount, pricing),
     mode: "onTouched",
   });
 
@@ -150,7 +154,7 @@ export default function CoProfileForm({
         >
           <BasicInfoSection disabled={isSending} />
           <ExpertiseSection disabled={isSending} />
-          <PricingSection disabled={isSending} />
+          <PricingSection disabled={isSending} pricing={pricing} />
           <DocumentsSection
             author={author}
             disabled={isSending}
