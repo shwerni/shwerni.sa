@@ -38,7 +38,8 @@ const QuoteSchema = z
   .object({
     order: z.enum(["consultant", "instant", "program"]),
     cid: z.number().int().positive(),
-    duration: z.union([z.literal(30), z.literal(45), z.literal(60)]).optional(),
+    // minutes; quoteBooking decides whether the consultant offers it (failure "duration" → 400)
+    duration: z.number().int().positive().optional(),
     package: z.string().trim().min(1).max(64).optional(),
     prid: z.number().int().positive().optional(),
     couponCode: z.string().trim().min(1).max(32).optional(),
@@ -52,6 +53,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 
 // quoteBooking's failures as the app's errors
 const failureStatus: Record<string, number> = {
+  duration: 400,
   package: 404,
   pricing: 404,
   program: 404,

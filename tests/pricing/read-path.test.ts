@@ -201,7 +201,7 @@ describe("resolveConsultantPricing", () => {
   });
 });
 
-describe("quoteBooking (no refusals in step 3, prices unchanged)", () => {
+describe("quoteBooking (prices unchanged)", () => {
   test("30 and 60 cost what they did", async () => {
     for (const [duration, base] of [["30", 150], ["60", 250]] as const) {
       const q = await quoteBooking({ order: "consultant", cid: 7, duration });
@@ -210,10 +210,10 @@ describe("quoteBooking (no refusals in step 3, prices unchanged)", () => {
     }
   });
 
-  test("a 45 single session for a [30, 60] consultant is still priced from cost45", async () => {
+  test("step 4: a 45 single session for a [30, 60] consultant is refused (step 3 still priced it)", async () => {
     const q = await quoteBooking({ order: "consultant", cid: 7, duration: "45" });
-    assert.equal(q.state, true);
-    assert.equal(q.base, 200);
+    assert.equal(q.state, false);
+    assert.equal(q.step, "duration");
   });
 
   test("instant is priced at 30 even under an override without 30", async () => {

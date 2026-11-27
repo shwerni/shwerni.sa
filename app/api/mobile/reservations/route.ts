@@ -44,7 +44,8 @@ const ScheduledSchema = z
     cid: z.number().int().positive(),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-    duration: z.union([z.literal(30), z.literal(45), z.literal(60)]).optional(),
+    // minutes; quoteBooking decides whether the consultant offers it (failure "duration" → 400)
+    duration: z.number().int().positive().optional(),
     package: z.string().trim().min(1).max(64).optional(),
     name: schemas.name,
     phone: schemas.phone,
@@ -58,6 +59,7 @@ const ScheduledSchema = z
 
 // quoteBooking's and reserveConsultant's failures as the app's errors
 const failureStatus: Record<string, number> = {
+  duration: 400,
   blocked: 403,
   coupon: 409,
   package: 404,

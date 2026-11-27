@@ -7204,3 +7204,49 @@ ORDER BY o.created_at;
   - program guard off → 1.
 - `npm run build`.
 - The manifest check now prints **three** `"use cache"` registrations (`$$RSC_SERVER_CACHE_0`, none a Server Action): `data/event.ts`, `lib/api/google.ts` and `data/admin/settings/pricing.ts`. The pricing getter is now reached from pages. CLAUDE.md's expected list needs this third line.
+
+## Pricing step 4: booking refuses durations outside the consultant's set (2026-11-27)
+
+Plan: `docs/pricing-settings-plan.md`, step 4 (payment path).
+
+**Blocker resolved:** Ziad's data check (read-only, last 6 months) found no paid 45-minute single session, so no consultant needs an override before this ships. Everyone's set is the default [30, 60]; 45 stays for packages.
+
+**Change**
+- `quoteBooking`, single session: refuses a length outside the consultant's effective set with failure step `"duration"`, "مدة الجلسة غير متاحة لهذا المستشار" (`DURATION_NOT_OFFERED`). Step 3's allowance (`also: [Number(duration)]`) is gone.
+- **Pay** returns the failure as is; every website form already shows `result.message` in a toast. **The app:** the quote and create routes map `"duration"` → **400** `{ error: message }`.
+- **App zod:** `duration` is a positive whole number (was `30|45|60`) in `POST reservations/quote` and `POST reservations`. `reservationSchema`'s refine accepts any positive whole number of minutes; the quote decides.
+- **The catalog guard** (no length over 60 until real-overlap booking ships) stays, so no catalog length can be over 60.
+
+**Every flow through quoteBooking, and the fixed products beside it**
+
+| flow | behaviour |
+|---|---|
+| website Pay, single session (consultant form, center panel, discover) | checked |
+| website Pay, package | always 45 at the package's price, never checked |
+| website Pay, instant / app instant / `getInstantPrice` | INSTANT_DURATION (30), priced even when 30 isn't in an override, never checked |
+| website Pay, program | its own price and duration, never checked |
+| coupon preview (`applyCoupon` action) | runs quoteBooking: the same refusal message |
+| app `POST reservations/quote` | checked for `order: "consultant"` without a package → 400 |
+| app `POST reservations` | checked for a single session → 400; packages unchanged |
+| pleading (`PayPleading`), reconciliation (`PayReconciliation`) | don't call quoteBooking: fixed 60 at their own price, unchanged |
+| marriage awareness form | not mounted (its page import is commented out); it would book 60, which every set holds |
+
+**Verified**
+- tsc; eslint on the changed files (clean).
+- `npm test` 76 of 76. New `tests/pricing/booking-enforcement.test.ts` (14): the real Pay / PayPleading / PayReconciliation, quoteBooking, reserveConsultant, reserveProgram and the app routes (through their app-secret check). The database, settings, gateways and side effects are recorders:
+  - 30 and 60 charge what they did (the Pay baseline: withTax(150), withTax(250));
+  - 45 for a [30, 60] consultant → refused with the message on website Pay, the app quote (400) and app create (400); nothing created or charged;
+  - 45 with the override [30, 45, 60] works (cost45, stored 45); an override without 30 refuses 30;
+  - the app takes any positive whole number (90 reaches the quote and is refused there); 0 and 30.5 → 400 bad input;
+  - the coupon preview gets the same refusal;
+  - unaffected:
+    - instant: 30 under an override [45, 60], on website Pay, the app quote and the instant price;
+    - package: stored 45 for a [30, 60] consultant, website and app;
+    - program: 90 minutes at its price;
+    - pleading and reconciliation: 60 at their prices, for a [30, 45] consultant too.
+- **Mutation:** the duration check off → 5 failures.
+- `tests/pricing/read-path.test.ts`: step 3's "45 still priced" test now expects the refusal. `tests/coupon/checkout.test.ts`: its pricing stub returns `durations` [30, 60].
+- `npm run build`.
+- The manifest check prints `data/admin/settings/pricing.ts`, `data/event.ts`, `lib/api/google.ts` (the updated CLAUDE.md list).
+
+**For the app session:** a duration the consultant doesn't sell is refused with 400 `{ error: "مدة الجلسة غير متاحة لهذا المستشار" }` on the quote and on create. Offer only `durations` from `reservation-info` (step 3).

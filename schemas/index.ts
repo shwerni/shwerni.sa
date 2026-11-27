@@ -266,10 +266,11 @@ export const reservationSchema = z
       })
       .min(1, "الوقت مطلوب"),
     // step 2
+    // any whole, positive number of minutes; quoteBooking decides whether the consultant offers it
     duration: z
       .string()
       .default("30")
-      .refine((v) => ["30", "45", "60"].includes(v), {
+      .refine((v) => /^[1-9]\d*$/.test(v), {
         message: "مدة غير صالحة",
       }),
 

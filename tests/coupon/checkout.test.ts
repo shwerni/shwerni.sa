@@ -117,6 +117,8 @@ stubModule("@/lib/database/db", { __esModule: true, default: db, prismaAll: db }
 
 stubModule("@/data/event", {
   resolveConsultantPricing: async () => ({
+    // the consultant's effective lengths (the platform default); quoteBooking refuses others
+    durations: [30, 60],
     cost: Object.fromEntries(
       Object.entries(COST).map(([d, c]) => [
         d,

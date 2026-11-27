@@ -39,6 +39,9 @@ export interface BookingQuoteOptions {
   strictCoupon?: boolean;
 }
 
+// a single-session length outside the consultant's effective set (failure step "duration")
+export const DURATION_NOT_OFFERED = "مدة الجلسة غير متاحة لهذا المستشار";
+
 export interface BookingQuoteFailure {
   state: false;
   step: string;
@@ -64,7 +67,8 @@ export interface BookingQuote {
  * the price of a booking, all on the server: the website's Pay, its coupon preview, the app's
  * quote and the app's create routes all call it, so they can't differ. block check (with a
  * phone), finance config, the base price (a package's flat cost; else resolveConsultantPricing,
- * the campaign applied; instant at INSTANT_DURATION; a published program's price), the coupon
+ * the campaign applied, a single session only in the consultant's effective lengths (failure step
+ * "duration"); instant at INSTANT_DURATION; a published program's price), the coupon
  * (validateCoupon: single and instant sessions only, never on a campaign price), calculatePayment
  * and withTax. nothing created
  * @param data the booking's choices
@@ -123,19 +127,20 @@ export async function quoteBooking(
 
       baseCost = pkg.cost;
     } else {
-      // the requested length is priced even outside the effective set (no refusal before
-      // pricing step 4), from the same prices as before
       const minutes = Number(data.duration);
-      const pricing = await resolveConsultantPricing(
-        data.cid,
-        Number.isInteger(minutes) ? [minutes] : [],
-      );
+      const pricing = await resolveConsultantPricing(data.cid);
       if (!pricing) {
         return {
           state: false,
           step: "pricing",
           message: "تعذّر تحديد سعر الجلسة، برجاء المحاولة لاحقاً",
         };
+      }
+
+      // a single session only in one of the consultant's lengths (their override, else the
+      // platform default). packages, instant, pleading, reconciliation and programs never get here
+      if (!pricing.durations.includes(minutes)) {
+        return { state: false, step: "duration", message: DURATION_NOT_OFFERED };
       }
 
       baseCost = pricing.cost[String(minutes)];
